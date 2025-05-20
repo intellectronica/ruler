@@ -4,7 +4,7 @@ This document outlines the steps to implement Version 1.0 of the Ruler applicati
 
 ## Phase 0: Project Setup & Initial Tooling
 
-* **Task 0.1:** Initialize GitHub Repository
+* DONE **Task 0.1:** Initialize GitHub Repository
     * Create a new public repository on GitHub (e.g., `intellectronica/ruler`).
     * Add a `.gitignore` file (Node.js template).
     * Add a `LICENSE` file (e.g., MIT).
