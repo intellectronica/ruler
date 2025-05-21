@@ -107,28 +107,63 @@ For each agent (GitHub Copilot, Claude Code, OpenAI Codex CLI, Cursor, Windsurf,
 
 * **Task 2.X.1: Confirm Configuration Strategy & Path**
     * Verify the method of applying rules (direct file write vs. generated MD file for reference).
-    * Confirm target file paths (e.g., `PROJECT_ROOT/AGENTS.md` for Codex CLI, `PROJECT_ROOT/.ruler/generated/<agent>_instructions.md` for others).
+    * Confirm target file paths for each agent as follows:
+        * **GitHub Copilot:** `<repo root>/.github/copilot-instructions.md`
+        * **Claude Code:** `<repo root>/CLAUDE.md`
+        * **OpenAI Codex CLI:** `<repo root>/AGENTS.md` (Codex merges `AGENTS.md` files top-down: `~/.codex/AGENTS.md` (user-wide), `<repo root>/AGENTS.md` (project-shared), `<cwd>/AGENTS.md` (feature-specific). Project-level `AGENTS.md` is the main target for Ruler. Codex also supports per-project config in `<repo>/.codex/config.json` or `config.yaml`.)
+        * **Cursor:** `<repo root>/.cursor/rules/ruler_cursor_instructions.md`
+        * **Windsurf:** `<repo root>/.windsurf/rules/ruler_windsurf_instructions.md`
+        * **Cline:** `<repo root>/.clinerules`
+        * **Aider:** `<repo root>/ruler_aider_instructions.md` and update `<repo root>/.aider.conf.yml` to include this file in the `read:` section.
 * **Task 2.X.2: Implement `AgentNameAgent.ts` (`src/agents/`)**
     * Create a class (e.g., `CodexCliAgent`) implementing `IAgent`.
     * `getName()`: returns agent's name (e.g., "OpenAI Codex CLI").
     * `applyRulerConfig(concatenatedRules: string, projectRoot: string)`:
-        * Construct the target path for the rules.
-        * For direct writes (Codex CLI):
-            * Backup existing file if it exists.
-            * Write `concatenatedRules` to the target file.
-        * For generated files:
-            * Ensure `/.ruler/generated/` exists.
-            * Write `concatenatedRules` to `/.ruler/generated/<agent_name>_instructions.md`.
+        * Construct the target path for the rules as per the agent's requirements.
+        * For each agent:
+            * **GitHub Copilot:** Write to `.github/copilot-instructions.md` (create `.github` if needed). Backup existing file as `.bak` before overwrite.
+            * **Claude Code:** Write to `CLAUDE.md` at repo root. Backup as `.bak` if exists.
+            * **OpenAI Codex CLI:** Write to `AGENTS.md` at repo root. Backup as `.bak` if exists. (Codex will merge this with any user/global `AGENTS.md` files. Project-level config can also be set in `.codex/config.json` or `.codex/config.yaml` for model, provider, approvalMode, and `safeCommands` auto-approve list. Do not commit secrets or user-level config.)
+            * **Cursor:** Write to `.cursor/rules/ruler_cursor_instructions.md` (create dirs if needed). Backup as `.bak` if exists.
+            * **Windsurf:** Write to `.windsurf/rules/ruler_windsurf_instructions.md` (create dirs if needed). Backup as `.bak` if exists.
+            * **Cline:** Write to `.clinerules` at repo root. Backup as `.bak` if exists.
+            * **Aider:** 
+                * Write to `ruler_aider_instructions.md` at repo root.
+                * Backup as `.bak` if exists.
+                * Update `.aider.conf.yml` at repo root:
+                    * If exists, backup as `.bak`, parse YAML, ensure `read:` is a list and includes `ruler_aider_instructions.md`, write back.
+                    * If not exists, create with `read:` key listing `ruler_aider_instructions.md`.
         * Log actions taken.
 * **Task 2.X.3: Unit Tests for `AgentNameAgent`**
     * Mock file system interactions (`fs`).
     * Verify correct file paths are determined.
     * Verify correct content is written.
     * Verify backup mechanism if applicable.
+    * For Aider, verify YAML parsing and updating logic.
 
 **Agent-Specific Notes:**
-* **OpenAI Codex CLI:** Implement logic to write to `<repo root>/AGENTS.md`. Ensure backup of original.
-* **Others (Copilot, Claude, Cursor, Windsurf, Cline, Aider):** Implement logic to write to `/.ruler/generated/<agent_name>_instructions.md`.
+* **GitHub Copilot:** `.github/copilot-instructions.md` (with backup).
+* **Claude Code:** `CLAUDE.md` at root (with backup).
+* **OpenAI Codex CLI:** `AGENTS.md` at root (with backup). Codex merges `AGENTS.md` files from user, project, and cwd. Project-level config can be set in `.codex/config.json` or `.codex/config.yaml` (model, provider, approvalMode, `safeCommands`, etc.). Do not commit secrets or user-level config.
+* **Cursor:** `.cursor/rules/ruler_cursor_instructions.md` (with backup).
+* **Windsurf:** `.windsurf/rules/ruler_windsurf_instructions.md` (with backup).
+* **Cline:** `.clinerules` at root (with backup).
+* **Aider:** `ruler_aider_instructions.md` at root (with backup) and update `.aider.conf.yml` as described above.
+
+### Summary Table: Key Config Points
+
+| **AI Agent**            | **Project Instructions File**                                                                                 | **Local Config Path**                                         | **Format**                                 | **MCP/Tools**                                                        | **VC Friendly?**                                                    |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------ | -------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| **Claude Code**         | `CLAUDE.md` (root or nested dirs); optional `CLAUDE.local.md` (ignored)                                       | `~/.claude/settings.json`; `<repo>/.claude/…`                 | Markdown (instructions); JSON (settings)   | Yes – built-in tools (Shell, Git, Web); MCP support for custom tools | **Yes** (commit `CLAUDE.md` & `.claude/settings.json`)              |
+| **OpenAI Codex CLI**    | `AGENTS.md` (repo root or sub-folder) + optional `~/.codex/AGENTS.md` (global)                                | `~/.codex/config.json` or `config.yaml` (YAML/JSON); per-project overrides in `<repo>/.codex/`; supports `safeCommands` auto-approve list | Native sandboxed file-edit & shell exec; no built-in MCP, but community wrapper **codexMCP** exists     | **Yes** (commit project `AGENTS.md` and any repo-local `.codex/config.*`; exclude secrets) |
+| **GH Copilot (VSCode)** | `.github/copilot-instructions.md` (repo root); also `.github/instructions/*.instructions.md` for scoped rules | User-level: stored in cloud profile (for global instructions) | Markdown                                   | No (code completion only)                                            | **Yes** (commit `.github/*instructions*.md`)                        |
+| **Cursor**              | `.cursor/rules/*.md` files in project (formerly `.cursorrules`)                                               | global user rules in app settings                             | Markdown                                   | Yes – MCP plugin system                                              | **Yes** (commit `.cursor/rules/`)                                   |
+| **Windsurf (Codeium)**  | `.windsurf/rules/*.md` files (Wave 8+ updates); or legacy `.windsurfrules`                                    | global rules via UI (not file-based)                          | Markdown                                   | Yes – MCP (built-in & custom)                                        | **Yes** (commit rules files)                                        |
+| **Cline (VSCode)**      | `.clinerules` file at repo root                                                                               | VSCode settings for global prefs                              | Text/Markdown                              | Yes – can execute commands, browser, MCP                             | **Yes** (commit `.clinerules`)                                      |
+| **Aider (CLI)**         | define `read:` files in `.aider.conf.yml` (at repo root)                                                      | `~/.aider.conf.yml` (global); `<repo>/.aider.conf.yml`        | YAML (config); plus Markdown files read in | No (no autonomous tool use)                                          | **Yes** (commit project `.aider.conf.yml` & context files)          |
+| **Continue**            | `.continue/` dir with config (e.g. `continue.yaml` with `rules:`)                                             | Stored in project’s `.continue/` or imported via UI           | YAML/JSON (assistant config)               | Yes – context providers & MCP                                        | **Yes** (commit `.continue/config` and rules; ignore large indexes) |
+| **Tabby**               | (No per-project file; global config) – manually manage                                                        | `~/.tabby/config.toml`                                        | TOML                                       | No (completions only)                                                | (No native project file to commit; share template)                  |
+| **CodeWhisperer**       | (None – uses AWS console for customization)                                                                   | N/A (cloud-managed)                                           | N/A                                        | No (completions only)                                                | (Nothing to commit locally)                                         |
 
 ## Phase 3: CLI Implementation (Est. 2-3 days)
 

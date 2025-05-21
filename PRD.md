@@ -82,31 +82,47 @@ Ruler is a command-line application designed to help developers manage and synch
 * A `/.ruler/generated/` directory MAY be created to store generated files if it doesn't exist.
 
 ### FR3: AI Agent Configuration
-Ruler will apply the collected rules to supported AI agents. The `apply` process is defined per agent:
+Ruler will apply the collected rules to supported AI agents by placing or modifying configuration files directly in the locations expected by each agent.
 
 * **FR3.1: GitHub Copilot**
-    * Ruler WILL generate a single Markdown file (e.g., `/.ruler/generated/copilot_instructions.md` or `PROJECT_ROOT/COPILOT_CONTEXT.md`) containing the concatenated rules.
-    * Documentation WILL guide the user on how to make GitHub Copilot aware of this file (e.g., by referencing it in IDE-specific settings if possible, or by manually using its content as context).
+    * Ruler WILL generate a single Markdown file named `copilot-instructions.md` containing the concatenated rules.
+    * This file WILL be placed in the `<repo root>/.github/` directory. Ruler WILL create the `.github` directory if it does not exist.
+    * If `<repo root>/.github/copilot-instructions.md` already exists, Ruler WILL first create a backup (e.g., `copilot-instructions.md.bak`) and then overwrite it.
+    * Documentation WILL note this direct placement.
 * **FR3.2: Claude Code**
-    * Ruler WILL generate a single Markdown file (e.g., `/.ruler/generated/claude_instructions.md`) containing the concatenated rules.
-    * Documentation WILL guide the user on how to use this file's content as a system prompt or context when interacting with Claude.
+    * Ruler WILL generate a single Markdown file named `CLAUDE.md` containing the concatenated rules.
+    * This file WILL be placed at the project repository root (i.e., `<repo root>/CLAUDE.md`).
+    * If `<repo root>/CLAUDE.md` already exists, Ruler WILL first create a backup (e.g., `CLAUDE.md.bak`) and then overwrite it.
+    * Documentation WILL note this direct placement.
 * **FR3.3: OpenAI Codex CLI**
-    * Ruler WILL update or create an `AGENTS.md` file with the concatenated rules.
-    * By default, Ruler WILL target the project-level AGENTS.md (e.g., `<repo root>/AGENTS.md`).
-    * If `/.ruler/` is within a subdirectory and the command is run from there, it may target `<cwd>/AGENTS.md`. This behaviour needs to be clearly defined and potentially configurable (though a single, predictable target is preferred for V1). For V1, `<repo root>/AGENTS.md` will be the default.
-    * Existing content in `AGENTS.md` MAY be overwritten or Ruler MAY append to it (V1 will overwrite with Ruler-generated content, clearly marked). A backup mechanism for the existing file is recommended.
+    * Ruler WILL write the concatenated rules directly to an `AGENTS.md` file. This file MUST be placed at the project repository root (i.e., `<repo root>/AGENTS.md`), which is a standard location recognized by OpenAI Codex CLI.
+    * If the `AGENTS.md` file does not exist at this location, Ruler WILL create it.
+    * If `AGENTS.md` already exists, Ruler WILL first create a backup of the existing file (e.g., renaming it to `AGENTS.md.bak`) and then WILL overwrite the original `AGENTS.md` with the new, Ruler-generated content. The content will be clearly marked.
+    * Ruler will not use the `/.ruler/generated/` directory for OpenAI Codex CLI configuration files.
 * **FR3.4: Cursor**
-    * Ruler WILL generate a single Markdown file (e.g., `/.ruler/generated/cursor_instructions.md`) containing the concatenated rules.
-    * Documentation WILL guide the user on how to reference this file (e.g., using `@cursor_instructions.md` in Cursor's input) or copy its content into Cursor's custom instruction settings.
+    * Ruler WILL generate a single Markdown file (e.g., `ruler_cursor_instructions.md`) containing the concatenated rules.
+    * This file WILL be placed in the `<repo root>/.cursor/rules/` directory. Ruler WILL create the `.cursor` and `.cursor/rules` directories if they do not exist.
+    * If `<repo root>/.cursor/rules/ruler_cursor_instructions.md` (or the chosen filename) already exists, Ruler WILL first create a backup and then overwrite it.
+    * Documentation WILL note this direct placement.
 * **FR3.5: Windsurf**
-    * Ruler WILL generate a single Markdown file (e.g., `/.ruler/generated/windsurf_instructions.md`) containing the concatenated rules.
-    * Documentation WILL guide the user on how to make Windsurf AI aware of this file.
+    * Ruler WILL generate a single Markdown file (e.g., `ruler_windsurf_instructions.md`) containing the concatenated rules.
+    * This file WILL be placed in the `<repo root>/.windsurf/rules/` directory. Ruler WILL create the `.windsurf` and `.windsurf/rules` directories if they do not exist.
+    * If `<repo root>/.windsurf/rules/ruler_windsurf_instructions.md` (or the chosen filename) already exists, Ruler WILL first create a backup and then overwrite it.
+    * Documentation WILL note this direct placement.
 * **FR3.6: Cline**
-    * Ruler WILL generate a single Markdown file (e.g., `/.ruler/generated/cline_instructions.md`) containing the concatenated rules.
-    * Documentation WILL guide the user on how to make Cline aware of this file.
+    * Ruler WILL generate a file named `.clinerules` containing the concatenated rules.
+    * This file WILL be placed at the project repository root (i.e., `<repo root>/.clinerules`).
+    * If `<repo root>/.clinerules` already exists, Ruler WILL first create a backup (e.g., `.clinerules.bak`) and then overwrite it.
+    * Documentation WILL note this direct placement.
 * **FR3.7: Aider**
-    * Ruler WILL generate a single Markdown file (e.g., `/.ruler/generated/aider_instructions.md`) containing the concatenated rules.
-    * Documentation WILL guide the user on how to load this file into Aider's context (e.g., using Aider's `/add .ruler/generated/aider_instructions.md` command).
+    * Ruler WILL generate a single Markdown file (e.g., `ruler_aider_instructions.md`) containing the concatenated rules. This file WILL be placed at the project repository root (i.e., `<repo root>/ruler_aider_instructions.md`).
+    * Ruler WILL then ensure this generated Markdown file is listed in the `read:` section of the Aider configuration file (`<repo root>/.aider.conf.yml`).
+    * If `<repo root>/.aider.conf.yml` exists:
+        * Ruler WILL create a backup (e.g., `.aider.conf.yml.bak`).
+        * Ruler WILL parse the YAML file. If the `read:` key exists and is a list, Ruler WILL add `ruler_aider_instructions.md` to this list (if not already present). If the `read:` key exists but is not a list, or if the key does not exist, Ruler WILL create/replace the `read:` key with a list containing `ruler_aider_instructions.md`.
+        * Ruler WILL write the modified YAML content back to `<repo root>/.aider.conf.yml`.
+    * If `<repo root>/.aider.conf.yml` does not exist, Ruler WILL create it with a `read:` key and `ruler_aider_instructions.md` listed under it.
+    * Documentation WILL explain this automated setup.
 
 ### FR4: Extensibility (Agent Interface)
 * An interface (e.g., `IAgent`) MUST be defined, specifying methods like `getName(): string` and `applyRulerConfig(concatenatedRules: string): Promise<void>`.
