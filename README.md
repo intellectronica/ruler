@@ -5,11 +5,8 @@ A CLI tool to manage custom rules and configs across different AI coding agents.
 ## Features
 
 - Centralise AI agent instructions in a single `.ruler/` directory
-- Distribute concatenated rules to supported agents (GitHub Copilot, Claude Code, OpenAI Codex CLI, Cursor, Windsurf, Cline, Aider)
-- Backup existing config files before overwriting
+- Distribute rules to supported agents (GitHub Copilot, Claude Code, OpenAI Codex CLI, Cursor, Windsurf, Cline, Aider)
 - Extensible architecture: add new agent adapters easily
-- Comprehensive test suite (unit and end-to-end)
-- CI/CD workflows for automated testing and publishing to npm
 
 ## Installation
 
@@ -85,10 +82,23 @@ End-to-end tests (run build before tests):
 npm run build && npm test
 ```
 
+### Roadmap
+- [ ] Support for MCP servers config
+- [ ] Support for transforming and rewriting the rules using AI
+- [ ] Support "harmonisation" (reading existing rules of specific agents and combining them with the master config)
+- [ ] Support for additional agents
+- [ ] Support for agent-specific features (for example: apply rules in copilot)
+
 ## Contributing
 
 Contributions are welcome! Please open issues or pull requests on GitHub.
 
 ## License
 
-MIT © Eleanor Berger
+MIT
+
+---
+
+© Eleanor Berger
+
+[ai.intellectronica.net](https://ai.intellectronica.net/)
