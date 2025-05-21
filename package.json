@@ -1,7 +1,7 @@
 {
   "name": "@intellectronica/ruler",
-  "version": "0.1.0",
-  "description": "",
+  "version": "0.1.1",
+  "description": "Ruler — apply the same rules to all coding agents",
   "main": "dist/lib.js",
   "scripts": {
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
@@ -32,7 +32,7 @@
   "bugs": {
     "url": "https://github.com/intellectronica/ruler/issues"
   },
-  "homepage": "https://github.com/intellectronica/ruler#readme",
+  "homepage": "https://ai.intellectronica.net/ruler",
   "files": [
     "dist",
     "README.md",
@@ -53,10 +53,10 @@
     "jest": "^29.7.0",
     "prettier": "^3.5.3",
     "ts-jest": "^29.3.4",
-    "typescript": "^5.8.3",
-    "yargs": "^17.7.2"
+    "typescript": "^5.8.3"
   },
   "dependencies": {
-    "js-yaml": "^4.1.0"
+    "js-yaml": "^4.1.0",
+    "yargs": "^17.7.2"
   }
 }
