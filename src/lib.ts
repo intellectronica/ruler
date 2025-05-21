@@ -28,7 +28,15 @@ const agents: IAgent[] = [
  * Applies ruler configurations for all supported AI agents.
  * @param projectRoot Root directory of the project
  */
-export async function applyAllAgentConfigs(projectRoot: string): Promise<void> {
+/**
+ * Applies ruler configurations for selected AI agents.
+ * @param projectRoot Root directory of the project
+ * @param includedAgents Optional list of agent name filters (case-insensitive substrings)
+ */
+export async function applyAllAgentConfigs(
+  projectRoot: string,
+  includedAgents?: string[],
+): Promise<void> {
   const rulerDir = await findRulerDir(projectRoot);
   if (!rulerDir) {
     throw new Error(`.ruler directory not found from ${projectRoot}`);
@@ -36,7 +44,14 @@ export async function applyAllAgentConfigs(projectRoot: string): Promise<void> {
   await ensureDirExists(path.join(rulerDir, 'generated'));
   const files = await readMarkdownFiles(rulerDir);
   const concatenated = concatenateRules(files);
-  for (const agent of agents) {
+  let selected = agents;
+  if (includedAgents && includedAgents.length > 0) {
+    const filters = includedAgents.map((n) => n.toLowerCase());
+    selected = agents.filter((agent) =>
+      filters.some((f) => agent.getName().toLowerCase().includes(f)),
+    );
+  }
+  for (const agent of selected) {
     console.log(`[ruler] Applying rules for ${agent.getName()}...`);
     await agent.applyRulerConfig(concatenated, projectRoot);
   }

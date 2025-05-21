@@ -38,8 +38,10 @@ Create a `.ruler/` directory at your project root and add Markdown files definin
 Run the apply command:
 
 ```bash
-ruler apply [--project-root <path>]
+ruler apply [--project-root <path>] [--agents <agent1,agent2,...>]
 ```
+
+Use `--agents` to specify a comma-separated list of agent names (case-insensitive substrings) to limit which agents the rules are applied to.
 
 The command will read all `.md` files under `.ruler/`, concatenate their contents, and generate/update configuration files for the following agents:
 
