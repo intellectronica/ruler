@@ -7,7 +7,7 @@ import * as path from 'path';
  */
 export async function findRulerDir(startPath: string): Promise<string | null> {
   let current = startPath;
-  while (true) {
+  while (current) {
     const candidate = path.join(current, '.ruler');
     try {
       const stat = await fs.stat(candidate);
@@ -15,14 +15,15 @@ export async function findRulerDir(startPath: string): Promise<string | null> {
         return candidate;
       }
     } catch {
-      // ignore
+      // ignore errors when checking for .ruler directory
     }
     const parent = path.dirname(current);
     if (parent === current) {
-      return null;
+      break;
     }
     current = parent;
   }
+  return null;
 }
 
 /**

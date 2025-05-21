@@ -1,7 +1,7 @@
 {
   "name": "@intellectronica/ruler",
   "version": "1.0.0",
-  "description": "A CLI tool to manage custom rules and configs across different AI coding agents.",
+  "description": "",
   "main": "dist/lib.js",
   "scripts": {
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
@@ -33,16 +33,21 @@
     "url": "https://github.com/intellectronica/ruler/issues"
   },
   "homepage": "https://github.com/intellectronica/ruler#readme",
-  "description": "",
-  "files": ["dist", "README.md", "LICENSE"],
-  "bin": {"ruler": "dist/cli/index.js"},
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "bin": {
+    "ruler": "dist/cli/index.js"
+  },
   "devDependencies": {
     "@types/jest": "^29.5.14",
     "@types/js-yaml": "^4.0.9",
     "@types/yargs": "^17.0.33",
     "@typescript-eslint/eslint-plugin": "^8.32.1",
     "@typescript-eslint/parser": "^8.32.1",
-    "eslint": "^9.27.0",
+    "eslint": "^8.57.1",
     "eslint-config-prettier": "^10.1.5",
     "eslint-plugin-prettier": "^5.4.0",
     "jest": "^29.7.0",

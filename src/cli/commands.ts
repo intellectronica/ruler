@@ -24,11 +24,9 @@ export function run(): void {
         try {
           await applyAllAgentConfigs(projectRoot);
           console.log('Ruler apply completed successfully.');
-        } catch (err: any) {
-          console.error(
-            'Error applying ruler configurations:',
-            err.message || err,
-          );
+        } catch (err: unknown) {
+          const message = err instanceof Error ? err.message : String(err);
+          console.error('Error applying ruler configurations:', message);
           process.exit(1);
         }
       },

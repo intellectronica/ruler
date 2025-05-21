@@ -21,14 +21,18 @@ export class AiderAgent implements IAgent {
     await writeGeneratedFile(mdFile, concatenatedRules);
 
     const cfgPath = path.join(projectRoot, '.aider.conf.yml');
-    let doc: any = {};
+    interface AiderConfig {
+      read?: string[];
+      [key: string]: unknown;
+    }
+    let doc: AiderConfig = {} as AiderConfig;
     try {
       await fs.access(cfgPath);
       await backupFile(cfgPath);
       const raw = await fs.readFile(cfgPath, 'utf8');
-      doc = yaml.load(raw) || {};
+      doc = (yaml.load(raw) || {}) as AiderConfig;
     } catch {
-      doc = {};
+      doc = {} as AiderConfig;
     }
     if (!Array.isArray(doc.read)) {
       doc.read = [];
