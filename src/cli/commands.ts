@@ -150,6 +150,20 @@ and apply them to your configured AI coding agents.
         } else {
           console.log(`[ruler] ruler.toml already exists, skipping`);
         }
+        const mcpPath = path.join(rulerDir, 'mcp.json');
+        const DEFAULT_MCP_JSON = `{
+  "mcpServers": {
+    "example": {
+      "url": "https://mcp.example.com"
+    }
+  }
+}`;
+        if (!(await exists(mcpPath))) {
+          await fs.writeFile(mcpPath, DEFAULT_MCP_JSON);
+          console.log(`[ruler] Created ${mcpPath}`);
+        } else {
+          console.log(`[ruler] mcp.json already exists, skipping`);
+        }
       },
     )
     .demandCommand(1, 'You need to specify a command')
