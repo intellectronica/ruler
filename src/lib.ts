@@ -1,10 +1,6 @@
 import * as path from 'path';
 import { promises as fs } from 'fs';
-import {
-  findRulerDir,
-  readMarkdownFiles,
-  ensureDirExists,
-} from './core/FileSystemUtils';
+import * as FileSystemUtils from './core/FileSystemUtils';
 import { concatenateRules } from './core/RuleProcessor';
 import { loadConfig } from './core/ConfigLoader';
 import { IAgent } from './agents/IAgent';
@@ -65,12 +61,12 @@ export async function applyAllAgentConfigs(
   }
   config.agentConfigs = mappedConfigs;
 
-  const rulerDir = await findRulerDir(projectRoot);
+  const rulerDir = await FileSystemUtils.findRulerDir(projectRoot);
   if (!rulerDir) {
     throw new Error(`.ruler directory not found from ${projectRoot}`);
   }
-  await ensureDirExists(path.join(rulerDir, 'generated'));
-  const files = await readMarkdownFiles(rulerDir);
+  await FileSystemUtils.ensureDirExists(path.join(rulerDir, 'generated'));
+  const files = await FileSystemUtils.readMarkdownFiles(rulerDir);
   const concatenated = concatenateRules(files);
 
   const mcpFile = path.join(rulerDir, 'mcp.json');
