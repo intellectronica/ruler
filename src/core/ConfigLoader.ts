@@ -2,6 +2,10 @@ import { promises as fs } from 'fs';
 import * as path from 'path';
 import toml from 'toml';
 
+interface ErrnoException extends Error {
+  code?: string;
+}
+
 /**
  * Configuration for a specific agent as defined in ruler.toml.
  */
@@ -46,12 +50,12 @@ export async function loadConfig(
   const configFile = configPath
     ? path.resolve(configPath)
     : path.join(projectRoot, '.ruler', 'ruler.toml');
-  let raw: any = {};
+  let raw: Record<string, unknown> = {};
   try {
     const text = await fs.readFile(configFile, 'utf8');
     raw = text.trim() ? toml.parse(text) : {};
-  } catch (err: any) {
-    if (err.code !== 'ENOENT') {
+  } catch (err) {
+    if (err instanceof Error && (err as ErrnoException).code !== 'ENOENT') {
       console.warn(
         `[ruler] Warning: could not read config file at ${configFile}: ${err.message}`,
       );
@@ -60,34 +64,34 @@ export async function loadConfig(
   }
 
   const defaultAgents = Array.isArray(raw.default_agents)
-    ? raw.default_agents.map((a: any) => String(a))
+    ? raw.default_agents.map((a) => String(a))
     : undefined;
 
   const agentsSection =
-    raw.agents && typeof raw.agents === 'object' ? raw.agents : {};
+    raw.agents && typeof raw.agents === 'object' && !Array.isArray(raw.agents)
+      ? (raw.agents as Record<string, unknown>)
+      : {};
   const agentConfigs: Record<string, IAgentConfig> = {};
   for (const [name, section] of Object.entries(agentsSection)) {
     if (section && typeof section === 'object') {
+      const sectionObj = section as Record<string, unknown>;
       const cfg: IAgentConfig = {};
-      if (typeof (section as any).enabled === 'boolean') {
-        cfg.enabled = (section as any).enabled;
+      if (typeof sectionObj.enabled === 'boolean') {
+        cfg.enabled = sectionObj.enabled;
       }
-      if (typeof (section as any).output_path === 'string') {
-        cfg.outputPath = path.resolve(
-          projectRoot,
-          (section as any).output_path,
-        );
+      if (typeof sectionObj.output_path === 'string') {
+        cfg.outputPath = path.resolve(projectRoot, sectionObj.output_path);
       }
-      if (typeof (section as any).output_path_instructions === 'string') {
+      if (typeof sectionObj.output_path_instructions === 'string') {
         cfg.outputPathInstructions = path.resolve(
           projectRoot,
-          (section as any).output_path_instructions,
+          sectionObj.output_path_instructions,
         );
       }
-      if (typeof (section as any).output_path_config === 'string') {
+      if (typeof sectionObj.output_path_config === 'string') {
         cfg.outputPathConfig = path.resolve(
           projectRoot,
-          (section as any).output_path_config,
+          sectionObj.output_path_config,
         );
       }
       agentConfigs[name] = cfg;
