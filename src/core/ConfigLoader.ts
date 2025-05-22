@@ -1,6 +1,7 @@
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import toml from 'toml';
+import { McpConfig, GlobalMcpConfig } from '../types';
 
 interface ErrnoException extends Error {
   code?: string;
@@ -14,6 +15,8 @@ export interface IAgentConfig {
   outputPath?: string;
   outputPathInstructions?: string;
   outputPathConfig?: string;
+  /** MCP propagation config for this agent. */
+  mcp?: McpConfig;
 }
 
 /**
@@ -26,6 +29,8 @@ export interface LoadedConfig {
   agentConfigs: Record<string, IAgentConfig>;
   /** Command-line agent filters (--agents), if provided. */
   cliAgents?: string[];
+  /** Global MCP servers configuration section. */
+  mcp?: GlobalMcpConfig;
 }
 
 /**
@@ -94,9 +99,38 @@ export async function loadConfig(
           sectionObj.output_path_config,
         );
       }
+      if (sectionObj.mcp && typeof sectionObj.mcp === 'object') {
+        const m = sectionObj.mcp as Record<string, unknown>;
+        const mcpCfg: McpConfig = {};
+        if (typeof m.enabled === 'boolean') {
+          mcpCfg.enabled = m.enabled;
+        }
+        if (typeof m.merge_strategy === 'string') {
+          const ms = m.merge_strategy;
+          if (ms === 'merge' || ms === 'overwrite') {
+            mcpCfg.strategy = ms;
+          }
+        }
+        cfg.mcp = mcpCfg;
+      }
       agentConfigs[name] = cfg;
     }
   }
 
-  return { defaultAgents, agentConfigs, cliAgents };
+  const rawMcpSection =
+    raw.mcp && typeof raw.mcp === 'object' && !Array.isArray(raw.mcp)
+      ? (raw.mcp as Record<string, unknown>)
+      : {};
+  const globalMcpConfig: GlobalMcpConfig = {};
+  if (typeof rawMcpSection.enabled === 'boolean') {
+    globalMcpConfig.enabled = rawMcpSection.enabled;
+  }
+  if (typeof rawMcpSection.merge_strategy === 'string') {
+    const strat = rawMcpSection.merge_strategy;
+    if (strat === 'merge' || strat === 'overwrite') {
+      globalMcpConfig.strategy = strat;
+    }
+  }
+
+  return { defaultAgents, agentConfigs, cliAgents, mcp: globalMcpConfig };
 }

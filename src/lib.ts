@@ -1,9 +1,6 @@
 import * as path from 'path';
-import {
-  findRulerDir,
-  readMarkdownFiles,
-  ensureDirExists,
-} from './core/FileSystemUtils';
+import { promises as fs } from 'fs';
+import * as FileSystemUtils from './core/FileSystemUtils';
 import { concatenateRules } from './core/RuleProcessor';
 import { loadConfig } from './core/ConfigLoader';
 import { IAgent } from './agents/IAgent';
@@ -14,6 +11,10 @@ import { CursorAgent } from './agents/CursorAgent';
 import { WindsurfAgent } from './agents/WindsurfAgent';
 import { ClineAgent } from './agents/ClineAgent';
 import { AiderAgent } from './agents/AiderAgent';
+import { mergeMcp } from './mcp/merge';
+import { validateMcp } from './mcp/validate';
+import { getNativeMcpPath, readNativeMcp, writeNativeMcp } from './paths/mcp';
+import { McpStrategy } from './types';
 
 const agents: IAgent[] = [
   new CopilotAgent(),
@@ -38,6 +39,8 @@ export async function applyAllAgentConfigs(
   projectRoot: string,
   includedAgents?: string[],
   configPath?: string,
+  cliMcpEnabled = true,
+  cliMcpStrategy?: McpStrategy,
 ): Promise<void> {
   // Load configuration (default_agents, per-agent overrides, CLI filters)
   const config = await loadConfig({
@@ -58,13 +61,25 @@ export async function applyAllAgentConfigs(
   }
   config.agentConfigs = mappedConfigs;
 
-  const rulerDir = await findRulerDir(projectRoot);
+  const rulerDir = await FileSystemUtils.findRulerDir(projectRoot);
   if (!rulerDir) {
     throw new Error(`.ruler directory not found from ${projectRoot}`);
   }
-  await ensureDirExists(path.join(rulerDir, 'generated'));
-  const files = await readMarkdownFiles(rulerDir);
+  await FileSystemUtils.ensureDirExists(path.join(rulerDir, 'generated'));
+  const files = await FileSystemUtils.readMarkdownFiles(rulerDir);
   const concatenated = concatenateRules(files);
+
+  const mcpFile = path.join(rulerDir, 'mcp.json');
+  let rulerMcpJson: Record<string, unknown> | null = null;
+  try {
+    const raw = await fs.readFile(mcpFile, 'utf8');
+    rulerMcpJson = JSON.parse(raw) as Record<string, unknown>;
+    validateMcp(rulerMcpJson);
+  } catch (err: unknown) {
+    if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
+      throw err;
+    }
+  }
 
   // Determine which agents to run:
   // CLI --agents > config.default_agents > per-agent.enabled flags > default all
@@ -94,5 +109,19 @@ export async function applyAllAgentConfigs(
     console.log(`[ruler] Applying rules for ${agent.getName()}...`);
     const agentConfig = config.agentConfigs[agent.getName()];
     await agent.applyRulerConfig(concatenated, projectRoot, agentConfig);
+    const dest = await getNativeMcpPath(agent.getName(), projectRoot);
+    const enabled =
+      cliMcpEnabled &&
+      (agentConfig?.mcp?.enabled ?? config.mcp?.enabled ?? true);
+    if (dest && rulerMcpJson != null && enabled) {
+      const strategy =
+        cliMcpStrategy ??
+        agentConfig?.mcp?.strategy ??
+        config.mcp?.strategy ??
+        'merge';
+      const existing = await readNativeMcp(dest);
+      const merged = mergeMcp(existing, rulerMcpJson, strategy);
+      await writeNativeMcp(dest, merged);
+    }
   }
 }
