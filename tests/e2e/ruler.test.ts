@@ -17,6 +17,18 @@ describe('End-to-End Ruler CLI', () => {
     await fs.rm(tmpDir, { recursive: true, force: true });
   });
 
+  beforeEach(async () => {
+    // Clean up generated files before each test
+    await fs.rm(path.join(tmpDir, '.github'), { recursive: true, force: true });
+    await fs.rm(path.join(tmpDir, 'CLAUDE.md'), { force: true });
+    await fs.rm(path.join(tmpDir, 'AGENTS.md'), { force: true });
+    await fs.rm(path.join(tmpDir, '.cursor'), { recursive: true, force: true });
+    await fs.rm(path.join(tmpDir, '.windsurf'), { recursive: true, force: true });
+    await fs.rm(path.join(tmpDir, '.clinerules'), { force: true });
+    await fs.rm(path.join(tmpDir, 'ruler_aider_instructions.md'), { force: true });
+    await fs.rm(path.join(tmpDir, '.aider.conf.yml'), { force: true });
+  });
+
   it('generates configuration files for all agents', () => {
     // Ensure latest build
     execSync('npm run build', { stdio: 'inherit' });
@@ -43,5 +55,63 @@ describe('End-to-End Ruler CLI', () => {
       expect(fs.readFile(aiderMd, 'utf8')).resolves.toContain('Rule A'),
       expect(fs.readFile(aiderCfg, 'utf8')).resolves.toContain('ruler_aider_instructions.md'),
     ]);
+  });
+
+  it('respects default_agents in config file', async () => {
+    const toml = `default_agents = ["GitHub Copilot", "Claude Code"]`;
+    await fs.writeFile(path.join(tmpDir, '.ruler', 'ruler.toml'), toml);
+    execSync(`node dist/cli/index.js apply --project-root ${tmpDir}`, { stdio: 'inherit' });
+    await expect(
+      fs.readFile(path.join(tmpDir, '.github', 'copilot-instructions.md'), 'utf8'),
+    ).resolves.toContain('Rule A');
+    await expect(
+      fs.readFile(path.join(tmpDir, 'CLAUDE.md'), 'utf8'),
+    ).resolves.toContain('Rule B');
+    await expect(
+      fs.stat(path.join(tmpDir, 'AGENTS.md')),
+    ).rejects.toThrow();
+  });
+
+  it('CLI --agents overrides default_agents', async () => {
+    const toml = `default_agents = ["GitHub Copilot", "Claude Code"]`;
+    await fs.writeFile(path.join(tmpDir, '.ruler', 'ruler.toml'), toml);
+    execSync(
+      `node dist/cli/index.js apply --project-root ${tmpDir} --agents codex`,
+      { stdio: 'inherit' },
+    );
+    await expect(
+      fs.readFile(path.join(tmpDir, 'AGENTS.md'), 'utf8'),
+    ).resolves.toContain('Rule A');
+    await expect(
+      fs.stat(path.join(tmpDir, '.github', 'copilot-instructions.md')),
+    ).rejects.toThrow();
+  });
+
+  it('uses custom config file via --config', async () => {
+    const alt = path.join(tmpDir, 'custom.toml');
+    const toml = `default_agents = ["Cursor"]
+[agents.Cursor]
+output_path = "custom_cursor.md"
+`;
+    await fs.writeFile(alt, toml);
+    execSync(
+      `node dist/cli/index.js apply --project-root ${tmpDir} --config ${alt}`,
+      { stdio: 'inherit' },
+    );
+    await expect(
+      fs.readFile(path.join(tmpDir, 'custom_cursor.md'), 'utf8'),
+    ).resolves.toContain('Rule A');
+  });
+
+  it('honors custom output_path in config', async () => {
+    const toml = `
+[agents.Copilot]
+output_path = "awesome.md"
+`;
+    await fs.writeFile(path.join(tmpDir, '.ruler', 'ruler.toml'), toml);
+    execSync(`node dist/cli/index.js apply --project-root ${tmpDir}`, { stdio: 'inherit' });
+    await expect(
+      fs.readFile(path.join(tmpDir, 'awesome.md'), 'utf8'),
+    ).resolves.toContain('Rule A');
   });
 });

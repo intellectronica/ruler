@@ -21,7 +21,7 @@ describe('Agent Adapters', () => {
   });
 
   describe('CopilotAgent', () => {
-    it('backs up and writes copilot-instructions.md', async () => {
+  it('backs up and writes copilot-instructions.md', async () => {
       const agent = new CopilotAgent();
       const githubDir = path.join(tmpDir, '.github');
       await fs.mkdir(githubDir, { recursive: true });
@@ -34,9 +34,15 @@ describe('Agent Adapters', () => {
       expect(content).toBe('new copilot');
     });
   });
+  it('uses custom outputPath when provided', async () => {
+    const agent = new CopilotAgent();
+    const custom = path.join(tmpDir, 'custom_copilot.md');
+    await agent.applyRulerConfig('custom data', tmpDir, { outputPath: custom });
+    expect(await fs.readFile(custom, 'utf8')).toBe('custom data');
+  });
 
   describe('ClaudeAgent', () => {
-    it('backs up and writes CLAUDE.md', async () => {
+  it('backs up and writes CLAUDE.md', async () => {
       const agent = new ClaudeAgent();
       const target = path.join(tmpDir, 'CLAUDE.md');
       await fs.writeFile(target, 'old claude');
@@ -45,9 +51,15 @@ describe('Agent Adapters', () => {
       expect(await fs.readFile(target, 'utf8')).toBe('new claude');
     });
   });
+  it('uses custom outputPath when provided', async () => {
+    const agent = new ClaudeAgent();
+    const custom = path.join(tmpDir, 'CUSTOM_CLAUDE.md');
+    await agent.applyRulerConfig('x', tmpDir, { outputPath: custom });
+    expect(await fs.readFile(custom, 'utf8')).toBe('x');
+  });
 
   describe('CodexCliAgent', () => {
-    it('backs up and writes AGENTS.md', async () => {
+  it('backs up and writes AGENTS.md', async () => {
       const agent = new CodexCliAgent();
       const target = path.join(tmpDir, 'AGENTS.md');
       await fs.writeFile(target, 'old codex');
@@ -56,9 +68,15 @@ describe('Agent Adapters', () => {
       expect(await fs.readFile(target, 'utf8')).toBe('new codex');
     });
   });
+  it('uses custom outputPath when provided', async () => {
+    const agent = new CodexCliAgent();
+    const custom = path.join(tmpDir, 'CUSTOM_AGENTS.md');
+    await agent.applyRulerConfig('y', tmpDir, { outputPath: custom });
+    expect(await fs.readFile(custom, 'utf8')).toBe('y');
+  });
 
   describe('CursorAgent', () => {
-    it('backs up and writes ruler_cursor_instructions.md', async () => {
+  it('backs up and writes ruler_cursor_instructions.md', async () => {
       const agent = new CursorAgent();
       const rulesDir = path.join(tmpDir, '.cursor', 'rules');
       await fs.mkdir(rulesDir, { recursive: true });
@@ -69,9 +87,17 @@ describe('Agent Adapters', () => {
       expect(await fs.readFile(target, 'utf8')).toBe('new cursor');
     });
   });
+  it('uses custom outputPath when provided', async () => {
+    const agent = new CursorAgent();
+    const customDir = path.join(tmpDir, '.cursor', 'rules');
+    await fs.mkdir(customDir, { recursive: true });
+    const custom = path.join(tmpDir, 'custom_cursor.md');
+    await agent.applyRulerConfig('z', tmpDir, { outputPath: custom });
+    expect(await fs.readFile(custom, 'utf8')).toBe('z');
+  });
 
   describe('WindsurfAgent', () => {
-    it('backs up and writes ruler_windsurf_instructions.md', async () => {
+  it('backs up and writes ruler_windsurf_instructions.md', async () => {
       const agent = new WindsurfAgent();
       const rulesDir = path.join(tmpDir, '.windsurf', 'rules');
       await fs.mkdir(rulesDir, { recursive: true });
@@ -82,9 +108,17 @@ describe('Agent Adapters', () => {
       expect(await fs.readFile(target, 'utf8')).toBe('new windsurf');
     });
   });
+  it('uses custom outputPath when provided', async () => {
+    const agent = new WindsurfAgent();
+    const customDir = path.join(tmpDir, '.windsurf', 'rules');
+    await fs.mkdir(customDir, { recursive: true });
+    const custom = path.join(tmpDir, 'custom_windsurf.md');
+    await agent.applyRulerConfig('w', tmpDir, { outputPath: custom });
+    expect(await fs.readFile(custom, 'utf8')).toBe('w');
+  });
 
   describe('ClineAgent', () => {
-    it('backs up and writes .clinerules', async () => {
+  it('backs up and writes .clinerules', async () => {
       const agent = new ClineAgent();
       const target = path.join(tmpDir, '.clinerules');
       await fs.writeFile(target, 'old cline');
@@ -93,9 +127,15 @@ describe('Agent Adapters', () => {
       expect(await fs.readFile(target, 'utf8')).toBe('new cline');
     });
   });
+  it('uses custom outputPath when provided', async () => {
+    const agent = new ClineAgent();
+    const custom = path.join(tmpDir, 'custom_cline');
+    await agent.applyRulerConfig('c', tmpDir, { outputPath: custom });
+    expect(await fs.readFile(custom, 'utf8')).toBe('c');
+  });
 
   describe('AiderAgent', () => {
-    it('creates and updates .aider.conf.yml', async () => {
+  it('creates and updates .aider.conf.yml', async () => {
       const agent = new AiderAgent();
       // No existing config
       await agent.applyRulerConfig('aider rules', tmpDir);
@@ -112,5 +152,15 @@ describe('Agent Adapters', () => {
       expect(Array.isArray(updated.read)).toBe(true);
       expect(updated.read).toContain('ruler_aider_instructions.md');
     });
+  });
+  it('uses custom outputPathInstructions when provided', async () => {
+    const agent = new AiderAgent();
+    const customMd = path.join(tmpDir, 'custom_aider.md');
+    await agent.applyRulerConfig('aider data', tmpDir, { outputPathInstructions: customMd });
+    expect(await fs.readFile(customMd, 'utf8')).toBe('aider data');
+    const cfg = yaml.load(
+      await fs.readFile(path.join(tmpDir, '.aider.conf.yml'), 'utf8'),
+    ) as any;
+    expect(cfg.read).toContain('custom_aider.md');
   });
 });
