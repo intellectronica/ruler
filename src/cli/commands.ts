@@ -29,6 +29,17 @@ export function run(): void {
           type: 'string',
           description: 'Path to TOML configuration file',
         });
+        y.option('mcp', {
+          type: 'boolean',
+          description: 'Enable or disable applying MCP server config',
+          default: true,
+        });
+        y.alias('mcp', 'with-mcp');
+        y.option('mcp-overwrite', {
+          type: 'boolean',
+          description: 'Replace (not merge) the native MCP config(s)',
+          default: false,
+        });
       },
       async (argv) => {
         const projectRoot = argv['project-root'] as string;
@@ -36,8 +47,18 @@ export function run(): void {
           ? (argv.agents as string).split(',').map((a) => a.trim())
           : undefined;
         const configPath = argv.config as string | undefined;
+        const mcpEnabled = argv.mcp as boolean;
+        const mcpStrategy = (argv['mcp-overwrite'] as boolean)
+          ? 'overwrite'
+          : undefined;
         try {
-          await applyAllAgentConfigs(projectRoot, agents, configPath);
+          await applyAllAgentConfigs(
+            projectRoot,
+            agents,
+            configPath,
+            mcpEnabled,
+            mcpStrategy,
+          );
           console.log('Ruler apply completed successfully.');
         } catch (err: unknown) {
           const message = err instanceof Error ? err.message : String(err);

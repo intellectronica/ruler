@@ -95,6 +95,46 @@ enabled = false
 2. Config file `default_agents` and `[agents]` overrides
 3. Built-in defaults (all agents enabled, standard output paths)
 
+## MCP servers
+
+Ruler can propagate a project-level `.ruler/mcp.json` file to native MCP configurations of supported agents, merging (or overwriting) each agent’s existing MCP server settings.
+
+### `.ruler/mcp.json`
+
+Place your MCP servers config in a file at `.ruler/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "example": {
+      "url": "https://mcp.example.com"
+    }
+  }
+}
+```
+
+### CLI flags
+
+| Flag              | Effect                                                       |
+|-------------------|--------------------------------------------------------------|
+| `--with-mcp`      | Enable writing MCP configs for all agents (default)          |
+| `--no-mcp`        | Disable writing MCP configs                                 |
+| `--mcp-overwrite` | Overwrite native MCP configs instead of merging              |
+
+### Configuration (`ruler.toml`)
+
+Configure default behavior in your `ruler.toml`:
+
+```toml
+[mcp]
+enabled = true
+merge_strategy = "merge"  # or "overwrite"
+
+[agents.Cursor.mcp]
+enabled = false
+merge_strategy = "overwrite"
+```
+
 ## Development
 
 Clone the repository and install dependencies:
