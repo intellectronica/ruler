@@ -62,9 +62,33 @@ describe('ConfigLoader', () => {
     expect(config.agentConfigs.A.outputPath).toBe(
       path.resolve(tmpDir, 'foo/bar.md'),
     );
-  });
+});
 
-  it('loads config from custom path via configPath option', async () => {
+it('parses agent output_path_instructions and resolves to projectRoot', async () => {
+  const content = `
+    [agents.A]
+    output_path_instructions = "foo/instructions.md"
+  `;
+  await fs.writeFile(path.join(rulerDir, 'ruler.toml'), content);
+  const config = await loadConfig({ projectRoot: tmpDir });
+  expect(config.agentConfigs.A.outputPathInstructions).toBe(
+    path.resolve(tmpDir, 'foo/instructions.md'),
+  );
+});
+
+it('parses agent output_path_config and resolves to projectRoot', async () => {
+  const content = `
+    [agents.A]
+    output_path_config = "foo/config.toml"
+  `;
+  await fs.writeFile(path.join(rulerDir, 'ruler.toml'), content);
+  const config = await loadConfig({ projectRoot: tmpDir });
+  expect(config.agentConfigs.A.outputPathConfig).toBe(
+    path.resolve(tmpDir, 'foo/config.toml'),
+  );
+});
+
+it('loads config from custom path via configPath option', async () => {
     const altDir = path.join(tmpDir, 'alt');
     await fs.mkdir(altDir, { recursive: true });
     const altPath = path.join(altDir, 'myconfig.toml');
