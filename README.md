@@ -1,3 +1,7 @@
+> **Experimental Research Preview**
+> - Please test this version with caution in your own setup
+> - File issues at https://github.com/intellectronica/ruler/issues
+
 # Ruler
 
 A CLI tool to manage custom rules and configs across different AI coding agents.
