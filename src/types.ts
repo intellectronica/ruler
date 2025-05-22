@@ -11,6 +11,5 @@ export interface McpConfig {
   strategy?: McpStrategy;
 }
 
-/** Global MCP configuration section. */
 /** Global MCP configuration section (same as agent-specific config). */
 export type GlobalMcpConfig = McpConfig;
