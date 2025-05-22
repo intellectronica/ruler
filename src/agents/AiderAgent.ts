@@ -1,5 +1,5 @@
 import * as path from 'path';
-import { IAgent } from './IAgent';
+import { IAgent, IAgentConfig } from './IAgent';
 import { backupFile, writeGeneratedFile } from '../core/FileSystemUtils';
 import * as fs from 'fs/promises';
 import * as yaml from 'js-yaml';
@@ -15,12 +15,17 @@ export class AiderAgent implements IAgent {
   async applyRulerConfig(
     concatenatedRules: string,
     projectRoot: string,
+    agentConfig?: IAgentConfig,
   ): Promise<void> {
-    const mdFile = path.join(projectRoot, 'ruler_aider_instructions.md');
-    await backupFile(mdFile);
-    await writeGeneratedFile(mdFile, concatenatedRules);
+    const mdPath =
+      agentConfig?.outputPathInstructions ??
+      this.getDefaultOutputPath(projectRoot).instructions;
+    await backupFile(mdPath);
+    await writeGeneratedFile(mdPath, concatenatedRules);
 
-    const cfgPath = path.join(projectRoot, '.aider.conf.yml');
+    const cfgPath =
+      agentConfig?.outputPathConfig ??
+      this.getDefaultOutputPath(projectRoot).config;
     interface AiderConfig {
       read?: string[];
       [key: string]: unknown;
@@ -37,10 +42,17 @@ export class AiderAgent implements IAgent {
     if (!Array.isArray(doc.read)) {
       doc.read = [];
     }
-    if (!doc.read.includes('ruler_aider_instructions.md')) {
-      doc.read.push('ruler_aider_instructions.md');
+    const name = path.basename(mdPath);
+    if (!doc.read.includes(name)) {
+      doc.read.push(name);
     }
     const yamlStr = yaml.dump(doc);
     await writeGeneratedFile(cfgPath, yamlStr);
+  }
+  getDefaultOutputPath(projectRoot: string): Record<string, string> {
+    return {
+      instructions: path.join(projectRoot, 'ruler_aider_instructions.md'),
+      config: path.join(projectRoot, '.aider.conf.yml'),
+    };
   }
 }

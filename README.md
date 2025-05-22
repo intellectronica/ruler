@@ -35,7 +35,14 @@ Create a `.ruler/` directory at your project root and add Markdown files definin
 Run the apply command:
 
 ```bash
-ruler apply [--project-root <path>] [--agents <agent1,agent2,...>]
+ruler apply [--project-root <path>] [--agents <agent1,agent2,...>] [--config <path>]
+```
+
+
+Run the init command to scaffold a basic `.ruler/` setup:
+
+```bash
+ruler init [--project-root <path>]
 ```
 
 Use `--agents` to specify a comma-separated list of agent names (case-insensitive substrings) to limit which agents the rules are applied to.
@@ -51,6 +58,42 @@ The command will read all `.md` files under `.ruler/`, concatenate their content
 | Windsurf               | `.windsurf/rules/ruler_windsurf_instructions.md`            |
 | Cline                  | `.clinerules`                                               |
 | Aider                  | `ruler_aider_instructions.md` <br>and updates `.aider.conf.yml` |
+
+## Configuration
+
+Ruler uses a TOML configuration file located at `.ruler/ruler.toml` by default. You can override its location with the `--config <path>` option in the `apply` command.
+
+### Configuration structure
+
+```toml
+# Run only these agents by default (omit to use all agents)
+# default_agents = ["GitHub Copilot", "Claude Code", "Aider"]
+
+[agents.Copilot]
+enabled = true
+output_path = ".github/copilot-instructions.md"
+
+[agents.Claude]
+enabled = true
+# output_path = "CLAUDE.md"
+
+[agents.Aider]
+enabled = false
+# output_path_instructions = "ruler_aider_instructions.md"
+# output_path_config = ".aider.conf.yml"
+```
+
+- `default_agents`: array of agent names (case-insensitive substrings) to run by default.
+- `[agents.<AgentName>]`: per-agent settings:
+  - `enabled` (boolean): enable or disable this agent.
+  - `output_path` (string): custom path for agents that produce a single file.
+  - `output_path_instructions`/`output_path_config`: custom paths for Aider's instruction and config files.
+
+### Precedence
+
+1. CLI `--agents` option (substring filters)
+2. Config file `default_agents` and `[agents]` overrides
+3. Built-in defaults (all agents enabled, standard output paths)
 
 ## Development
 

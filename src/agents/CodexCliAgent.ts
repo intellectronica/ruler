@@ -1,5 +1,5 @@
 import * as path from 'path';
-import { IAgent } from './IAgent';
+import { IAgent, IAgentConfig } from './IAgent';
 import { backupFile, writeGeneratedFile } from '../core/FileSystemUtils';
 
 /**
@@ -13,9 +13,14 @@ export class CodexCliAgent implements IAgent {
   async applyRulerConfig(
     concatenatedRules: string,
     projectRoot: string,
+    agentConfig?: IAgentConfig,
   ): Promise<void> {
-    const target = path.join(projectRoot, 'AGENTS.md');
-    await backupFile(target);
-    await writeGeneratedFile(target, concatenatedRules);
+    const output =
+      agentConfig?.outputPath ?? this.getDefaultOutputPath(projectRoot);
+    await backupFile(output);
+    await writeGeneratedFile(output, concatenatedRules);
+  }
+  getDefaultOutputPath(projectRoot: string): string {
+    return path.join(projectRoot, 'AGENTS.md');
   }
 }

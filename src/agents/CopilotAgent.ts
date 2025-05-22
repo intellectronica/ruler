@@ -1,5 +1,5 @@
 import * as path from 'path';
-import { IAgent } from './IAgent';
+import { IAgent, IAgentConfig } from './IAgent';
 import {
   backupFile,
   writeGeneratedFile,
@@ -17,11 +17,15 @@ export class CopilotAgent implements IAgent {
   async applyRulerConfig(
     concatenatedRules: string,
     projectRoot: string,
+    agentConfig?: IAgentConfig,
   ): Promise<void> {
-    const targetDir = path.join(projectRoot, '.github');
-    await ensureDirExists(targetDir);
-    const target = path.join(targetDir, 'copilot-instructions.md');
-    await backupFile(target);
-    await writeGeneratedFile(target, concatenatedRules);
+    const output =
+      agentConfig?.outputPath ?? this.getDefaultOutputPath(projectRoot);
+    await ensureDirExists(path.dirname(output));
+    await backupFile(output);
+    await writeGeneratedFile(output, concatenatedRules);
+  }
+  getDefaultOutputPath(projectRoot: string): string {
+    return path.join(projectRoot, '.github', 'copilot-instructions.md');
   }
 }
