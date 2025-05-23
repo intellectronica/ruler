@@ -29,7 +29,24 @@ export async function updateGitignore(
 
   // Convert paths to relative POSIX format
   const relativePaths = paths.map((p) => {
-    const relative = path.isAbsolute(p) ? path.relative(projectRoot, p) : p;
+    let relative: string;
+    if (path.isAbsolute(p)) {
+      relative = path.relative(projectRoot, p);
+    } else {
+      // Handle relative paths that might include the project root prefix
+      const normalizedProjectRoot = path.normalize(projectRoot);
+      const normalizedPath = path.normalize(p);
+
+      // Get the basename of the project root to match against path prefixes
+      const projectBasename = path.basename(normalizedProjectRoot);
+
+      // If the path starts with the project basename, remove it
+      if (normalizedPath.startsWith(projectBasename + path.sep)) {
+        relative = normalizedPath.substring(projectBasename.length + 1);
+      } else {
+        relative = normalizedPath;
+      }
+    }
     return relative.replace(/\\/g, '/'); // Convert to POSIX format
   });
 
