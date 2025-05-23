@@ -1,7 +1,7 @@
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import toml from 'toml';
-import { McpConfig, GlobalMcpConfig } from '../types';
+import { McpConfig, GlobalMcpConfig, GitignoreConfig } from '../types';
 
 interface ErrnoException extends Error {
   code?: string;
@@ -31,6 +31,8 @@ export interface LoadedConfig {
   cliAgents?: string[];
   /** Global MCP servers configuration section. */
   mcp?: GlobalMcpConfig;
+  /** Gitignore configuration section. */
+  gitignore?: GitignoreConfig;
 }
 
 /**
@@ -132,5 +134,22 @@ export async function loadConfig(
     }
   }
 
-  return { defaultAgents, agentConfigs, cliAgents, mcp: globalMcpConfig };
+  const rawGitignoreSection =
+    raw.gitignore &&
+    typeof raw.gitignore === 'object' &&
+    !Array.isArray(raw.gitignore)
+      ? (raw.gitignore as Record<string, unknown>)
+      : {};
+  const gitignoreConfig: GitignoreConfig = {};
+  if (typeof rawGitignoreSection.enabled === 'boolean') {
+    gitignoreConfig.enabled = rawGitignoreSection.enabled;
+  }
+
+  return {
+    defaultAgents,
+    agentConfigs,
+    cliAgents,
+    mcp: globalMcpConfig,
+    gitignore: gitignoreConfig,
+  };
 }

@@ -13,3 +13,9 @@ export interface McpConfig {
 
 /** Global MCP configuration section (same as agent-specific config). */
 export type GlobalMcpConfig = McpConfig;
+
+/** Gitignore configuration for automatic .gitignore file updates. */
+export interface GitignoreConfig {
+  /** Enable or disable automatic .gitignore updates. */
+  enabled?: boolean;
+}

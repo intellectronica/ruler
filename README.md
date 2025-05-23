@@ -39,7 +39,7 @@ Create a `.ruler/` directory at your project root and add Markdown files definin
 Run the apply command:
 
 ```bash
-ruler apply [--project-root <path>] [--agents <agent1,agent2,...>] [--config <path>]
+ruler apply [--project-root <path>] [--agents <agent1,agent2,...>] [--config <path>] [--gitignore] [--no-gitignore]
 ```
 
 
@@ -137,6 +137,65 @@ merge_strategy = "merge"  # or "overwrite"
 [agents.Cursor.mcp]
 enabled = false
 merge_strategy = "overwrite"
+```
+
+## .gitignore Integration
+
+Ruler automatically adds generated agent configuration files to your project's `.gitignore` file to prevent them from being committed to version control. This ensures that the AI agent configuration files remain local to each developer's environment.
+
+### Behavior
+
+When `ruler apply` runs, it will:
+- Create or update a `.gitignore` file in your project root
+- Add all generated file paths to a managed block marked with `# START Ruler Generated Files` and `# END Ruler Generated Files`
+- Preserve any existing `.gitignore` content outside the managed block
+- Sort paths alphabetically within the Ruler block
+- Use relative POSIX-style paths (forward slashes)
+
+### CLI flags
+
+| Flag              | Effect                                                       |
+|-------------------|--------------------------------------------------------------|
+| `--gitignore`     | Enable automatic .gitignore updates (default)               |
+| `--no-gitignore`  | Disable automatic .gitignore updates                        |
+
+### Configuration (`ruler.toml`)
+
+Configure the default behavior in your `ruler.toml`:
+
+```toml
+[gitignore]
+enabled = true  # or false to disable by default
+```
+
+### Precedence
+
+The configuration precedence for .gitignore updates is:
+
+1. CLI flags (`--gitignore` or `--no-gitignore`)
+2. Configuration file `[gitignore].enabled` setting
+3. Default behavior (enabled)
+
+### Example
+
+After running `ruler apply`, your `.gitignore` might look like:
+
+```gitignore
+node_modules/
+*.log
+
+# START Ruler Generated Files
+.aider.conf.yml
+.clinerules
+.cursor/rules/ruler_cursor_instructions.md
+.github/copilot-instructions.md
+.windsurf/rules/ruler_windsurf_instructions.md
+AGENTS.md
+CLAUDE.md
+ruler_aider_instructions.md
+# END Ruler Generated Files
+
+dist/
 ```
 
 ## Development

@@ -40,6 +40,11 @@ export function run(): void {
           description: 'Replace (not merge) the native MCP config(s)',
           default: false,
         });
+        y.option('gitignore', {
+          type: 'boolean',
+          description:
+            'Enable/disable automatic .gitignore updates (default: enabled)',
+        });
       },
       async (argv) => {
         const projectRoot = argv['project-root'] as string;
@@ -51,6 +56,15 @@ export function run(): void {
         const mcpStrategy = (argv['mcp-overwrite'] as boolean)
           ? 'overwrite'
           : undefined;
+
+        // Determine gitignore preference: CLI > TOML > Default (enabled)
+        // yargs handles --no-gitignore by setting gitignore to false
+        let gitignorePreference: boolean | undefined;
+        if (argv.gitignore !== undefined) {
+          gitignorePreference = argv.gitignore as boolean;
+        } else {
+          gitignorePreference = undefined; // Let TOML/default decide
+        }
         try {
           await applyAllAgentConfigs(
             projectRoot,
@@ -58,6 +72,7 @@ export function run(): void {
             configPath,
             mcpEnabled,
             mcpStrategy,
+            gitignorePreference,
           );
           console.log('Ruler apply completed successfully.');
         } catch (err: unknown) {
