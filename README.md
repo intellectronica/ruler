@@ -228,13 +228,6 @@ End-to-end tests (run build before tests):
 npm run build && npm test
 ```
 
-### Roadmap
-- [ ] Support for MCP servers config
-- [ ] Support for transforming and rewriting the rules using AI
-- [ ] Support "harmonisation" (reading existing rules of specific agents and combining them with the master config)
-- [ ] Support for additional agents
-- [ ] Support for agent-specific features (for example: apply rules in copilot)
-
 ## Contributing
 
 Contributions are welcome! Please open issues or pull requests on GitHub.
