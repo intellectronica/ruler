@@ -102,4 +102,56 @@ it('loads config from custom path via configPath option', async () => {
     const config = await loadConfig({ projectRoot: tmpDir, cliAgents: overrides });
     expect(config.cliAgents).toEqual(overrides);
   });
+
+  describe('gitignore configuration', () => {
+    it('parses [gitignore] section with enabled = true', async () => {
+      const content = `
+        [gitignore]
+        enabled = true
+      `;
+      await fs.writeFile(path.join(rulerDir, 'ruler.toml'), content);
+      const config = await loadConfig({ projectRoot: tmpDir });
+      expect(config.gitignore).toBeDefined();
+      expect(config.gitignore?.enabled).toBe(true);
+    });
+
+    it('parses [gitignore] section with enabled = false', async () => {
+      const content = `
+        [gitignore]
+        enabled = false
+      `;
+      await fs.writeFile(path.join(rulerDir, 'ruler.toml'), content);
+      const config = await loadConfig({ projectRoot: tmpDir });
+      expect(config.gitignore).toBeDefined();
+      expect(config.gitignore?.enabled).toBe(false);
+    });
+
+    it('parses [gitignore] section with missing enabled key', async () => {
+      const content = `
+        [gitignore]
+        # enabled key not specified
+      `;
+      await fs.writeFile(path.join(rulerDir, 'ruler.toml'), content);
+      const config = await loadConfig({ projectRoot: tmpDir });
+      expect(config.gitignore).toBeDefined();
+      expect(config.gitignore?.enabled).toBeUndefined();
+    });
+
+    it('handles missing [gitignore] section', async () => {
+      const content = `
+        default_agents = ["A"]
+      `;
+      await fs.writeFile(path.join(rulerDir, 'ruler.toml'), content);
+      const config = await loadConfig({ projectRoot: tmpDir });
+      expect(config.gitignore).toBeDefined();
+      expect(config.gitignore?.enabled).toBeUndefined();
+    });
+
+    it('handles empty config file for gitignore', async () => {
+      await fs.writeFile(path.join(rulerDir, 'ruler.toml'), '');
+      const config = await loadConfig({ projectRoot: tmpDir });
+      expect(config.gitignore).toBeDefined();
+      expect(config.gitignore?.enabled).toBeUndefined();
+    });
+  });
 });

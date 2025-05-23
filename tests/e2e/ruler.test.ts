@@ -27,6 +27,13 @@ describe('End-to-End Ruler CLI', () => {
     await fs.rm(path.join(tmpDir, '.clinerules'), { force: true });
     await fs.rm(path.join(tmpDir, 'ruler_aider_instructions.md'), { force: true });
     await fs.rm(path.join(tmpDir, '.aider.conf.yml'), { force: true });
+    await fs.rm(path.join(tmpDir, '.gitignore'), { force: true });
+    // Clean up any custom files from previous tests
+    await fs.rm(path.join(tmpDir, 'awesome.md'), { force: true });
+    await fs.rm(path.join(tmpDir, 'custom-claude.md'), { force: true });
+    await fs.rm(path.join(tmpDir, 'custom_cursor.md'), { force: true });
+    // Reset the TOML config to default state
+    await fs.rm(path.join(tmpDir, '.ruler', 'ruler.toml'), { force: true });
   });
 
   it('generates configuration files for all agents', () => {
@@ -113,5 +120,119 @@ output_path = "awesome.md"
     await expect(
       fs.readFile(path.join(tmpDir, 'awesome.md'), 'utf8'),
     ).resolves.toContain('Rule A');
+  });
+
+  describe('gitignore CLI flags', () => {
+    it('accepts --gitignore flag without error', () => {
+      execSync('npm run build', { stdio: 'inherit' });
+      expect(() => {
+        execSync(
+          `node dist/cli/index.js apply --project-root ${tmpDir} --gitignore`,
+          { stdio: 'inherit' }
+        );
+      }).not.toThrow();
+    });
+
+    it('accepts --no-gitignore flag without error', () => {
+      execSync('npm run build', { stdio: 'inherit' });
+      expect(() => {
+        execSync(
+          `node dist/cli/index.js apply --project-root ${tmpDir} --no-gitignore`,
+          { stdio: 'inherit' }
+        );
+      }).not.toThrow();
+    });
+
+    it('accepts both --gitignore and --no-gitignore with precedence to --no-gitignore', () => {
+      execSync('npm run build', { stdio: 'inherit' });
+      expect(() => {
+        execSync(
+          `node dist/cli/index.js apply --project-root ${tmpDir} --gitignore --no-gitignore`,
+          { stdio: 'inherit' }
+        );
+      }).not.toThrow();
+    });
+  });
+
+  describe('gitignore integration', () => {
+    it('creates .gitignore with generated file paths by default', async () => {
+      execSync('npm run build', { stdio: 'inherit' });
+      execSync(`node dist/cli/index.js apply --project-root ${tmpDir}`, { stdio: 'inherit' });
+
+      const gitignorePath = path.join(tmpDir, '.gitignore');
+      const gitignoreContent = await fs.readFile(gitignorePath, 'utf8');
+      
+      expect(gitignoreContent).toContain('# START Ruler Generated Files');
+      expect(gitignoreContent).toContain('# END Ruler Generated Files');
+      expect(gitignoreContent).toContain('CLAUDE.md');
+      expect(gitignoreContent).toContain('.github/copilot-instructions.md');
+      expect(gitignoreContent).toContain('AGENTS.md');
+      expect(gitignoreContent).toContain('.cursor/rules/ruler_cursor_instructions.md');
+      expect(gitignoreContent).toContain('.windsurf/rules/ruler_windsurf_instructions.md');
+      expect(gitignoreContent).toContain('.clinerules');
+      expect(gitignoreContent).toContain('ruler_aider_instructions.md');
+      expect(gitignoreContent).toContain('.aider.conf.yml');
+    });
+
+    it('does not update .gitignore when --no-gitignore is used', async () => {
+      execSync('npm run build', { stdio: 'inherit' });
+      execSync(`node dist/cli/index.js apply --project-root ${tmpDir} --no-gitignore`, { stdio: 'inherit' });
+
+      const gitignorePath = path.join(tmpDir, '.gitignore');
+      await expect(fs.access(gitignorePath)).rejects.toThrow();
+    });
+
+    it('respects [gitignore] enabled = false in TOML config', async () => {
+      const toml = `[gitignore]
+enabled = false`;
+      await fs.writeFile(path.join(tmpDir, '.ruler', 'ruler.toml'), toml);
+      
+      execSync('npm run build', { stdio: 'inherit' });
+      execSync(`node dist/cli/index.js apply --project-root ${tmpDir}`, { stdio: 'inherit' });
+
+      const gitignorePath = path.join(tmpDir, '.gitignore');
+      await expect(fs.access(gitignorePath)).rejects.toThrow();
+    });
+
+    it('CLI --no-gitignore overrides TOML enabled = true', async () => {
+      const toml = `[gitignore]
+enabled = true`;
+      await fs.writeFile(path.join(tmpDir, '.ruler', 'ruler.toml'), toml);
+      
+      execSync('npm run build', { stdio: 'inherit' });
+      execSync(`node dist/cli/index.js apply --project-root ${tmpDir} --no-gitignore`, { stdio: 'inherit' });
+
+      const gitignorePath = path.join(tmpDir, '.gitignore');
+      await expect(fs.access(gitignorePath)).rejects.toThrow();
+    });
+
+    it('updates existing .gitignore preserving other content', async () => {
+      const gitignorePath = path.join(tmpDir, '.gitignore');
+      await fs.writeFile(gitignorePath, 'node_modules/\n*.log\n');
+      
+      execSync('npm run build', { stdio: 'inherit' });
+      execSync(`node dist/cli/index.js apply --project-root ${tmpDir}`, { stdio: 'inherit' });
+
+      const gitignoreContent = await fs.readFile(gitignorePath, 'utf8');
+      expect(gitignoreContent).toContain('node_modules/');
+      expect(gitignoreContent).toContain('*.log');
+      expect(gitignoreContent).toContain('# START Ruler Generated Files');
+      expect(gitignoreContent).toContain('CLAUDE.md');
+      expect(gitignoreContent).toContain('# END Ruler Generated Files');
+    });
+
+    it('respects custom output paths in .gitignore', async () => {
+      const toml = `[agents.Claude]
+output_path = "custom-claude.md"`;
+      await fs.writeFile(path.join(tmpDir, '.ruler', 'ruler.toml'), toml);
+      
+      execSync('npm run build', { stdio: 'inherit' });
+      execSync(`node dist/cli/index.js apply --project-root ${tmpDir} --agents claude`, { stdio: 'inherit' });
+
+      const gitignorePath = path.join(tmpDir, '.gitignore');
+      const gitignoreContent = await fs.readFile(gitignorePath, 'utf8');
+      expect(gitignoreContent).toContain('custom-claude.md');
+      expect(gitignoreContent).not.toContain('CLAUDE.md');
+    });
   });
 });
