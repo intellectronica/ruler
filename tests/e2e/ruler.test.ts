@@ -28,6 +28,12 @@ describe('End-to-End Ruler CLI', () => {
     await fs.rm(path.join(tmpDir, 'ruler_aider_instructions.md'), { force: true });
     await fs.rm(path.join(tmpDir, '.aider.conf.yml'), { force: true });
     await fs.rm(path.join(tmpDir, '.gitignore'), { force: true });
+    // Clean up any custom files from previous tests
+    await fs.rm(path.join(tmpDir, 'awesome.md'), { force: true });
+    await fs.rm(path.join(tmpDir, 'custom-claude.md'), { force: true });
+    await fs.rm(path.join(tmpDir, 'custom_cursor.md'), { force: true });
+    // Reset the TOML config to default state
+    await fs.rm(path.join(tmpDir, '.ruler', 'ruler.toml'), { force: true });
   });
 
   it('generates configuration files for all agents', () => {
