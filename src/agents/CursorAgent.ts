@@ -10,6 +10,10 @@ import {
  * Cursor agent adapter (stub implementation).
  */
 export class CursorAgent implements IAgent {
+  getIdentifier(): string {
+    return 'cursor';
+  }
+
   getName(): string {
     return 'Cursor';
   }

@@ -6,6 +6,10 @@ import { backupFile, writeGeneratedFile } from '../core/FileSystemUtils';
  * Claude Code agent adapter (stub implementation).
  */
 export class ClaudeAgent implements IAgent {
+  getIdentifier(): string {
+    return 'claude';
+  }
+
   getName(): string {
     return 'Claude Code';
   }

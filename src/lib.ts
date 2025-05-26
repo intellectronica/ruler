@@ -109,14 +109,16 @@ export async function applyAllAgentConfigs(
     `Loaded configuration with ${Object.keys(config.agentConfigs).length} agent configs`,
     verbose,
   );
-  // Normalize per-agent config keys to actual agent names (substring match)
+  // Normalize per-agent config keys to agent identifiers (exact match or substring match)
   const rawConfigs = config.agentConfigs;
   const mappedConfigs: Record<string, (typeof rawConfigs)[string]> = {};
   for (const [key, cfg] of Object.entries(rawConfigs)) {
     const lowerKey = key.toLowerCase();
     for (const agent of agents) {
-      if (agent.getName().toLowerCase().includes(lowerKey)) {
-        mappedConfigs[agent.getName()] = cfg;
+      const identifier = agent.getIdentifier();
+      // Exact match with identifier or substring match with display name for backwards compatibility
+      if (identifier === lowerKey || agent.getName().toLowerCase().includes(lowerKey)) {
+        mappedConfigs[identifier] = cfg;
       }
     }
   }
@@ -165,7 +167,9 @@ export async function applyAllAgentConfigs(
   if (config.cliAgents && config.cliAgents.length > 0) {
     const filters = config.cliAgents.map((n) => n.toLowerCase());
     selected = agents.filter((agent) =>
-      filters.some((f) => agent.getName().toLowerCase().includes(f)),
+      filters.some((f) => 
+        agent.getIdentifier() === f || agent.getName().toLowerCase().includes(f)
+      ),
     );
     logVerbose(
       `Selected agents via CLI filter: ${selected.map((a) => a.getName()).join(', ')}`,
@@ -174,12 +178,14 @@ export async function applyAllAgentConfigs(
   } else if (config.defaultAgents && config.defaultAgents.length > 0) {
     const defaults = config.defaultAgents.map((n) => n.toLowerCase());
     selected = agents.filter((agent) => {
-      const key = agent.getName();
-      const override = config.agentConfigs[key]?.enabled;
+      const identifier = agent.getIdentifier();
+      const override = config.agentConfigs[identifier]?.enabled;
       if (override !== undefined) {
         return override;
       }
-      return defaults.includes(key.toLowerCase());
+      return defaults.some((d) => 
+        identifier === d || agent.getName().toLowerCase().includes(d)
+      );
     });
     logVerbose(
       `Selected agents via config default_agents: ${selected.map((a) => a.getName()).join(', ')}`,
@@ -187,7 +193,7 @@ export async function applyAllAgentConfigs(
     );
   } else {
     selected = agents.filter(
-      (agent) => config.agentConfigs[agent.getName()]?.enabled !== false,
+      (agent) => config.agentConfigs[agent.getIdentifier()]?.enabled !== false,
     );
     logVerbose(
       `Selected all enabled agents: ${selected.map((a) => a.getName()).join(', ')}`,
@@ -202,7 +208,7 @@ export async function applyAllAgentConfigs(
     const actionPrefix = dryRun ? '[ruler:dry-run]' : '[ruler]';
     console.log(`${actionPrefix} Applying rules for ${agent.getName()}...`);
     logVerbose(`Processing agent: ${agent.getName()}`, verbose);
-    const agentConfig = config.agentConfigs[agent.getName()];
+    const agentConfig = config.agentConfigs[agent.getIdentifier()];
 
     // Collect output paths for .gitignore
     const outputPaths = getAgentOutputPaths(agent, projectRoot, agentConfig);

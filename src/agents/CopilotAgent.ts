@@ -10,6 +10,10 @@ import {
  * GitHub Copilot agent adapter (stub implementation).
  */
 export class CopilotAgent implements IAgent {
+  getIdentifier(): string {
+    return 'copilot';
+  }
+
   getName(): string {
     return 'GitHub Copilot';
   }

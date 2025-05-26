@@ -167,7 +167,7 @@ Defaults to `.ruler/ruler.toml` in the project root. Override with `--config` CL
 ```toml
 # Default agents to run when --agents is not specified
 # Uses case-insensitive substring matching
-default_agents = ["GitHub Copilot", "Claude", "Aider"]
+default_agents = ["copilot", "claude", "aider"]
 
 # --- Global MCP Server Configuration ---
 [mcp]
@@ -182,26 +182,26 @@ merge_strategy = "merge"
 enabled = true
 
 # --- Agent-Specific Configurations ---
-[agents."GitHub Copilot"]
+[agents.copilot]
 enabled = true
 output_path = ".github/copilot-instructions.md"
 
-[agents.Claude]
+[agents.claude]
 enabled = true
 output_path = "CLAUDE.md"
 
-[agents.Aider]
+[agents.aider]
 enabled = true
 output_path_instructions = "ruler_aider_instructions.md"
 output_path_config = ".aider.conf.yml"
 
 # Agent-specific MCP configuration
-[agents.Cursor.mcp]
+[agents.cursor.mcp]
 enabled = true
 merge_strategy = "merge"
 
 # Disable specific agents
-[agents.Windsurf]
+[agents.windsurf]
 enabled = false
 ```
 
@@ -377,7 +377,7 @@ This shows:
 A: Currently, all agents receive the same concatenated rules. For agent-specific instructions, include sections in your rule files like "## GitHub Copilot Specific" or "## Aider Configuration".
 
 **Q: How do I temporarily disable Ruler for an agent?**
-A: Set `enabled = false` in `ruler.toml` under `[agents.AgentName]`, or use `--agents` flag to specify only the agents you want.
+A: Set `enabled = false` in `ruler.toml` under `[agents.agentname]`, or use `--agents` flag to specify only the agents you want.
 
 **Q: What happens to my existing agent configuration files?**
 A: Ruler creates backups with `.bak` extension before overwriting any existing files.

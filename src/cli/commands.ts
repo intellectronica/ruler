@@ -24,7 +24,7 @@ export function run(): void {
         y.option('agents', {
           type: 'string',
           description:
-            'Comma-separated list of agent names to include (e.g. "copilot,claude")',
+            'Comma-separated list of agent identifiers: copilot, claude, codex, cursor, windsurf, cline, aider',
         });
         y.option('config', {
           type: 'string',
@@ -135,36 +135,37 @@ and apply them to your configured AI coding agents.
 
 # To specify which agents are active by default when --agents is not used,
 # uncomment and populate the following line. If omitted, all agents are active.
-# default_agents = ["Copilot", "Claude"]
+# default_agents = ["copilot", "claude"]
 
 # --- Agent Specific Configurations ---
 # You can enable/disable agents and override their default output paths here.
+# Use lowercase agent identifiers: copilot, claude, codex, cursor, windsurf, cline, aider
 
-# [agents.GitHubCopilot]
+# [agents.copilot]
 # enabled = true
 # output_path = ".github/copilot-instructions.md"
 
-# [agents.ClaudeCode]
+# [agents.claude]
 # enabled = true
 # output_path = "CLAUDE.md"
 
-# [agents.OpenAICodexCLI]
+# [agents.codex]
 # enabled = true
 # output_path = "AGENTS.md"
 
-# [agents.Cursor]
+# [agents.cursor]
 # enabled = true
 # output_path = ".cursor/rules/ruler_cursor_instructions.md"
 
-# [agents.Windsurf]
+# [agents.windsurf]
 # enabled = true
 # output_path = ".windsurf/rules/ruler_windsurf_instructions.md"
 
-# [agents.Cline]
+# [agents.cline]
 # enabled = true
 # output_path = ".clinerules"
 
-# [agents.Aider]
+# [agents.aider]
 # enabled = true
 # output_path_instructions = "ruler_aider_instructions.md"
 # output_path_config = ".aider.conf.yml"

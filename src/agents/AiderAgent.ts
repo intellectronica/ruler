@@ -8,6 +8,10 @@ import * as yaml from 'js-yaml';
  * Aider agent adapter (stub implementation).
  */
 export class AiderAgent implements IAgent {
+  getIdentifier(): string {
+    return 'aider';
+  }
+
   getName(): string {
     return 'Aider';
   }
