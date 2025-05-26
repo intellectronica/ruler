@@ -6,6 +6,10 @@ import { backupFile, writeGeneratedFile } from '../core/FileSystemUtils';
  * Cline agent adapter (stub implementation).
  */
 export class ClineAgent implements IAgent {
+  getIdentifier(): string {
+    return 'cline';
+  }
+
   getName(): string {
     return 'Cline';
   }

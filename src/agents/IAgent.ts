@@ -14,6 +14,11 @@ export interface IAgentConfig {
 
 export interface IAgent {
   /**
+   * Returns the lowercase identifier of the agent (e.g., "copilot", "claude", "aider").
+   */
+  getIdentifier(): string;
+
+  /**
    * Returns the display name of the agent.
    */
   getName(): string;

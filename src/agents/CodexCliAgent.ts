@@ -6,6 +6,10 @@ import { backupFile, writeGeneratedFile } from '../core/FileSystemUtils';
  * OpenAI Codex CLI agent adapter (stub implementation).
  */
 export class CodexCliAgent implements IAgent {
+  getIdentifier(): string {
+    return 'codex';
+  }
+
   getName(): string {
     return 'OpenAI Codex CLI';
   }

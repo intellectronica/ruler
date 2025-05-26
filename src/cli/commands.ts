@@ -3,6 +3,7 @@ import { hideBin } from 'yargs/helpers';
 import { applyAllAgentConfigs } from '../lib';
 import * as path from 'path';
 import { promises as fs } from 'fs';
+import { ERROR_PREFIX } from '../constants';
 
 /**
  * Sets up and parses CLI commands.
@@ -23,7 +24,7 @@ export function run(): void {
         y.option('agents', {
           type: 'string',
           description:
-            'Comma-separated list of agent names to include (e.g. "copilot,claude")',
+            'Comma-separated list of agent identifiers: copilot, claude, codex, cursor, windsurf, cline, aider',
         });
         y.option('config', {
           type: 'string',
@@ -45,6 +46,17 @@ export function run(): void {
           description:
             'Enable/disable automatic .gitignore updates (default: enabled)',
         });
+        y.option('verbose', {
+          type: 'boolean',
+          description: 'Enable verbose logging',
+          default: false,
+        });
+        y.alias('verbose', 'v');
+        y.option('dry-run', {
+          type: 'boolean',
+          description: 'Preview changes without writing files',
+          default: false,
+        });
       },
       async (argv) => {
         const projectRoot = argv['project-root'] as string;
@@ -56,6 +68,8 @@ export function run(): void {
         const mcpStrategy = (argv['mcp-overwrite'] as boolean)
           ? 'overwrite'
           : undefined;
+        const verbose = argv.verbose as boolean;
+        const dryRun = argv['dry-run'] as boolean;
 
         // Determine gitignore preference: CLI > TOML > Default (enabled)
         // yargs handles --no-gitignore by setting gitignore to false
@@ -73,11 +87,13 @@ export function run(): void {
             mcpEnabled,
             mcpStrategy,
             gitignorePreference,
+            verbose,
+            dryRun,
           );
           console.log('Ruler apply completed successfully.');
         } catch (err: unknown) {
           const message = err instanceof Error ? err.message : String(err);
-          console.error('Error applying ruler configurations:', message);
+          console.error(`${ERROR_PREFIX} ${message}`);
           process.exit(1);
         }
       },
@@ -119,36 +135,37 @@ and apply them to your configured AI coding agents.
 
 # To specify which agents are active by default when --agents is not used,
 # uncomment and populate the following line. If omitted, all agents are active.
-# default_agents = ["Copilot", "Claude"]
+# default_agents = ["copilot", "claude"]
 
 # --- Agent Specific Configurations ---
 # You can enable/disable agents and override their default output paths here.
+# Use lowercase agent identifiers: copilot, claude, codex, cursor, windsurf, cline, aider
 
-# [agents.GitHubCopilot]
+# [agents.copilot]
 # enabled = true
 # output_path = ".github/copilot-instructions.md"
 
-# [agents.ClaudeCode]
+# [agents.claude]
 # enabled = true
 # output_path = "CLAUDE.md"
 
-# [agents.OpenAICodexCLI]
+# [agents.codex]
 # enabled = true
 # output_path = "AGENTS.md"
 
-# [agents.Cursor]
+# [agents.cursor]
 # enabled = true
 # output_path = ".cursor/rules/ruler_cursor_instructions.md"
 
-# [agents.Windsurf]
+# [agents.windsurf]
 # enabled = true
 # output_path = ".windsurf/rules/ruler_windsurf_instructions.md"
 
-# [agents.Cline]
+# [agents.cline]
 # enabled = true
 # output_path = ".clinerules"
 
-# [agents.Aider]
+# [agents.aider]
 # enabled = true
 # output_path_instructions = "ruler_aider_instructions.md"
 # output_path_config = ".aider.conf.yml"

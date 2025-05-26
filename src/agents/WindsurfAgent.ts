@@ -10,6 +10,10 @@ import {
  * Windsurf agent adapter (stub implementation).
  */
 export class WindsurfAgent implements IAgent {
+  getIdentifier(): string {
+    return 'windsurf';
+  }
+
   getName(): string {
     return 'Windsurf';
   }

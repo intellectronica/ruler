@@ -1,6 +1,6 @@
 {
   "name": "@intellectronica/ruler",
-  "version": "0.1.4",
+  "version": "0.2.0",
   "description": "Ruler — apply the same rules to all coding agents",
   "main": "dist/lib.js",
   "scripts": {
@@ -8,6 +8,7 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,json,md}\"",
     "test": "jest",
     "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
     "build": "tsc",
     "prepare": "npm run build"
   },
@@ -58,6 +59,7 @@
   "dependencies": {
     "js-yaml": "^4.1.0",
     "toml": "^3.0.0",
-    "yargs": "^17.7.2"
+    "yargs": "^17.7.2",
+    "zod": "^3.25.28"
   }
 }

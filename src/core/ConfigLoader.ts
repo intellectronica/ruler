@@ -1,11 +1,46 @@
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import toml from 'toml';
+import { z } from 'zod';
 import { McpConfig, GlobalMcpConfig, GitignoreConfig } from '../types';
+import { createRulerError } from '../constants';
 
 interface ErrnoException extends Error {
   code?: string;
 }
+
+const mcpConfigSchema = z
+  .object({
+    enabled: z.boolean().optional(),
+    merge_strategy: z.enum(['merge', 'overwrite']).optional(),
+  })
+  .optional();
+
+const agentConfigSchema = z
+  .object({
+    enabled: z.boolean().optional(),
+    output_path: z.string().optional(),
+    output_path_instructions: z.string().optional(),
+    output_path_config: z.string().optional(),
+    mcp: mcpConfigSchema,
+  })
+  .optional();
+
+const rulerConfigSchema = z.object({
+  default_agents: z.array(z.string()).optional(),
+  agents: z.record(z.string(), agentConfigSchema).optional(),
+  mcp: z
+    .object({
+      enabled: z.boolean().optional(),
+      merge_strategy: z.enum(['merge', 'overwrite']).optional(),
+    })
+    .optional(),
+  gitignore: z
+    .object({
+      enabled: z.boolean().optional(),
+    })
+    .optional(),
+});
 
 /**
  * Configuration for a specific agent as defined in ruler.toml.
@@ -61,8 +96,20 @@ export async function loadConfig(
   try {
     const text = await fs.readFile(configFile, 'utf8');
     raw = text.trim() ? toml.parse(text) : {};
+
+    // Validate the configuration with zod
+    const validationResult = rulerConfigSchema.safeParse(raw);
+    if (!validationResult.success) {
+      throw createRulerError(
+        'Invalid configuration file format',
+        `File: ${configFile}, Errors: ${validationResult.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join(', ')}`,
+      );
+    }
   } catch (err) {
     if (err instanceof Error && (err as ErrnoException).code !== 'ENOENT') {
+      if (err.message.includes('[RulerError]')) {
+        throw err; // Re-throw validation errors
+      }
       console.warn(
         `[ruler] Warning: could not read config file at ${configFile}: ${err.message}`,
       );
