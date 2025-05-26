@@ -117,7 +117,10 @@ export async function applyAllAgentConfigs(
     for (const agent of agents) {
       const identifier = agent.getIdentifier();
       // Exact match with identifier or substring match with display name for backwards compatibility
-      if (identifier === lowerKey || agent.getName().toLowerCase().includes(lowerKey)) {
+      if (
+        identifier === lowerKey ||
+        agent.getName().toLowerCase().includes(lowerKey)
+      ) {
         mappedConfigs[identifier] = cfg;
       }
     }
@@ -167,8 +170,10 @@ export async function applyAllAgentConfigs(
   if (config.cliAgents && config.cliAgents.length > 0) {
     const filters = config.cliAgents.map((n) => n.toLowerCase());
     selected = agents.filter((agent) =>
-      filters.some((f) => 
-        agent.getIdentifier() === f || agent.getName().toLowerCase().includes(f)
+      filters.some(
+        (f) =>
+          agent.getIdentifier() === f ||
+          agent.getName().toLowerCase().includes(f),
       ),
     );
     logVerbose(
@@ -183,8 +188,8 @@ export async function applyAllAgentConfigs(
       if (override !== undefined) {
         return override;
       }
-      return defaults.some((d) => 
-        identifier === d || agent.getName().toLowerCase().includes(d)
+      return defaults.some(
+        (d) => identifier === d || agent.getName().toLowerCase().includes(d),
       );
     });
     logVerbose(
