@@ -27,7 +27,6 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 - **MCP Server Propagation**: Manage and distribute Model Context Protocol (MCP) server settings
 - **`.gitignore` Automation**: Keeps generated agent config files out of version control automatically
 - **Simple CLI**: Easy-to-use commands for initialising and applying configurations
-- **Verbose Logging**: Detailed output with `--verbose` flag for debugging and transparency
 
 ## Supported AI Agents
 
