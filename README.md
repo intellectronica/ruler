@@ -4,7 +4,7 @@
 [![npm version](https://badge.fury.io/js/%40intellectronica%2Fruler.svg)](https://badge.fury.io/js/%40intellectronica%2Fruler)
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 
-> **Beta Release Preview**
+> **Beta Research Preview**
 > - Please test this version carefully in your environment
 > - Report issues at https://github.com/intellectronica/ruler/issues
 
