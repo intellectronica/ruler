@@ -52,6 +52,11 @@ export function run(): void {
           default: false,
         });
         y.alias('verbose', 'v');
+        y.option('dry-run', {
+          type: 'boolean',
+          description: 'Preview changes without writing files',
+          default: false,
+        });
       },
       async (argv) => {
         const projectRoot = argv['project-root'] as string;
@@ -64,6 +69,7 @@ export function run(): void {
           ? 'overwrite'
           : undefined;
         const verbose = argv.verbose as boolean;
+        const dryRun = argv['dry-run'] as boolean;
 
         // Determine gitignore preference: CLI > TOML > Default (enabled)
         // yargs handles --no-gitignore by setting gitignore to false
@@ -82,6 +88,7 @@ export function run(): void {
             mcpStrategy,
             gitignorePreference,
             verbose,
+            dryRun,
           );
           console.log('Ruler apply completed successfully.');
         } catch (err: unknown) {

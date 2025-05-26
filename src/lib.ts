@@ -90,6 +90,7 @@ export async function applyAllAgentConfigs(
   cliMcpStrategy?: McpStrategy,
   cliGitignoreEnabled?: boolean,
   verbose = false,
+  dryRun = false,
 ): Promise<void> {
   // Load configuration (default_agents, per-agent overrides, CLI filters)
   logVerbose(`Loading configuration from project root: ${projectRoot}`, verbose);
@@ -171,15 +172,21 @@ export async function applyAllAgentConfigs(
   const generatedPaths: string[] = [];
 
   for (const agent of selected) {
-    console.log(`[ruler] Applying rules for ${agent.getName()}...`);
+    const actionPrefix = dryRun ? '[ruler:dry-run]' : '[ruler]';
+    console.log(`${actionPrefix} Applying rules for ${agent.getName()}...`);
     logVerbose(`Processing agent: ${agent.getName()}`, verbose);
     const agentConfig = config.agentConfigs[agent.getName()];
-    await agent.applyRulerConfig(concatenated, projectRoot, agentConfig);
-
+    
     // Collect output paths for .gitignore
     const outputPaths = getAgentOutputPaths(agent, projectRoot, agentConfig);
     logVerbose(`Agent ${agent.getName()} output paths: ${outputPaths.join(', ')}`, verbose);
     generatedPaths.push(...outputPaths);
+
+    if (dryRun) {
+      logVerbose(`DRY RUN: Would write rules to: ${outputPaths.join(', ')}`, true);
+    } else {
+      await agent.applyRulerConfig(concatenated, projectRoot, agentConfig);
+    }
 
     const dest = await getNativeMcpPath(agent.getName(), projectRoot);
     const enabled =
@@ -192,9 +199,14 @@ export async function applyAllAgentConfigs(
         config.mcp?.strategy ??
         'merge';
       logVerbose(`Applying MCP config for ${agent.getName()} with strategy: ${strategy}`, verbose);
-      const existing = await readNativeMcp(dest);
-      const merged = mergeMcp(existing, rulerMcpJson, strategy);
-      await writeNativeMcp(dest, merged);
+      
+      if (dryRun) {
+        logVerbose(`DRY RUN: Would apply MCP config to: ${dest}`, true);
+      } else {
+        const existing = await readNativeMcp(dest);
+        const merged = mergeMcp(existing, rulerMcpJson, strategy);
+        await writeNativeMcp(dest, merged);
+      }
     }
   }
 
@@ -215,10 +227,17 @@ export async function applyAllAgentConfigs(
     const uniquePaths = [...new Set(pathsToIgnore)];
 
     if (uniquePaths.length > 0) {
-      await updateGitignore(projectRoot, uniquePaths);
-      console.log(
-        `[ruler] Updated .gitignore with ${uniquePaths.length} unique path(s) in the Ruler block.`,
-      );
+      const actionPrefix = dryRun ? '[ruler:dry-run]' : '[ruler]';
+      if (dryRun) {
+        console.log(
+          `${actionPrefix} Would update .gitignore with ${uniquePaths.length} unique path(s): ${uniquePaths.join(', ')}`,
+        );
+      } else {
+        await updateGitignore(projectRoot, uniquePaths);
+        console.log(
+          `${actionPrefix} Updated .gitignore with ${uniquePaths.length} unique path(s) in the Ruler block.`,
+        );
+      }
     }
   }
 }

@@ -54,7 +54,8 @@
     "jest": "^29.7.0",
     "prettier": "^3.5.3",
     "ts-jest": "^29.3.4",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "zod": "^3.25.28"
   },
   "dependencies": {
     "js-yaml": "^4.1.0",
