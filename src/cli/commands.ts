@@ -3,6 +3,7 @@ import { hideBin } from 'yargs/helpers';
 import { applyAllAgentConfigs } from '../lib';
 import * as path from 'path';
 import { promises as fs } from 'fs';
+import { ERROR_PREFIX, createRulerError } from '../constants';
 
 /**
  * Sets up and parses CLI commands.
@@ -45,6 +46,12 @@ export function run(): void {
           description:
             'Enable/disable automatic .gitignore updates (default: enabled)',
         });
+        y.option('verbose', {
+          type: 'boolean',
+          description: 'Enable verbose logging',
+          default: false,
+        });
+        y.alias('verbose', 'v');
       },
       async (argv) => {
         const projectRoot = argv['project-root'] as string;
@@ -56,6 +63,7 @@ export function run(): void {
         const mcpStrategy = (argv['mcp-overwrite'] as boolean)
           ? 'overwrite'
           : undefined;
+        const verbose = argv.verbose as boolean;
 
         // Determine gitignore preference: CLI > TOML > Default (enabled)
         // yargs handles --no-gitignore by setting gitignore to false
@@ -73,11 +81,12 @@ export function run(): void {
             mcpEnabled,
             mcpStrategy,
             gitignorePreference,
+            verbose,
           );
           console.log('Ruler apply completed successfully.');
         } catch (err: unknown) {
           const message = err instanceof Error ? err.message : String(err);
-          console.error('Error applying ruler configurations:', message);
+          console.error(`${ERROR_PREFIX} ${message}`);
           process.exit(1);
         }
       },

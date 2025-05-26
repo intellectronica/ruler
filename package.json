@@ -8,6 +8,7 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,json,md}\"",
     "test": "jest",
     "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
     "build": "tsc",
     "prepare": "npm run build"
   },

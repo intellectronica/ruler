@@ -17,6 +17,7 @@ import { validateMcp } from './mcp/validate';
 import { getNativeMcpPath, readNativeMcp, writeNativeMcp } from './paths/mcp';
 import { McpStrategy } from './types';
 import { IAgentConfig } from './agents/IAgent';
+import { createRulerError, logVerbose } from './constants';
 
 /**
  * Gets all output paths for an agent, taking into account any config overrides.
@@ -88,13 +89,19 @@ export async function applyAllAgentConfigs(
   cliMcpEnabled = true,
   cliMcpStrategy?: McpStrategy,
   cliGitignoreEnabled?: boolean,
+  verbose = false,
 ): Promise<void> {
   // Load configuration (default_agents, per-agent overrides, CLI filters)
+  logVerbose(`Loading configuration from project root: ${projectRoot}`, verbose);
+  if (configPath) {
+    logVerbose(`Using custom config path: ${configPath}`, verbose);
+  }
   const config = await loadConfig({
     projectRoot,
     cliAgents: includedAgents,
     configPath,
   });
+  logVerbose(`Loaded configuration with ${Object.keys(config.agentConfigs).length} agent configs`, verbose);
   // Normalize per-agent config keys to actual agent names (substring match)
   const rawConfigs = config.agentConfigs;
   const mappedConfigs: Record<string, (typeof rawConfigs)[string]> = {};
@@ -110,11 +117,14 @@ export async function applyAllAgentConfigs(
 
   const rulerDir = await FileSystemUtils.findRulerDir(projectRoot);
   if (!rulerDir) {
-    throw new Error(`.ruler directory not found from ${projectRoot}`);
+    throw createRulerError(`.ruler directory not found`, `Searched from: ${projectRoot}`);
   }
-  await FileSystemUtils.ensureDirExists(path.join(rulerDir, 'generated'));
+  logVerbose(`Found .ruler directory at: ${rulerDir}`, verbose);
+  
   const files = await FileSystemUtils.readMarkdownFiles(rulerDir);
+  logVerbose(`Found ${files.length} markdown files in .ruler directory`, verbose);
   const concatenated = concatenateRules(files);
+  logVerbose(`Concatenated rules length: ${concatenated.length} characters`, verbose);
 
   const mcpFile = path.join(rulerDir, 'mcp.json');
   let rulerMcpJson: Record<string, unknown> | null = null;
@@ -122,10 +132,12 @@ export async function applyAllAgentConfigs(
     const raw = await fs.readFile(mcpFile, 'utf8');
     rulerMcpJson = JSON.parse(raw) as Record<string, unknown>;
     validateMcp(rulerMcpJson);
+    logVerbose(`Loaded MCP configuration from: ${mcpFile}`, verbose);
   } catch (err: unknown) {
     if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
-      throw err;
+      throw createRulerError(`Failed to load MCP configuration`, `File: ${mcpFile}, Error: ${(err as Error).message}`);
     }
+    logVerbose(`No MCP configuration found at: ${mcpFile}`, verbose);
   }
 
   // Determine which agents to run:
@@ -136,6 +148,7 @@ export async function applyAllAgentConfigs(
     selected = agents.filter((agent) =>
       filters.some((f) => agent.getName().toLowerCase().includes(f)),
     );
+    logVerbose(`Selected agents via CLI filter: ${selected.map(a => a.getName()).join(', ')}`, verbose);
   } else if (config.defaultAgents && config.defaultAgents.length > 0) {
     const defaults = config.defaultAgents.map((n) => n.toLowerCase());
     selected = agents.filter((agent) => {
@@ -146,10 +159,12 @@ export async function applyAllAgentConfigs(
       }
       return defaults.includes(key.toLowerCase());
     });
+    logVerbose(`Selected agents via config default_agents: ${selected.map(a => a.getName()).join(', ')}`, verbose);
   } else {
     selected = agents.filter(
       (agent) => config.agentConfigs[agent.getName()]?.enabled !== false,
     );
+    logVerbose(`Selected all enabled agents: ${selected.map(a => a.getName()).join(', ')}`, verbose);
   }
 
   // Collect all generated file paths for .gitignore
@@ -157,11 +172,13 @@ export async function applyAllAgentConfigs(
 
   for (const agent of selected) {
     console.log(`[ruler] Applying rules for ${agent.getName()}...`);
+    logVerbose(`Processing agent: ${agent.getName()}`, verbose);
     const agentConfig = config.agentConfigs[agent.getName()];
     await agent.applyRulerConfig(concatenated, projectRoot, agentConfig);
 
     // Collect output paths for .gitignore
     const outputPaths = getAgentOutputPaths(agent, projectRoot, agentConfig);
+    logVerbose(`Agent ${agent.getName()} output paths: ${outputPaths.join(', ')}`, verbose);
     generatedPaths.push(...outputPaths);
 
     const dest = await getNativeMcpPath(agent.getName(), projectRoot);
@@ -174,6 +191,7 @@ export async function applyAllAgentConfigs(
         agentConfig?.mcp?.strategy ??
         config.mcp?.strategy ??
         'merge';
+      logVerbose(`Applying MCP config for ${agent.getName()} with strategy: ${strategy}`, verbose);
       const existing = await readNativeMcp(dest);
       const merged = mergeMcp(existing, rulerMcpJson, strategy);
       await writeNativeMcp(dest, merged);
