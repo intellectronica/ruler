@@ -68,34 +68,6 @@ npx @intellectronica/ruler apply
    - `.ruler/ruler.toml`: The main configuration file for Ruler
    - `.ruler/mcp.json`: An example MCP server configuration
 
-**Default `instructions.md` content:**
-```markdown
-# Ruler Instructions
-
-These are your centralised AI agent instructions.
-Add your coding guidelines, style guides, and other project-specific context here.
-
-Ruler will concatenate all .md files in this directory (and its subdirectories)
-and apply them to your configured AI coding agents.
-```
-
-**Default `ruler.toml` content:**
-```toml
-# Ruler Configuration File
-# See https://ai.intellectronica.net/ruler for documentation.
-
-# To specify which agents are active by default when --agents is not used,
-# uncomment and populate the following line. If omitted, all agents are active.
-# default_agents = ["Copilot", "Claude"]
-
-# --- Agent Specific Configurations ---
-# You can enable/disable agents and override their default output paths here.
-
-# [agents.GitHubCopilot]
-# enabled = true
-# output_path = ".github/copilot-instructions.md"
-```
-
 ## Core Concepts
 
 ### The `.ruler/` Directory
