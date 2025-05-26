@@ -1,7 +1,7 @@
 export const ERROR_PREFIX = '[RulerError]';
 
 export function createRulerError(message: string, context?: string): Error {
-  const fullMessage = context 
+  const fullMessage = context
     ? `${ERROR_PREFIX} ${message} (Context: ${context})`
     : `${ERROR_PREFIX} ${message}`;
   return new Error(fullMessage);

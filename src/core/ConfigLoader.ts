@@ -9,29 +9,37 @@ interface ErrnoException extends Error {
   code?: string;
 }
 
-const mcpConfigSchema = z.object({
-  enabled: z.boolean().optional(),
-  merge_strategy: z.enum(['merge', 'overwrite']).optional(),
-}).optional();
+const mcpConfigSchema = z
+  .object({
+    enabled: z.boolean().optional(),
+    merge_strategy: z.enum(['merge', 'overwrite']).optional(),
+  })
+  .optional();
 
-const agentConfigSchema = z.object({
-  enabled: z.boolean().optional(),
-  output_path: z.string().optional(),
-  output_path_instructions: z.string().optional(),
-  output_path_config: z.string().optional(),
-  mcp: mcpConfigSchema,
-}).optional();
+const agentConfigSchema = z
+  .object({
+    enabled: z.boolean().optional(),
+    output_path: z.string().optional(),
+    output_path_instructions: z.string().optional(),
+    output_path_config: z.string().optional(),
+    mcp: mcpConfigSchema,
+  })
+  .optional();
 
 const rulerConfigSchema = z.object({
   default_agents: z.array(z.string()).optional(),
   agents: z.record(z.string(), agentConfigSchema).optional(),
-  mcp: z.object({
-    enabled: z.boolean().optional(),
-    merge_strategy: z.enum(['merge', 'overwrite']).optional(),
-  }).optional(),
-  gitignore: z.object({
-    enabled: z.boolean().optional(),
-  }).optional(),
+  mcp: z
+    .object({
+      enabled: z.boolean().optional(),
+      merge_strategy: z.enum(['merge', 'overwrite']).optional(),
+    })
+    .optional(),
+  gitignore: z
+    .object({
+      enabled: z.boolean().optional(),
+    })
+    .optional(),
 });
 
 /**
@@ -88,13 +96,13 @@ export async function loadConfig(
   try {
     const text = await fs.readFile(configFile, 'utf8');
     raw = text.trim() ? toml.parse(text) : {};
-    
+
     // Validate the configuration with zod
     const validationResult = rulerConfigSchema.safeParse(raw);
     if (!validationResult.success) {
       throw createRulerError(
-        'Invalid configuration file format', 
-        `File: ${configFile}, Errors: ${validationResult.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join(', ')}`
+        'Invalid configuration file format',
+        `File: ${configFile}, Errors: ${validationResult.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join(', ')}`,
       );
     }
   } catch (err) {

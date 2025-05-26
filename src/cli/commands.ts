@@ -3,7 +3,7 @@ import { hideBin } from 'yargs/helpers';
 import { applyAllAgentConfigs } from '../lib';
 import * as path from 'path';
 import { promises as fs } from 'fs';
-import { ERROR_PREFIX, createRulerError } from '../constants';
+import { ERROR_PREFIX } from '../constants';
 
 /**
  * Sets up and parses CLI commands.
