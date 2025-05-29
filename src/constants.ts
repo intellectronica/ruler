@@ -9,6 +9,6 @@ export function createRulerError(message: string, context?: string): Error {
 
 export function logVerbose(message: string, isVerbose: boolean): void {
   if (isVerbose) {
-    console.log(`[ruler:verbose] ${message}`);
+    console.error(`[ruler:verbose] ${message}`);
   }
 }
