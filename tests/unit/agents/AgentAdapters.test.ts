@@ -10,6 +10,7 @@ import { CursorAgent } from '../../../src/agents/CursorAgent';
 import { WindsurfAgent } from '../../../src/agents/WindsurfAgent';
 import { ClineAgent } from '../../../src/agents/ClineAgent';
 import { AiderAgent } from '../../../src/agents/AiderAgent';
+import { FirebaseAgent } from '../../../src/agents/FirebaseAgent';
 
 describe('Agent Adapters', () => {
   let tmpDir: string;
@@ -162,5 +163,24 @@ describe('Agent Adapters', () => {
       await fs.readFile(path.join(tmpDir, '.aider.conf.yml'), 'utf8'),
     ) as any;
     expect(cfg.read).toContain('custom_aider.md');
+  });
+
+  describe('FirebaseAgent', () => {
+  it('backs up and writes .idx/airules.md', async () => {
+      const agent = new FirebaseAgent();
+      const idxDir = path.join(tmpDir, '.idx');
+      await fs.mkdir(idxDir, { recursive: true });
+      const target = path.join(idxDir, 'airules.md');
+      await fs.writeFile(target, 'old firebase');
+      await agent.applyRulerConfig('new firebase', tmpDir);
+      expect(await fs.readFile(`${target}.bak`, 'utf8')).toBe('old firebase');
+      expect(await fs.readFile(target, 'utf8')).toBe('new firebase');
+    });
+  });
+  it('uses custom outputPath when provided', async () => {
+    const agent = new FirebaseAgent();
+    const custom = path.join(tmpDir, 'custom_firebase.md');
+    await agent.applyRulerConfig('firebase rules', tmpDir, { outputPath: custom });
+    expect(await fs.readFile(custom, 'utf8')).toBe('firebase rules');
   });
 });
