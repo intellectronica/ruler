@@ -39,7 +39,7 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | ---------------------- | ----------------------------------------------------------- |
 | GitHub Copilot         | `.github/copilot-instructions.md`                           |
 | Claude Code            | `CLAUDE.md`                                                 |
-| OpenAI Codex CLI       | `AGENTS.md`                                                 |
+| OpenAI Codex CLI       | `AGENTS.md`, `.codex/config.toml` (MCP)                     |
 | Cursor                 | `.cursor/rules/ruler_cursor_instructions.md`                |
 | Windsurf               | `.windsurf/rules/ruler_windsurf_instructions.md`            |
 | Cline                  | `.clinerules`                                               |
@@ -195,6 +195,17 @@ enabled = true
 output_path_instructions = "ruler_aider_instructions.md"
 output_path_config = ".aider.conf.yml"
 
+# OpenAI Codex CLI agent and MCP config
+[agents.codex]
+enabled = true
+output_path = "AGENTS.md"
+output_path_config = ".codex/config.toml"
+
+# Agent-specific MCP configuration for Codex CLI
+[agents.codex.mcp]
+enabled = true
+merge_strategy = "merge"
+
 # Agent-specific MCP configuration
 [agents.cursor.mcp]
 enabled = true
@@ -232,7 +243,13 @@ Define your project's MCP servers:
 }
 ```
 
+
 Ruler uses this file with the `merge` (default) or `overwrite` strategy, controlled by `ruler.toml` or CLI flags.
+
+**Note for OpenAI Codex CLI:** To apply the local Codex CLI MCP configuration, set the `CODEX_HOME` environment variable to your project’s `.codex` directory:
+```bash
+export CODEX_HOME="$(pwd)/.codex"
+```
 
 ## `.gitignore` Integration
 
