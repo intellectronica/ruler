@@ -44,6 +44,7 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | Windsurf               | `.windsurf/rules/ruler_windsurf_instructions.md`            |
 | Cline                  | `.clinerules`                                               |
 | Aider                  | `ruler_aider_instructions.md` and `.aider.conf.yml`         |
+| Firebase Studio        | `.idx/airules.md`                                           |
 
 ## Getting Started
 
@@ -143,6 +144,11 @@ ruler apply
 ruler apply --agents copilot,claude
 ```
 
+**Apply rules only to Firebase Studio:**
+```bash
+ruler apply --agents firebase
+```
+
 **Use a specific configuration file:**
 ```bash
 ruler apply --config ./team-configs/ruler.frontend.toml
@@ -194,6 +200,10 @@ output_path = "CLAUDE.md"
 enabled = true
 output_path_instructions = "ruler_aider_instructions.md"
 output_path_config = ".aider.conf.yml"
+
+[agents.firebase]
+enabled = true
+output_path = ".idx/airules.md"
 
 # Agent-specific MCP configuration
 [agents.cursor.mcp]
