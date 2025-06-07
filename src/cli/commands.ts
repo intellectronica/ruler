@@ -24,7 +24,7 @@ export function run(): void {
         y.option('agents', {
           type: 'string',
           description:
-            'Comma-separated list of agent identifiers: copilot, claude, codex, cursor, windsurf, cline, aider',
+            'Comma-separated list of agent identifiers: copilot, claude, codex, cursor, windsurf, cline, aider, firebase',
         });
         y.option('config', {
           type: 'string',
@@ -169,6 +169,10 @@ and apply them to your configured AI coding agents.
 # enabled = true
 # output_path_instructions = "ruler_aider_instructions.md"
 # output_path_config = ".aider.conf.yml"
+
+# [agents.firebase]
+# enabled = true
+# output_path = ".idx/airules.md"
 `;
         if (!(await exists(instructionsPath))) {
           await fs.writeFile(instructionsPath, DEFAULT_INSTRUCTIONS);

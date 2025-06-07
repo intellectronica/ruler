@@ -27,6 +27,7 @@ describe('End-to-End Ruler CLI', () => {
     await fs.rm(path.join(tmpDir, '.clinerules'), { force: true });
     await fs.rm(path.join(tmpDir, 'ruler_aider_instructions.md'), { force: true });
     await fs.rm(path.join(tmpDir, '.aider.conf.yml'), { force: true });
+    await fs.rm(path.join(tmpDir, '.idx'), { recursive: true, force: true });
     await fs.rm(path.join(tmpDir, '.gitignore'), { force: true });
     // Clean up any custom files from previous tests
     await fs.rm(path.join(tmpDir, 'awesome.md'), { force: true });
@@ -51,6 +52,7 @@ describe('End-to-End Ruler CLI', () => {
     const clinePath = path.join(tmpDir, '.clinerules');
     const aiderMd = path.join(tmpDir, 'ruler_aider_instructions.md');
     const aiderCfg = path.join(tmpDir, '.aider.conf.yml');
+    const firebasePath = path.join(tmpDir, '.idx', 'airules.md');
 
     return Promise.all([
       expect(fs.readFile(copilotPath, 'utf8')).resolves.toContain('Rule A'),
@@ -61,6 +63,7 @@ describe('End-to-End Ruler CLI', () => {
       expect(fs.readFile(clinePath, 'utf8')).resolves.toContain('Rule B'),
       expect(fs.readFile(aiderMd, 'utf8')).resolves.toContain('Rule A'),
       expect(fs.readFile(aiderCfg, 'utf8')).resolves.toContain('ruler_aider_instructions.md'),
+      expect(fs.readFile(firebasePath, 'utf8')).resolves.toContain('Rule B'),
     ]);
   });
 
@@ -91,6 +94,27 @@ describe('End-to-End Ruler CLI', () => {
     ).resolves.toContain('Rule A');
     await expect(
       fs.stat(path.join(tmpDir, '.github', 'copilot-instructions.md')),
+    ).rejects.toThrow();
+  });
+
+  it('CLI --agents firebase creates .idx/airules.md', async () => {
+    execSync(
+      `node dist/cli/index.js apply --project-root ${tmpDir} --agents firebase`,
+      { stdio: 'inherit' },
+    );
+    const firebasePath = path.join(tmpDir, '.idx', 'airules.md');
+    await expect(
+      fs.readFile(firebasePath, 'utf8'),
+    ).resolves.toContain('Rule A');
+    await expect(
+      fs.readFile(firebasePath, 'utf8'),
+    ).resolves.toContain('Rule B');
+    // Ensure no other agent files were created
+    await expect(
+      fs.stat(path.join(tmpDir, '.github', 'copilot-instructions.md')),
+    ).rejects.toThrow();
+    await expect(
+      fs.stat(path.join(tmpDir, 'CLAUDE.md')),
     ).rejects.toThrow();
   });
 
@@ -172,6 +196,7 @@ output_path = "awesome.md"
       expect(gitignoreContent).toContain('.clinerules');
       expect(gitignoreContent).toContain('ruler_aider_instructions.md');
       expect(gitignoreContent).toContain('.aider.conf.yml');
+      expect(gitignoreContent).toContain('.idx/airules.md');
     });
 
     it('does not update .gitignore when --no-gitignore is used', async () => {
