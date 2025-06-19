@@ -117,9 +117,9 @@ export async function loadConfig(
     raw = {};
   }
 
-const defaultAgents = Array.isArray(raw.default_agents)
-  ? raw.default_agents.map((a) => String(a))
-  : undefined;
+  const defaultAgents = Array.isArray(raw.default_agents)
+    ? raw.default_agents.map((a) => String(a))
+    : undefined;
 
   const agentsSection =
     raw.agents && typeof raw.agents === 'object' && !Array.isArray(raw.agents)
