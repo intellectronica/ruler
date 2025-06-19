@@ -1,6 +1,7 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import os from 'os';
+import TOML from '@iarna/toml';
 import { execSync } from 'child_process';
 
 describe('End-to-End Ruler CLI', () => {
@@ -11,6 +12,11 @@ describe('End-to-End Ruler CLI', () => {
     await fs.mkdir(rulerDir, { recursive: true });
     await fs.writeFile(path.join(rulerDir, 'a.md'), 'Rule A');
     await fs.writeFile(path.join(rulerDir, 'b.md'), 'Rule B');
+    // Provide a sample MCP config for Open Hands agent
+    await fs.writeFile(
+      path.join(rulerDir, 'mcp.json'),
+      JSON.stringify({ mcpServers: { example: { command: 'uvx', args: ['mcp-example'] } } }),
+    );
   });
 
   afterAll(async () => {
@@ -35,6 +41,8 @@ describe('End-to-End Ruler CLI', () => {
     await fs.rm(path.join(tmpDir, 'custom_cursor.md'), { force: true });
     // Reset the TOML config to default state
     await fs.rm(path.join(tmpDir, '.ruler', 'ruler.toml'), { force: true });
+    // Clean up Open Hands agent files
+    await fs.rm(path.join(tmpDir, '.openhands'), { recursive: true, force: true });
   });
 
   it('generates configuration files for all agents', () => {
@@ -53,6 +61,17 @@ describe('End-to-End Ruler CLI', () => {
     const aiderMd = path.join(tmpDir, 'ruler_aider_instructions.md');
     const aiderCfg = path.join(tmpDir, '.aider.conf.yml');
     const firebasePath = path.join(tmpDir, '.idx', 'airules.md');
+    const openHandsInstructionsPath = path.join(
+      tmpDir,
+      '.openhands',
+      'microagents',
+      'repo.md',
+    );
+    const openHandsConfigPath = path.join(
+      tmpDir,
+      '.openhands',
+      'config.toml',
+    );
 
     return Promise.all([
       expect(fs.readFile(copilotPath, 'utf8')).resolves.toContain('Rule A'),
@@ -64,7 +83,15 @@ describe('End-to-End Ruler CLI', () => {
       expect(fs.readFile(aiderMd, 'utf8')).resolves.toContain('Rule A'),
       expect(fs.readFile(aiderCfg, 'utf8')).resolves.toContain('ruler_aider_instructions.md'),
       expect(fs.readFile(firebasePath, 'utf8')).resolves.toContain('Rule B'),
-    ]);
+      expect(
+        fs.readFile(openHandsInstructionsPath, 'utf8'),
+      ).resolves.toContain('Rule A'),
+    ])
+      .then(async () => {
+        const ohToml = await fs.readFile(openHandsConfigPath, 'utf8');
+        const ohParsed: any = TOML.parse(ohToml);
+        expect(ohParsed.mcp.stdio_servers[0].name).toBe('example');
+      });
   });
 
   it('respects default_agents in config file', async () => {
@@ -197,6 +224,10 @@ output_path = "awesome.md"
       expect(gitignoreContent).toContain('ruler_aider_instructions.md');
       expect(gitignoreContent).toContain('.aider.conf.yml');
       expect(gitignoreContent).toContain('.idx/airules.md');
+      expect(gitignoreContent).toContain('.openhands/microagents/repo.md');
+      expect(gitignoreContent).toContain('.openhands/config.toml');
+      expect(gitignoreContent).toContain('.openhands/microagents/repo.md');
+      expect(gitignoreContent).toContain('.openhands/config.toml');
     });
 
     it('does not update .gitignore when --no-gitignore is used', async () => {

@@ -35,6 +35,10 @@ export async function getNativeMcpPath(
     case 'Aider':
       candidates.push(path.join(projectRoot, '.mcp.json'));
       break;
+    case 'Open Hands':
+      // For Open Hands, we target the main config file, not a separate mcp.json
+      candidates.push(path.join(projectRoot, '.openhands', 'config.toml'));
+      break;
     default:
       return null;
   }

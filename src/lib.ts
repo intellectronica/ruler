@@ -13,10 +13,12 @@ import { WindsurfAgent } from './agents/WindsurfAgent';
 import { ClineAgent } from './agents/ClineAgent';
 import { AiderAgent } from './agents/AiderAgent';
 import { FirebaseAgent } from './agents/FirebaseAgent';
+import { OpenHandsAgent } from './agents/OpenHandsAgent';
 import { mergeMcp } from './mcp/merge';
 import { validateMcp } from './mcp/validate';
 import { getNativeMcpPath, readNativeMcp, writeNativeMcp } from './paths/mcp';
 import { McpStrategy } from './types';
+import { propagateMcpToOpenHands } from './mcp/propagateOpenHandsMcp';
 import { IAgentConfig } from './agents/IAgent';
 import { createRulerError, logVerbose } from './constants';
 
@@ -73,6 +75,7 @@ const agents: IAgent[] = [
   new ClineAgent(),
   new AiderAgent(),
   new FirebaseAgent(),
+  new OpenHandsAgent(),
 ];
 
 /**
@@ -228,33 +231,51 @@ export async function applyAllAgentConfigs(
     if (dryRun) {
       logVerbose(
         `DRY RUN: Would write rules to: ${outputPaths.join(', ')}`,
-        true,
+        verbose,
       );
     } else {
       await agent.applyRulerConfig(concatenated, projectRoot, agentConfig);
     }
 
     const dest = await getNativeMcpPath(agent.getName(), projectRoot);
-    const enabled =
+    const mcpEnabledForAgent =
       cliMcpEnabled &&
       (agentConfig?.mcp?.enabled ?? config.mcp?.enabled ?? true);
-    if (dest && rulerMcpJson != null && enabled) {
-      const strategy =
-        cliMcpStrategy ??
-        agentConfig?.mcp?.strategy ??
-        config.mcp?.strategy ??
-        'merge';
-      logVerbose(
-        `Applying MCP config for ${agent.getName()} with strategy: ${strategy}`,
-        verbose,
-      );
+    const rulerMcpFile = path.join(rulerDir, 'mcp.json');
 
-      if (dryRun) {
-        logVerbose(`DRY RUN: Would apply MCP config to: ${dest}`, true);
+    if (dest && mcpEnabledForAgent) {
+      if (agent.getIdentifier() === 'openhands') {
+        // *** Special handling for Open Hands ***
+        if (dryRun) {
+          logVerbose(
+            `DRY RUN: Would apply MCP config by updating TOML file: ${dest}`,
+            verbose,
+          );
+        } else {
+          await propagateMcpToOpenHands(rulerMcpFile, dest);
+        }
+        // Include Open Hands config file in .gitignore
+        generatedPaths.push(dest);
       } else {
-        const existing = await readNativeMcp(dest);
-        const merged = mergeMcp(existing, rulerMcpJson, strategy);
-        await writeNativeMcp(dest, merged);
+        if (rulerMcpJson) {
+          const strategy =
+            cliMcpStrategy ??
+            agentConfig?.mcp?.strategy ??
+            config.mcp?.strategy ??
+            'merge';
+          logVerbose(
+            `Applying MCP config for ${agent.getName()} with strategy: ${strategy}`,
+            verbose,
+          );
+
+          if (dryRun) {
+            logVerbose(`DRY RUN: Would apply MCP config to: ${dest}`, true);
+          } else {
+            const existing = await readNativeMcp(dest);
+            const merged = mergeMcp(existing, rulerMcpJson, strategy);
+            await writeNativeMcp(dest, merged);
+          }
+        }
       }
     }
   }

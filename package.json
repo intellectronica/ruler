@@ -43,6 +43,7 @@
     "ruler": "dist/cli/index.js"
   },
   "devDependencies": {
+    "@types/iarna__toml": "^2.0.5",
     "@types/jest": "^29.5.14",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^22.15.24",
@@ -58,8 +59,8 @@
     "typescript": "^5.8.3"
   },
   "dependencies": {
+    "@iarna/toml": "^2.2.5",
     "js-yaml": "^4.1.0",
-    "toml": "^3.0.0",
     "yargs": "^17.7.2",
     "zod": "^3.25.28"
   }
