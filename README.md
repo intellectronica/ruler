@@ -10,7 +10,6 @@
 ---
 
 > **Beta Research Preview**
->
 > - Please test this version carefully in your environment
 > - Report issues at https://github.com/intellectronica/ruler/issues
 
