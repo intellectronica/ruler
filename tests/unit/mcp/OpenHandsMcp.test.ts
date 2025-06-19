@@ -19,7 +19,9 @@ describe('propagateMcpToOpenHands', () => {
   });
 
   it('should create a new config.toml with stdio_servers', async () => {
-    const rulerMcp = { mcpServers: { fetch: { command: 'uvx', args: ['mcp-fetch'] } } };
+    const rulerMcp = {
+      mcpServers: { fetch: { command: 'uvx', args: ['mcp-fetch'] } },
+    };
     await fs.writeFile(rulerMcpPath, JSON.stringify(rulerMcp));
 
     await propagateMcpToOpenHands(rulerMcpPath, openHandsConfigPath);
@@ -29,11 +31,17 @@ describe('propagateMcpToOpenHands', () => {
     expect(parsed.mcp).toBeDefined();
     const mcp: any = parsed.mcp;
     expect(mcp.stdio_servers).toHaveLength(1);
-    expect(mcp.stdio_servers[0]).toEqual({ name: 'fetch', command: 'uvx', args: ['mcp-fetch'] });
+    expect(mcp.stdio_servers[0]).toEqual({
+      name: 'fetch',
+      command: 'uvx',
+      args: ['mcp-fetch'],
+    });
   });
 
   it('should merge servers into an existing config.toml', async () => {
-    const rulerMcp = { mcpServers: { git: { command: 'npx', args: ['mcp-git'] } } };
+    const rulerMcp = {
+      mcpServers: { git: { command: 'npx', args: ['mcp-git'] } },
+    };
     await fs.writeFile(rulerMcpPath, JSON.stringify(rulerMcp));
     const existingToml = `
 [mcp]
@@ -44,17 +52,27 @@ stdio_servers = [
     await fs.writeFile(openHandsConfigPath, existingToml);
 
     await propagateMcpToOpenHands(rulerMcpPath, openHandsConfigPath);
-    
+
     const content = await fs.readFile(openHandsConfigPath, 'utf8');
     const parsed = TOML.parse(content);
     const mcp: any = parsed.mcp;
     expect(mcp.stdio_servers).toHaveLength(2);
-    expect(mcp.stdio_servers).toContainEqual({ name: 'fs', command: 'npx', args: ['mcp-fs'] });
-    expect(mcp.stdio_servers).toContainEqual({ name: 'git', command: 'npx', args: ['mcp-git'] });
+    expect(mcp.stdio_servers).toContainEqual({
+      name: 'fs',
+      command: 'npx',
+      args: ['mcp-fs'],
+    });
+    expect(mcp.stdio_servers).toContainEqual({
+      name: 'git',
+      command: 'npx',
+      args: ['mcp-git'],
+    });
   });
 
   it('should not add duplicate servers', async () => {
-    const rulerMcp = { mcpServers: { fs: { command: 'uvx', args: ['mcp-fs-new'] } } };
+    const rulerMcp = {
+      mcpServers: { fs: { command: 'uvx', args: ['mcp-fs-new'] } },
+    };
     await fs.writeFile(rulerMcpPath, JSON.stringify(rulerMcp));
     const existingToml = `
 [mcp]
@@ -65,12 +83,35 @@ stdio_servers = [
     await fs.writeFile(openHandsConfigPath, existingToml);
 
     await propagateMcpToOpenHands(rulerMcpPath, openHandsConfigPath);
-    
+
     const content = await fs.readFile(openHandsConfigPath, 'utf8');
     const parsed = TOML.parse(content);
     const mcp: any = parsed.mcp;
     expect(mcp.stdio_servers).toHaveLength(1);
     // The existing server should be overwritten by the new one from ruler
-    expect(mcp.stdio_servers[0]).toEqual({ name: 'fs', command: 'uvx', args: ['mcp-fs-new'] });
+    expect(mcp.stdio_servers[0]).toEqual({
+      name: 'fs',
+      command: 'uvx',
+      args: ['mcp-fs-new'],
+    });
+  });
+
+  it('should propagate env variables for stdio servers', async () => {
+    const serverEnv = { TEST_VAR: 'value', ANOTHER: '123' };
+    const rulerMcp = {
+      mcpServers: {
+        fetch: { command: 'uvx', args: ['mcp-fetch'], env: serverEnv },
+      },
+    };
+    await fs.writeFile(rulerMcpPath, JSON.stringify(rulerMcp));
+
+    await propagateMcpToOpenHands(rulerMcpPath, openHandsConfigPath);
+
+    const contentWithEnv = await fs.readFile(openHandsConfigPath, 'utf8');
+    const parsedWithEnv: any = TOML.parse(contentWithEnv);
+    expect(parsedWithEnv.mcp.stdio_servers).toHaveLength(1);
+    expect(parsedWithEnv.mcp.stdio_servers[0]).toEqual(
+      expect.objectContaining({ env: serverEnv }),
+    );
   });
 });
