@@ -12,7 +12,7 @@ import { CursorAgent } from './agents/CursorAgent';
 import { WindsurfAgent } from './agents/WindsurfAgent';
 import { ClineAgent } from './agents/ClineAgent';
 import { AiderAgent } from './agents/AiderAgent';
-import * as FirebaseAgent from './agents/FirebaseAgent';
+import { FirebaseAgent } from './agents/FirebaseAgent';
 import { OpenHandsAgent } from './agents/OpenHandsAgent';
 import { GeminiCliAgent } from './agents/GeminiCliAgent';
 import { mergeMcp } from './mcp/merge';
@@ -75,7 +75,7 @@ const agents: IAgent[] = [
   new WindsurfAgent(),
   new ClineAgent(),
   new AiderAgent(),
-  new FirebaseAgent.FirebaseAgent(),
+  new FirebaseAgent(),
   new OpenHandsAgent(),
   new GeminiCliAgent(),
 ];
