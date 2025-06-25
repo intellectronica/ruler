@@ -77,11 +77,11 @@ describe('Agent Adapters', () => {
   });
 
   describe('CursorAgent', () => {
-  it('backs up and writes ruler_cursor_instructions.md', async () => {
+  it('backs up and writes ruler_cursor_instructions.mdc', async () => {
       const agent = new CursorAgent();
       const rulesDir = path.join(tmpDir, '.cursor', 'rules');
       await fs.mkdir(rulesDir, { recursive: true });
-      const target = path.join(rulesDir, 'ruler_cursor_instructions.md');
+      const target = path.join(rulesDir, 'ruler_cursor_instructions.mdc');
       await fs.writeFile(target, 'old cursor');
       await agent.applyRulerConfig('new cursor', tmpDir);
       expect(await fs.readFile(`${target}.bak`, 'utf8')).toBe('old cursor');
@@ -92,7 +92,7 @@ describe('Agent Adapters', () => {
     const agent = new CursorAgent();
     const customDir = path.join(tmpDir, '.cursor', 'rules');
     await fs.mkdir(customDir, { recursive: true });
-    const custom = path.join(tmpDir, 'custom_cursor.md');
+    const custom = path.join(tmpDir, 'custom_cursor.mdc');
     await agent.applyRulerConfig('z', tmpDir, { outputPath: custom });
     expect(await fs.readFile(custom, 'utf8')).toBe('z');
   });

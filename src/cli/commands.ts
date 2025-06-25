@@ -155,7 +155,7 @@ and apply them to your configured AI coding agents.
 
 # [agents.cursor]
 # enabled = true
-# output_path = ".cursor/rules/ruler_cursor_instructions.md"
+# output_path = ".cursor/rules/ruler_cursor_instructions.mdc"
 
 # [agents.windsurf]
 # enabled = true

@@ -34,7 +34,7 @@ export class CursorAgent implements IAgent {
       projectRoot,
       '.cursor',
       'rules',
-      'ruler_cursor_instructions.md',
+      'ruler_cursor_instructions.mdc',
     );
   }
 }
