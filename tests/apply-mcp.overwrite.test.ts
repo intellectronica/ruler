@@ -18,7 +18,7 @@ describe('apply-mcp.overwrite', () => {
     );
     const vscodeDir = path.join(tmpDir, '.vscode');
     await fs.mkdir(vscodeDir, { recursive: true });
-    const native = { mcpServers: { bar: { url: 'http://bar.com' } } };
+    const native = { servers: { bar: { url: 'http://bar.com' } } };
     await fs.writeFile(
       path.join(vscodeDir, 'mcp.json'),
       JSON.stringify(native, null, 2) + '\n',
@@ -40,6 +40,6 @@ describe('apply-mcp.overwrite', () => {
       'utf8',
     );
     const result = JSON.parse(resultText);
-    expect(Object.keys(result.mcpServers).sort()).toEqual(['foo']);
+    expect(Object.keys(result.servers).sort()).toEqual(['foo']);
   });
 });
