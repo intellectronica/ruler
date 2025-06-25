@@ -46,6 +46,7 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | Aider            | `ruler_aider_instructions.md` and `.aider.conf.yml`           |
 | Firebase Studio  | `.idx/airules.md`                                             |
 | Open Hands       | `.openhands/microagents/repo.md` and `.openhands/config.toml` |
+| Gemini CLI       | `GEMINI.md` and `.gemini/settings.json`                       |
 
 ## Getting Started
 
@@ -221,6 +222,9 @@ output_path_config = ".aider.conf.yml"
 [agents.firebase]
 enabled = true
 output_path = ".idx/airules.md"
+
+[agents.gemini-cli]
+enabled = true
 
 # Agent-specific MCP configuration
 [agents.cursor.mcp]
