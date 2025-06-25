@@ -55,7 +55,7 @@ describe('End-to-End Ruler CLI', () => {
     const copilotPath = path.join(tmpDir, '.github', 'copilot-instructions.md');
     const claudePath = path.join(tmpDir, 'CLAUDE.md');
     const codexPath = path.join(tmpDir, 'AGENTS.md');
-    const cursorPath = path.join(tmpDir, '.cursor', 'rules', 'ruler_cursor_instructions.md');
+    const cursorPath = path.join(tmpDir, '.cursor', 'rules', 'ruler_cursor_instructions.mdc');
     const windsurfPath = path.join(tmpDir, '.windsurf', 'rules', 'ruler_windsurf_instructions.md');
     const clinePath = path.join(tmpDir, '.clinerules');
     const aiderMd = path.join(tmpDir, 'ruler_aider_instructions.md');
@@ -218,7 +218,7 @@ output_path = "awesome.md"
       expect(gitignoreContent).toContain('CLAUDE.md');
       expect(gitignoreContent).toContain('.github/copilot-instructions.md');
       expect(gitignoreContent).toContain('AGENTS.md');
-      expect(gitignoreContent).toContain('.cursor/rules/ruler_cursor_instructions.md');
+      expect(gitignoreContent).toContain('.cursor/rules/ruler_cursor_instructions.mdc');
       expect(gitignoreContent).toContain('.windsurf/rules/ruler_windsurf_instructions.md');
       expect(gitignoreContent).toContain('.clinerules');
       expect(gitignoreContent).toContain('ruler_aider_instructions.md');

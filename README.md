@@ -40,7 +40,7 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | GitHub Copilot   | `.github/copilot-instructions.md`                             |
 | Claude Code      | `CLAUDE.md`                                                   |
 | OpenAI Codex CLI | `AGENTS.md`                                                   |
-| Cursor           | `.cursor/rules/ruler_cursor_instructions.md`                  |
+| Cursor           | `.cursor/rules/ruler_cursor_instructions.mdc`                 |
 | Windsurf         | `.windsurf/rules/ruler_windsurf_instructions.md`              |
 | Cline            | `.clinerules`                                                 |
 | Aider            | `ruler_aider_instructions.md` and `.aider.conf.yml`           |
@@ -288,7 +288,7 @@ node_modules/
 # START Ruler Generated Files
 .aider.conf.yml
 .clinerules
-.cursor/rules/ruler_cursor_instructions.md
+.cursor/rules/ruler_cursor_instructions.mdc
 .github/copilot-instructions.md
 .windsurf/rules/ruler_windsurf_instructions.md
 AGENTS.md

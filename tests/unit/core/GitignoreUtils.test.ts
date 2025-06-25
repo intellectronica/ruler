@@ -17,7 +17,7 @@ describe('GitignoreUtils', () => {
 
   describe('updateGitignore', () => {
     it('creates .gitignore with Ruler block when file does not exist', async () => {
-      const paths = ['CLAUDE.md', '.cursor/rules/ruler_cursor_instructions.md'];
+      const paths = ['CLAUDE.md', '.cursor/rules/ruler_cursor_instructions.mdc'];
       const gitignorePath = path.join(tmpDir, '.gitignore');
       
       await updateGitignore(tmpDir, paths);
@@ -26,7 +26,7 @@ describe('GitignoreUtils', () => {
       expect(content).toContain('# START Ruler Generated Files');
       expect(content).toContain('# END Ruler Generated Files');
       expect(content).toContain('CLAUDE.md');
-      expect(content).toContain('.cursor/rules/ruler_cursor_instructions.md');
+      expect(content).toContain('.cursor/rules/ruler_cursor_instructions.mdc');
     });
 
     it('creates .gitignore with empty block when no paths provided', async () => {
@@ -73,7 +73,7 @@ describe('GitignoreUtils', () => {
       const gitignorePath = path.join(tmpDir, '.gitignore');
       const initialContent = `node_modules/
 # START Ruler Generated Files
-.cursor/rules/ruler_cursor_instructions.md
+.cursor/rules/ruler_cursor_instructions.mdc
 # END Ruler Generated Files
 *.log`;
       await fs.writeFile(gitignorePath, initialContent);
@@ -85,7 +85,7 @@ describe('GitignoreUtils', () => {
       expect(content).toContain('*.log');
       expect(content).toContain('CLAUDE.md');
       expect(content).toContain('AGENTS.md');
-      expect(content).not.toContain('.cursor/rules/ruler_cursor_instructions.md');
+      expect(content).not.toContain('.cursor/rules/ruler_cursor_instructions.mdc');
     });
 
     it('sorts paths alphabetically within Ruler block', async () => {
@@ -139,13 +139,13 @@ CLAUDE.md
     });
 
     it('converts paths to POSIX format', async () => {
-      const paths = ['.cursor\\rules\\ruler_cursor_instructions.md'];
+      const paths = ['.cursor\\rules\\ruler_cursor_instructions.mdc'];
       const gitignorePath = path.join(tmpDir, '.gitignore');
       
       await updateGitignore(tmpDir, paths);
       
       const content = await fs.readFile(gitignorePath, 'utf8');
-      expect(content).toContain('.cursor/rules/ruler_cursor_instructions.md');
+      expect(content).toContain('.cursor/rules/ruler_cursor_instructions.mdc');
       expect(content).not.toContain('\\');
     });
 
