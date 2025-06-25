@@ -27,7 +27,7 @@ export class GeminiCliAgent implements IAgent {
       try {
         const existingSettingsRaw = await fs.readFile(settingsPath, 'utf8');
         existingSettings = JSON.parse(existingSettingsRaw);
-      } catch (error: any) {
+      } catch (error) {
         if (error.code !== 'ENOENT') {
           throw error;
         }

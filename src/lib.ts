@@ -236,7 +236,12 @@ export async function applyAllAgentConfigs(
         verbose,
       );
     } else {
-      await agent.applyRulerConfig(concatenated, projectRoot, rulerMcpJson, agentConfig);
+      await agent.applyRulerConfig(
+        concatenated,
+        projectRoot,
+        rulerMcpJson,
+        agentConfig,
+      );
     }
 
     const dest = await getNativeMcpPath(agent.getName(), projectRoot);
