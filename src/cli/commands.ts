@@ -24,7 +24,7 @@ export function run(): void {
         y.option('agents', {
           type: 'string',
           description:
-            'Comma-separated list of agent identifiers: copilot, claude, codex, cursor, windsurf, cline, aider, firebase',
+            'Comma-separated list of agent identifiers: copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli',
         });
         y.option('config', {
           type: 'string',
@@ -173,6 +173,9 @@ and apply them to your configured AI coding agents.
 # [agents.firebase]
 # enabled = true
 # output_path = ".idx/airules.md"
+
+# [agents.gemini-cli]
+# enabled = true
 `;
         if (!(await exists(instructionsPath))) {
           await fs.writeFile(instructionsPath, DEFAULT_INSTRUCTIONS);

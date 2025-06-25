@@ -10,6 +10,10 @@ export interface IAgentConfig {
   outputPathInstructions?: string;
   /** Override for Aider config file path */
   outputPathConfig?: string;
+  mcp?: {
+    enabled?: boolean;
+    strategy?: 'merge' | 'overwrite';
+  };
 }
 
 export interface IAgent {
@@ -31,6 +35,7 @@ export interface IAgent {
   applyRulerConfig(
     concatenatedRules: string,
     projectRoot: string,
+    rulerMcpJson: Record<string, unknown> | null,
     agentConfig?: IAgentConfig,
   ): Promise<void>;
 
