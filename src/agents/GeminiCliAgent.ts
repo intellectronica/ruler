@@ -28,4 +28,3 @@ export class GeminiCliAgent implements IAgent {
     return 'mcpServers';
   }
 }
-
