@@ -10,7 +10,7 @@ import { ClaudeAgent } from './agents/ClaudeAgent';
 import { CodexCliAgent } from './agents/CodexCliAgent';
 import { CursorAgent } from './agents/CursorAgent';
 import { WindsurfAgent } from './agents/WindsurfAgent';
-import { ClineAgent } from './agents/ClineAgent';
+import * as ClineAgent from './agents/ClineAgent';
 import { AiderAgent } from './agents/AiderAgent';
 import { FirebaseAgent } from './agents/FirebaseAgent';
 import { OpenHandsAgent } from './agents/OpenHandsAgent';
@@ -73,7 +73,7 @@ const agents: IAgent[] = [
   new CodexCliAgent(),
   new CursorAgent(),
   new WindsurfAgent(),
-  new ClineAgent(),
+  new ClineAgent.ClineAgent(),
   new AiderAgent(),
   new FirebaseAgent(),
   new OpenHandsAgent(),
@@ -236,7 +236,7 @@ export async function applyAllAgentConfigs(
         verbose,
       );
     } else {
-      await agent.applyRulerConfig(concatenated, projectRoot, agentConfig);
+      await agent.applyRulerConfig(concatenated, projectRoot, rulerMcpJson, agentConfig);
     }
 
     const dest = await getNativeMcpPath(agent.getName(), projectRoot);
