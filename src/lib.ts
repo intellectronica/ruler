@@ -263,8 +263,12 @@ export async function applyAllAgentConfigs(
             agentConfig?.mcp?.strategy ??
             config.mcp?.strategy ??
             'merge';
+          
+          // Determine the correct server key for the agent
+          const serverKey = agent.getMcpServerKey?.() ?? 'mcpServers';
+
           logVerbose(
-            `Applying MCP config for ${agent.getName()} with strategy: ${strategy}`,
+            `Applying MCP config for ${agent.getName()} with strategy: ${strategy} and key: ${serverKey}`,
             verbose,
           );
 
@@ -272,7 +276,7 @@ export async function applyAllAgentConfigs(
             logVerbose(`DRY RUN: Would apply MCP config to: ${dest}`, true);
           } else {
             const existing = await readNativeMcp(dest);
-            const merged = mergeMcp(existing, rulerMcpJson, strategy);
+            const merged = mergeMcp(existing, rulerMcpJson, strategy, serverKey);
             await writeNativeMcp(dest, merged);
           }
         }

@@ -32,4 +32,8 @@ export class CopilotAgent implements IAgent {
   getDefaultOutputPath(projectRoot: string): string {
     return path.join(projectRoot, '.github', 'copilot-instructions.md');
   }
+
+  getMcpServerKey(): string {
+    return 'servers';
+  }
 }
