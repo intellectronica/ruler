@@ -47,6 +47,7 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | Firebase Studio  | `.idx/airules.md`                                             |
 | Open Hands       | `.openhands/microagents/repo.md` and `.openhands/config.toml` |
 | Gemini CLI       | `GEMINI.md` and `.gemini/settings.json`                       |
+| Jules            | `AGENTS.md`                                                   |
 
 ## Getting Started
 

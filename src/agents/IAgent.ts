@@ -37,6 +37,7 @@ export interface IAgent {
     projectRoot: string,
     rulerMcpJson: Record<string, unknown> | null,
     agentConfig?: IAgentConfig,
+    processedOutputPaths?: Set<string>, // Added new parameter
   ): Promise<void>;
 
   /**

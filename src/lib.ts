@@ -15,6 +15,7 @@ import { AiderAgent } from './agents/AiderAgent';
 import { FirebaseAgent } from './agents/FirebaseAgent';
 import { OpenHandsAgent } from './agents/OpenHandsAgent';
 import { GeminiCliAgent } from './agents/GeminiCliAgent';
+import { JulesAgent } from './agents/JulesAgent'; // Import JulesAgent
 import { mergeMcp } from './mcp/merge';
 import { validateMcp } from './mcp/validate';
 import { getNativeMcpPath, readNativeMcp, writeNativeMcp } from './paths/mcp';
@@ -78,6 +79,7 @@ const agents: IAgent[] = [
   new FirebaseAgent(),
   new OpenHandsAgent(),
   new GeminiCliAgent(),
+  new JulesAgent(), // Add JulesAgent instance
 ];
 
 /**
@@ -215,6 +217,7 @@ export async function applyAllAgentConfigs(
 
   // Collect all generated file paths for .gitignore
   const generatedPaths: string[] = [];
+  const processedOutputPaths = new Set<string>(); // Initialize the set
 
   for (const agent of selected) {
     const actionPrefix = dryRun ? '[ruler:dry-run]' : '[ruler]';
@@ -241,6 +244,7 @@ export async function applyAllAgentConfigs(
         projectRoot,
         rulerMcpJson,
         agentConfig,
+        processedOutputPaths, // Pass the set
       );
     }
 
