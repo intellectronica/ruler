@@ -15,6 +15,7 @@ import { AiderAgent } from './agents/AiderAgent';
 import { FirebaseAgent } from './agents/FirebaseAgent';
 import { OpenHandsAgent } from './agents/OpenHandsAgent';
 import { GeminiCliAgent } from './agents/GeminiCliAgent';
+import { OpenCodeAgent } from './agents/OpenCodeAgent';
 import { mergeMcp } from './mcp/merge';
 import { validateMcp } from './mcp/validate';
 import { getNativeMcpPath, readNativeMcp, writeNativeMcp } from './paths/mcp';
@@ -78,6 +79,7 @@ const agents: IAgent[] = [
   new FirebaseAgent(),
   new OpenHandsAgent(),
   new GeminiCliAgent(),
+  new OpenCodeAgent(),
 ];
 
 /**

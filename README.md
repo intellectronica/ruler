@@ -47,6 +47,7 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | Firebase Studio  | `.idx/airules.md`                                             |
 | Open Hands       | `.openhands/microagents/repo.md` and `.openhands/config.toml` |
 | Gemini CLI       | `GEMINI.md` and `.gemini/settings.json`                       |
+| OpenCode         | `AGENTS.md` and `opencode.json`                               |
 
 ## Getting Started
 
@@ -162,6 +163,12 @@ ruler apply --agents copilot,claude
 ruler apply --agents firebase
 ```
 
+**Apply rules only to OpenCode:**
+
+```bash
+ruler apply --agents opencode
+```
+
 **Use a specific configuration file:**
 
 ```bash
@@ -226,8 +233,16 @@ output_path = ".idx/airules.md"
 [agents.gemini-cli]
 enabled = true
 
+[agents.opencode]
+enabled = true
+output_path = "AGENTS.md"
+
 # Agent-specific MCP configuration
 [agents.cursor.mcp]
+enabled = true
+merge_strategy = "merge"
+
+[agents.opencode.mcp]
 enabled = true
 merge_strategy = "merge"
 
