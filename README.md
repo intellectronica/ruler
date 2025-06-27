@@ -40,6 +40,7 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | GitHub Copilot   | `.github/copilot-instructions.md`                             |
 | Claude Code      | `CLAUDE.md`                                                   |
 | OpenAI Codex CLI | `AGENTS.md`                                                   |
+| Jules            | `AGENTS.md`                                                   |
 | Cursor           | `.cursor/rules/ruler_cursor_instructions.mdc`                 |
 | Windsurf         | `.windsurf/rules/ruler_windsurf_instructions.md`              |
 | Cline            | `.clinerules`                                                 |
@@ -236,6 +237,9 @@ enabled = true
 [agents.opencode]
 enabled = true
 output_path = "AGENTS.md"
+
+[agents.jules]
+enabled = true
 
 # Agent-specific MCP configuration
 [agents.cursor.mcp]
