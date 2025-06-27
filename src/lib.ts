@@ -15,6 +15,7 @@ import { AiderAgent } from './agents/AiderAgent';
 import { FirebaseAgent } from './agents/FirebaseAgent';
 import { OpenHandsAgent } from './agents/OpenHandsAgent';
 import { GeminiCliAgent } from './agents/GeminiCliAgent';
+import { JulesAgent } from './agents/JulesAgent';
 import { mergeMcp } from './mcp/merge';
 import { validateMcp } from './mcp/validate';
 import { getNativeMcpPath, readNativeMcp, writeNativeMcp } from './paths/mcp';
@@ -78,6 +79,7 @@ const agents: IAgent[] = [
   new FirebaseAgent(),
   new OpenHandsAgent(),
   new GeminiCliAgent(),
+  new JulesAgent(),
 ];
 
 /**
@@ -215,6 +217,7 @@ export async function applyAllAgentConfigs(
 
   // Collect all generated file paths for .gitignore
   const generatedPaths: string[] = [];
+  let agentsMdWritten = false;
 
   for (const agent of selected) {
     const actionPrefix = dryRun ? '[ruler:dry-run]' : '[ruler]';
@@ -236,6 +239,15 @@ export async function applyAllAgentConfigs(
         verbose,
       );
     } else {
+      if (
+        agent.getIdentifier() === 'jules' ||
+        agent.getIdentifier() === 'codex'
+      ) {
+        if (agentsMdWritten) {
+          continue;
+        }
+        agentsMdWritten = true;
+      }
       await agent.applyRulerConfig(
         concatenated,
         projectRoot,
