@@ -79,13 +79,20 @@ npx @intellectronica/ruler apply
    - `.ruler/ruler.toml`: The main configuration file for Ruler
    - `.ruler/mcp.json`: An example MCP server configuration
 
+Additionally, you can create a global configuration to use when no local `.ruler/` directory is found:
+```bash
+ruler init --global
+```
+
+The global configuration will be created to `$XDG_CONFIG_HOME/ruler` (default: `~/.config/ruler`).
+
 ## Core Concepts
 
 ### The `.ruler/` Directory
 
 This is your central hub for all AI agent instructions:
 
-- **Rule Files (`*.md`)**: Discovered recursively from `.ruler/` and alphabetically concatenated
+- **Rule Files (`*.md`)**: Discovered recursively from `.ruler/` or `$XDG_CONFIG_HOME/ruler` and alphabetically concatenated
 - **Concatenation Marker**: Each file's content is prepended with `--- Source: <relative_path_to_md_file> ---` for traceability
 - **`ruler.toml`**: Master configuration for Ruler's behavior, agent selection, and output paths
 - **`mcp.json`**: Shared MCP server settings
@@ -129,6 +136,8 @@ This is your central hub for all AI agent instructions:
 ruler apply [options]
 ```
 
+The `apply` command looks for `.ruler/` in the current directory tree, reading the first match. If no such directory is found, it will look for a global configuration in `$XDG_CONFIG_HOME/ruler`.
+
 ### Options
 
 | Option                         | Description                                               |
@@ -141,6 +150,7 @@ ruler apply [options]
 | `--mcp-overwrite`              | Overwrite native MCP config entirely instead of merging   |
 | `--gitignore`                  | Enable automatic .gitignore updates (default: true)       |
 | `--no-gitignore`               | Disable automatic .gitignore updates                      |
+| `--local-only`                 | Do not look for configuration in `$XDG_CONFIG_HOME`       |
 | `--verbose` / `-v`             | Display detailed output during execution                  |
 
 ### Common Examples
