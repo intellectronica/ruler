@@ -147,7 +147,7 @@ export async function applyAllAgentConfigs(
 
   const files = await FileSystemUtils.readMarkdownFiles(rulerDir);
   logVerbose(
-    `Found ${files.length} markdown files in .ruler directory`,
+    `Found ${files.length} markdown files in ruler configuration directory`,
     verbose,
   );
   const concatenated = concatenateRules(files);
