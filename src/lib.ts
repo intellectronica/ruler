@@ -100,6 +100,7 @@ export async function applyAllAgentConfigs(
   cliGitignoreEnabled?: boolean,
   verbose = false,
   dryRun = false,
+  localOnly = false,
 ): Promise<void> {
   // Load configuration (default_agents, per-agent overrides, CLI filters)
   logVerbose(
@@ -136,7 +137,7 @@ export async function applyAllAgentConfigs(
   }
   config.agentConfigs = mappedConfigs;
 
-  const rulerDir = await FileSystemUtils.findRulerDir(projectRoot);
+  const rulerDir = await FileSystemUtils.findRulerDir(projectRoot, !localOnly);
   if (!rulerDir) {
     throw createRulerError(
       `.ruler directory not found`,
@@ -147,7 +148,7 @@ export async function applyAllAgentConfigs(
 
   const files = await FileSystemUtils.readMarkdownFiles(rulerDir);
   logVerbose(
-    `Found ${files.length} markdown files in .ruler directory`,
+    `Found ${files.length} markdown files in ruler configuration directory`,
     verbose,
   );
   const concatenated = concatenateRules(files);

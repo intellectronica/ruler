@@ -2,6 +2,7 @@ import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 import { applyAllAgentConfigs } from '../lib';
 import * as path from 'path';
+import * as os from 'os';
 import { promises as fs } from 'fs';
 import { ERROR_PREFIX } from '../constants';
 
@@ -57,6 +58,12 @@ export function run(): void {
           description: 'Preview changes without writing files',
           default: false,
         });
+        y.option('local-only', {
+          type: 'boolean',
+          description:
+            'Only search for local .ruler directories, ignore global config',
+          default: false,
+        });
       },
       async (argv) => {
         const projectRoot = argv['project-root'] as string;
@@ -70,6 +77,7 @@ export function run(): void {
           : undefined;
         const verbose = argv.verbose as boolean;
         const dryRun = argv['dry-run'] as boolean;
+        const localOnly = argv['local-only'] as boolean;
 
         // Determine gitignore preference: CLI > TOML > Default (enabled)
         // yargs handles --no-gitignore by setting gitignore to false
@@ -89,6 +97,7 @@ export function run(): void {
             gitignorePreference,
             verbose,
             dryRun,
+            localOnly,
           );
           console.log('Ruler apply completed successfully.');
         } catch (err: unknown) {
@@ -106,11 +115,23 @@ export function run(): void {
           type: 'string',
           description: 'Project root directory',
           default: process.cwd(),
+        }).option('global', {
+          type: 'boolean',
+          description:
+            'Initialize in global config directory (XDG_CONFIG_HOME/ruler)',
+          default: false,
         });
       },
       async (argv) => {
         const projectRoot = argv['project-root'] as string;
-        const rulerDir = path.join(projectRoot, '.ruler');
+        const isGlobal = argv['global'] as boolean;
+
+        const rulerDir = isGlobal
+          ? path.join(
+              process.env.XDG_CONFIG_HOME || path.join(os.homedir(), '.config'),
+              'ruler',
+            )
+          : path.join(projectRoot, '.ruler');
         await fs.mkdir(rulerDir, { recursive: true });
         const instructionsPath = path.join(rulerDir, 'instructions.md');
         const tomlPath = path.join(rulerDir, 'ruler.toml');
