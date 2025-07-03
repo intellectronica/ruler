@@ -58,6 +58,12 @@ export function run(): void {
           description: 'Preview changes without writing files',
           default: false,
         });
+        y.option('local-only', {
+          type: 'boolean',
+          description:
+            'Only search for local .ruler directories, ignore global config',
+          default: false,
+        });
       },
       async (argv) => {
         const projectRoot = argv['project-root'] as string;
@@ -71,6 +77,7 @@ export function run(): void {
           : undefined;
         const verbose = argv.verbose as boolean;
         const dryRun = argv['dry-run'] as boolean;
+        const localOnly = argv['local-only'] as boolean;
 
         // Determine gitignore preference: CLI > TOML > Default (enabled)
         // yargs handles --no-gitignore by setting gitignore to false
@@ -90,6 +97,7 @@ export function run(): void {
             gitignorePreference,
             verbose,
             dryRun,
+            localOnly,
           );
           console.log('Ruler apply completed successfully.');
         } catch (err: unknown) {

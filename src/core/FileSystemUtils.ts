@@ -11,10 +11,13 @@ function getXdgConfigDir(): string {
 
 /**
  * Searches upwards from startPath to find a directory named .ruler.
- * If not found locally, checks for global config at XDG_CONFIG_HOME/ruler.
+ * If not found locally and checkGlobal is true, checks for global config at XDG_CONFIG_HOME/ruler.
  * Returns the path to the .ruler directory, or null if not found.
  */
-export async function findRulerDir(startPath: string): Promise<string | null> {
+export async function findRulerDir(
+  startPath: string,
+  checkGlobal: boolean = true,
+): Promise<string | null> {
   // First, search upwards from startPath for local .ruler directory
   let current = startPath;
   while (current) {
@@ -34,15 +37,20 @@ export async function findRulerDir(startPath: string): Promise<string | null> {
     current = parent;
   }
 
-  // If no local .ruler found, check global config directory
-  const globalConfigDir = path.join(getXdgConfigDir(), 'ruler');
-  try {
-    const stat = await fs.stat(globalConfigDir);
-    if (stat.isDirectory()) {
-      return globalConfigDir;
+  // If no local .ruler found and checkGlobal is true, check global config directory
+  if (checkGlobal) {
+    const globalConfigDir = path.join(getXdgConfigDir(), 'ruler');
+    try {
+      const stat = await fs.stat(globalConfigDir);
+      if (stat.isDirectory()) {
+        return globalConfigDir;
+      }
+    } catch (err) {
+      console.error(
+        `[ruler] Error checking global config directory ${globalConfigDir}:`,
+        err,
+      );
     }
-  } catch {
-    // ignore errors when checking for global config directory
   }
 
   return null;
