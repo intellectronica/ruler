@@ -25,7 +25,7 @@ export function run(): void {
         y.option('agents', {
           type: 'string',
           description:
-            'Comma-separated list of agent identifiers: copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli',
+            'Comma-separated list of agent identifiers: copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, opencode',
         });
         y.option('config', {
           type: 'string',
@@ -160,7 +160,7 @@ and apply them to your configured AI coding agents.
 
 # --- Agent Specific Configurations ---
 # You can enable/disable agents and override their default output paths here.
-# Use lowercase agent identifiers: copilot, claude, codex, cursor, windsurf, cline, aider
+# Use lowercase agent identifiers: copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, opencode
 
 # [agents.copilot]
 # enabled = true
@@ -197,6 +197,10 @@ and apply them to your configured AI coding agents.
 
 # [agents.gemini-cli]
 # enabled = true
+
+# [agents.opencode]
+# enabled = true
+# output_path = "AGENTS.md"
 `;
         if (!(await exists(instructionsPath))) {
           await fs.writeFile(instructionsPath, DEFAULT_INSTRUCTIONS);
