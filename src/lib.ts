@@ -234,6 +234,10 @@ export async function applyAllAgentConfigs(
     );
     generatedPaths.push(...outputPaths);
 
+    // Also add the backup file paths to the gitignore list
+    const backupPaths = outputPaths.map((p) => `${p}.bak`);
+    generatedPaths.push(...backupPaths);
+
     if (dryRun) {
       logVerbose(
         `DRY RUN: Would write rules to: ${outputPaths.join(', ')}`,
@@ -264,6 +268,14 @@ export async function applyAllAgentConfigs(
     const rulerMcpFile = path.join(rulerDir, 'mcp.json');
 
     if (dest && mcpEnabledForAgent) {
+      // Include MCP config file in .gitignore only if it's within the project directory
+      if (dest.startsWith(projectRoot)) {
+        const relativeDest = path.relative(projectRoot, dest);
+        generatedPaths.push(relativeDest);
+        // Also add the backup for the MCP file
+        generatedPaths.push(`${relativeDest}.bak`);
+      }
+
       if (agent.getIdentifier() === 'openhands') {
         // *** Special handling for Open Hands ***
         if (dryRun) {
@@ -274,8 +286,7 @@ export async function applyAllAgentConfigs(
         } else {
           await propagateMcpToOpenHands(rulerMcpFile, dest);
         }
-        // Include Open Hands config file in .gitignore
-        generatedPaths.push(dest);
+        // Open Hands config file is already included above
       } else {
         if (rulerMcpJson) {
           const strategy =
@@ -321,9 +332,10 @@ export async function applyAllAgentConfigs(
   }
 
   if (gitignoreEnabled && generatedPaths.length > 0) {
-    // Filter out .bak files as specified in requirements
-    const pathsToIgnore = generatedPaths.filter((p) => !p.endsWith('.bak'));
-    const uniquePaths = [...new Set(pathsToIgnore)];
+    const uniquePaths = [...new Set(generatedPaths)];
+
+    // Add wildcard pattern for backup files
+    uniquePaths.push('*.bak');
 
     if (uniquePaths.length > 0) {
       const actionPrefix = dryRun ? '[ruler:dry-run]' : '[ruler]';

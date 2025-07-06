@@ -92,7 +92,7 @@ describe('End-to-End Ruler CLI', () => {
         const ohParsed: any = TOML.parse(ohToml);
         expect(ohParsed.mcp.stdio_servers[0].name).toBe('example');
       });
-  });
+  }, 30000);
 
   it('respects default_agents in config file', async () => {
     const toml = `default_agents = ["GitHub Copilot", "Claude Code"]`;
@@ -289,6 +289,56 @@ output_path = "custom-claude.md"`;
       const gitignoreContent = await fs.readFile(gitignorePath, 'utf8');
       expect(gitignoreContent).toContain('custom-claude.md');
       expect(gitignoreContent).not.toContain('CLAUDE.md');
+    });
+  });
+
+  describe('gitignore generation for all configs', () => {
+    let testDir: string;
+    let gitignorePath: string;
+
+    beforeAll(async () => {
+      // Create a dedicated directory for this test to avoid conflicts
+      testDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ruler-gitignore-e2e-'));
+      
+      // Create the necessary subdirectories that the agents will write to
+      await fs.mkdir(path.join(testDir, '.vscode'), { recursive: true });
+      await fs.mkdir(path.join(testDir, '.gemini'), { recursive: true });
+      await fs.mkdir(path.join(testDir, '.cursor'), { recursive: true });
+      
+      // Create a dummy .ruler setup
+      const rulerDir = path.join(testDir, '.ruler');
+      await fs.mkdir(rulerDir);
+      await fs.writeFile(path.join(rulerDir, 'instructions.md'), 'test');
+
+      // Run the command that is being tested
+      execSync(`node ${path.resolve(__dirname, '..', '..', 'dist', 'cli', 'index.js')} apply --project-root ${testDir}`, { stdio: 'inherit' });
+      
+      // Read the generated .gitignore
+      gitignorePath = path.join(testDir, '.gitignore');
+    }, 30000);
+
+    afterAll(async () => {
+      // Clean up the temporary directory
+      await fs.rm(testDir, { recursive: true, force: true });
+    });
+
+    it('should include all required file patterns in the generated .gitignore', async () => {
+      const gitignoreContent = await fs.readFile(gitignorePath, 'utf8');
+
+      const expectedPatterns = [
+        '*.bak',
+        '.vscode/mcp.json',
+        'claude_desktop_config.json',
+        '.gemini/settings.json',
+        '.cursor/mcp.json',
+        '.mcp.json',
+        'AGENTS.md', // Example of an existing rule
+        'CLAUDE.md'  // Example of an existing rule
+      ];
+
+      for (const pattern of expectedPatterns) {
+        expect(gitignoreContent).toContain(pattern);
+      }
     });
   });
 });
