@@ -39,6 +39,9 @@ export async function getNativeMcpPath(
       // For Open Hands, we target the main config file, not a separate mcp.json
       candidates.push(path.join(projectRoot, '.openhands', 'config.toml'));
       break;
+    case 'Gemini CLI':
+      candidates.push(path.join(projectRoot, '.gemini', 'settings.json'));
+      break;
     default:
       return null;
   }
