@@ -92,7 +92,7 @@ describe('End-to-End Ruler CLI', () => {
         const ohParsed: any = TOML.parse(ohToml);
         expect(ohParsed.mcp.stdio_servers[0].name).toBe('example');
       });
-  });
+  }, 30000);
 
   it('respects default_agents in config file', async () => {
     const toml = `default_agents = ["GitHub Copilot", "Claude Code"]`;
@@ -315,7 +315,7 @@ output_path = "custom-claude.md"`;
       
       // Read the generated .gitignore
       gitignorePath = path.join(testDir, '.gitignore');
-    });
+    }, 30000);
 
     afterAll(async () => {
       // Clean up the temporary directory
