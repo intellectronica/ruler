@@ -49,7 +49,7 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | Open Hands       | `.openhands/microagents/repo.md` and `.openhands/config.toml` |
 | Gemini CLI       | `GEMINI.md` and `.gemini/settings.json`                       |
 | Junie            | `.junie/guidelines.md`                                        |
-| AugmentCode      | `.augment-guidelines`                                         |
+| AugmentCode      | `.augment-guidelines` and `.augmentcode/config.json`         |
 
 ## Getting Started
 
