@@ -12,6 +12,7 @@ import { ClineAgent } from '../../../src/agents/ClineAgent';
 import { AiderAgent } from '../../../src/agents/AiderAgent';
 import { FirebaseAgent } from '../../../src/agents/FirebaseAgent';
 import { JunieAgent } from '../../../src/agents/JunieAgent';
+import { AugmentCodeAgent } from '../../../src/agents/AugmentCodeAgent';
 
 describe('Agent Adapters', () => {
   let tmpDir: string;
@@ -211,5 +212,23 @@ describe('Agent Adapters', () => {
     await fs.mkdir(path.dirname(custom), { recursive: true });
     await agent.applyRulerConfig('junie rules', tmpDir, null, { outputPath: custom });
     expect(await fs.readFile(custom, 'utf8')).toBe('junie rules');
+  });
+
+  describe('AugmentCodeAgent', () => {
+  it('backs up and writes .augment-guidelines', async () => {
+      const agent = new AugmentCodeAgent();
+      const target = path.join(tmpDir, '.augment-guidelines');
+      await fs.writeFile(target, 'old augment');
+      await agent.applyRulerConfig('new augment', tmpDir, null);
+      expect(await fs.readFile(`${target}.bak`, 'utf8')).toBe('old augment');
+      expect(await fs.readFile(target, 'utf8')).toBe('new augment');
+    });
+  });
+  it('uses custom outputPath when provided', async () => {
+    const agent = new AugmentCodeAgent();
+    const custom = path.join(tmpDir, 'custom_augment.md');
+    await fs.mkdir(path.dirname(custom), { recursive: true });
+    await agent.applyRulerConfig('augment rules', tmpDir, null, { outputPath: custom });
+    expect(await fs.readFile(custom, 'utf8')).toBe('augment rules');
   });
 });
