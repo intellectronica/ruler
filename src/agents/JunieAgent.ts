@@ -31,10 +31,6 @@ export class JunieAgent implements IAgent {
     await writeGeneratedFile(output, concatenatedRules);
   }
   getDefaultOutputPath(projectRoot: string): string {
-    return path.join(
-      projectRoot,
-      '.junie',
-      'guidelines.md',
-    );
+    return path.join(projectRoot, '.junie', 'guidelines.md');
   }
 }
