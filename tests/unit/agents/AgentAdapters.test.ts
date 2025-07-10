@@ -215,7 +215,7 @@ describe('Agent Adapters', () => {
   });
 
   describe('AugmentCodeAgent', () => {
-  it('backs up and writes .augment-guidelines', async () => {
+    it('backs up and writes .augment-guidelines', async () => {
       const agent = new AugmentCodeAgent();
       const target = path.join(tmpDir, '.augment-guidelines');
       await fs.writeFile(target, 'old augment');
@@ -223,12 +223,13 @@ describe('Agent Adapters', () => {
       expect(await fs.readFile(`${target}.bak`, 'utf8')).toBe('old augment');
       expect(await fs.readFile(target, 'utf8')).toBe('new augment');
     });
-  });
-  it('uses custom outputPath when provided', async () => {
-    const agent = new AugmentCodeAgent();
-    const custom = path.join(tmpDir, 'custom_augment.md');
-    await fs.mkdir(path.dirname(custom), { recursive: true });
-    await agent.applyRulerConfig('augment rules', tmpDir, null, { outputPath: custom });
-    expect(await fs.readFile(custom, 'utf8')).toBe('augment rules');
+
+    it('uses custom outputPath when provided', async () => {
+      const agent = new AugmentCodeAgent();
+      const custom = path.join(tmpDir, 'custom_augment.md');
+      await fs.mkdir(path.dirname(custom), { recursive: true });
+      await agent.applyRulerConfig('augment rules', tmpDir, null, { outputPath: custom });
+      expect(await fs.readFile(custom, 'utf8')).toBe('augment rules');
+    });
   });
 });
