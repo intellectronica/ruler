@@ -15,6 +15,7 @@ import { OpenHandsAgent } from './agents/OpenHandsAgent';
 import { GeminiCliAgent } from './agents/GeminiCliAgent';
 import { JulesAgent } from './agents/JulesAgent';
 import { JunieAgent } from './agents/JunieAgent';
+import { AugmentCodeAgent } from './agents/AugmentCodeAgent';
 import { getNativeMcpPath } from './paths/mcp';
 import { IAgentConfig } from './agents/IAgent';
 import { createRulerError, logVerbose } from './constants';
@@ -32,6 +33,7 @@ const agents: IAgent[] = [
   new GeminiCliAgent(),
   new JulesAgent(),
   new JunieAgent(),
+  new AugmentCodeAgent(),
 ];
 
 /**
@@ -200,6 +202,7 @@ async function removeEmptyDirectories(
     '.idx',
     '.gemini',
     '.vscode',
+    '.augmentcode',
   ];
 
   let directoriesRemoved = 0;
@@ -288,6 +291,7 @@ async function removeAdditionalAgentFiles(
     '.vscode/mcp.json',
     '.cursor/mcp.json',
     '.openhands/config.toml',
+    '.augmentcode/config.json',
   ];
 
   let filesRemoved = 0;
