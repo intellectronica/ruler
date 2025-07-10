@@ -314,7 +314,7 @@ output_path = "custom-claude.md"`;
       await fs.writeFile(path.join(rulerDir, 'instructions.md'), 'test');
 
       // Run the command that is being tested
-      execSync(`node ${path.resolve(__dirname, '..', '..', 'dist', 'cli', 'index.js')} apply --project-root ${testDir}`, { stdio: 'inherit' });
+      execSync(`node "${path.resolve(__dirname, '..', '..', 'dist', 'cli', 'index.js')}" apply --project-root "${testDir}"`, { stdio: 'inherit' });
 
       // Read the generated .gitignore
       gitignorePath = path.join(testDir, '.gitignore');
