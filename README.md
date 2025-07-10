@@ -48,6 +48,7 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | Firebase Studio  | `.idx/airules.md`                                             |
 | Open Hands       | `.openhands/microagents/repo.md` and `.openhands/config.toml` |
 | Gemini CLI       | `GEMINI.md` and `.gemini/settings.json`                       |
+| Junie            | `.junie/guidelines.md`                                        |
 
 ## Getting Started
 
@@ -143,7 +144,7 @@ The `apply` command looks for `.ruler/` in the current directory tree, reading t
 | Option                         | Description                                               |
 | ------------------------------ | --------------------------------------------------------- |
 | `--project-root <path>`        | Path to your project's root (default: current directory)  |
-| `--agents <agent1,agent2,...>` | Comma-separated list of agent names to target             |
+| `--agents <agent1,agent2,...>` | Comma-separated list of agent names to target (copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, junie) |
 | `--config <path>`              | Path to a custom `ruler.toml` configuration file          |
 | `--mcp` / `--with-mcp`         | Enable applying MCP server configurations (default: true) |
 | `--no-mcp`                     | Disable applying MCP server configurations                |
@@ -239,6 +240,10 @@ enabled = true
 
 [agents.jules]
 enabled = true
+
+[agents.junie]
+enabled = true
+output_path = ".junie/guidelines.md"
 
 # Agent-specific MCP configuration
 [agents.cursor.mcp]

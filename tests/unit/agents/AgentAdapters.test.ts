@@ -11,6 +11,7 @@ import { WindsurfAgent } from '../../../src/agents/WindsurfAgent';
 import { ClineAgent } from '../../../src/agents/ClineAgent';
 import { AiderAgent } from '../../../src/agents/AiderAgent';
 import { FirebaseAgent } from '../../../src/agents/FirebaseAgent';
+import { JunieAgent } from '../../../src/agents/JunieAgent';
 
 describe('Agent Adapters', () => {
   let tmpDir: string;
@@ -190,5 +191,25 @@ describe('Agent Adapters', () => {
     await fs.mkdir(path.dirname(custom), { recursive: true });
     await agent.applyRulerConfig('firebase rules', tmpDir, null, { outputPath: custom });
     expect(await fs.readFile(custom, 'utf8')).toBe('firebase rules');
+  });
+
+  describe('JunieAgent', () => {
+  it('backs up and writes .junie/guidelines.md', async () => {
+      const agent = new JunieAgent();
+      const junieDir = path.join(tmpDir, '.junie');
+      await fs.mkdir(junieDir, { recursive: true });
+      const target = path.join(junieDir, 'guidelines.md');
+      await fs.writeFile(target, 'old junie');
+      await agent.applyRulerConfig('new junie', tmpDir, null);
+      expect(await fs.readFile(`${target}.bak`, 'utf8')).toBe('old junie');
+      expect(await fs.readFile(target, 'utf8')).toBe('new junie');
+    });
+  });
+  it('uses custom outputPath when provided', async () => {
+    const agent = new JunieAgent();
+    const custom = path.join(tmpDir, 'custom_junie.md');
+    await fs.mkdir(path.dirname(custom), { recursive: true });
+    await agent.applyRulerConfig('junie rules', tmpDir, null, { outputPath: custom });
+    expect(await fs.readFile(custom, 'utf8')).toBe('junie rules');
   });
 });

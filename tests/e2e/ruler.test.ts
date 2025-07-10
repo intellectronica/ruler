@@ -33,6 +33,7 @@ describe('End-to-End Ruler CLI', () => {
     await fs.rm(path.join(tmpDir, '.clinerules'), { force: true });
     await fs.rm(path.join(tmpDir, 'ruler_aider_instructions.md'), { force: true });
     await fs.rm(path.join(tmpDir, '.aider.conf.yml'), { force: true });
+    await fs.rm(path.join(tmpDir, '.junie'), { recursive: true, force: true });
     await fs.rm(path.join(tmpDir, '.idx'), { recursive: true, force: true });
     await fs.rm(path.join(tmpDir, '.gitignore'), { force: true });
     // Clean up any custom files from previous tests
@@ -72,6 +73,7 @@ describe('End-to-End Ruler CLI', () => {
       '.openhands',
       'config.toml',
     );
+    const juniePath = path.join(tmpDir, '.junie', 'guidelines.md');
 
     return Promise.all([
       expect(fs.readFile(copilotPath, 'utf8')).resolves.toContain('Rule A'),
@@ -86,6 +88,7 @@ describe('End-to-End Ruler CLI', () => {
       expect(
         fs.readFile(openHandsInstructionsPath, 'utf8'),
       ).resolves.toContain('Rule A'),
+      expect(fs.readFile(juniePath, 'utf8')).resolves.toContain('Rule B'),
     ])
       .then(async () => {
         const ohToml = await fs.readFile(openHandsConfigPath, 'utf8');
@@ -212,7 +215,7 @@ output_path = "awesome.md"
 
       const gitignorePath = path.join(tmpDir, '.gitignore');
       const gitignoreContent = await fs.readFile(gitignorePath, 'utf8');
-      
+
       expect(gitignoreContent).toContain('# START Ruler Generated Files');
       expect(gitignoreContent).toContain('# END Ruler Generated Files');
       expect(gitignoreContent).toContain('CLAUDE.md');
@@ -242,7 +245,7 @@ output_path = "awesome.md"
       const toml = `[gitignore]
 enabled = false`;
       await fs.writeFile(path.join(tmpDir, '.ruler', 'ruler.toml'), toml);
-      
+
       execSync('npm run build', { stdio: 'inherit' });
       execSync(`node dist/cli/index.js apply --project-root ${tmpDir}`, { stdio: 'inherit' });
 
@@ -254,7 +257,7 @@ enabled = false`;
       const toml = `[gitignore]
 enabled = true`;
       await fs.writeFile(path.join(tmpDir, '.ruler', 'ruler.toml'), toml);
-      
+
       execSync('npm run build', { stdio: 'inherit' });
       execSync(`node dist/cli/index.js apply --project-root ${tmpDir} --no-gitignore`, { stdio: 'inherit' });
 
@@ -265,7 +268,7 @@ enabled = true`;
     it('updates existing .gitignore preserving other content', async () => {
       const gitignorePath = path.join(tmpDir, '.gitignore');
       await fs.writeFile(gitignorePath, 'node_modules/\n*.log\n');
-      
+
       execSync('npm run build', { stdio: 'inherit' });
       execSync(`node dist/cli/index.js apply --project-root ${tmpDir}`, { stdio: 'inherit' });
 
@@ -281,7 +284,7 @@ enabled = true`;
       const toml = `[agents.Claude]
 output_path = "custom-claude.md"`;
       await fs.writeFile(path.join(tmpDir, '.ruler', 'ruler.toml'), toml);
-      
+
       execSync('npm run build', { stdio: 'inherit' });
       execSync(`node dist/cli/index.js apply --project-root ${tmpDir} --agents claude`, { stdio: 'inherit' });
 
@@ -299,12 +302,12 @@ output_path = "custom-claude.md"`;
     beforeAll(async () => {
       // Create a dedicated directory for this test to avoid conflicts
       testDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ruler-gitignore-e2e-'));
-      
+
       // Create the necessary subdirectories that the agents will write to
       await fs.mkdir(path.join(testDir, '.vscode'), { recursive: true });
       await fs.mkdir(path.join(testDir, '.gemini'), { recursive: true });
       await fs.mkdir(path.join(testDir, '.cursor'), { recursive: true });
-      
+
       // Create a dummy .ruler setup
       const rulerDir = path.join(testDir, '.ruler');
       await fs.mkdir(rulerDir);
@@ -312,7 +315,7 @@ output_path = "custom-claude.md"`;
 
       // Run the command that is being tested
       execSync(`node ${path.resolve(__dirname, '..', '..', 'dist', 'cli', 'index.js')} apply --project-root ${testDir}`, { stdio: 'inherit' });
-      
+
       // Read the generated .gitignore
       gitignorePath = path.join(testDir, '.gitignore');
     }, 30000);
