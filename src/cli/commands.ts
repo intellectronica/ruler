@@ -25,7 +25,7 @@ export function run(): void {
         y.option('agents', {
           type: 'string',
           description:
-            'Comma-separated list of agent identifiers: copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli',
+            'Comma-separated list of agent identifiers: copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, junie',
         });
         y.option('config', {
           type: 'string',
