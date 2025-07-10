@@ -49,6 +49,7 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | Open Hands       | `.openhands/microagents/repo.md` and `.openhands/config.toml` |
 | Gemini CLI       | `GEMINI.md` and `.gemini/settings.json`                       |
 | Junie            | `.junie/guidelines.md`                                        |
+| AugmentCode      | `.augment-guidelines` and `.augmentcode/config.json`         |
 
 ## Getting Started
 
@@ -144,7 +145,7 @@ The `apply` command looks for `.ruler/` in the current directory tree, reading t
 | Option                         | Description                                               |
 | ------------------------------ | --------------------------------------------------------- |
 | `--project-root <path>`        | Path to your project's root (default: current directory)  |
-| `--agents <agent1,agent2,...>` | Comma-separated list of agent names to target (copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, junie) |
+| `--agents <agent1,agent2,...>` | Comma-separated list of agent names to target (copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, junie, augmentcode) |
 | `--config <path>`              | Path to a custom `ruler.toml` configuration file          |
 | `--mcp` / `--with-mcp`         | Enable applying MCP server configurations (default: true) |
 | `--no-mcp`                     | Disable applying MCP server configurations                |
