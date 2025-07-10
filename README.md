@@ -193,6 +193,68 @@ ruler apply --verbose
 ruler apply --no-mcp --no-gitignore
 ```
 
+## Usage: The `revert` Command
+
+The `revert` command safely undoes all changes made by `ruler apply`, restoring your project to its pre-ruler state. It intelligently restores files from backups (`.bak` files) when available, or removes generated files that didn't exist before.
+
+### Why Revert is Needed
+
+When experimenting with different rule configurations or switching between projects, you may want to:
+- **Clean slate**: Remove all ruler-generated files to start fresh
+- **Restore originals**: Revert modified files back to their original state
+- **Selective cleanup**: Remove configurations for specific agents only
+- **Safe experimentation**: Try ruler without fear of permanent changes
+
+### Primary Command
+
+```bash
+ruler revert [options]
+```
+
+### Options
+
+| Option                         | Description                                               |
+| ------------------------------ | --------------------------------------------------------- |
+| `--project-root <path>`        | Path to your project's root (default: current directory)  |
+| `--agents <agent1,agent2,...>` | Comma-separated list of agent names to revert (copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, junie) |
+| `--config <path>`              | Path to a custom `ruler.toml` configuration file          |
+| `--keep-backups`               | Keep backup files (.bak) after restoration (default: false) |
+| `--dry-run`                    | Preview changes without actually reverting files          |
+| `--verbose` / `-v`             | Display detailed output during execution                  |
+| `--local-only`                 | Only search for local .ruler directories, ignore global config |
+
+### Common Examples
+
+**Revert all ruler changes:**
+
+```bash
+ruler revert
+```
+
+**Preview what would be reverted (dry-run):**
+
+```bash
+ruler revert --dry-run
+```
+
+**Revert only specific agents:**
+
+```bash
+ruler revert --agents claude,copilot
+```
+
+**Revert with detailed output:**
+
+```bash
+ruler revert --verbose
+```
+
+**Keep backup files after reverting:**
+
+```bash
+ruler revert --keep-backups
+```
+
 ## Configuration (`ruler.toml`) in Detail
 
 ### Location

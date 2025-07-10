@@ -1,6 +1,7 @@
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 import { applyAllAgentConfigs } from '../lib';
+import { revertAllAgentConfigs } from '../revert';
 import * as path from 'path';
 import * as os from 'os';
 import { promises as fs } from 'fs';
@@ -223,6 +224,75 @@ and apply them to your configured AI coding agents.
           console.log(`[ruler] Created ${mcpPath}`);
         } else {
           console.log(`[ruler] mcp.json already exists, skipping`);
+        }
+      },
+    )
+    .command(
+      'revert',
+      'Revert ruler configurations by restoring backups and removing generated files',
+      (y) => {
+        y.option('project-root', {
+          type: 'string',
+          description: 'Project root directory',
+          default: process.cwd(),
+        });
+        y.option('agents', {
+          type: 'string',
+          description:
+            'Comma-separated list of agent identifiers: copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, junie',
+        });
+        y.option('config', {
+          type: 'string',
+          description: 'Path to TOML configuration file',
+        });
+        y.option('keep-backups', {
+          type: 'boolean',
+          description: 'Keep backup files (.bak) after restoration',
+          default: false,
+        });
+        y.option('verbose', {
+          type: 'boolean',
+          description: 'Enable verbose logging',
+          default: false,
+        });
+        y.alias('verbose', 'v');
+        y.option('dry-run', {
+          type: 'boolean',
+          description: 'Preview changes without actually reverting files',
+          default: false,
+        });
+        y.option('local-only', {
+          type: 'boolean',
+          description:
+            'Only search for local .ruler directories, ignore global config',
+          default: false,
+        });
+      },
+      async (argv) => {
+        const projectRoot = argv['project-root'] as string;
+        const agents = argv.agents
+          ? (argv.agents as string).split(',').map((a) => a.trim())
+          : undefined;
+        const configPath = argv.config as string | undefined;
+        const keepBackups = argv['keep-backups'] as boolean;
+        const verbose = argv.verbose as boolean;
+        const dryRun = argv['dry-run'] as boolean;
+        const localOnly = argv['local-only'] as boolean;
+
+        try {
+          await revertAllAgentConfigs(
+            projectRoot,
+            agents,
+            configPath,
+            keepBackups,
+            verbose,
+            dryRun,
+            localOnly,
+          );
+        } catch (err: unknown) {
+          const message = err instanceof Error ? err.message : String(err);
+          console.error(`${ERROR_PREFIX} ${message}`);
+          process.exit(1);
         }
       },
     )
