@@ -215,9 +215,10 @@ describe('Agent Adapters', () => {
   });
 
   describe('AugmentCodeAgent', () => {
-    it('backs up and writes .augment-guidelines', async () => {
+    it('backs up and writes ruler_augment_instructions.md', async () => {
       const agent = new AugmentCodeAgent();
-      const target = path.join(tmpDir, '.augment-guidelines');
+      const target = path.join(tmpDir, '.augment', 'rules', 'ruler_augment_instructions.md');
+      await fs.mkdir(path.dirname(target), { recursive: true });
       await fs.writeFile(target, 'old augment');
       await agent.applyRulerConfig('new augment', tmpDir, null);
       expect(await fs.readFile(`${target}.bak`, 'utf8')).toBe('old augment');

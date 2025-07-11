@@ -35,21 +35,21 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 
 ## Supported AI Agents
 
-| Agent            | File(s) Created/Updated                                       |
-| ---------------- | ------------------------------------------------------------- |
-| GitHub Copilot   | `.github/copilot-instructions.md`                             |
-| Claude Code      | `CLAUDE.md`                                                   |
-| OpenAI Codex CLI | `AGENTS.md`                                                   |
-| Jules            | `AGENTS.md`                                                   |
-| Cursor           | `.cursor/rules/ruler_cursor_instructions.mdc`                 |
-| Windsurf         | `.windsurf/rules/ruler_windsurf_instructions.md`              |
-| Cline            | `.clinerules`                                                 |
-| Aider            | `ruler_aider_instructions.md` and `.aider.conf.yml`           |
-| Firebase Studio  | `.idx/airules.md`                                             |
-| Open Hands       | `.openhands/microagents/repo.md` and `.openhands/config.toml` |
-| Gemini CLI       | `GEMINI.md` and `.gemini/settings.json`                       |
-| Junie            | `.junie/guidelines.md`                                        |
-| AugmentCode      | `.augment-guidelines` and `.augmentcode/config.json`         |
+| Agent            | Rules File(s)                                    | MCP Configuration                                |
+| ---------------- | ------------------------------------------------ | ------------------------------------------------ |
+| GitHub Copilot   | `.github/copilot-instructions.md`                | `.vscode/mcp.json`                               |
+| Claude Code      | `CLAUDE.md`                                      | `claude_desktop_config.json`                     |
+| OpenAI Codex CLI | `AGENTS.md`                                      | `~/.codex/config.json`                           |
+| Jules            | `AGENTS.md`                                      | -                                                |
+| Cursor           | `.cursor/rules/ruler_cursor_instructions.mdc`    | `.cursor/mcp.json`, `~/.cursor/mcp.json`         |
+| Windsurf         | `.windsurf/rules/ruler_windsurf_instructions.md` | `~/.codeium/windsurf/mcp_config.json`            |
+| Cline            | `.clinerules`                                    | -                                                |
+| Aider            | `ruler_aider_instructions.md`, `.aider.conf.yml` | `.mcp.json`                                      |
+| Firebase Studio  | `.idx/airules.md`                                | -                                                |
+| Open Hands       | `.openhands/microagents/repo.md`                 | `.openhands/config.toml`                         |
+| Gemini CLI       | `GEMINI.md`                                      | `.gemini/settings.json`                          |
+| Junie            | `.junie/guidelines.md`                           | -                                                |
+| AugmentCode      | `.augment/rules/ruler_augment_instructions.md`   | `.vscode/settings.json`                          |
 
 ## Getting Started
 

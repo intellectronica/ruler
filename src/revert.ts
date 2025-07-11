@@ -185,8 +185,39 @@ async function removeBackupFile(
 }
 
 /**
+ * Recursively checks if a directory contains only empty directories
+ */
+async function isDirectoryTreeEmpty(dirPath: string): Promise<boolean> {
+  try {
+    const entries = await fs.readdir(dirPath);
+    if (entries.length === 0) {
+      return true;
+    }
+
+    for (const entry of entries) {
+      const entryPath = path.join(dirPath, entry);
+      const entryStat = await fs.stat(entryPath);
+
+      if (entryStat.isFile()) {
+        return false;
+      } else if (entryStat.isDirectory()) {
+        const isEmpty = await isDirectoryTreeEmpty(entryPath);
+        if (!isEmpty) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Removes empty directories that were created by ruler.
  * Only removes directories if they are empty and were likely created by ruler.
+ * Special handling for .augment directory to clean up rules subdirectory.
  */
 async function removeEmptyDirectories(
   projectRoot: string,
@@ -208,6 +239,58 @@ async function removeEmptyDirectories(
   let directoriesRemoved = 0;
   const actionPrefix = dryRun ? '[ruler:dry-run]' : '[ruler]';
 
+  // Handle .augment directory specially
+  const augmentDir = path.join(projectRoot, '.augment');
+  try {
+    const augmentStat = await fs.stat(augmentDir);
+    if (augmentStat.isDirectory()) {
+      const rulesDir = path.join(augmentDir, 'rules');
+
+      try {
+        const rulesStat = await fs.stat(rulesDir);
+        if (rulesStat.isDirectory()) {
+          const isRulesEmpty = await isDirectoryTreeEmpty(rulesDir);
+          if (isRulesEmpty) {
+            if (dryRun) {
+              logVerbose(
+                `${actionPrefix} Would remove empty directory: ${rulesDir}`,
+                verbose,
+              );
+            } else {
+              await fs.rm(rulesDir, { recursive: true });
+              logVerbose(
+                `${actionPrefix} Removed empty directory: ${rulesDir}`,
+                verbose,
+              );
+            }
+            directoriesRemoved++;
+          }
+        }
+      } catch {
+        // rules directory doesn't exist, that's fine. leaving comment as catch block can't be kept empty.
+      }
+
+      const isAugmentEmpty = await isDirectoryTreeEmpty(augmentDir);
+      if (isAugmentEmpty) {
+        if (dryRun) {
+          logVerbose(
+            `${actionPrefix} Would remove empty directory: ${augmentDir}`,
+            verbose,
+          );
+        } else {
+          await fs.rm(augmentDir, { recursive: true });
+          logVerbose(
+            `${actionPrefix} Removed empty directory: ${augmentDir}`,
+            verbose,
+          );
+        }
+        directoriesRemoved++;
+      }
+    }
+  } catch {
+    // .augment directory doesn't exist, that's fine. leaving comment as catch block can't be kept empty.
+  }
+
   for (const dirName of rulerCreatedDirs) {
     const dirPath = path.join(projectRoot, dirName);
 
@@ -217,53 +300,21 @@ async function removeEmptyDirectories(
         continue;
       }
 
-      const entries = await fs.readdir(dirPath);
-      if (entries.length === 0) {
+      const isTreeEmpty = await isDirectoryTreeEmpty(dirPath);
+      if (isTreeEmpty) {
         if (dryRun) {
           logVerbose(
-            `${actionPrefix} Would remove empty directory: ${dirPath}`,
+            `${actionPrefix} Would remove empty directory tree: ${dirPath}`,
             verbose,
           );
         } else {
-          await fs.rmdir(dirPath);
+          await fs.rm(dirPath, { recursive: true });
           logVerbose(
-            `${actionPrefix} Removed empty directory: ${dirPath}`,
+            `${actionPrefix} Removed empty directory tree: ${dirPath}`,
             verbose,
           );
         }
         directoriesRemoved++;
-      } else {
-        let hasNonEmptyContent = false;
-        for (const entry of entries) {
-          const entryPath = path.join(dirPath, entry);
-          const entryStat = await fs.stat(entryPath);
-          if (entryStat.isFile()) {
-            hasNonEmptyContent = true;
-            break;
-          } else if (entryStat.isDirectory()) {
-            const subEntries = await fs.readdir(entryPath);
-            if (subEntries.length > 0) {
-              hasNonEmptyContent = true;
-              break;
-            }
-          }
-        }
-
-        if (!hasNonEmptyContent) {
-          if (dryRun) {
-            logVerbose(
-              `${actionPrefix} Would remove directory tree: ${dirPath}`,
-              verbose,
-            );
-          } else {
-            await fs.rm(dirPath, { recursive: true });
-            logVerbose(
-              `${actionPrefix} Removed directory tree: ${dirPath}`,
-              verbose,
-            );
-          }
-          directoriesRemoved++;
-        }
       }
     } catch {
       logVerbose(
@@ -291,7 +342,7 @@ async function removeAdditionalAgentFiles(
     '.vscode/mcp.json',
     '.cursor/mcp.json',
     '.openhands/config.toml',
-    '.augmentcode/config.json',
+    '.vscode/settings.json',
   ];
 
   let filesRemoved = 0;

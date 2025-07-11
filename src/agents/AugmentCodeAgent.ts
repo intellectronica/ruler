@@ -1,12 +1,17 @@
 import * as path from 'path';
-import { promises as fs } from 'fs';
 import { IAgent, IAgentConfig } from './IAgent';
 import { backupFile, writeGeneratedFile } from '../core/FileSystemUtils';
-import { mergeMcp } from '../mcp/merge';
+import {
+  readVSCodeSettings,
+  writeVSCodeSettings,
+  transformRulerToAugmentMcp,
+  mergeAugmentMcpServers,
+  getVSCodeSettingsPath,
+} from '../vscode/settings';
 
 /**
  * AugmentCode agent adapter.
- * Generates .augment-guidelines configuration file and supports MCP server configuration.
+ * Generates ruler_augment_instructions.md configuration file and updates VSCode settings.json with MCP server configuration.
  */
 export class AugmentCodeAgent implements IAgent {
   getIdentifier(): string {
@@ -28,34 +33,29 @@ export class AugmentCodeAgent implements IAgent {
     await backupFile(output);
     await writeGeneratedFile(output, concatenatedRules);
 
-    // Handle MCP configuration if provided
     if (rulerMcpJson) {
-      const configPath = path.join(projectRoot, '.augmentcode', 'config.json');
-      let existingConfig: Record<string, unknown> = {};
+      const settingsPath = getVSCodeSettingsPath(projectRoot);
+      await backupFile(settingsPath);
 
-      try {
-        const existingConfigRaw = await fs.readFile(configPath, 'utf8');
-        existingConfig = JSON.parse(existingConfigRaw);
-      } catch (error: unknown) {
-        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-          throw error;
-        }
-      }
-
-      const merged = mergeMcp(
-        existingConfig,
-        rulerMcpJson,
+      const existingSettings = await readVSCodeSettings(settingsPath);
+      const augmentServers = transformRulerToAugmentMcp(rulerMcpJson);
+      const mergedSettings = mergeAugmentMcpServers(
+        existingSettings,
+        augmentServers,
         agentConfig?.mcp?.strategy ?? 'merge',
-        this.getMcpServerKey(),
       );
 
-      await fs.mkdir(path.dirname(configPath), { recursive: true });
-      await fs.writeFile(configPath, JSON.stringify(merged, null, 2));
+      await writeVSCodeSettings(settingsPath, mergedSettings);
     }
   }
 
   getDefaultOutputPath(projectRoot: string): string {
-    return path.join(projectRoot, '.augment-guidelines');
+    return path.join(
+      projectRoot,
+      '.augment',
+      'rules',
+      'ruler_augment_instructions.md',
+    );
   }
 
   getMcpServerKey(): string {
