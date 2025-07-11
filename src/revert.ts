@@ -19,6 +19,11 @@ import { AugmentCodeAgent } from './agents/AugmentCodeAgent';
 import { getNativeMcpPath } from './paths/mcp';
 import { IAgentConfig } from './agents/IAgent';
 import { createRulerError, logVerbose } from './constants';
+import {
+  readVSCodeSettings,
+  writeVSCodeSettings,
+  getVSCodeSettingsPath,
+} from './vscode/settings';
 
 const agents: IAgent[] = [
   new CopilotAgent(),
@@ -185,8 +190,140 @@ async function removeBackupFile(
 }
 
 /**
+ * Recursively checks if a directory contains only empty directories
+ */
+async function isDirectoryTreeEmpty(dirPath: string): Promise<boolean> {
+  try {
+    const entries = await fs.readdir(dirPath);
+    if (entries.length === 0) {
+      return true;
+    }
+
+    for (const entry of entries) {
+      const entryPath = path.join(dirPath, entry);
+      const entryStat = await fs.stat(entryPath);
+
+      if (entryStat.isFile()) {
+        return false;
+      } else if (entryStat.isDirectory()) {
+        const isEmpty = await isDirectoryTreeEmpty(entryPath);
+        if (!isEmpty) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Helper function to execute directory removal with consistent dry-run handling and logging.
+ */
+async function executeDirectoryAction(
+  dirPath: string,
+  action: 'remove' | 'remove-tree',
+  verbose: boolean,
+  dryRun: boolean,
+): Promise<boolean> {
+  const actionPrefix = dryRun ? '[ruler:dry-run]' : '[ruler]';
+  const actionText = action === 'remove-tree' ? 'directory tree' : 'directory';
+
+  if (dryRun) {
+    logVerbose(
+      `${actionPrefix} Would remove empty ${actionText}: ${dirPath}`,
+      verbose,
+    );
+  } else {
+    await fs.rm(dirPath, { recursive: true });
+    logVerbose(
+      `${actionPrefix} Removed empty ${actionText}: ${dirPath}`,
+      verbose,
+    );
+  }
+  return true;
+}
+
+/**
+ * Attempts to remove a single empty directory if it exists and is empty.
+ */
+async function removeEmptyDirectory(
+  dirPath: string,
+  verbose: boolean,
+  dryRun: boolean,
+  logMissing = false,
+): Promise<boolean> {
+  try {
+    const stat = await fs.stat(dirPath);
+    if (!stat.isDirectory()) {
+      return false;
+    }
+
+    const isEmpty = await isDirectoryTreeEmpty(dirPath);
+    if (isEmpty) {
+      return await executeDirectoryAction(
+        dirPath,
+        'remove-tree',
+        verbose,
+        dryRun,
+      );
+    }
+    return false;
+  } catch {
+    if (logMissing) {
+      logVerbose(
+        `Directory ${dirPath} doesn't exist or can't be accessed`,
+        verbose,
+      );
+    }
+    return false;
+  }
+}
+
+/**
+ * Handles special cleanup logic for .augment directory and its rules subdirectory.
+ */
+async function removeAugmentDirectory(
+  projectRoot: string,
+  verbose: boolean,
+  dryRun: boolean,
+): Promise<number> {
+  const augmentDir = path.join(projectRoot, '.augment');
+  let directoriesRemoved = 0;
+
+  try {
+    const augmentStat = await fs.stat(augmentDir);
+    if (!augmentStat.isDirectory()) {
+      return 0;
+    }
+
+    const rulesDir = path.join(augmentDir, 'rules');
+    const rulesRemoved = await removeEmptyDirectory(rulesDir, verbose, dryRun);
+    if (rulesRemoved) {
+      directoriesRemoved++;
+    }
+
+    const augmentRemoved = await removeEmptyDirectory(
+      augmentDir,
+      verbose,
+      dryRun,
+    );
+    if (augmentRemoved) {
+      directoriesRemoved++;
+    }
+  } catch {
+    // .augment directory doesn't exist, that's fine. leaving comment as catch block can't be kept empty.
+  }
+
+  return directoriesRemoved;
+}
+
+/**
  * Removes empty directories that were created by ruler.
  * Only removes directories if they are empty and were likely created by ruler.
+ * Special handling for .augment directory to clean up rules subdirectory.
  */
 async function removeEmptyDirectories(
   projectRoot: string,
@@ -206,70 +343,20 @@ async function removeEmptyDirectories(
   ];
 
   let directoriesRemoved = 0;
-  const actionPrefix = dryRun ? '[ruler:dry-run]' : '[ruler]';
 
+  // Handle .augment directory with special logic
+  directoriesRemoved += await removeAugmentDirectory(
+    projectRoot,
+    verbose,
+    dryRun,
+  );
+
+  // Handle all other ruler-created directories
   for (const dirName of rulerCreatedDirs) {
     const dirPath = path.join(projectRoot, dirName);
-
-    try {
-      const stat = await fs.stat(dirPath);
-      if (!stat.isDirectory()) {
-        continue;
-      }
-
-      const entries = await fs.readdir(dirPath);
-      if (entries.length === 0) {
-        if (dryRun) {
-          logVerbose(
-            `${actionPrefix} Would remove empty directory: ${dirPath}`,
-            verbose,
-          );
-        } else {
-          await fs.rmdir(dirPath);
-          logVerbose(
-            `${actionPrefix} Removed empty directory: ${dirPath}`,
-            verbose,
-          );
-        }
-        directoriesRemoved++;
-      } else {
-        let hasNonEmptyContent = false;
-        for (const entry of entries) {
-          const entryPath = path.join(dirPath, entry);
-          const entryStat = await fs.stat(entryPath);
-          if (entryStat.isFile()) {
-            hasNonEmptyContent = true;
-            break;
-          } else if (entryStat.isDirectory()) {
-            const subEntries = await fs.readdir(entryPath);
-            if (subEntries.length > 0) {
-              hasNonEmptyContent = true;
-              break;
-            }
-          }
-        }
-
-        if (!hasNonEmptyContent) {
-          if (dryRun) {
-            logVerbose(
-              `${actionPrefix} Would remove directory tree: ${dirPath}`,
-              verbose,
-            );
-          } else {
-            await fs.rm(dirPath, { recursive: true });
-            logVerbose(
-              `${actionPrefix} Removed directory tree: ${dirPath}`,
-              verbose,
-            );
-          }
-          directoriesRemoved++;
-        }
-      }
-    } catch {
-      logVerbose(
-        `Directory ${dirPath} doesn't exist or can't be accessed`,
-        verbose,
-      );
+    const removed = await removeEmptyDirectory(dirPath, verbose, dryRun, true);
+    if (removed) {
+      directoriesRemoved++;
     }
   }
 
@@ -291,7 +378,6 @@ async function removeAdditionalAgentFiles(
     '.vscode/mcp.json',
     '.cursor/mcp.json',
     '.openhands/config.toml',
-    '.augmentcode/config.json',
   ];
 
   let filesRemoved = 0;
@@ -332,6 +418,70 @@ async function removeAdditionalAgentFiles(
         `Additional file ${fullPath} doesn't exist or can't be accessed`,
         verbose,
       );
+    }
+  }
+
+  const settingsPath = getVSCodeSettingsPath(projectRoot);
+  const backupPath = `${settingsPath}.bak`;
+
+  if (await fileExists(backupPath)) {
+    const restored = await restoreFromBackup(settingsPath, verbose, dryRun);
+    if (restored) {
+      filesRemoved++;
+      logVerbose(
+        `${actionPrefix} Restored VSCode settings from backup`,
+        verbose,
+      );
+    }
+  } else if (await fileExists(settingsPath)) {
+    try {
+      if (dryRun) {
+        const settings = await readVSCodeSettings(settingsPath);
+        if (settings['augment.advanced']) {
+          delete settings['augment.advanced'];
+          const remainingKeys = Object.keys(settings);
+          if (remainingKeys.length === 0) {
+            logVerbose(
+              `${actionPrefix} Would remove empty VSCode settings file`,
+              verbose,
+            );
+          } else {
+            logVerbose(
+              `${actionPrefix} Would remove augment.advanced section from ${settingsPath}`,
+              verbose,
+            );
+          }
+          filesRemoved++;
+        }
+      } else {
+        const settings = await readVSCodeSettings(settingsPath);
+        if (settings['augment.advanced']) {
+          delete settings['augment.advanced'];
+
+          const remainingKeys = Object.keys(settings);
+          if (remainingKeys.length === 0) {
+            await fs.unlink(settingsPath);
+            logVerbose(
+              `${actionPrefix} Removed empty VSCode settings file`,
+              verbose,
+            );
+          } else {
+            await writeVSCodeSettings(settingsPath, settings);
+            logVerbose(
+              `${actionPrefix} Removed augment.advanced section from VSCode settings`,
+              verbose,
+            );
+          }
+          filesRemoved++;
+        } else {
+          logVerbose(
+            `No augment.advanced section found in ${settingsPath}`,
+            verbose,
+          );
+        }
+      }
+    } catch (error) {
+      logVerbose(`Failed to process VSCode settings.json: ${error}`, verbose);
     }
   }
 
@@ -529,24 +679,38 @@ export async function revertAllAgentConfigs(
     if (mcpPath && mcpPath.startsWith(projectRoot)) {
       totalFilesProcessed++;
 
-      const mcpRestored = await restoreFromBackup(mcpPath, verbose, dryRun);
-      if (mcpRestored) {
-        totalFilesRestored++;
+      if (
+        agent.getName() === 'AugmentCode' &&
+        mcpPath.endsWith('.vscode/settings.json')
+      ) {
+        logVerbose(
+          `Skipping MCP handling for AugmentCode settings.json - handled separately`,
+          verbose,
+        );
+      } else {
+        const mcpRestored = await restoreFromBackup(mcpPath, verbose, dryRun);
+        if (mcpRestored) {
+          totalFilesRestored++;
 
-        if (!keepBackups) {
-          const mcpBackupRemoved = await removeBackupFile(
+          if (!keepBackups) {
+            const mcpBackupRemoved = await removeBackupFile(
+              mcpPath,
+              verbose,
+              dryRun,
+            );
+            if (mcpBackupRemoved) {
+              totalBackupsRemoved++;
+            }
+          }
+        } else {
+          const mcpRemoved = await removeGeneratedFile(
             mcpPath,
             verbose,
             dryRun,
           );
-          if (mcpBackupRemoved) {
-            totalBackupsRemoved++;
+          if (mcpRemoved) {
+            totalFilesRemoved++;
           }
-        }
-      } else {
-        const mcpRemoved = await removeGeneratedFile(mcpPath, verbose, dryRun);
-        if (mcpRemoved) {
-          totalFilesRemoved++;
         }
       }
     }

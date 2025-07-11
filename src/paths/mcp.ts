@@ -43,8 +43,7 @@ export async function getNativeMcpPath(
       candidates.push(path.join(projectRoot, '.gemini', 'settings.json'));
       break;
     case 'AugmentCode':
-      candidates.push(path.join(projectRoot, '.augmentcode', 'config.json'));
-      candidates.push(path.join(home, '.augmentcode', 'config.json'));
+      candidates.push(path.join(projectRoot, '.vscode', 'settings.json'));
       break;
     default:
       return null;

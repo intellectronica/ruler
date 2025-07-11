@@ -26,7 +26,7 @@ describe('AugmentCodeAgent', () => {
     });
 
     it('returns correct default output path', () => {
-      const expected = path.join(tmpDir, '.augment-guidelines');
+      const expected = path.join(tmpDir, '.augment', 'rules', 'ruler_augment_instructions.md');
       expect(agent.getDefaultOutputPath(tmpDir)).toBe(expected);
     });
 
@@ -36,20 +36,21 @@ describe('AugmentCodeAgent', () => {
   });
 
   describe('applyRulerConfig', () => {
-    it('creates .augment-guidelines file', async () => {
-      const target = path.join(tmpDir, '.augment-guidelines');
+    it('creates ruler_augment_instructions.md file', async () => {
+      const target = path.join(tmpDir, '.augment', 'rules', 'ruler_augment_instructions.md');
       await agent.applyRulerConfig('test guidelines', tmpDir, null);
-      
+
       const content = await fs.readFile(target, 'utf8');
       expect(content).toBe('test guidelines');
     });
 
-    it('backs up existing .augment-guidelines file', async () => {
-      const target = path.join(tmpDir, '.augment-guidelines');
+    it('backs up existing ruler_augment_instructions.md file', async () => {
+      const target = path.join(tmpDir, '.augment', 'rules', 'ruler_augment_instructions.md');
+      await fs.mkdir(path.dirname(target), { recursive: true });
       await fs.writeFile(target, 'old guidelines');
-      
+
       await agent.applyRulerConfig('new guidelines', tmpDir, null);
-      
+
       const backup = await fs.readFile(`${target}.bak`, 'utf8');
       const content = await fs.readFile(target, 'utf8');
       expect(backup).toBe('old guidelines');
@@ -78,29 +79,38 @@ describe('AugmentCodeAgent', () => {
 
       await agent.applyRulerConfig('test guidelines', tmpDir, mcpConfig);
 
-      const configPath = path.join(tmpDir, '.augmentcode', 'config.json');
-      const configContent = await fs.readFile(configPath, 'utf8');
-      const parsedConfig = JSON.parse(configContent);
-      
-      expect(parsedConfig.mcpServers).toEqual(mcpConfig.mcpServers);
+      const settingsPath = path.join(tmpDir, '.vscode', 'settings.json');
+      const settingsContent = await fs.readFile(settingsPath, 'utf8');
+      const parsedSettings = JSON.parse(settingsContent);
+
+      expect(parsedSettings['augment.advanced'].mcpServers).toEqual([
+        {
+          name: 'filesystem',
+          command: 'npx',
+          args: ['-y', '@modelcontextprotocol/server-filesystem', tmpDir]
+        }
+      ]);
     });
 
     it('merges with existing MCP configuration', async () => {
-      const configPath = path.join(tmpDir, '.augmentcode', 'config.json');
-      const existingConfig = {
-        mcpServers: {
-          existing: {
-            command: 'existing-command',
-            args: ['existing-arg']
-          }
+      const settingsPath = path.join(tmpDir, '.vscode', 'settings.json');
+      const existingSettings = {
+        'augment.advanced': {
+          mcpServers: [
+            {
+              name: 'existing',
+              command: 'existing-command',
+              args: ['existing-arg']
+            }
+          ]
         },
-        otherSettings: {
+        'other.setting': {
           value: 'preserved'
         }
       };
 
-      await fs.mkdir(path.dirname(configPath), { recursive: true });
-      await fs.writeFile(configPath, JSON.stringify(existingConfig, null, 2));
+      await fs.mkdir(path.dirname(settingsPath), { recursive: true });
+      await fs.writeFile(settingsPath, JSON.stringify(existingSettings, null, 4));
 
       const newMcpConfig = {
         mcpServers: {
@@ -113,27 +123,41 @@ describe('AugmentCodeAgent', () => {
 
       await agent.applyRulerConfig('test guidelines', tmpDir, newMcpConfig);
 
-      const updatedContent = await fs.readFile(configPath, 'utf8');
-      const updatedConfig = JSON.parse(updatedContent);
-      
+      const updatedContent = await fs.readFile(settingsPath, 'utf8');
+      const updatedSettings = JSON.parse(updatedContent);
+
       // Should have both existing and new servers
-      expect(updatedConfig.mcpServers.existing).toEqual(existingConfig.mcpServers.existing);
-      expect(updatedConfig.mcpServers.filesystem).toEqual(newMcpConfig.mcpServers.filesystem);
-      expect(updatedConfig.otherSettings).toEqual(existingConfig.otherSettings);
+      const mcpServers = updatedSettings['augment.advanced'].mcpServers;
+      expect(mcpServers).toHaveLength(2);
+      expect(mcpServers.find((s: any) => s.name === 'existing')).toEqual({
+        name: 'existing',
+        command: 'existing-command',
+        args: ['existing-arg']
+      });
+      expect(mcpServers.find((s: any) => s.name === 'filesystem')).toEqual({
+        name: 'filesystem',
+        command: 'npx',
+        args: ['-y', '@modelcontextprotocol/server-filesystem', tmpDir]
+      });
+      // Other settings should be preserved
+      expect(updatedSettings['other.setting']).toEqual(existingSettings['other.setting']);
     });
 
     it('uses overwrite strategy when specified', async () => {
-      const configPath = path.join(tmpDir, '.augmentcode', 'config.json');
-      const existingConfig = {
-        mcpServers: {
-          existing: {
-            command: 'existing-command'
-          }
+      const settingsPath = path.join(tmpDir, '.vscode', 'settings.json');
+      const existingSettings = {
+        'augment.advanced': {
+          mcpServers: [
+            {
+              name: 'existing',
+              command: 'existing-command'
+            }
+          ]
         }
       };
 
-      await fs.mkdir(path.dirname(configPath), { recursive: true });
-      await fs.writeFile(configPath, JSON.stringify(existingConfig, null, 2));
+      await fs.mkdir(path.dirname(settingsPath), { recursive: true });
+      await fs.writeFile(settingsPath, JSON.stringify(existingSettings, null, 4));
 
       const newMcpConfig = {
         mcpServers: {
@@ -148,12 +172,17 @@ describe('AugmentCodeAgent', () => {
         mcp: { strategy: 'overwrite' }
       });
 
-      const updatedContent = await fs.readFile(configPath, 'utf8');
-      const updatedConfig = JSON.parse(updatedContent);
-      
+      const updatedContent = await fs.readFile(settingsPath, 'utf8');
+      const updatedSettings = JSON.parse(updatedContent);
+
       // Should only have new servers, existing should be gone
-      expect(updatedConfig.mcpServers.existing).toBeUndefined();
-      expect(updatedConfig.mcpServers.filesystem).toEqual(newMcpConfig.mcpServers.filesystem);
+      const mcpServers = updatedSettings['augment.advanced'].mcpServers;
+      expect(mcpServers).toHaveLength(1);
+      expect(mcpServers[0]).toEqual({
+        name: 'filesystem',
+        command: 'npx',
+        args: ['-y', '@modelcontextprotocol/server-filesystem', tmpDir]
+      });
     });
   });
 });

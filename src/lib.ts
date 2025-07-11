@@ -257,11 +257,28 @@ export async function applyAllAgentConfigs(
         }
         agentsMdWritten = true;
       }
+      let finalAgentConfig = agentConfig;
+      if (agent.getIdentifier() === 'augmentcode' && rulerMcpJson) {
+        const resolvedStrategy =
+          cliMcpStrategy ??
+          agentConfig?.mcp?.strategy ??
+          config.mcp?.strategy ??
+          'merge';
+
+        finalAgentConfig = {
+          ...agentConfig,
+          mcp: {
+            ...agentConfig?.mcp,
+            strategy: resolvedStrategy,
+          },
+        };
+      }
+
       await agent.applyRulerConfig(
         concatenated,
         projectRoot,
         rulerMcpJson,
-        agentConfig,
+        finalAgentConfig,
       );
     }
 
@@ -291,6 +308,16 @@ export async function applyAllAgentConfigs(
           await propagateMcpToOpenHands(rulerMcpFile, dest);
         }
         // Open Hands config file is already included above
+      } else if (agent.getIdentifier() === 'augmentcode') {
+        // *** Special handling for AugmentCode ***
+        // AugmentCode handles MCP configuration internally in applyRulerConfig
+        // by updating VSCode settings.json with augment.advanced.mcpServers format
+        if (dryRun) {
+          logVerbose(
+            `DRY RUN: AugmentCode MCP config handled internally via VSCode settings`,
+            verbose,
+          );
+        }
       } else {
         if (rulerMcpJson) {
           const strategy =

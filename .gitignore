@@ -135,3 +135,6 @@ dist
 .yarn/install-state.gz
 .pnp.*
 issue-body.md
+
+# VSCode subfolders
+.vscode/
