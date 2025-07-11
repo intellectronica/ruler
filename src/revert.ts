@@ -220,6 +220,107 @@ async function isDirectoryTreeEmpty(dirPath: string): Promise<boolean> {
 }
 
 /**
+ * Helper function to execute directory removal with consistent dry-run handling and logging.
+ */
+async function executeDirectoryAction(
+  dirPath: string,
+  action: 'remove' | 'remove-tree',
+  verbose: boolean,
+  dryRun: boolean,
+): Promise<boolean> {
+  const actionPrefix = dryRun ? '[ruler:dry-run]' : '[ruler]';
+  const actionText = action === 'remove-tree' ? 'directory tree' : 'directory';
+
+  if (dryRun) {
+    logVerbose(
+      `${actionPrefix} Would remove empty ${actionText}: ${dirPath}`,
+      verbose,
+    );
+  } else {
+    await fs.rm(dirPath, { recursive: true });
+    logVerbose(
+      `${actionPrefix} Removed empty ${actionText}: ${dirPath}`,
+      verbose,
+    );
+  }
+  return true;
+}
+
+/**
+ * Attempts to remove a single empty directory if it exists and is empty.
+ */
+async function removeEmptyDirectory(
+  dirPath: string,
+  verbose: boolean,
+  dryRun: boolean,
+  logMissing = false,
+): Promise<boolean> {
+  try {
+    const stat = await fs.stat(dirPath);
+    if (!stat.isDirectory()) {
+      return false;
+    }
+
+    const isEmpty = await isDirectoryTreeEmpty(dirPath);
+    if (isEmpty) {
+      return await executeDirectoryAction(
+        dirPath,
+        'remove-tree',
+        verbose,
+        dryRun,
+      );
+    }
+    return false;
+  } catch {
+    if (logMissing) {
+      logVerbose(
+        `Directory ${dirPath} doesn't exist or can't be accessed`,
+        verbose,
+      );
+    }
+    return false;
+  }
+}
+
+/**
+ * Handles special cleanup logic for .augment directory and its rules subdirectory.
+ */
+async function removeAugmentDirectory(
+  projectRoot: string,
+  verbose: boolean,
+  dryRun: boolean,
+): Promise<number> {
+  const augmentDir = path.join(projectRoot, '.augment');
+  let directoriesRemoved = 0;
+
+  try {
+    const augmentStat = await fs.stat(augmentDir);
+    if (!augmentStat.isDirectory()) {
+      return 0;
+    }
+
+    const rulesDir = path.join(augmentDir, 'rules');
+    const rulesRemoved = await removeEmptyDirectory(rulesDir, verbose, dryRun);
+    if (rulesRemoved) {
+      directoriesRemoved++;
+    }
+
+    const augmentRemoved = await removeEmptyDirectory(
+      augmentDir,
+      verbose,
+      dryRun,
+    );
+    if (augmentRemoved) {
+      directoriesRemoved++;
+    }
+  } catch {
+    // .augment directory doesn't exist, that's fine. leaving comment as catch block can't be kept empty.
+  }
+
+  return directoriesRemoved;
+}
+
+/**
  * Removes empty directories that were created by ruler.
  * Only removes directories if they are empty and were likely created by ruler.
  * Special handling for .augment directory to clean up rules subdirectory.
@@ -242,90 +343,20 @@ async function removeEmptyDirectories(
   ];
 
   let directoriesRemoved = 0;
-  const actionPrefix = dryRun ? '[ruler:dry-run]' : '[ruler]';
 
-  // Handle .augment directory specially
-  const augmentDir = path.join(projectRoot, '.augment');
-  try {
-    const augmentStat = await fs.stat(augmentDir);
-    if (augmentStat.isDirectory()) {
-      const rulesDir = path.join(augmentDir, 'rules');
+  // Handle .augment directory with special logic
+  directoriesRemoved += await removeAugmentDirectory(
+    projectRoot,
+    verbose,
+    dryRun,
+  );
 
-      try {
-        const rulesStat = await fs.stat(rulesDir);
-        if (rulesStat.isDirectory()) {
-          const isRulesEmpty = await isDirectoryTreeEmpty(rulesDir);
-          if (isRulesEmpty) {
-            if (dryRun) {
-              logVerbose(
-                `${actionPrefix} Would remove empty directory: ${rulesDir}`,
-                verbose,
-              );
-            } else {
-              await fs.rm(rulesDir, { recursive: true });
-              logVerbose(
-                `${actionPrefix} Removed empty directory: ${rulesDir}`,
-                verbose,
-              );
-            }
-            directoriesRemoved++;
-          }
-        }
-      } catch {
-        // rules directory doesn't exist, that's fine. leaving comment as catch block can't be kept empty.
-      }
-
-      const isAugmentEmpty = await isDirectoryTreeEmpty(augmentDir);
-      if (isAugmentEmpty) {
-        if (dryRun) {
-          logVerbose(
-            `${actionPrefix} Would remove empty directory: ${augmentDir}`,
-            verbose,
-          );
-        } else {
-          await fs.rm(augmentDir, { recursive: true });
-          logVerbose(
-            `${actionPrefix} Removed empty directory: ${augmentDir}`,
-            verbose,
-          );
-        }
-        directoriesRemoved++;
-      }
-    }
-  } catch {
-    // .augment directory doesn't exist, that's fine. leaving comment as catch block can't be kept empty.
-  }
-
+  // Handle all other ruler-created directories
   for (const dirName of rulerCreatedDirs) {
     const dirPath = path.join(projectRoot, dirName);
-
-    try {
-      const stat = await fs.stat(dirPath);
-      if (!stat.isDirectory()) {
-        continue;
-      }
-
-      const isTreeEmpty = await isDirectoryTreeEmpty(dirPath);
-      if (isTreeEmpty) {
-        if (dryRun) {
-          logVerbose(
-            `${actionPrefix} Would remove empty directory tree: ${dirPath}`,
-            verbose,
-          );
-        } else {
-          await fs.rm(dirPath, { recursive: true });
-          logVerbose(
-            `${actionPrefix} Removed empty directory tree: ${dirPath}`,
-            verbose,
-          );
-        }
-        directoriesRemoved++;
-      }
-    } catch {
-      logVerbose(
-        `Directory ${dirPath} doesn't exist or can't be accessed`,
-        verbose,
-      );
+    const removed = await removeEmptyDirectory(dirPath, verbose, dryRun, true);
+    if (removed) {
+      directoriesRemoved++;
     }
   }
 
