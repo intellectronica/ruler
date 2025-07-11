@@ -98,7 +98,7 @@ export function mergeAugmentMcpServers(
   newServers: AugmentMcpServer[],
   strategy: McpStrategy,
 ): VSCodeSettings {
-  const result = { ...existingSettings };
+  const result = structuredClone(existingSettings);
 
   if (!result['augment.advanced']) {
     result['augment.advanced'] = {};
