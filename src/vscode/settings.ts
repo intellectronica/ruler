@@ -5,7 +5,7 @@ import { McpStrategy } from '../types';
 /**
  * VSCode settings.json structure for Augment MCP configuration
  */
-interface VSCodeSettings {
+export interface VSCodeSettings {
   'augment.advanced'?: {
     mcpServers?: AugmentMcpServer[];
     [key: string]: unknown;
@@ -16,7 +16,7 @@ interface VSCodeSettings {
 /**
  * Augment MCP server configuration format
  */
-interface AugmentMcpServer {
+export interface AugmentMcpServer {
   name: string;
   command: string;
   args?: string[];

@@ -19,6 +19,11 @@ import { AugmentCodeAgent } from './agents/AugmentCodeAgent';
 import { getNativeMcpPath } from './paths/mcp';
 import { IAgentConfig } from './agents/IAgent';
 import { createRulerError, logVerbose } from './constants';
+import {
+  readVSCodeSettings,
+  writeVSCodeSettings,
+  getVSCodeSettingsPath,
+} from './vscode/settings';
 
 const agents: IAgent[] = [
   new CopilotAgent(),
@@ -342,7 +347,6 @@ async function removeAdditionalAgentFiles(
     '.vscode/mcp.json',
     '.cursor/mcp.json',
     '.openhands/config.toml',
-    '.vscode/settings.json',
   ];
 
   let filesRemoved = 0;
@@ -383,6 +387,70 @@ async function removeAdditionalAgentFiles(
         `Additional file ${fullPath} doesn't exist or can't be accessed`,
         verbose,
       );
+    }
+  }
+
+  const settingsPath = getVSCodeSettingsPath(projectRoot);
+  const backupPath = `${settingsPath}.bak`;
+
+  if (await fileExists(backupPath)) {
+    const restored = await restoreFromBackup(settingsPath, verbose, dryRun);
+    if (restored) {
+      filesRemoved++;
+      logVerbose(
+        `${actionPrefix} Restored VSCode settings from backup`,
+        verbose,
+      );
+    }
+  } else if (await fileExists(settingsPath)) {
+    try {
+      if (dryRun) {
+        const settings = await readVSCodeSettings(settingsPath);
+        if (settings['augment.advanced']) {
+          delete settings['augment.advanced'];
+          const remainingKeys = Object.keys(settings);
+          if (remainingKeys.length === 0) {
+            logVerbose(
+              `${actionPrefix} Would remove empty VSCode settings file`,
+              verbose,
+            );
+          } else {
+            logVerbose(
+              `${actionPrefix} Would remove augment.advanced section from ${settingsPath}`,
+              verbose,
+            );
+          }
+          filesRemoved++;
+        }
+      } else {
+        const settings = await readVSCodeSettings(settingsPath);
+        if (settings['augment.advanced']) {
+          delete settings['augment.advanced'];
+
+          const remainingKeys = Object.keys(settings);
+          if (remainingKeys.length === 0) {
+            await fs.unlink(settingsPath);
+            logVerbose(
+              `${actionPrefix} Removed empty VSCode settings file`,
+              verbose,
+            );
+          } else {
+            await writeVSCodeSettings(settingsPath, settings);
+            logVerbose(
+              `${actionPrefix} Removed augment.advanced section from VSCode settings`,
+              verbose,
+            );
+          }
+          filesRemoved++;
+        } else {
+          logVerbose(
+            `No augment.advanced section found in ${settingsPath}`,
+            verbose,
+          );
+        }
+      }
+    } catch (error) {
+      logVerbose(`Failed to process VSCode settings.json: ${error}`, verbose);
     }
   }
 
@@ -580,24 +648,38 @@ export async function revertAllAgentConfigs(
     if (mcpPath && mcpPath.startsWith(projectRoot)) {
       totalFilesProcessed++;
 
-      const mcpRestored = await restoreFromBackup(mcpPath, verbose, dryRun);
-      if (mcpRestored) {
-        totalFilesRestored++;
+      if (
+        agent.getName() === 'AugmentCode' &&
+        mcpPath.endsWith('.vscode/settings.json')
+      ) {
+        logVerbose(
+          `Skipping MCP handling for AugmentCode settings.json - handled separately`,
+          verbose,
+        );
+      } else {
+        const mcpRestored = await restoreFromBackup(mcpPath, verbose, dryRun);
+        if (mcpRestored) {
+          totalFilesRestored++;
 
-        if (!keepBackups) {
-          const mcpBackupRemoved = await removeBackupFile(
+          if (!keepBackups) {
+            const mcpBackupRemoved = await removeBackupFile(
+              mcpPath,
+              verbose,
+              dryRun,
+            );
+            if (mcpBackupRemoved) {
+              totalBackupsRemoved++;
+            }
+          }
+        } else {
+          const mcpRemoved = await removeGeneratedFile(
             mcpPath,
             verbose,
             dryRun,
           );
-          if (mcpBackupRemoved) {
-            totalBackupsRemoved++;
+          if (mcpRemoved) {
+            totalFilesRemoved++;
           }
-        }
-      } else {
-        const mcpRemoved = await removeGeneratedFile(mcpPath, verbose, dryRun);
-        if (mcpRemoved) {
-          totalFilesRemoved++;
         }
       }
     }
