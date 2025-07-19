@@ -5,6 +5,7 @@ import { CursorAgent } from '../../../src/agents/CursorAgent';
 import { WindsurfAgent } from '../../../src/agents/WindsurfAgent';
 import { ClineAgent } from '../../../src/agents/ClineAgent';
 import { AiderAgent } from '../../../src/agents/AiderAgent';
+import { KiloCodeAgent } from '../../../src/agents/KiloCodeAgent';
 
 describe('Agent Lowercase Identifiers', () => {
   const expectedIdentifiers = {
@@ -15,6 +16,7 @@ describe('Agent Lowercase Identifiers', () => {
     windsurf: WindsurfAgent,
     cline: ClineAgent,
     aider: AiderAgent,
+    kilocode: KiloCodeAgent,
   };
 
   describe('Agent.getIdentifier() returns lowercase identifiers', () => {
@@ -35,6 +37,7 @@ describe('Agent Lowercase Identifiers', () => {
       windsurf: 'Windsurf',
       cline: 'Cline',
       aider: 'Aider',
+      kilocode: 'Kilo Code'
     };
 
     Object.entries(expectedIdentifiers).forEach(([identifier, AgentClass]) => {

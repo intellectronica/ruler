@@ -44,6 +44,7 @@ describe('End-to-End Ruler CLI', () => {
     await fs.rm(path.join(tmpDir, '.ruler', 'ruler.toml'), { force: true });
     // Clean up Open Hands agent files
     await fs.rm(path.join(tmpDir, '.openhands'), { recursive: true, force: true });
+    await fs.rm(path.join(tmpDir, '.kilocode'), { recursive: true, force: true });
   });
 
   it('generates configuration files for all agents', () => {
@@ -74,6 +75,12 @@ describe('End-to-End Ruler CLI', () => {
       'config.toml',
     );
     const juniePath = path.join(tmpDir, '.junie', 'guidelines.md');
+    const kilocodePath = path.join(
+      tmpDir,
+      '.kilocode',
+      'rules',
+      'ruler_kilocode_instructions.md',
+    );
 
     return Promise.all([
       expect(fs.readFile(copilotPath, 'utf8')).resolves.toContain('Rule A'),
@@ -89,6 +96,7 @@ describe('End-to-End Ruler CLI', () => {
         fs.readFile(openHandsInstructionsPath, 'utf8'),
       ).resolves.toContain('Rule A'),
       expect(fs.readFile(juniePath, 'utf8')).resolves.toContain('Rule B'),
+      expect(fs.readFile(kilocodePath, 'utf8')).resolves.toContain('Rule A')
     ])
       .then(async () => {
         const ohToml = await fs.readFile(openHandsConfigPath, 'utf8');

@@ -50,6 +50,7 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | Gemini CLI       | `GEMINI.md`                                      | `.gemini/settings.json`                          |
 | Junie            | `.junie/guidelines.md`                           | -                                                |
 | AugmentCode      | `.augment/rules/ruler_augment_instructions.md`   | `.vscode/settings.json`                          |
+| Kilo Code        | `.kilocode/rules/ruler_kilocode_instructions.md` | `.kilocode/mcp.json`                             |
 
 ## Getting Started
 
@@ -145,7 +146,7 @@ The `apply` command looks for `.ruler/` in the current directory tree, reading t
 | Option                         | Description                                               |
 | ------------------------------ | --------------------------------------------------------- |
 | `--project-root <path>`        | Path to your project's root (default: current directory)  |
-| `--agents <agent1,agent2,...>` | Comma-separated list of agent names to target (copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, junie, augmentcode) |
+| `--agents <agent1,agent2,...>` | Comma-separated list of agent names to target (copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, junie, augmentcode, kilocode) |
 | `--config <path>`              | Path to a custom `ruler.toml` configuration file          |
 | `--mcp` / `--with-mcp`         | Enable applying MCP server configurations (default: true) |
 | `--no-mcp`                     | Disable applying MCP server configurations                |
@@ -216,7 +217,7 @@ ruler revert [options]
 | Option                         | Description                                               |
 | ------------------------------ | --------------------------------------------------------- |
 | `--project-root <path>`        | Path to your project's root (default: current directory)  |
-| `--agents <agent1,agent2,...>` | Comma-separated list of agent names to revert (copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, junie) |
+| `--agents <agent1,agent2,...>` | Comma-separated list of agent names to revert (copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, junie, kilocode) |
 | `--config <path>`              | Path to a custom `ruler.toml` configuration file          |
 | `--keep-backups`               | Keep backup files (.bak) after restoration (default: false) |
 | `--dry-run`                    | Preview changes without actually reverting files          |
@@ -316,6 +317,10 @@ merge_strategy = "merge"
 # Disable specific agents
 [agents.windsurf]
 enabled = false
+
+[agents.kilocode]
+enabled = true
+output_path = ".kilocode/rules/ruler_kilocode_instructions.md"
 ```
 
 ### Configuration Precedence
