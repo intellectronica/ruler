@@ -25,7 +25,9 @@ export class AiderAgent implements IAgent {
     const mdPath =
       agentConfig?.outputPathInstructions ??
       this.getDefaultOutputPath(projectRoot).instructions;
-    await backupFile(mdPath);
+    if (!agentConfig?.disableBackup) {
+      await backupFile(mdPath);
+    }
     await writeGeneratedFile(mdPath, concatenatedRules);
 
     const cfgPath =
@@ -38,7 +40,9 @@ export class AiderAgent implements IAgent {
     let doc: AiderConfig = {} as AiderConfig;
     try {
       await fs.access(cfgPath);
-      await backupFile(cfgPath);
+      if (!agentConfig?.disableBackup) {
+        await backupFile(cfgPath);
+      }
       const raw = await fs.readFile(cfgPath, 'utf8');
       doc = (yaml.load(raw) || {}) as AiderConfig;
     } catch {

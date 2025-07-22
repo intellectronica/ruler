@@ -22,7 +22,9 @@ export class CodexCliAgent implements IAgent {
   ): Promise<void> {
     const output =
       agentConfig?.outputPath ?? this.getDefaultOutputPath(projectRoot);
-    await backupFile(output);
+    if (!agentConfig?.disableBackup) {
+      await backupFile(output);
+    }
     await writeGeneratedFile(output, concatenatedRules);
   }
   getDefaultOutputPath(projectRoot: string): string {

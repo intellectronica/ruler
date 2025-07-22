@@ -65,6 +65,11 @@ export function run(): void {
             'Only search for local .ruler directories, ignore global config',
           default: false,
         });
+        y.option('disable-backup', {
+          type: 'boolean',
+          description: 'Disable creation of backup files before applying changes',
+          default: false,
+        });
       },
       async (argv) => {
         const projectRoot = argv['project-root'] as string;
@@ -79,6 +84,7 @@ export function run(): void {
         const verbose = argv.verbose as boolean;
         const dryRun = argv['dry-run'] as boolean;
         const localOnly = argv['local-only'] as boolean;
+        const disableBackup = argv['disable-backup'] as boolean;
 
         // Determine gitignore preference: CLI > TOML > Default (enabled)
         // yargs handles --no-gitignore by setting gitignore to false
@@ -99,6 +105,7 @@ export function run(): void {
             verbose,
             dryRun,
             localOnly,
+            disableBackup,
           );
           console.log('Ruler apply completed successfully.');
         } catch (err: unknown) {

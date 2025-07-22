@@ -155,6 +155,7 @@ The `apply` command looks for `.ruler/` in the current directory tree, reading t
 | `--no-gitignore`               | Disable automatic .gitignore updates                      |
 | `--local-only`                 | Do not look for configuration in `$XDG_CONFIG_HOME`       |
 | `--verbose` / `-v`             | Display detailed output during execution                  |
+| `--disable-backup`                | Disable creation of `.bak` backup files when applying rules (default: false) |
 
 ### Common Examples
 
@@ -192,6 +193,12 @@ ruler apply --verbose
 
 ```bash
 ruler apply --no-mcp --no-gitignore
+```
+
+**Apply rules without creating backup files:**
+
+```bash
+ruler apply --disable-backup
 ```
 
 ## Usage: The `revert` Command

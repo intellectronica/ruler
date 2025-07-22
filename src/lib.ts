@@ -107,6 +107,7 @@ export async function applyAllAgentConfigs(
   verbose = false,
   dryRun = false,
   localOnly = false,
+  disableBackup = false,
 ): Promise<void> {
   // Load configuration (default_agents, per-agent overrides, CLI filters)
   logVerbose(
@@ -259,7 +260,8 @@ export async function applyAllAgentConfigs(
         }
         agentsMdWritten = true;
       }
-      let finalAgentConfig = agentConfig;
+      // Propagate disableBackup to agent config
+      let finalAgentConfig = { ...agentConfig, disableBackup };
       if (agent.getIdentifier() === 'augmentcode' && rulerMcpJson) {
         const resolvedStrategy =
           cliMcpStrategy ??
@@ -268,7 +270,7 @@ export async function applyAllAgentConfigs(
           'merge';
 
         finalAgentConfig = {
-          ...agentConfig,
+          ...finalAgentConfig,
           mcp: {
             ...agentConfig?.mcp,
             strategy: resolvedStrategy,
