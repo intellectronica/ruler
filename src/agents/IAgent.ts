@@ -14,6 +14,7 @@ export interface IAgentConfig {
     enabled?: boolean;
     strategy?: 'merge' | 'overwrite';
   };
+  disableBackup?: boolean;
 }
 
 export interface IAgent {

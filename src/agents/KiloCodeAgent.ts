@@ -28,7 +28,9 @@ export class KiloCodeAgent implements IAgent {
     const output =
       agentConfig?.outputPath ?? this.getDefaultOutputPath(projectRoot);
     await ensureDirExists(path.dirname(output));
-    await backupFile(output);
+    if (!agentConfig?.disableBackup) {
+      await backupFile(output);
+    }
     await writeGeneratedFile(output, concatenatedRules);
   }
 
