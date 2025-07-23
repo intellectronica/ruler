@@ -25,6 +25,7 @@ import { validateMcp } from './mcp/validate';
 import { getNativeMcpPath, readNativeMcp, writeNativeMcp } from './paths/mcp';
 import { McpStrategy } from './types';
 import { propagateMcpToOpenHands } from './mcp/propagateOpenHandsMcp';
+import { propagateMcpToOpenCode } from './mcp/propagateOpenCodeMcp';
 import { IAgentConfig } from './agents/IAgent';
 import { createRulerError, logVerbose } from './constants';
 
@@ -321,6 +322,16 @@ export async function applyAllAgentConfigs(
             `DRY RUN: AugmentCode MCP config handled internally via VSCode settings`,
             verbose,
           );
+        }
+      } else if (agent.getIdentifier() === 'opencode') {
+        // *** Special handling for OpenCode ***
+        if (dryRun) {
+          logVerbose(
+            `DRY RUN: Would apply MCP config by updating OpenCode config file: ${dest}`,
+            verbose,
+          );
+        } else {
+          await propagateMcpToOpenCode(rulerMcpFile, dest);
         }
       } else {
         if (rulerMcpJson) {
