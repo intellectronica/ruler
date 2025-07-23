@@ -26,7 +26,7 @@ export function run(): void {
         y.option('agents', {
           type: 'string',
           description:
-            'Comma-separated list of agent identifiers: copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, junie, kilocode',
+            'Comma-separated list of agent identifiers: copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, junie, kilocode, opencode',
         });
         y.option('config', {
           type: 'string',
@@ -243,7 +243,7 @@ and apply them to your configured AI coding agents.
         y.option('agents', {
           type: 'string',
           description:
-            'Comma-separated list of agent identifiers: copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, junie, kilocode',
+            'Comma-separated list of agent identifiers: copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, junie, kilocode, opencode',
         });
         y.option('config', {
           type: 'string',

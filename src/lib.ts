@@ -19,6 +19,7 @@ import { JulesAgent } from './agents/JulesAgent';
 import { JunieAgent } from './agents/JunieAgent';
 import { AugmentCodeAgent } from './agents/AugmentCodeAgent';
 import { KiloCodeAgent } from './agents/KiloCodeAgent';
+import { OpenCodeAgent } from './agents/OpenCodeAgent';
 import { mergeMcp } from './mcp/merge';
 import { validateMcp } from './mcp/validate';
 import { getNativeMcpPath, readNativeMcp, writeNativeMcp } from './paths/mcp';
@@ -86,6 +87,7 @@ const agents: IAgent[] = [
   new JunieAgent(),
   new AugmentCodeAgent(),
   new KiloCodeAgent(),
+  new OpenCodeAgent(),
 ];
 
 /**
