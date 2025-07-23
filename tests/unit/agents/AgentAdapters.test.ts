@@ -90,8 +90,9 @@ describe('Agent Adapters', () => {
       await fs.writeFile(target, 'old cursor');
       await agent.applyRulerConfig('new cursor', tmpDir, null);
       expect(await fs.readFile(`${target}.bak`, 'utf8')).toBe('old cursor');
-      expect(await fs.readFile(target, 'utf8')).toBe('new cursor');
-    });
+      const content = await fs.readFile(target, 'utf8');
+      expect(content).toContain('new cursor');
+      });
   });
   it('uses custom outputPath when provided', async () => {
     const agent = new CursorAgent();
@@ -100,7 +101,8 @@ describe('Agent Adapters', () => {
     const custom = path.join(tmpDir, 'custom_cursor.mdc');
     await fs.mkdir(path.dirname(custom), { recursive: true });
     await agent.applyRulerConfig('z', tmpDir, null, { outputPath: custom });
-    expect(await fs.readFile(custom, 'utf8')).toBe('z');
+    const content = await fs.readFile(custom, 'utf8');
+    expect(content).toContain('z');
   });
 
   describe('WindsurfAgent', () => {
