@@ -30,7 +30,7 @@ describe('OpenCode MCP Integration', () => {
     it('creates new MCP configuration file', async () => {
       const mcpPath = path.join(tmpDir, 'opencode.json');
       const mcpConfig = {
-        mcpServers: {
+        mcp: {
           'my-server': {
             command: 'test-command',
           },
@@ -39,12 +39,12 @@ describe('OpenCode MCP Integration', () => {
 
       await writeNativeMcp(mcpPath, mcpConfig);
       const content = JSON.parse(await fs.readFile(mcpPath, 'utf8'));
-      expect(content.mcpServers['my-server'].command).toBe('test-command');
+      expect(content.mcp['my-server'].command).toBe('test-command');
     });
 
     it('merges MCP configurations correctly', async () => {
       const existing = {
-        mcpServers: {
+        mcp: {
           'existing-server': { command: 'existing-cmd' },
         },
       };
@@ -55,10 +55,10 @@ describe('OpenCode MCP Integration', () => {
         },
       };
 
-      const merged: any = mergeMcp(existing, newConfig, 'merge', 'mcpServers');
+      const merged: any = mergeMcp(existing, newConfig, 'merge', 'mcp');
 
-      expect(merged.mcpServers['existing-server'].command).toBe('existing-cmd');
-      expect(merged.mcpServers['new-server'].command).toBe('new-cmd');
+      expect(merged.mcp['existing-server'].command).toBe('existing-cmd');
+      expect(merged.mcp['new-server'].command).toBe('new-cmd');
     });
   });
 });

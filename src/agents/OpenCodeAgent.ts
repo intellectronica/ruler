@@ -29,6 +29,6 @@ export class OpenCodeAgent implements IAgent {
   }
 
   getMcpServerKey(): string {
-    return 'mcpServers';
+    return 'mcp';
   }
 }

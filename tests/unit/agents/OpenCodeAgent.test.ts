@@ -19,6 +19,10 @@ describe('OpenCodeAgent', () => {
     expect(agent.getName()).toBe('OpenCode');
   });
 
+  it('should return the correct MCP server key', () => {
+    expect(agent.getMcpServerKey()).toBe('mcp');
+  });
+
   it('should return the correct default output path', () => {
     expect(agent.getDefaultOutputPath('/root')).toBe('/root/AGENTS.md');
   });
