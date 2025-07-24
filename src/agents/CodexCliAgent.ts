@@ -63,18 +63,18 @@ export class CodexCliAgent implements IAgent {
       }
 
       // Create the updated config
-      let updatedConfig: Record<string, any> = { ...existingConfig };
-      
+      const updatedConfig: Record<string, any> = { ...existingConfig };
+
       // Initialize mcp_servers if it doesn't exist
       if (!updatedConfig.mcp_servers) {
         updatedConfig.mcp_servers = {};
       }
-      
+
       if (strategy === 'overwrite') {
         // For overwrite strategy, replace the entire mcp_servers section
         updatedConfig.mcp_servers = {};
       }
-      
+
       // Add the ruler servers
       for (const [serverName, serverConfig] of Object.entries(rulerServers)) {
         updatedConfig.mcp_servers[serverName] = serverConfig;
