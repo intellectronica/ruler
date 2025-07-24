@@ -1,5 +1,6 @@
 import * as fs from 'fs/promises';
-import TOML from '@iarna/toml';
+import * as TOML from 'toml';
+import { stringify } from '@iarna/toml';
 import { ensureDirExists } from '../core/FileSystemUtils';
 import * as path from 'path';
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -57,5 +58,5 @@ export async function propagateMcpToOpenHands(
   config.mcp.stdio_servers = Array.from(existingServers.values());
 
   await ensureDirExists(path.dirname(openHandsConfigPath));
-  await fs.writeFile(openHandsConfigPath, TOML.stringify(config));
+  await fs.writeFile(openHandsConfigPath, stringify(config));
 }

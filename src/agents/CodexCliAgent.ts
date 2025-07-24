@@ -1,14 +1,13 @@
 import * as path from 'path';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { promises as fs } from 'fs';
-import toml from 'toml';
+import * as toml from 'toml';
 import { stringify } from '@iarna/toml';
-import { mergeMcp } from '../mcp/merge';
 import { IAgent, IAgentConfig } from './IAgent';
 import { backupFile, writeGeneratedFile } from '../core/FileSystemUtils';
 
 /**
- * OpenAI Codex CLI agent adapter (stub implementation).
+ * OpenAI Codex CLI agent adapter.
  */
 export class CodexCliAgent implements IAgent {
   getIdentifier(): string {
@@ -22,53 +21,77 @@ export class CodexCliAgent implements IAgent {
   async applyRulerConfig(
     concatenatedRules: string,
     projectRoot: string,
-    rulerMcpJson: Record<string, unknown> | null, // eslint-disable-line @typescript-eslint/no-unused-vars
+    rulerMcpJson: Record<string, unknown> | null,
     agentConfig?: IAgentConfig,
   ): Promise<void> {
+    // Get default paths
     const defaults = this.getDefaultOutputPath(projectRoot);
+    
+    // Determine the instructions file path
     const instructionsPath =
       agentConfig?.outputPath ??
       agentConfig?.outputPathInstructions ??
       defaults.instructions;
+    
+    // Write the instructions file
     await backupFile(instructionsPath);
     await writeGeneratedFile(instructionsPath, concatenatedRules);
 
+    // Handle MCP configuration if enabled
     const mcpEnabled = agentConfig?.mcp?.enabled ?? true;
-    if (mcpEnabled) {
+    if (mcpEnabled && rulerMcpJson) {
+      // Determine the config file path
       const configPath = agentConfig?.outputPathConfig ?? defaults.config;
-      // Read ruler MCP definitions
-      const rulerMcpPath = path.join(projectRoot, '.ruler', 'mcp.json');
-      let rulerMcp: Record<string, any> = {};
-      try {
-        const raw = await fs.readFile(rulerMcpPath, 'utf8');
-        rulerMcp = JSON.parse(raw) as Record<string, any>;
-      } catch {
-        rulerMcp = {};
-      }
-      // Read existing TOML config
-      let nativeConfig: Record<string, any> = {};
-      try {
-        const raw = await fs.readFile(configPath, 'utf8');
-        nativeConfig = toml.parse(raw) as Record<string, any>;
-      } catch {
-        nativeConfig = {};
-      }
-      const existing = (nativeConfig.mcp_servers as Record<string, any>) || {};
-      const incoming = (rulerMcp.mcpServers as Record<string, any>) || {};
+      
+      // Ensure the parent directory exists
+      await fs.mkdir(path.dirname(configPath), { recursive: true });
+      
+      // Get the merge strategy
       const strategy = agentConfig?.mcp?.strategy ?? 'merge';
-      const merged = mergeMcp(
-        { mcpServers: existing },
-        { mcpServers: incoming },
-        strategy,
-      );
-      const updatedConfig = {
-        ...nativeConfig,
-        mcp_servers: merged.mcpServers,
-      };
-      const tomlStr = stringify(updatedConfig);
-      await writeGeneratedFile(configPath, tomlStr);
+      
+      // Extract MCP servers from ruler config
+      const rulerServers = (rulerMcpJson.mcpServers as Record<string, any>) || {};
+      
+      // Read existing TOML config if it exists
+      let existingConfig: Record<string, any> = {};
+      try {
+        const existingContent = await fs.readFile(configPath, 'utf8');
+        existingConfig = toml.parse(existingContent);
+      } catch (error) {
+        // File doesn't exist or can't be parsed, use empty config
+      }
+      
+      // Create the updated config
+      let updatedConfig: Record<string, any>;
+      
+      if (strategy === 'overwrite') {
+        // For overwrite strategy, replace the entire mcp_servers section
+        updatedConfig = {
+          ...existingConfig,
+          mcp_servers: {}
+        };
+        
+        // Only copy the ruler servers
+        for (const [key, value] of Object.entries(rulerServers)) {
+          updatedConfig.mcp_servers[key] = value;
+        }
+      } else {
+        // For merge strategy, combine existing and ruler servers
+        updatedConfig = {
+          ...existingConfig,
+          mcp_servers: {
+            ...(existingConfig.mcp_servers || {}),
+            ...rulerServers
+          }
+        };
+      }
+      
+      // Convert to TOML and write to file
+      const tomlContent = stringify(updatedConfig);
+      await writeGeneratedFile(configPath, tomlContent);
     }
   }
+
   getDefaultOutputPath(projectRoot: string): Record<string, string> {
     return {
       instructions: path.join(projectRoot, 'AGENTS.md'),

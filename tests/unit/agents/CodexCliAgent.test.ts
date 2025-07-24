@@ -7,17 +7,14 @@ import { CodexCliAgent } from '../../../src/agents/CodexCliAgent';
 
 describe('CodexCliAgent MCP Handling', () => {
   let tmpDir: string;
+  let mcpJson: Record<string, any>;
+  
   beforeEach(async () => {
     tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ruler-codex-'));
-    // Create .ruler/mcp.json with ruler_server definition
-    const rulerDir = path.join(tmpDir, '.ruler');
-    await fs.mkdir(rulerDir, { recursive: true });
-    const mcp = { mcpServers: { ruler_server: { url: 'https://ruler.example' } } };
-    await fs.writeFile(
-      path.join(rulerDir, 'mcp.json'),
-      JSON.stringify(mcp, null, 2) + '\n',
-    );
+    // Create MCP JSON object with ruler_server definition
+    mcpJson = { mcpServers: { ruler_server: { url: 'https://ruler.example' } } };
   });
+  
   afterEach(async () => {
     await fs.rm(tmpDir, { recursive: true, force: true });
   });
@@ -32,9 +29,11 @@ describe('CodexCliAgent MCP Handling', () => {
     initialToml.push('url = "https://native.example"');
     await fs.writeFile(configPath, initialToml.join('\n') + '\n');
 
-    await agent.applyRulerConfig('', tmpDir, { mcp: { enabled: true, strategy: 'merge' } });
+    await agent.applyRulerConfig('', tmpDir, mcpJson, { mcp: { enabled: true, strategy: 'merge' } });
+    
     const resultStr = await fs.readFile(configPath, 'utf8');
     const result = toml.parse(resultStr) as Record<string, any>;
+    
     expect(result.mcp_servers.native_server.url).toBe('https://native.example');
     expect(result.mcp_servers.ruler_server.url).toBe('https://ruler.example');
   });
@@ -46,9 +45,11 @@ describe('CodexCliAgent MCP Handling', () => {
     const initialToml = ['[mcp_servers.native_server]', 'url = "https://native.example"'];
     await fs.writeFile(configPath, initialToml.join('\n') + '\n');
 
-    await agent.applyRulerConfig('', tmpDir, { mcp: { enabled: true, strategy: 'overwrite' } });
+    await agent.applyRulerConfig('', tmpDir, mcpJson, { mcp: { enabled: true, strategy: 'overwrite' } });
+    
     const resultStr = await fs.readFile(configPath, 'utf8');
     const result = toml.parse(resultStr) as Record<string, any>;
+    
     expect(result.mcp_servers).toHaveProperty('ruler_server');
     expect(result.mcp_servers).not.toHaveProperty('native_server');
   });
@@ -56,15 +57,30 @@ describe('CodexCliAgent MCP Handling', () => {
   it('creates config.toml at custom path', async () => {
     const agent = new CodexCliAgent();
     const custom = path.join(tmpDir, 'custom', 'codex.toml');
-    await agent.applyRulerConfig('', tmpDir, { mcp: { enabled: true }, outputPathConfig: custom });
+    
+    // Create the parent directory first
+    await fs.mkdir(path.dirname(custom), { recursive: true });
+    
+    // Apply the configuration with a custom path
+    await agent.applyRulerConfig('', tmpDir, mcpJson, { 
+      mcp: { enabled: true }, 
+      outputPathConfig: custom 
+    });
+    
+    // Verify the file was created
     const exists = await fs.stat(custom);
     expect(exists.isFile()).toBe(true);
+    
+    // Verify the content
+    const content = await fs.readFile(custom, 'utf8');
+    const parsed = toml.parse(content);
+    expect(parsed.mcp_servers).toHaveProperty('ruler_server');
   });
 
   it('still writes instructions file alongside config', async () => {
     const agent = new CodexCliAgent();
     const instructionsPath = path.join(tmpDir, 'AGENTS.md');
-    await agent.applyRulerConfig('instructions', tmpDir, { mcp: { enabled: false } });
+    await agent.applyRulerConfig('instructions', tmpDir, null, { mcp: { enabled: false } });
     const content = await fs.readFile(instructionsPath, 'utf8');
     expect(content).toBe('instructions');
   });
