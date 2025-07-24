@@ -77,11 +77,70 @@ export class CodexCliAgent implements IAgent {
 
       // Add the ruler servers
       for (const [serverName, serverConfig] of Object.entries(rulerServers)) {
-        updatedConfig.mcp_servers[serverName] = serverConfig;
+        // Create a properly formatted MCP server entry
+        const mcpServer: Record<string, any> = {
+          command: serverConfig.command,
+          args: serverConfig.args,
+        };
+
+        // Format env as an inline table
+        if (serverConfig.env) {
+          mcpServer.env = serverConfig.env;
+        }
+
+        updatedConfig.mcp_servers[serverName] = mcpServer;
       }
 
-      // Convert to TOML and write to file
-      const tomlContent = stringify(updatedConfig);
+      // Convert to TOML with special handling for env to ensure it's an inline table
+      let tomlContent = '';
+
+      // Handle non-mcp_servers sections first
+      const configWithoutMcpServers = { ...updatedConfig };
+      delete configWithoutMcpServers.mcp_servers;
+      if (Object.keys(configWithoutMcpServers).length > 0) {
+        tomlContent += stringify(configWithoutMcpServers);
+      }
+
+      // Now handle mcp_servers with special formatting for env
+      if (
+        updatedConfig.mcp_servers &&
+        Object.keys(updatedConfig.mcp_servers).length > 0
+      ) {
+        for (const [serverName, serverConfigRaw] of Object.entries(
+          updatedConfig.mcp_servers,
+        )) {
+          const serverConfig = serverConfigRaw as Record<string, any>;
+          tomlContent += `\n[mcp_servers.${serverName}]\n`;
+
+          // Add command
+          if (serverConfig.command) {
+            tomlContent += `command = "${serverConfig.command}"\n`;
+          }
+
+          // Add args if present
+          if (serverConfig.args && Array.isArray(serverConfig.args)) {
+            const argsStr = JSON.stringify(serverConfig.args)
+              .replace(/"/g, '"')
+              .replace(/,/g, ', ');
+            tomlContent += `args = ${argsStr}\n`;
+          }
+
+          // Add env as inline table if present
+          if (serverConfig.env && Object.keys(serverConfig.env).length > 0) {
+            tomlContent += `env = { `;
+            const entries = Object.entries(serverConfig.env);
+            for (let i = 0; i < entries.length; i++) {
+              const [key, value] = entries[i];
+              tomlContent += `${key} = "${value}"`;
+              if (i < entries.length - 1) {
+                tomlContent += ', ';
+              }
+            }
+            tomlContent += ` }\n`;
+          }
+        }
+      }
+
       await writeGeneratedFile(configPath, tomlContent);
     }
   }
