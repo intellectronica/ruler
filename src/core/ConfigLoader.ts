@@ -1,7 +1,7 @@
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import TOML from '@iarna/toml';
+import * as TOML from 'toml';
 import { z } from 'zod';
 import { McpConfig, GlobalMcpConfig, GitignoreConfig } from '../types';
 import { createRulerError } from '../constants';

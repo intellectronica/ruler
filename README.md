@@ -40,7 +40,7 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | ---------------- | ------------------------------------------------ | --------------------------------------------------- |
 | GitHub Copilot   | `.github/copilot-instructions.md`                | `.vscode/mcp.json`                                  |
 | Claude Code      | `CLAUDE.md`                                      | `claude_desktop_config.json`                        |
-| OpenAI Codex CLI | `AGENTS.md`                                      | `~/.codex/config.json`                              |
+| OpenAI Codex CLI | `AGENTS.md`                                      | `.codex/config.toml`, `~/.codex/config.json`        |
 | Jules            | `AGENTS.md`                                      | -                                                   |
 | Cursor           | `.cursor/rules/ruler_cursor_instructions.mdc`    | `.cursor/mcp.json`, `~/.cursor/mcp.json`            |
 | Windsurf         | `.windsurf/rules/ruler_windsurf_instructions.md` | `~/.codeium/windsurf/mcp_config.json`               |
@@ -299,6 +299,17 @@ enabled = true
 output_path_instructions = "ruler_aider_instructions.md"
 output_path_config = ".aider.conf.yml"
 
+# OpenAI Codex CLI agent and MCP config
+[agents.codex]
+enabled = true
+output_path = "AGENTS.md"
+output_path_config = ".codex/config.toml"
+
+# Agent-specific MCP configuration for Codex CLI
+[agents.codex.mcp]
+enabled = true
+merge_strategy = "merge"
+
 [agents.firebase]
 enabled = true
 output_path = ".idx/airules.md"
@@ -360,7 +371,13 @@ Define your project's MCP servers:
 }
 ```
 
+
 Ruler uses this file with the `merge` (default) or `overwrite` strategy, controlled by `ruler.toml` or CLI flags.
+
+**Note for OpenAI Codex CLI:** To apply the local Codex CLI MCP configuration, set the `CODEX_HOME` environment variable to your project’s `.codex` directory:
+```bash
+export CODEX_HOME="$(pwd)/.codex"
+```
 
 ## `.gitignore` Integration
 
