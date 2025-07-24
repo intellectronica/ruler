@@ -63,28 +63,21 @@ export class CodexCliAgent implements IAgent {
       }
 
       // Create the updated config
-      let updatedConfig: Record<string, any>;
-
+      let updatedConfig: Record<string, any> = { ...existingConfig };
+      
+      // Initialize mcp_servers if it doesn't exist
+      if (!updatedConfig.mcp_servers) {
+        updatedConfig.mcp_servers = {};
+      }
+      
       if (strategy === 'overwrite') {
         // For overwrite strategy, replace the entire mcp_servers section
-        updatedConfig = {
-          ...existingConfig,
-          mcp_servers: {},
-        };
-
-        // Only copy the ruler servers
-        for (const [key, value] of Object.entries(rulerServers)) {
-          updatedConfig.mcp_servers[key] = value;
-        }
-      } else {
-        // For merge strategy, combine existing and ruler servers
-        updatedConfig = {
-          ...existingConfig,
-          mcp_servers: {
-            ...(existingConfig.mcp_servers || {}),
-            ...rulerServers,
-          },
-        };
+        updatedConfig.mcp_servers = {};
+      }
+      
+      // Add the ruler servers
+      for (const [serverName, serverConfig] of Object.entries(rulerServers)) {
+        updatedConfig.mcp_servers[serverName] = serverConfig;
       }
 
       // Convert to TOML and write to file
