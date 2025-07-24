@@ -1,17 +1,21 @@
 import * as path from 'path';
 import { IAgent, IAgentConfig } from './IAgent';
-import { backupFile, writeGeneratedFile } from '../core/FileSystemUtils';
+import {
+  backupFile,
+  writeGeneratedFile,
+  ensureDirExists,
+} from '../core/FileSystemUtils';
 
 /**
- * Cline agent adapter (stub implementation).
+ * JetBrains Junie agent adapter.
  */
-export class ClineAgent implements IAgent {
+export class JunieAgent implements IAgent {
   getIdentifier(): string {
-    return 'cline';
+    return 'junie';
   }
 
   getName(): string {
-    return 'Cline';
+    return 'Junie';
   }
 
   async applyRulerConfig(
@@ -22,10 +26,11 @@ export class ClineAgent implements IAgent {
   ): Promise<void> {
     const output =
       agentConfig?.outputPath ?? this.getDefaultOutputPath(projectRoot);
+    await ensureDirExists(path.dirname(output));
     await backupFile(output);
     await writeGeneratedFile(output, concatenatedRules);
   }
   getDefaultOutputPath(projectRoot: string): string {
-    return path.join(projectRoot, '.clinerules');
+    return path.join(projectRoot, '.junie', 'guidelines.md');
   }
 }

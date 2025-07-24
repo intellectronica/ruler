@@ -1,19 +1,18 @@
 import * as path from 'path';
 import { IAgent, IAgentConfig } from './IAgent';
-import { backupFile, writeGeneratedFile } from '../core/FileSystemUtils';
+import {
+  backupFile,
+  writeGeneratedFile,
+  ensureDirExists,
+} from '../core/FileSystemUtils';
 
-/**
- * Cline agent adapter (stub implementation).
- */
-export class ClineAgent implements IAgent {
+export class OpenHandsAgent implements IAgent {
   getIdentifier(): string {
-    return 'cline';
+    return 'openhands';
   }
-
   getName(): string {
-    return 'Cline';
+    return 'Open Hands';
   }
-
   async applyRulerConfig(
     concatenatedRules: string,
     projectRoot: string,
@@ -22,10 +21,11 @@ export class ClineAgent implements IAgent {
   ): Promise<void> {
     const output =
       agentConfig?.outputPath ?? this.getDefaultOutputPath(projectRoot);
+    await ensureDirExists(path.dirname(output));
     await backupFile(output);
     await writeGeneratedFile(output, concatenatedRules);
   }
   getDefaultOutputPath(projectRoot: string): string {
-    return path.join(projectRoot, '.clinerules');
+    return path.join(projectRoot, '.openhands', 'microagents', 'repo.md');
   }
 }

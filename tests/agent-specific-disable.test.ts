@@ -18,7 +18,7 @@ describe('agent-specific-disable', () => {
     );
     const vscodeDir = path.join(tmpDir, '.vscode');
     await fs.mkdir(vscodeDir, { recursive: true });
-    const nativeVs = { mcpServers: { bar: { url: 'http://bar.com' } } };
+    const nativeVs = { servers: { bar: { url: 'http://bar.com' } } };
     await fs.writeFile(
       path.join(vscodeDir, 'mcp.json'),
       JSON.stringify(nativeVs, null, 2) + '\n',
@@ -51,7 +51,7 @@ enabled = false
     const copilot = JSON.parse(
       await fs.readFile(path.join(tmpDir, '.vscode', 'mcp.json'), 'utf8'),
     );
-    expect(Object.keys(copilot.mcpServers).sort()).toEqual(['bar', 'foo']);
+    expect(Object.keys(copilot.servers).sort()).toEqual(['bar', 'foo']);
     const cursor = JSON.parse(
       await fs.readFile(path.join(tmpDir, '.cursor', 'mcp.json'), 'utf8'),
     );

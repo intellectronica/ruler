@@ -35,6 +35,23 @@ export async function getNativeMcpPath(
     case 'Aider':
       candidates.push(path.join(projectRoot, '.mcp.json'));
       break;
+    case 'Open Hands':
+      // For Open Hands, we target the main config file, not a separate mcp.json
+      candidates.push(path.join(projectRoot, '.openhands', 'config.toml'));
+      break;
+    case 'Gemini CLI':
+      candidates.push(path.join(projectRoot, '.gemini', 'settings.json'));
+      break;
+    case 'AugmentCode':
+      candidates.push(path.join(projectRoot, '.vscode', 'settings.json'));
+      break;
+    case 'Kilo Code':
+      candidates.push(path.join(projectRoot, '.kilocode', 'mcp.json'));
+      break;
+    case 'OpenCode':
+      candidates.push(path.join(projectRoot, 'opencode.json'));
+      candidates.push(path.join(home, '.config', 'opencode', 'opencode.json'));
+      break;
     default:
       return null;
   }

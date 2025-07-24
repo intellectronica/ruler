@@ -37,6 +37,7 @@ export interface IAgent {
   applyRulerConfig(
     concatenatedRules: string,
     projectRoot: string,
+    rulerMcpJson: Record<string, unknown> | null,
     agentConfig?: IAgentConfig,
   ): Promise<void>;
 
@@ -44,4 +45,10 @@ export interface IAgent {
    * Returns the default output path(s) for this agent given the project root.
    */
   getDefaultOutputPath(projectRoot: string): string | Record<string, string>;
+
+  /**
+   * Returns the specific key to be used for the server object in MCP JSON.
+   * Defaults to 'mcpServers' if not implemented.
+   */
+  getMcpServerKey?(): string;
 }

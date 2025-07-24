@@ -1,6 +1,7 @@
 import { promises as fs } from 'fs';
 import * as path from 'path';
-import toml from 'toml';
+import * as os from 'os';
+import TOML from '@iarna/toml';
 import { z } from 'zod';
 import { McpConfig, GlobalMcpConfig, GitignoreConfig } from '../types';
 import { createRulerError } from '../constants';
@@ -89,13 +90,27 @@ export async function loadConfig(
   options: ConfigOptions,
 ): Promise<LoadedConfig> {
   const { projectRoot, configPath, cliAgents } = options;
-  const configFile = configPath
-    ? path.resolve(configPath)
-    : path.join(projectRoot, '.ruler', 'ruler.toml');
+  let configFile: string;
+
+  if (configPath) {
+    configFile = path.resolve(configPath);
+  } else {
+    // Try local .ruler/ruler.toml first
+    const localConfigFile = path.join(projectRoot, '.ruler', 'ruler.toml');
+    try {
+      await fs.access(localConfigFile);
+      configFile = localConfigFile;
+    } catch {
+      // If local config doesn't exist, try global config
+      const xdgConfigDir =
+        process.env.XDG_CONFIG_HOME || path.join(os.homedir(), '.config');
+      configFile = path.join(xdgConfigDir, 'ruler', 'ruler.toml');
+    }
+  }
   let raw: Record<string, unknown> = {};
   try {
     const text = await fs.readFile(configFile, 'utf8');
-    raw = text.trim() ? toml.parse(text) : {};
+    raw = text.trim() ? TOML.parse(text) : {};
 
     // Validate the configuration with zod
     const validationResult = rulerConfigSchema.safeParse(raw);

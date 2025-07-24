@@ -26,7 +26,7 @@ describe('FileSystemUtils', () => {
     it('returns null if .ruler is not found', async () => {
       const someDir = path.join(tmpDir, 'nofile');
       await fs.mkdir(someDir, { recursive: true });
-      const found = await findRulerDir(someDir);
+      const found = await findRulerDir(someDir, false); // Don't check global config
       expect(found).toBeNull();
     });
   });

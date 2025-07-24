@@ -3,15 +3,15 @@ import { IAgent, IAgentConfig } from './IAgent';
 import { backupFile, writeGeneratedFile } from '../core/FileSystemUtils';
 
 /**
- * Cline agent adapter (stub implementation).
+ * Firebase Studio agent adapter.
  */
-export class ClineAgent implements IAgent {
+export class FirebaseAgent implements IAgent {
   getIdentifier(): string {
-    return 'cline';
+    return 'firebase';
   }
 
   getName(): string {
-    return 'Cline';
+    return 'Firebase Studio';
   }
 
   async applyRulerConfig(
@@ -25,7 +25,8 @@ export class ClineAgent implements IAgent {
     await backupFile(output);
     await writeGeneratedFile(output, concatenatedRules);
   }
+
   getDefaultOutputPath(projectRoot: string): string {
-    return path.join(projectRoot, '.clinerules');
+    return path.join(projectRoot, '.idx', 'airules.md');
   }
 }
