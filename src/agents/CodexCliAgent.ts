@@ -26,13 +26,13 @@ export class CodexCliAgent implements IAgent {
   ): Promise<void> {
     // Get default paths
     const defaults = this.getDefaultOutputPath(projectRoot);
-    
+
     // Determine the instructions file path
     const instructionsPath =
       agentConfig?.outputPath ??
       agentConfig?.outputPathInstructions ??
       defaults.instructions;
-    
+
     // Write the instructions file
     await backupFile(instructionsPath);
     await writeGeneratedFile(instructionsPath, concatenatedRules);
@@ -42,35 +42,36 @@ export class CodexCliAgent implements IAgent {
     if (mcpEnabled && rulerMcpJson) {
       // Determine the config file path
       const configPath = agentConfig?.outputPathConfig ?? defaults.config;
-      
+
       // Ensure the parent directory exists
       await fs.mkdir(path.dirname(configPath), { recursive: true });
-      
+
       // Get the merge strategy
       const strategy = agentConfig?.mcp?.strategy ?? 'merge';
-      
+
       // Extract MCP servers from ruler config
-      const rulerServers = (rulerMcpJson.mcpServers as Record<string, any>) || {};
-      
+      const rulerServers =
+        (rulerMcpJson.mcpServers as Record<string, any>) || {};
+
       // Read existing TOML config if it exists
       let existingConfig: Record<string, any> = {};
       try {
         const existingContent = await fs.readFile(configPath, 'utf8');
         existingConfig = toml.parse(existingContent);
-      } catch (error) {
+      } catch {
         // File doesn't exist or can't be parsed, use empty config
       }
-      
+
       // Create the updated config
       let updatedConfig: Record<string, any>;
-      
+
       if (strategy === 'overwrite') {
         // For overwrite strategy, replace the entire mcp_servers section
         updatedConfig = {
           ...existingConfig,
-          mcp_servers: {}
+          mcp_servers: {},
         };
-        
+
         // Only copy the ruler servers
         for (const [key, value] of Object.entries(rulerServers)) {
           updatedConfig.mcp_servers[key] = value;
@@ -81,11 +82,11 @@ export class CodexCliAgent implements IAgent {
           ...existingConfig,
           mcp_servers: {
             ...(existingConfig.mcp_servers || {}),
-            ...rulerServers
-          }
+            ...rulerServers,
+          },
         };
       }
-      
+
       // Convert to TOML and write to file
       const tomlContent = stringify(updatedConfig);
       await writeGeneratedFile(configPath, tomlContent);
