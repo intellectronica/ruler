@@ -108,14 +108,55 @@ export class GooseAgent implements IAgent {
       updatedConfig.extensions = {};
     }
 
+    // Transform MCP servers to Goose format
+    const gooseExtensions: Record<string, unknown> = {};
+    
+    for (const [serverName, serverConfig] of Object.entries(mcpServers)) {
+      const config = serverConfig as Record<string, unknown>;
+      
+      // Create a Goose extension configuration
+      const gooseExtension: Record<string, unknown> = {
+        enabled: true,
+      };
+      
+      // Determine the extension type and set appropriate fields
+      if (config.url) {
+        // Remote extension (SSE or HTTP)
+        gooseExtension.type = 'remote';
+        gooseExtension.url = config.url;
+      } else {
+        // Stdio extension
+        gooseExtension.type = 'stdio';
+        gooseExtension.cmd = config.command || 'npx';
+        
+        if (config.args) {
+          gooseExtension.args = config.args;
+        }
+      }
+      
+      // Set timeout if available
+      if (config.timeout) {
+        gooseExtension.timeout = config.timeout;
+      } else {
+        gooseExtension.timeout = 300; // Default timeout
+      }
+      
+      // Set environment variables if available
+      if (config.env) {
+        gooseExtension.envs = config.env;
+      }
+      
+      gooseExtensions[serverName] = gooseExtension;
+    }
+
     if (strategy === 'overwrite') {
       // Replace all extensions with the new ones
-      updatedConfig.extensions = { ...mcpServers };
+      updatedConfig.extensions = gooseExtensions;
     } else {
       // Merge with existing extensions
       updatedConfig.extensions = {
         ...(updatedConfig.extensions as Record<string, unknown>),
-        ...mcpServers,
+        ...gooseExtensions,
       };
     }
 

@@ -55,17 +55,23 @@ describe('GooseAgent', () => {
     expect(config).toHaveProperty('extensions');
   });
   
-  it('should merge MCP configuration into config.yaml', async () => {
+  it('should merge MCP configuration into config.yaml with correct format', async () => {
     const rules = 'Test instructions for Goose';
     const mcpConfig = {
       mcpServers: {
         testServer: {
-          enabled: true,
-          type: 'remote',
           url: 'https://test-server.example.com',
           timeout: 300,
-          envs: {
+          env: {
             API_KEY: '${TEST_API_KEY}'
+          }
+        },
+        stdioServer: {
+          command: 'npx',
+          args: ['-y', 'test-mcp'],
+          timeout: 200,
+          env: {
+            TEST_API_KEY: '${TEST_API_KEY}'
           }
         }
       }
@@ -77,11 +83,24 @@ describe('GooseAgent', () => {
     const content = await fs.readFile(configPath, 'utf8');
     const config = yaml.load(content) as Record<string, unknown>;
     
+    // Check remote server configuration
     expect(config).toHaveProperty('extensions.testServer');
     const testServer = (config.extensions as Record<string, unknown>).testServer as Record<string, unknown>;
     expect(testServer).toHaveProperty('enabled', true);
     expect(testServer).toHaveProperty('type', 'remote');
     expect(testServer).toHaveProperty('url', 'https://test-server.example.com');
+    expect(testServer).toHaveProperty('timeout', 300);
+    expect(testServer).toHaveProperty('envs.API_KEY', '${TEST_API_KEY}');
+    
+    // Check stdio server configuration
+    expect(config).toHaveProperty('extensions.stdioServer');
+    const stdioServer = (config.extensions as Record<string, unknown>).stdioServer as Record<string, unknown>;
+    expect(stdioServer).toHaveProperty('enabled', true);
+    expect(stdioServer).toHaveProperty('type', 'stdio');
+    expect(stdioServer).toHaveProperty('cmd', 'npx');
+    expect(stdioServer.args).toEqual(['-y', 'test-mcp']);
+    expect(stdioServer).toHaveProperty('timeout', 200);
+    expect(stdioServer).toHaveProperty('envs.TEST_API_KEY', '${TEST_API_KEY}');
   });
   
   it('should respect the MCP strategy when merging configurations', async () => {
