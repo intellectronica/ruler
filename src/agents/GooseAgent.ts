@@ -110,15 +110,15 @@ export class GooseAgent implements IAgent {
 
     // Transform MCP servers to Goose format
     const gooseExtensions: Record<string, unknown> = {};
-    
+
     for (const [serverName, serverConfig] of Object.entries(mcpServers)) {
       const config = serverConfig as Record<string, unknown>;
-      
+
       // Create a Goose extension configuration
       const gooseExtension: Record<string, unknown> = {
         enabled: true,
       };
-      
+
       // Determine the extension type and set appropriate fields
       if (config.url) {
         // Remote extension (SSE or HTTP)
@@ -128,24 +128,24 @@ export class GooseAgent implements IAgent {
         // Stdio extension
         gooseExtension.type = 'stdio';
         gooseExtension.cmd = config.command || 'npx';
-        
+
         if (config.args) {
           gooseExtension.args = config.args;
         }
       }
-      
+
       // Set timeout if available
       if (config.timeout) {
         gooseExtension.timeout = config.timeout;
       } else {
         gooseExtension.timeout = 300; // Default timeout
       }
-      
+
       // Set environment variables if available
       if (config.env) {
         gooseExtension.envs = config.env;
       }
-      
+
       gooseExtensions[serverName] = gooseExtension;
     }
 
