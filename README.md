@@ -53,6 +53,7 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | AugmentCode      | `.augment/rules/ruler_augment_instructions.md`   | `.vscode/settings.json`                             |
 | Kilo Code        | `.kilocode/rules/ruler_kilocode_instructions.md` | `.kilocode/mcp.json`                                |
 | OpenCode         | `AGENTS.md`                                      | `opencode.json`, `~/.config/opencode/opencode.json` |
+| Goose            | `.goosehints`                                    | `.goose/config.yaml`                                |
 
 ## Getting Started
 
