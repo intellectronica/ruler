@@ -1,13 +1,10 @@
 import * as path from 'path';
-import { promises as fs } from 'fs';
-import * as yaml from 'js-yaml';
 import { IAgent, IAgentConfig } from './IAgent';
 import { backupFile, writeGeneratedFile } from '../core/FileSystemUtils';
-import { McpStrategy } from '../types';
 
 /**
  * Goose agent adapter for Block's Goose AI assistant.
- * Propagates rules to .goosehints and MCP config to .goose/config.yaml
+ * Propagates rules to .goosehints file.
  */
 export class GooseAgent implements IAgent {
   getIdentifier(): string {
@@ -24,142 +21,22 @@ export class GooseAgent implements IAgent {
     rulerMcpJson: Record<string, unknown> | null,
     agentConfig?: IAgentConfig,
   ): Promise<void> {
-    // Get the output paths
-    const outputPaths = this.getDefaultOutputPath(projectRoot) as Record<
-      string,
-      string
-    >;
-    const hintsPath = agentConfig?.outputPathInstructions ?? outputPaths.hints;
-    const configPath = agentConfig?.outputPathConfig ?? outputPaths.config;
+    // Get the output path for .goosehints
+    const hintsPath =
+      agentConfig?.outputPathInstructions ??
+      this.getDefaultOutputPath(projectRoot);
 
     // Write rules to .goosehints
     await backupFile(hintsPath);
     await writeGeneratedFile(hintsPath, concatenatedRules);
-
-    // Ensure .goose directory exists
-    await fs.mkdir(path.dirname(configPath), { recursive: true });
-
-    // Prepare default config if none exists
-    let existingConfig: Record<string, unknown> = {};
-    try {
-      const existingConfigRaw = await fs.readFile(configPath, 'utf8');
-      existingConfig = yaml.load(existingConfigRaw) as Record<string, unknown>;
-    } catch (error: unknown) {
-      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-        throw error;
-      }
-      // Initialize with default config if file doesn't exist
-      existingConfig = {
-        GOOSE_PROVIDER: 'openai',
-        GOOSE_MODEL: 'gpt-4o',
-        extensions: {},
-      };
-    }
-
-    // Handle MCP configuration
-    if (rulerMcpJson && rulerMcpJson.mcpServers) {
-      const strategy = agentConfig?.mcp?.strategy ?? 'merge';
-      const updatedConfig = this.mergeMcpConfig(
-        existingConfig,
-        rulerMcpJson,
-        strategy,
-      );
-      await backupFile(configPath);
-      await writeGeneratedFile(
-        configPath,
-        yaml.dump(updatedConfig, { sortKeys: false }),
-      );
-    } else {
-      // If no MCP config provided, just ensure the config file exists with defaults
-      await backupFile(configPath);
-      await writeGeneratedFile(
-        configPath,
-        yaml.dump(existingConfig, { sortKeys: false }),
-      );
-    }
   }
 
-  getDefaultOutputPath(projectRoot: string): Record<string, string> {
-    return {
-      hints: path.join(projectRoot, '.goosehints'),
-      config: path.join(projectRoot, '.goose', 'config.yaml'),
-    };
+  getDefaultOutputPath(projectRoot: string): string {
+    return path.join(projectRoot, '.goosehints');
   }
 
   getMcpServerKey(): string {
-    return 'extensions';
-  }
-
-  /**
-   * Merges MCP configuration into Goose's config.yaml format
-   */
-  private mergeMcpConfig(
-    existingConfig: Record<string, unknown>,
-    rulerMcpJson: Record<string, unknown>,
-    strategy: McpStrategy,
-  ): Record<string, unknown> {
-    const mcpServers = rulerMcpJson.mcpServers as Record<string, unknown>;
-
-    // Create a copy of the existing config to modify
-    const updatedConfig = { ...existingConfig };
-
-    // Ensure extensions object exists
-    if (!updatedConfig.extensions) {
-      updatedConfig.extensions = {};
-    }
-
-    // Transform MCP servers to Goose format
-    const gooseExtensions: Record<string, unknown> = {};
-
-    for (const [serverName, serverConfig] of Object.entries(mcpServers)) {
-      const config = serverConfig as Record<string, unknown>;
-
-      // Create a Goose extension configuration
-      const gooseExtension: Record<string, unknown> = {
-        enabled: true,
-      };
-
-      // Determine the extension type and set appropriate fields
-      if (config.url) {
-        // Remote extension (SSE or HTTP)
-        gooseExtension.type = 'remote';
-        gooseExtension.url = config.url;
-      } else {
-        // Stdio extension
-        gooseExtension.type = 'stdio';
-        gooseExtension.cmd = config.command || 'npx';
-
-        if (config.args) {
-          gooseExtension.args = config.args;
-        }
-      }
-
-      // Set timeout if available
-      if (config.timeout) {
-        gooseExtension.timeout = config.timeout;
-      } else {
-        gooseExtension.timeout = 300; // Default timeout
-      }
-
-      // Set environment variables if available
-      if (config.env) {
-        gooseExtension.envs = config.env;
-      }
-
-      gooseExtensions[serverName] = gooseExtension;
-    }
-
-    if (strategy === 'overwrite') {
-      // Replace all extensions with the new ones
-      updatedConfig.extensions = gooseExtensions;
-    } else {
-      // Merge with existing extensions
-      updatedConfig.extensions = {
-        ...(updatedConfig.extensions as Record<string, unknown>),
-        ...gooseExtensions,
-      };
-    }
-
-    return updatedConfig;
+    // Goose doesn't support MCP configuration via local config files
+    return '';
   }
 }
