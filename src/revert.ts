@@ -18,6 +18,7 @@ import { JunieAgent } from './agents/JunieAgent';
 import { AugmentCodeAgent } from './agents/AugmentCodeAgent';
 import { KiloCodeAgent } from './agents/KiloCodeAgent';
 import { OpenCodeAgent } from './agents/OpenCodeAgent';
+import { GooseAgent } from './agents/GooseAgent';
 import { getNativeMcpPath } from './paths/mcp';
 import { IAgentConfig } from './agents/IAgent';
 import { createRulerError, logVerbose } from './constants';
@@ -43,6 +44,7 @@ const agents: IAgent[] = [
   new AugmentCodeAgent(),
   new KiloCodeAgent(),
   new OpenCodeAgent(),
+  new GooseAgent(),
 ];
 
 /**
