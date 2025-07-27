@@ -93,14 +93,12 @@ describe('Revert Agent Integration', () => {
 
   describe('MCP File Handling', () => {
     it('should handle MCP configuration files', async () => {
-      await fs.writeFile(path.join(tmpDir, 'claude_desktop_config.json'), '{"mcpServers": {}}');
       await fs.writeFile(path.join(tmpDir, '.mcp.json'), '{"mcpServers": {}}');
       await fs.mkdir(path.join(tmpDir, '.vscode'), { recursive: true });
       await fs.writeFile(path.join(tmpDir, '.vscode', 'mcp.json'), '{"mcpServers": {}}');
       
       await revertAllAgentConfigs(tmpDir, undefined, undefined, false, false, false);
       
-      await expect(fs.access(path.join(tmpDir, 'claude_desktop_config.json'))).rejects.toThrow();
       await expect(fs.access(path.join(tmpDir, '.mcp.json'))).rejects.toThrow();
       await expect(fs.access(path.join(tmpDir, '.vscode', 'mcp.json'))).rejects.toThrow();
     });

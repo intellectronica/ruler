@@ -42,9 +42,10 @@ describe('Revert CLI Integration', () => {
       const emptyDir = path.join(os.tmpdir(), 'empty-' + Date.now());
       
       expect(() => {
-        execSync(`node dist/cli/index.js revert --project-root ${emptyDir}`, { 
-          stdio: 'pipe' 
-        });
+        execSync(
+          `node dist/cli/index.js revert --project-root ${emptyDir} --local-only`,
+          { stdio: 'pipe' },
+        );
       }).toThrow();
     });
   });
@@ -128,9 +129,10 @@ describe('Revert CLI Integration', () => {
   describe('Error Handling', () => {
     it('should handle invalid project root', () => {
       expect(() => {
-        execSync(`node dist/cli/index.js revert --project-root /nonexistent/path`, {
-          stdio: 'pipe'
-        });
+        execSync(
+          `node dist/cli/index.js revert --project-root /nonexistent/path --local-only`,
+          { stdio: 'pipe' },
+        );
       }).toThrow();
     });
 

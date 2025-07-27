@@ -380,7 +380,6 @@ async function removeAdditionalAgentFiles(
 ): Promise<number> {
   const additionalFiles = [
     '.gemini/settings.json',
-    'claude_desktop_config.json',
     '.mcp.json',
     '.vscode/mcp.json',
     '.cursor/mcp.json',
