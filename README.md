@@ -39,7 +39,7 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | Agent            | Rules File(s)                                    | MCP Configuration                                   |
 | ---------------- | ------------------------------------------------ | --------------------------------------------------- |
 | GitHub Copilot   | `.github/copilot-instructions.md`                | `.vscode/mcp.json`                                  |
-| Claude Code      | `CLAUDE.md`                                      | `claude_desktop_config.json`                        |
+| Claude Code      | `CLAUDE.md`                                      | `.mcp.json`                                         |
 | OpenAI Codex CLI | `AGENTS.md`                                      | `.codex/config.toml`, `~/.codex/config.json`        |
 | Jules            | `AGENTS.md`                                      | -                                                   |
 | Cursor           | `.cursor/rules/ruler_cursor_instructions.mdc`    | `.cursor/mcp.json`, `~/.cursor/mcp.json`            |

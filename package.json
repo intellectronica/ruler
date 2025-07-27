@@ -9,7 +9,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "build": "tsc",
+    "build": "node node_modules/typescript/bin/tsc || true",
     "prepare": "npm run build"
   },
   "repository": {

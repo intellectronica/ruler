@@ -23,7 +23,9 @@ describe('Revert Core Functions', () => {
       const emptyDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ruler-empty-'));
       
       try {
-        await expect(revertAllAgentConfigs(emptyDir)).rejects.toThrow('.ruler directory not found');
+        await expect(
+          revertAllAgentConfigs(emptyDir, undefined, undefined, false, false, false, true),
+        ).rejects.toThrow('.ruler directory not found');
       } finally {
         await fs.rm(emptyDir, { recursive: true, force: true });
       }

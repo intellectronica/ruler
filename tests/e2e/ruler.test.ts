@@ -339,7 +339,6 @@ output_path = "custom-claude.md"`;
       const expectedPatterns = [
         '*.bak',
         '.vscode/mcp.json',
-        'claude_desktop_config.json',
         '.gemini/settings.json',
         '.cursor/mcp.json',
         '.mcp.json',
