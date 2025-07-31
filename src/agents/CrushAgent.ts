@@ -31,25 +31,29 @@ export class CrushAgent implements IAgent {
 
     await fs.writeFile(instructionsPath, concatenatedRules);
 
+    // Always transform from mcpServers ({ mcpServers: ... }) to { mcp: ... } for Crush
     let finalMcpConfig: { mcp: Record<string, unknown> } = { mcp: {} };
 
     try {
       const existingMcpConfig = JSON.parse(await fs.readFile(mcpPath, 'utf-8'));
       if (existingMcpConfig && typeof existingMcpConfig === 'object') {
-        // Only propagate { mcp: ... } object to Crush as that is the required format
         finalMcpConfig = {
           ...existingMcpConfig,
           mcp: {
             ...(existingMcpConfig.mcp || {}),
-            ...(rulerMcpJson?.mcp || {}),
+            ...((rulerMcpJson?.mcpServers as Record<string, unknown>) || {}),
           },
         };
       } else if (rulerMcpJson) {
-        finalMcpConfig = { mcp: (rulerMcpJson?.mcp ?? {}) as Record<string, unknown> };
+        finalMcpConfig = {
+          mcp: (rulerMcpJson?.mcpServers ?? {}) as Record<string, unknown>,
+        };
       }
     } catch {
       if (rulerMcpJson) {
-        finalMcpConfig = { mcp: (rulerMcpJson?.mcp ?? {}) as Record<string, unknown> };
+        finalMcpConfig = {
+          mcp: (rulerMcpJson?.mcpServers ?? {}) as Record<string, unknown>,
+        };
       }
     }
 
