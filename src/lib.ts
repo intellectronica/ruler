@@ -20,6 +20,7 @@ import { JunieAgent } from './agents/JunieAgent';
 import { AugmentCodeAgent } from './agents/AugmentCodeAgent';
 import { KiloCodeAgent } from './agents/KiloCodeAgent';
 import { OpenCodeAgent } from './agents/OpenCodeAgent';
+import { CrushAgent } from './agents/CrushAgent';
 import { GooseAgent } from './agents/GooseAgent';
 import { mergeMcp } from './mcp/merge';
 import { validateMcp } from './mcp/validate';
@@ -91,6 +92,7 @@ const agents: IAgent[] = [
   new KiloCodeAgent(),
   new OpenCodeAgent(),
   new GooseAgent(),
+  new CrushAgent(),
 ];
 
 /**
