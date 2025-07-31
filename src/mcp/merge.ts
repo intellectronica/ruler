@@ -16,9 +16,9 @@ export function mergeMcp(
 ): Record<string, unknown> {
   if (strategy === 'overwrite') {
     // Ensure the incoming object uses the correct server key.
+    // Transform from the standard (Crush) MCP config format
     const incomingServers =
       (incoming.mcp as Record<string, unknown>) ||
-      (incoming.mcpServers as Record<string, unknown>) ||
       {};
     return {
       [serverKey]: incomingServers,
@@ -28,11 +28,9 @@ export function mergeMcp(
   const baseServers =
     (base[serverKey] as Record<string, unknown>) ||
     (base.mcp as Record<string, unknown>) ||
-    (base.mcpServers as Record<string, unknown>) ||
-    {}; // Support Crush and legacy
+    {}; // Only support Crush as input, allow legacy only as output if needed
   const incomingServers =
     (incoming.mcp as Record<string, unknown>) ||
-    (incoming.mcpServers as Record<string, unknown>) ||
     {};
 
   const mergedServers = { ...baseServers, ...incomingServers };

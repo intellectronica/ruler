@@ -36,19 +36,20 @@ export class CrushAgent implements IAgent {
     try {
       const existingMcpConfig = JSON.parse(await fs.readFile(mcpPath, 'utf-8'));
       if (existingMcpConfig && typeof existingMcpConfig === 'object') {
+        // Only propagate { mcp: ... } object to Crush as that is the required format
         finalMcpConfig = {
           ...existingMcpConfig,
           mcp: {
             ...(existingMcpConfig.mcp || {}),
-            ...(rulerMcpJson || {}),
+            ...(rulerMcpJson?.mcp || {}),
           },
         };
       } else if (rulerMcpJson) {
-        finalMcpConfig = { mcp: rulerMcpJson };
+        finalMcpConfig = { mcp: (rulerMcpJson?.mcp ?? {}) as Record<string, unknown> };
       }
     } catch {
       if (rulerMcpJson) {
-        finalMcpConfig = { mcp: rulerMcpJson };
+        finalMcpConfig = { mcp: (rulerMcpJson?.mcp ?? {}) as Record<string, unknown> };
       }
     }
 

@@ -102,7 +102,7 @@ stdio_servers = [
   it('should propagate env variables for stdio servers', async () => {
     const serverEnv = { TEST_VAR: 'value', ANOTHER: '123' };
     const rulerMcp = {
-      mcpServers: {
+      mcp: {
         fetch: { command: 'uvx', args: ['mcp-fetch'], env: serverEnv },
       },
     };

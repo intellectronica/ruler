@@ -217,12 +217,17 @@ and apply them to your configured AI coding agents.
         }
         const mcpPath = path.join(rulerDir, 'mcp.json');
         const DEFAULT_MCP_JSON = `{
-  "mcpServers": {
+  "mcp": {
     "example": {
-      "url": "https://mcp.example.com"
+      "type": "stdio",
+      "command": "node",
+      "args": ["/path/to/mcp-server.js"],
+      "env": {
+        "NODE_ENV": "production"
+      }
     }
   }
-}`;
+}\n`;
         if (!(await exists(mcpPath))) {
           await fs.writeFile(mcpPath, DEFAULT_MCP_JSON);
           console.log(`[ruler] Created ${mcpPath}`);

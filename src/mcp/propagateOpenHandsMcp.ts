@@ -24,8 +24,8 @@ export async function propagateMcpToOpenHands(
     return;
   }
 
-  // Support both Crush style (mcp) and legacy (mcpServers)
-  const rulerServers = rulerMcp.mcp || rulerMcp.mcpServers || {};
+  // Always use the Crush MCP config format as input (top-level "mcp" key)
+  const rulerServers = rulerMcp.mcp || {};
 
   let config: any = {};
   try {

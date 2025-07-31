@@ -8,14 +8,11 @@ export function validateMcp(data: unknown): void {
   if (
     !data ||
     typeof data !== 'object' ||
-    (!('mcp' in data) && !('mcpServers' in data)) ||
-    !(
-      typeof (data as Record<string, unknown>).mcp === 'object' ||
-      typeof (data as Record<string, unknown>).mcpServers === 'object'
-    )
+    !('mcp' in data) ||
+    typeof (data as Record<string, unknown>).mcp !== 'object'
   ) {
     throw new Error(
-      '[ruler] Invalid MCP config: must contain an object property "mcp" (Crush style) or "mcpServers" (legacy)',
+      '[ruler] Invalid MCP config: must contain an object property "mcp" (Crush style)',
     );
   }
 }

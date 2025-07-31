@@ -15,7 +15,7 @@ describe('End-to-End Ruler CLI', () => {
     // Provide a sample MCP config for Open Hands agent
     await fs.writeFile(
       path.join(rulerDir, 'mcp.json'),
-      JSON.stringify({ mcpServers: { example: { command: 'uvx', args: ['mcp-example'] } } }),
+      JSON.stringify({ mcp: { example: { command: 'uvx', args: ['mcp-example'] } } }),
     );
   });
 
