@@ -10,7 +10,7 @@ import { ClaudeAgent } from './agents/ClaudeAgent';
 import { CodexCliAgent } from './agents/CodexCliAgent';
 import { CursorAgent } from './agents/CursorAgent';
 import { WindsurfAgent } from './agents/WindsurfAgent';
-import * as ClineAgent from './agents/ClineAgent';
+import { ClineAgent } from './agents/ClineAgent';
 import { AiderAgent } from './agents/AiderAgent';
 import { FirebaseAgent } from './agents/FirebaseAgent';
 import { OpenHandsAgent } from './agents/OpenHandsAgent';
@@ -20,6 +20,7 @@ import { JunieAgent } from './agents/JunieAgent';
 import { AugmentCodeAgent } from './agents/AugmentCodeAgent';
 import { KiloCodeAgent } from './agents/KiloCodeAgent';
 import { OpenCodeAgent } from './agents/OpenCodeAgent';
+import { CrushAgent } from './agents/CrushAgent';
 import { GooseAgent } from './agents/GooseAgent';
 import { mergeMcp } from './mcp/merge';
 import { validateMcp } from './mcp/validate';
@@ -80,7 +81,7 @@ const agents: IAgent[] = [
   new CodexCliAgent(),
   new CursorAgent(),
   new WindsurfAgent(),
-  new ClineAgent.ClineAgent(),
+  new ClineAgent(),
   new AiderAgent(),
   new FirebaseAgent(),
   new OpenHandsAgent(),
@@ -91,6 +92,7 @@ const agents: IAgent[] = [
   new KiloCodeAgent(),
   new OpenCodeAgent(),
   new GooseAgent(),
+  new CrushAgent(),
 ];
 
 /**

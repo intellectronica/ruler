@@ -22,6 +22,7 @@ describe('propagateMcpToOpenHands', () => {
     const rulerMcp = {
       mcpServers: { fetch: { command: 'uvx', args: ['mcp-fetch'] } },
     };
+
     await fs.writeFile(rulerMcpPath, JSON.stringify(rulerMcp));
 
     await propagateMcpToOpenHands(rulerMcpPath, openHandsConfigPath);
@@ -42,6 +43,7 @@ describe('propagateMcpToOpenHands', () => {
     const rulerMcp = {
       mcpServers: { git: { command: 'npx', args: ['mcp-git'] } },
     };
+
     await fs.writeFile(rulerMcpPath, JSON.stringify(rulerMcp));
     const existingToml = `
 [mcp]
@@ -73,6 +75,7 @@ stdio_servers = [
     const rulerMcp = {
       mcpServers: { fs: { command: 'uvx', args: ['mcp-fs-new'] } },
     };
+
     await fs.writeFile(rulerMcpPath, JSON.stringify(rulerMcp));
     const existingToml = `
 [mcp]
