@@ -13,7 +13,7 @@ describe('mcp-key-per-agent', () => {
     await fs.mkdir(rulerDir, { recursive: true });
     
     // Create ruler MCP config
-    const rulerMcp = { mcp: { ruler_server: { url: 'http://ruler.com' } } };
+    const rulerMcp = { mcpServers: { ruler_server: { url: 'http://ruler.com' } } };
     await fs.writeFile(
       path.join(rulerDir, 'mcp.json'),
       JSON.stringify(rulerMcp, null, 2) + '\n',
@@ -31,7 +31,7 @@ describe('mcp-key-per-agent', () => {
     // Create .cursor directory with existing Cursor MCP config using 'mcpServers' key
     const cursorDir = path.join(tmpDir, '.cursor');
     await fs.mkdir(cursorDir, { recursive: true });
-    const cursorNative = { mcp: { native_cursor_server: { url: 'http://cursor.com' } } };
+    const cursorNative = { mcpServers: { native_cursor_server: { url: 'http://cursor.com' } } };
     await fs.writeFile(
       path.join(cursorDir, 'mcp.json'),
       JSON.stringify(cursorNative, null, 2) + '\n',
