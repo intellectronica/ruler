@@ -20,8 +20,9 @@ describe('propagateMcpToOpenHands', () => {
 
   it('should create a new config.toml with stdio_servers', async () => {
     const rulerMcp = {
-      mcpServers: { fetch: { command: 'uvx', args: ['mcp-fetch'] } },
+      mcp: { fetch: { command: 'uvx', args: ['mcp-fetch'] } },
     };
+
     await fs.writeFile(rulerMcpPath, JSON.stringify(rulerMcp));
 
     await propagateMcpToOpenHands(rulerMcpPath, openHandsConfigPath);
@@ -40,8 +41,9 @@ describe('propagateMcpToOpenHands', () => {
 
   it('should merge servers into an existing config.toml', async () => {
     const rulerMcp = {
-      mcpServers: { git: { command: 'npx', args: ['mcp-git'] } },
+      mcp: { git: { command: 'npx', args: ['mcp-git'] } },
     };
+
     await fs.writeFile(rulerMcpPath, JSON.stringify(rulerMcp));
     const existingToml = `
 [mcp]
@@ -71,8 +73,9 @@ stdio_servers = [
 
   it('should not add duplicate servers', async () => {
     const rulerMcp = {
-      mcpServers: { fs: { command: 'uvx', args: ['mcp-fs-new'] } },
+      mcp: { fs: { command: 'uvx', args: ['mcp-fs-new'] } },
     };
+
     await fs.writeFile(rulerMcpPath, JSON.stringify(rulerMcp));
     const existingToml = `
 [mcp]
