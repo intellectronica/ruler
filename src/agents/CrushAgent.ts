@@ -41,7 +41,7 @@ export class CrushAgent implements IAgent {
           ...existingMcpConfig,
           mcp: {
             ...(existingMcpConfig.mcp || {}),
-            ...((rulerMcpJson?.mcpServers as Record<string, unknown>) || {}),
+            ...(((rulerMcpJson?.mcpServers ?? {}) as Record<string, unknown>)),
           },
         };
       } else if (rulerMcpJson) {

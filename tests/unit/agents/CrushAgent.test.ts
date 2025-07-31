@@ -33,7 +33,7 @@ describe('CrushAgent', () => {
 
   it('should create CRUSH.md and .crush.json with ruler config', async () => {
     const rules = 'some rules';
-    const mcpJson = { 'test-mcp': { command: 'echo' } };
+    const mcpJson = { mcpServers: { 'test-mcp': { command: 'echo' } } };
     await agent.applyRulerConfig(rules, projectRoot, mcpJson);
 
     const instructionsPath = path.join(projectRoot, 'CRUSH.md');
@@ -43,7 +43,7 @@ describe('CrushAgent', () => {
     const mcpContent = JSON.parse(await fs.readFile(mcpPath, 'utf-8'));
 
     expect(instructionsContent).toBe(rules);
-    expect(mcpContent).toEqual({ mcp: mcpJson });
+    expect(mcpContent).toEqual({ mcp: mcpJson.mcpServers });
   });
 
   it('should update .crush.json with new mcp servers', async () => {
@@ -56,7 +56,7 @@ describe('CrushAgent', () => {
     await fs.writeFile(mcpPath, JSON.stringify(initialMcp, null, 2));
 
     const rules = 'new rules';
-    const newMcpJson = { 'new-mcp': { command: 'pwd' } };
+    const newMcpJson = { mcpServers: { 'new-mcp': { command: 'pwd' } } };
     await agent.applyRulerConfig(rules, projectRoot, newMcpJson);
 
     const updatedMcpContent = JSON.parse(await fs.readFile(mcpPath, 'utf-8'));

@@ -217,7 +217,7 @@ and apply them to your configured AI coding agents.
         }
         const mcpPath = path.join(rulerDir, 'mcp.json');
         const DEFAULT_MCP_JSON = `{
-  "mcp": {
+  "mcpServers": {
     "example": {
       "type": "stdio",
       "command": "node",
