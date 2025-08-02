@@ -192,7 +192,7 @@ export async function applyAllAgentConfigs(
   let selected = agents;
   if (config.cliAgents && config.cliAgents.length > 0) {
     const filters = config.cliAgents.map((n) => n.toLowerCase());
-    
+
     // Check if any of the specified agents don't exist
     const validAgentIdentifiers = new Set(
       agents.map((agent) => agent.getIdentifier()),
@@ -200,20 +200,20 @@ export async function applyAllAgentConfigs(
     const validAgentNames = new Set(
       agents.map((agent) => agent.getName().toLowerCase()),
     );
-    
+
     const invalidAgents = filters.filter(
       (filter) =>
         !validAgentIdentifiers.has(filter) &&
         ![...validAgentNames].some((name) => name.includes(filter)),
     );
-    
+
     if (invalidAgents.length > 0) {
       throw createRulerError(
         `Invalid agent specified: ${invalidAgents.join(', ')}`,
-        `Valid agents are: ${[...validAgentIdentifiers].join(', ')}`
+        `Valid agents are: ${[...validAgentIdentifiers].join(', ')}`,
       );
     }
-    
+
     selected = agents.filter((agent) =>
       filters.some(
         (f) =>
@@ -227,7 +227,7 @@ export async function applyAllAgentConfigs(
     );
   } else if (config.defaultAgents && config.defaultAgents.length > 0) {
     const defaults = config.defaultAgents.map((n) => n.toLowerCase());
-    
+
     // Check if any of the default agents don't exist
     const validAgentIdentifiers = new Set(
       agents.map((agent) => agent.getIdentifier()),
@@ -235,20 +235,20 @@ export async function applyAllAgentConfigs(
     const validAgentNames = new Set(
       agents.map((agent) => agent.getName().toLowerCase()),
     );
-    
+
     const invalidAgents = defaults.filter(
       (filter) =>
         !validAgentIdentifiers.has(filter) &&
         ![...validAgentNames].some((name) => name.includes(filter)),
     );
-    
+
     if (invalidAgents.length > 0) {
       throw createRulerError(
         `Invalid agent specified in default_agents: ${invalidAgents.join(', ')}`,
-        `Valid agents are: ${[...validAgentIdentifiers].join(', ')}`
+        `Valid agents are: ${[...validAgentIdentifiers].join(', ')}`,
       );
     }
-    
+
     selected = agents.filter((agent) => {
       const identifier = agent.getIdentifier();
       const override = config.agentConfigs[identifier]?.enabled;
