@@ -194,12 +194,17 @@ export async function applyAllAgentConfigs(
     const filters = config.cliAgents.map((n) => n.toLowerCase());
     
     // Check if any of the specified agents don't exist
-    const validAgentIdentifiers = new Set(agents.map(agent => agent.getIdentifier()));
-    const validAgentNames = new Set(agents.map(agent => agent.getName().toLowerCase()));
+    const validAgentIdentifiers = new Set(
+      agents.map((agent) => agent.getIdentifier()),
+    );
+    const validAgentNames = new Set(
+      agents.map((agent) => agent.getName().toLowerCase()),
+    );
     
-    const invalidAgents = filters.filter(filter => 
-      !validAgentIdentifiers.has(filter) && 
-      ![...validAgentNames].some(name => name.includes(filter))
+    const invalidAgents = filters.filter(
+      (filter) =>
+        !validAgentIdentifiers.has(filter) &&
+        ![...validAgentNames].some((name) => name.includes(filter)),
     );
     
     if (invalidAgents.length > 0) {
@@ -224,12 +229,17 @@ export async function applyAllAgentConfigs(
     const defaults = config.defaultAgents.map((n) => n.toLowerCase());
     
     // Check if any of the default agents don't exist
-    const validAgentIdentifiers = new Set(agents.map(agent => agent.getIdentifier()));
-    const validAgentNames = new Set(agents.map(agent => agent.getName().toLowerCase()));
+    const validAgentIdentifiers = new Set(
+      agents.map((agent) => agent.getIdentifier()),
+    );
+    const validAgentNames = new Set(
+      agents.map((agent) => agent.getName().toLowerCase()),
+    );
     
-    const invalidAgents = defaults.filter(filter => 
-      !validAgentIdentifiers.has(filter) && 
-      ![...validAgentNames].some(name => name.includes(filter))
+    const invalidAgents = defaults.filter(
+      (filter) =>
+        !validAgentIdentifiers.has(filter) &&
+        ![...validAgentNames].some((name) => name.includes(filter)),
     );
     
     if (invalidAgents.length > 0) {
