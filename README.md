@@ -45,6 +45,7 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | Cursor           | `.cursor/rules/ruler_cursor_instructions.mdc`    | `.cursor/mcp.json`, `~/.cursor/mcp.json`            |
 | Windsurf         | `.windsurf/rules/ruler_windsurf_instructions.md` | `~/.codeium/windsurf/mcp_config.json`               |
 | Cline            | `.clinerules`                                    | -                                                   |
+| Amp              | `AGENT.md`                                       | -                                                   |
 | Aider            | `ruler_aider_instructions.md`, `.aider.conf.yml` | `.mcp.json`                                         |
 | Firebase Studio  | `.idx/airules.md`                                | -                                                   |
 | Open Hands       | `.openhands/microagents/repo.md`                 | `.openhands/config.toml`                            |
@@ -150,7 +151,7 @@ The `apply` command looks for `.ruler/` in the current directory tree, reading t
 | Option                         | Description                                                                                                                                                |
 | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `--project-root <path>`        | Path to your project's root (default: current directory)                                                                                                   |
-| `--agents <agent1,agent2,...>` | Comma-separated list of agent names to target (copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, junie, augmentcode, kilocode) |
+| `--agents <agent1,agent2,...>` | Comma-separated list of agent names to target (amp, copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, junie, augmentcode, kilocode) |
 | `--config <path>`              | Path to a custom `ruler.toml` configuration file                                                                                                           |
 | `--mcp` / `--with-mcp`         | Enable applying MCP server configurations (default: true)                                                                                                  |
 | `--no-mcp`                     | Disable applying MCP server configurations                                                                                                                 |
@@ -222,7 +223,7 @@ ruler revert [options]
 | Option                         | Description                                                                                                                                             |
 | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `--project-root <path>`        | Path to your project's root (default: current directory)                                                                                                |
-| `--agents <agent1,agent2,...>` | Comma-separated list of agent names to revert (copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, junie, kilocode, opencode) |
+| `--agents <agent1,agent2,...>` | Comma-separated list of agent names to revert (amp, copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, junie, kilocode, opencode) |
 | `--config <path>`              | Path to a custom `ruler.toml` configuration file                                                                                                        |
 | `--keep-backups`               | Keep backup files (.bak) after restoration (default: false)                                                                                             |
 | `--dry-run`                    | Preview changes without actually reverting files                                                                                                        |

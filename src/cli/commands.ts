@@ -26,7 +26,7 @@ export function run(): void {
         y.option('agents', {
           type: 'string',
           description:
-            'Comma-separated list of agent identifiers: copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, junie, kilocode, opencode, crush',
+            'Comma-separated list of agent identifiers: amp, copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, junie, kilocode, opencode, crush',
         });
         y.option('config', {
           type: 'string',
@@ -161,7 +161,7 @@ and apply them to your configured AI coding agents.
 
 # --- Agent Specific Configurations ---
 # You can enable/disable agents and override their default output paths here.
-# Use lowercase agent identifiers: copilot, claude, codex, cursor, windsurf, cline, aider, kilocode
+# Use lowercase agent identifiers: amp, copilot, claude, codex, cursor, windsurf, cline, aider, kilocode
 
 # [agents.copilot]
 # enabled = true
@@ -248,7 +248,7 @@ and apply them to your configured AI coding agents.
         y.option('agents', {
           type: 'string',
           description:
-            'Comma-separated list of agent identifiers: copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, junie, kilocode, opencode, crush',
+            'Comma-separated list of agent identifiers: amp, copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, junie, kilocode, opencode, crush',
         });
         y.option('config', {
           type: 'string',

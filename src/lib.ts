@@ -22,6 +22,7 @@ import { KiloCodeAgent } from './agents/KiloCodeAgent';
 import { OpenCodeAgent } from './agents/OpenCodeAgent';
 import { CrushAgent } from './agents/CrushAgent';
 import { GooseAgent } from './agents/GooseAgent';
+import { AmpAgent } from './agents/AmpAgent';
 import { mergeMcp } from './mcp/merge';
 import { validateMcp } from './mcp/validate';
 import { getNativeMcpPath, readNativeMcp, writeNativeMcp } from './paths/mcp';
@@ -93,6 +94,7 @@ const agents: IAgent[] = [
   new OpenCodeAgent(),
   new GooseAgent(),
   new CrushAgent(),
+  new AmpAgent(),
 ];
 
 /**
