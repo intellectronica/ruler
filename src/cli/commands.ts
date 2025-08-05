@@ -67,7 +67,8 @@ export function run(): void {
         });
         y.option('disable-backup', {
           type: 'boolean',
-          description: 'Disable creation of backup files before applying changes',
+          description:
+            'Disable creation of backup files before applying changes',
           default: false,
         });
       },

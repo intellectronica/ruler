@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh pr view:*)",
+      "Bash(npm run lint)",
+      "Bash(npm install)",
+      "Bash(git add:*)"
+    ],
+    "deny": []
+  }
+}
