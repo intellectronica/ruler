@@ -145,7 +145,6 @@ describe('Agent Adapters', () => {
       expect(content).toContain('z');
     });
   });
-  });
 
   describe('WindsurfAgent', () => {
     it('backs up and writes ruler_windsurf_instructions.md', async () => {
