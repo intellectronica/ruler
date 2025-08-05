@@ -26,11 +26,17 @@ export class CursorAgent implements IAgent {
   ): Promise<void> {
     const output =
       agentConfig?.outputPath ?? this.getDefaultOutputPath(projectRoot);
+
+    // Cursor expects a YAML front-matter block with an `alwaysApply` flag.
+    // See: https://docs.cursor.com/context/rules#rule-anatomy
+    const frontMatter = ['---', 'alwaysApply: true', '---', ''].join('\n');
+    const content = `${frontMatter}${concatenatedRules.trimStart()}`;
+
     await ensureDirExists(path.dirname(output));
     if (!agentConfig?.disableBackup) {
       await backupFile(output);
     }
-    await writeGeneratedFile(output, concatenatedRules);
+    await writeGeneratedFile(output, content);
   }
   getDefaultOutputPath(projectRoot: string): string {
     return path.join(

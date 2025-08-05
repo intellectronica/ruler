@@ -27,7 +27,7 @@ export async function getNativeMcpPath(
       );
       break;
     case 'Claude Code':
-      candidates.push(path.join(projectRoot, 'claude_desktop_config.json'));
+      candidates.push(path.join(projectRoot, '.mcp.json'));
       break;
     case 'OpenAI Codex CLI':
       candidates.push(path.join(home, '.codex', 'config.json'));
@@ -47,6 +47,10 @@ export async function getNativeMcpPath(
       break;
     case 'Kilo Code':
       candidates.push(path.join(projectRoot, '.kilocode', 'mcp.json'));
+      break;
+    case 'OpenCode':
+      candidates.push(path.join(projectRoot, 'opencode.json'));
+      candidates.push(path.join(home, '.config', 'opencode', 'opencode.json'));
       break;
     default:
       return null;

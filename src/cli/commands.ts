@@ -26,7 +26,7 @@ export function run(): void {
         y.option('agents', {
           type: 'string',
           description:
-            'Comma-separated list of agent identifiers: copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, junie, kilocode',
+            'Comma-separated list of agent identifiers: amp, copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, junie, kilocode, opencode, crush',
         });
         y.option('config', {
           type: 'string',
@@ -169,7 +169,7 @@ and apply them to your configured AI coding agents.
 
 # --- Agent Specific Configurations ---
 # You can enable/disable agents and override their default output paths here.
-# Use lowercase agent identifiers: copilot, claude, codex, cursor, windsurf, cline, aider, kilocode
+# Use lowercase agent identifiers: amp, copilot, claude, codex, cursor, windsurf, cline, aider, kilocode
 
 # [agents.copilot]
 # enabled = true
@@ -227,10 +227,15 @@ and apply them to your configured AI coding agents.
         const DEFAULT_MCP_JSON = `{
   "mcpServers": {
     "example": {
-      "url": "https://mcp.example.com"
+      "type": "stdio",
+      "command": "node",
+      "args": ["/path/to/mcp-server.js"],
+      "env": {
+        "NODE_ENV": "production"
+      }
     }
   }
-}`;
+}\n`;
         if (!(await exists(mcpPath))) {
           await fs.writeFile(mcpPath, DEFAULT_MCP_JSON);
           console.log(`[ruler] Created ${mcpPath}`);
@@ -251,7 +256,7 @@ and apply them to your configured AI coding agents.
         y.option('agents', {
           type: 'string',
           description:
-            'Comma-separated list of agent identifiers: copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, junie, kilocode',
+            'Comma-separated list of agent identifiers: amp, copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, junie, kilocode, opencode, crush',
         });
         y.option('config', {
           type: 'string',

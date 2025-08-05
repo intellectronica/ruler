@@ -17,6 +17,9 @@ import { JulesAgent } from './agents/JulesAgent';
 import { JunieAgent } from './agents/JunieAgent';
 import { AugmentCodeAgent } from './agents/AugmentCodeAgent';
 import { KiloCodeAgent } from './agents/KiloCodeAgent';
+import { OpenCodeAgent } from './agents/OpenCodeAgent';
+import { GooseAgent } from './agents/GooseAgent';
+import { AmpAgent } from './agents/AmpAgent';
 import { getNativeMcpPath } from './paths/mcp';
 import { IAgentConfig } from './agents/IAgent';
 import { createRulerError, logVerbose } from './constants';
@@ -41,6 +44,9 @@ const agents: IAgent[] = [
   new JunieAgent(),
   new AugmentCodeAgent(),
   new KiloCodeAgent(),
+  new OpenCodeAgent(),
+  new GooseAgent(),
+  new AmpAgent(),
 ];
 
 /**
@@ -376,7 +382,6 @@ async function removeAdditionalAgentFiles(
 ): Promise<number> {
   const additionalFiles = [
     '.gemini/settings.json',
-    'claude_desktop_config.json',
     '.mcp.json',
     '.vscode/mcp.json',
     '.cursor/mcp.json',

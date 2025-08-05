@@ -16,8 +16,12 @@ export function mergeMcp(
 ): Record<string, unknown> {
   if (strategy === 'overwrite') {
     // Ensure the incoming object uses the correct server key.
+    // Transform from the standard (Crush) MCP config format
     const incomingServers =
-      (incoming.mcpServers as Record<string, unknown>) || {};
+      (incoming[serverKey] as Record<string, unknown>) ||
+      (incoming.mcpServers as Record<string, unknown>) ||
+      (incoming.mcp as Record<string, unknown>) ||
+      {};
     return {
       [serverKey]: incomingServers,
     };
@@ -26,9 +30,13 @@ export function mergeMcp(
   const baseServers =
     (base[serverKey] as Record<string, unknown>) ||
     (base.mcpServers as Record<string, unknown>) ||
-    {}; // Handle legacy key in existing files
+    (base.mcp as Record<string, unknown>) ||
+    {};
   const incomingServers =
-    (incoming.mcpServers as Record<string, unknown>) || {};
+    (incoming[serverKey] as Record<string, unknown>) ||
+    (incoming.mcpServers as Record<string, unknown>) ||
+    (incoming.mcp as Record<string, unknown>) ||
+    {};
 
   const mergedServers = { ...baseServers, ...incomingServers };
 

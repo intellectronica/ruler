@@ -10,7 +10,7 @@ import { ClaudeAgent } from './agents/ClaudeAgent';
 import { CodexCliAgent } from './agents/CodexCliAgent';
 import { CursorAgent } from './agents/CursorAgent';
 import { WindsurfAgent } from './agents/WindsurfAgent';
-import * as ClineAgent from './agents/ClineAgent';
+import { ClineAgent } from './agents/ClineAgent';
 import { AiderAgent } from './agents/AiderAgent';
 import { FirebaseAgent } from './agents/FirebaseAgent';
 import { OpenHandsAgent } from './agents/OpenHandsAgent';
@@ -19,11 +19,16 @@ import { JulesAgent } from './agents/JulesAgent';
 import { JunieAgent } from './agents/JunieAgent';
 import { AugmentCodeAgent } from './agents/AugmentCodeAgent';
 import { KiloCodeAgent } from './agents/KiloCodeAgent';
+import { OpenCodeAgent } from './agents/OpenCodeAgent';
+import { CrushAgent } from './agents/CrushAgent';
+import { GooseAgent } from './agents/GooseAgent';
+import { AmpAgent } from './agents/AmpAgent';
 import { mergeMcp } from './mcp/merge';
 import { validateMcp } from './mcp/validate';
 import { getNativeMcpPath, readNativeMcp, writeNativeMcp } from './paths/mcp';
 import { McpStrategy } from './types';
 import { propagateMcpToOpenHands } from './mcp/propagateOpenHandsMcp';
+import { propagateMcpToOpenCode } from './mcp/propagateOpenCodeMcp';
 import { IAgentConfig } from './agents/IAgent';
 import { createRulerError, logVerbose } from './constants';
 
@@ -77,7 +82,7 @@ const agents: IAgent[] = [
   new CodexCliAgent(),
   new CursorAgent(),
   new WindsurfAgent(),
-  new ClineAgent.ClineAgent(),
+  new ClineAgent(),
   new AiderAgent(),
   new FirebaseAgent(),
   new OpenHandsAgent(),
@@ -86,6 +91,10 @@ const agents: IAgent[] = [
   new JunieAgent(),
   new AugmentCodeAgent(),
   new KiloCodeAgent(),
+  new OpenCodeAgent(),
+  new GooseAgent(),
+  new CrushAgent(),
+  new AmpAgent(),
 ];
 
 /**
@@ -186,6 +195,28 @@ export async function applyAllAgentConfigs(
   let selected = agents;
   if (config.cliAgents && config.cliAgents.length > 0) {
     const filters = config.cliAgents.map((n) => n.toLowerCase());
+
+    // Check if any of the specified agents don't exist
+    const validAgentIdentifiers = new Set(
+      agents.map((agent) => agent.getIdentifier()),
+    );
+    const validAgentNames = new Set(
+      agents.map((agent) => agent.getName().toLowerCase()),
+    );
+
+    const invalidAgents = filters.filter(
+      (filter) =>
+        !validAgentIdentifiers.has(filter) &&
+        ![...validAgentNames].some((name) => name.includes(filter)),
+    );
+
+    if (invalidAgents.length > 0) {
+      throw createRulerError(
+        `Invalid agent specified: ${invalidAgents.join(', ')}`,
+        `Valid agents are: ${[...validAgentIdentifiers].join(', ')}`,
+      );
+    }
+
     selected = agents.filter((agent) =>
       filters.some(
         (f) =>
@@ -199,6 +230,28 @@ export async function applyAllAgentConfigs(
     );
   } else if (config.defaultAgents && config.defaultAgents.length > 0) {
     const defaults = config.defaultAgents.map((n) => n.toLowerCase());
+
+    // Check if any of the default agents don't exist
+    const validAgentIdentifiers = new Set(
+      agents.map((agent) => agent.getIdentifier()),
+    );
+    const validAgentNames = new Set(
+      agents.map((agent) => agent.getName().toLowerCase()),
+    );
+
+    const invalidAgents = defaults.filter(
+      (filter) =>
+        !validAgentIdentifiers.has(filter) &&
+        ![...validAgentNames].some((name) => name.includes(filter)),
+    );
+
+    if (invalidAgents.length > 0) {
+      throw createRulerError(
+        `Invalid agent specified in default_agents: ${invalidAgents.join(', ')}`,
+        `Valid agents are: ${[...validAgentIdentifiers].join(', ')}`,
+      );
+    }
+
     selected = agents.filter((agent) => {
       const identifier = agent.getIdentifier();
       const override = config.agentConfigs[identifier]?.enabled;
@@ -321,6 +374,16 @@ export async function applyAllAgentConfigs(
             `DRY RUN: AugmentCode MCP config handled internally via VSCode settings`,
             verbose,
           );
+        }
+      } else if (agent.getIdentifier() === 'opencode') {
+        // *** Special handling for OpenCode ***
+        if (dryRun) {
+          logVerbose(
+            `DRY RUN: Would apply MCP config by updating OpenCode config file: ${dest}`,
+            verbose,
+          );
+        } else {
+          await propagateMcpToOpenCode(rulerMcpFile, dest);
         }
       } else {
         if (rulerMcpJson) {

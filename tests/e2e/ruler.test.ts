@@ -1,7 +1,7 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import os from 'os';
-import TOML from '@iarna/toml';
+import * as TOML from 'toml';
 import { execSync } from 'child_process';
 
 describe('End-to-End Ruler CLI', () => {
@@ -339,7 +339,6 @@ output_path = "custom-claude.md"`;
       const expectedPatterns = [
         '*.bak',
         '.vscode/mcp.json',
-        'claude_desktop_config.json',
         '.gemini/settings.json',
         '.cursor/mcp.json',
         '.mcp.json',

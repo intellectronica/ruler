@@ -10,6 +10,7 @@
 ---
 
 > **Beta Research Preview**
+>
 > - Please test this version carefully in your environment
 > - Report issues at https://github.com/intellectronica/ruler/issues
 
@@ -35,22 +36,25 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 
 ## Supported AI Agents
 
-| Agent            | Rules File(s)                                    | MCP Configuration                                |
-| ---------------- | ------------------------------------------------ | ------------------------------------------------ |
-| GitHub Copilot   | `.github/copilot-instructions.md`                | `.vscode/mcp.json`                               |
-| Claude Code      | `CLAUDE.md`                                      | `claude_desktop_config.json`                     |
-| OpenAI Codex CLI | `AGENTS.md`                                      | `~/.codex/config.json`                           |
-| Jules            | `AGENTS.md`                                      | -                                                |
-| Cursor           | `.cursor/rules/ruler_cursor_instructions.mdc`    | `.cursor/mcp.json`, `~/.cursor/mcp.json`         |
-| Windsurf         | `.windsurf/rules/ruler_windsurf_instructions.md` | `~/.codeium/windsurf/mcp_config.json`            |
-| Cline            | `.clinerules`                                    | -                                                |
-| Aider            | `ruler_aider_instructions.md`, `.aider.conf.yml` | `.mcp.json`                                      |
-| Firebase Studio  | `.idx/airules.md`                                | -                                                |
-| Open Hands       | `.openhands/microagents/repo.md`                 | `.openhands/config.toml`                         |
-| Gemini CLI       | `GEMINI.md`                                      | `.gemini/settings.json`                          |
-| Junie            | `.junie/guidelines.md`                           | -                                                |
-| AugmentCode      | `.augment/rules/ruler_augment_instructions.md`   | `.vscode/settings.json`                          |
-| Kilo Code        | `.kilocode/rules/ruler_kilocode_instructions.md` | `.kilocode/mcp.json`                             |
+| Agent            | Rules File(s)                                    | MCP Configuration                                   |
+| ---------------- | ------------------------------------------------ | --------------------------------------------------- |
+| GitHub Copilot   | `.github/copilot-instructions.md`                | `.vscode/mcp.json`                                  |
+| Claude Code      | `CLAUDE.md`                                      | `.mcp.json`                                         |
+| OpenAI Codex CLI | `AGENTS.md`                                      | `.codex/config.toml`, `~/.codex/config.json`        |
+| Jules            | `AGENTS.md`                                      | -                                                   |
+| Cursor           | `.cursor/rules/ruler_cursor_instructions.mdc`    | `.cursor/mcp.json`, `~/.cursor/mcp.json`            |
+| Windsurf         | `.windsurf/rules/ruler_windsurf_instructions.md` | `~/.codeium/windsurf/mcp_config.json`               |
+| Cline            | `.clinerules`                                    | -                                                   |
+| Amp              | `AGENT.md`                                       | -                                                   |
+| Aider            | `ruler_aider_instructions.md`, `.aider.conf.yml` | `.mcp.json`                                         |
+| Firebase Studio  | `.idx/airules.md`                                | -                                                   |
+| Open Hands       | `.openhands/microagents/repo.md`                 | `.openhands/config.toml`                            |
+| Gemini CLI       | `GEMINI.md`                                      | `.gemini/settings.json`                             |
+| Junie            | `.junie/guidelines.md`                           | -                                                   |
+| AugmentCode      | `.augment/rules/ruler_augment_instructions.md`   | `.vscode/settings.json`                             |
+| Kilo Code        | `.kilocode/rules/ruler_kilocode_instructions.md` | `.kilocode/mcp.json`                                |
+| OpenCode         | `AGENTS.md`                                      | `opencode.json`, `~/.config/opencode/opencode.json` |
+| Goose            | `.goosehints`                                    | -                                                   |
 
 ## Getting Started
 
@@ -83,6 +87,7 @@ npx @intellectronica/ruler apply
    - `.ruler/mcp.json`: An example MCP server configuration
 
 Additionally, you can create a global configuration to use when no local `.ruler/` directory is found:
+
 ```bash
 ruler init --global
 ```
@@ -143,19 +148,19 @@ The `apply` command looks for `.ruler/` in the current directory tree, reading t
 
 ### Options
 
-| Option                         | Description                                               |
-| ------------------------------ | --------------------------------------------------------- |
-| `--project-root <path>`        | Path to your project's root (default: current directory)  |
-| `--agents <agent1,agent2,...>` | Comma-separated list of agent names to target (copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, junie, augmentcode, kilocode) |
-| `--config <path>`              | Path to a custom `ruler.toml` configuration file          |
-| `--mcp` / `--with-mcp`         | Enable applying MCP server configurations (default: true) |
-| `--no-mcp`                     | Disable applying MCP server configurations                |
-| `--mcp-overwrite`              | Overwrite native MCP config entirely instead of merging   |
-| `--gitignore`                  | Enable automatic .gitignore updates (default: true)       |
-| `--no-gitignore`               | Disable automatic .gitignore updates                      |
-| `--local-only`                 | Do not look for configuration in `$XDG_CONFIG_HOME`       |
-| `--verbose` / `-v`             | Display detailed output during execution                  |
-| `--disable-backup`                | Disable creation of `.bak` backup files when applying rules (default: false) |
+| Option                         | Description                                                                                                                                                |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--project-root <path>`        | Path to your project's root (default: current directory)                                                                                                   |
+| `--agents <agent1,agent2,...>` | Comma-separated list of agent names to target (amp, copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, junie, augmentcode, kilocode, opencode, crush, goose) |
+| `--config <path>`              | Path to a custom `ruler.toml` configuration file                                                                                                           |
+| `--mcp` / `--with-mcp`         | Enable applying MCP server configurations (default: true)                                                                                                  |
+| `--no-mcp`                     | Disable applying MCP server configurations                                                                                                                 |
+| `--mcp-overwrite`              | Overwrite native MCP config entirely instead of merging                                                                                                    |
+| `--gitignore`                  | Enable automatic .gitignore updates (default: true)                                                                                                        |
+| `--no-gitignore`               | Disable automatic .gitignore updates                                                                                                                       |
+| `--local-only`                 | Do not look for configuration in `$XDG_CONFIG_HOME`                                                                                                        |
+| `--verbose` / `-v`             | Display detailed output during execution                                                                                                                   |
+| `--disable-backup`             | Disable creation of `.bak` backup files when applying rules (default: false)                                                                              |
 
 ### Common Examples
 
@@ -208,6 +213,7 @@ The `revert` command safely undoes all changes made by `ruler apply`, restoring 
 ### Why Revert is Needed
 
 When experimenting with different rule configurations or switching between projects, you may want to:
+
 - **Clean slate**: Remove all ruler-generated files to start fresh
 - **Restore originals**: Revert modified files back to their original state
 - **Selective cleanup**: Remove configurations for specific agents only
@@ -221,15 +227,15 @@ ruler revert [options]
 
 ### Options
 
-| Option                         | Description                                               |
-| ------------------------------ | --------------------------------------------------------- |
-| `--project-root <path>`        | Path to your project's root (default: current directory)  |
-| `--agents <agent1,agent2,...>` | Comma-separated list of agent names to revert (copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, junie, kilocode) |
-| `--config <path>`              | Path to a custom `ruler.toml` configuration file          |
-| `--keep-backups`               | Keep backup files (.bak) after restoration (default: false) |
-| `--dry-run`                    | Preview changes without actually reverting files          |
-| `--verbose` / `-v`             | Display detailed output during execution                  |
-| `--local-only`                 | Only search for local .ruler directories, ignore global config |
+| Option                         | Description                                                                                                                                             |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--project-root <path>`        | Path to your project's root (default: current directory)                                                                                                |
+| `--agents <agent1,agent2,...>` | Comma-separated list of agent names to revert (amp, copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, junie, kilocode, opencode) |
+| `--config <path>`              | Path to a custom `ruler.toml` configuration file                                                                                                        |
+| `--keep-backups`               | Keep backup files (.bak) after restoration (default: false)                                                                                             |
+| `--dry-run`                    | Preview changes without actually reverting files                                                                                                        |
+| `--verbose` / `-v`             | Display detailed output during execution                                                                                                                |
+| `--local-only`                 | Only search for local .ruler directories, ignore global config                                                                                          |
 
 ### Common Examples
 
@@ -302,6 +308,17 @@ enabled = true
 output_path_instructions = "ruler_aider_instructions.md"
 output_path_config = ".aider.conf.yml"
 
+# OpenAI Codex CLI agent and MCP config
+[agents.codex]
+enabled = true
+output_path = "AGENTS.md"
+output_path_config = ".codex/config.toml"
+
+# Agent-specific MCP configuration for Codex CLI
+[agents.codex.mcp]
+enabled = true
+merge_strategy = "merge"
+
 [agents.firebase]
 enabled = true
 output_path = ".idx/airules.md"
@@ -363,7 +380,13 @@ Define your project's MCP servers:
 }
 ```
 
+
 Ruler uses this file with the `merge` (default) or `overwrite` strategy, controlled by `ruler.toml` or CLI flags.
+
+**Note for OpenAI Codex CLI:** To apply the local Codex CLI MCP configuration, set the `CODEX_HOME` environment variable to your project’s `.codex` directory:
+```bash
+export CODEX_HOME="$(pwd)/.codex"
+```
 
 ## `.gitignore` Integration
 

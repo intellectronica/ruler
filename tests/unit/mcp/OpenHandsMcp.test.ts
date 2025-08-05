@@ -1,7 +1,7 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import os from 'os';
-import TOML from '@iarna/toml';
+import * as TOML from 'toml';
 import { propagateMcpToOpenHands } from '../../../src/mcp/propagateOpenHandsMcp';
 
 describe('propagateMcpToOpenHands', () => {
@@ -22,6 +22,7 @@ describe('propagateMcpToOpenHands', () => {
     const rulerMcp = {
       mcpServers: { fetch: { command: 'uvx', args: ['mcp-fetch'] } },
     };
+
     await fs.writeFile(rulerMcpPath, JSON.stringify(rulerMcp));
 
     await propagateMcpToOpenHands(rulerMcpPath, openHandsConfigPath);
@@ -42,6 +43,7 @@ describe('propagateMcpToOpenHands', () => {
     const rulerMcp = {
       mcpServers: { git: { command: 'npx', args: ['mcp-git'] } },
     };
+
     await fs.writeFile(rulerMcpPath, JSON.stringify(rulerMcp));
     const existingToml = `
 [mcp]
@@ -73,6 +75,7 @@ stdio_servers = [
     const rulerMcp = {
       mcpServers: { fs: { command: 'uvx', args: ['mcp-fs-new'] } },
     };
+
     await fs.writeFile(rulerMcpPath, JSON.stringify(rulerMcp));
     const existingToml = `
 [mcp]

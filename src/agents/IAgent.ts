@@ -1,6 +1,10 @@
 /**
  * Interface defining an AI agent configuration adapter.
  */
+import { McpConfig } from '../types';
+/**
+ * Configuration overrides for a specific agent.
+ */
 export interface IAgentConfig {
   /** Explicit enable/disable agent */
   enabled?: boolean;
@@ -10,10 +14,9 @@ export interface IAgentConfig {
   outputPathInstructions?: string;
   /** Override for Aider config file path */
   outputPathConfig?: string;
-  mcp?: {
-    enabled?: boolean;
-    strategy?: 'merge' | 'overwrite';
-  };
+  /** MCP propagation config for this agent. */
+  mcp?: McpConfig;
+  /** Disable backup file creation for this agent */
   disableBackup?: boolean;
 }
 
