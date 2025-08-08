@@ -22,9 +22,7 @@ export class OpenHandsAgent implements IAgent {
     const output =
       agentConfig?.outputPath ?? this.getDefaultOutputPath(projectRoot);
     await ensureDirExists(path.dirname(output));
-    if (!agentConfig?.disableBackup) {
-      await backupFile(output);
-    }
+    await backupFile(output, agentConfig?.disableBackup);
     await writeGeneratedFile(output, concatenatedRules);
   }
   getDefaultOutputPath(projectRoot: string): string {

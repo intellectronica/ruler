@@ -30,16 +30,12 @@ export class AugmentCodeAgent implements IAgent {
   ): Promise<void> {
     const output =
       agentConfig?.outputPath ?? this.getDefaultOutputPath(projectRoot);
-    if (!agentConfig?.disableBackup) {
-      await backupFile(output);
-    }
+    await backupFile(output, agentConfig?.disableBackup);
     await writeGeneratedFile(output, concatenatedRules);
 
     if (rulerMcpJson) {
       const settingsPath = getVSCodeSettingsPath(projectRoot);
-      if (!agentConfig?.disableBackup) {
-        await backupFile(settingsPath);
-      }
+      await backupFile(settingsPath, agentConfig?.disableBackup);
 
       const existingSettings = await readVSCodeSettings(settingsPath);
       const augmentServers = transformRulerToAugmentMcp(rulerMcpJson);

@@ -34,9 +34,7 @@ export class CodexCliAgent implements IAgent {
       defaults.instructions;
 
     // Write the instructions file
-    if (!agentConfig?.disableBackup) {
-      await backupFile(instructionsPath);
-    }
+    await backupFile(instructionsPath, agentConfig?.disableBackup);
     await writeGeneratedFile(instructionsPath, concatenatedRules);
 
     // Handle MCP configuration if enabled

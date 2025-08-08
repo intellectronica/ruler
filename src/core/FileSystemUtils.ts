@@ -94,8 +94,13 @@ export async function writeGeneratedFile(
 
 /**
  * Creates a backup of the given filePath by copying it to filePath.bak if it exists.
+ * @param filePath The file to backup
+ * @param disableBackup If true, skip creating the backup
  */
-export async function backupFile(filePath: string): Promise<void> {
+export async function backupFile(filePath: string, disableBackup: boolean = false): Promise<void> {
+  if (disableBackup) {
+    return; // Skip backup if disabled
+  }
   try {
     await fs.access(filePath);
     await fs.copyFile(filePath, `${filePath}.bak`);
