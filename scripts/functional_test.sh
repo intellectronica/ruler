@@ -223,4 +223,4 @@ function main() {
 }
 
 main "$@"
-#!/usr/bin/env bash
+
