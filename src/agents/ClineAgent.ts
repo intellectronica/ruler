@@ -22,7 +22,7 @@ export class ClineAgent implements IAgent {
   ): Promise<void> {
     const output =
       agentConfig?.outputPath ?? this.getDefaultOutputPath(projectRoot);
-    await backupFile(output);
+    await backupFile(output, agentConfig?.disableBackup);
     await writeGeneratedFile(output, concatenatedRules);
   }
   getDefaultOutputPath(projectRoot: string): string {

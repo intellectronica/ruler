@@ -33,7 +33,7 @@ export class CursorAgent implements IAgent {
     const content = `${frontMatter}${concatenatedRules.trimStart()}`;
 
     await ensureDirExists(path.dirname(output));
-    await backupFile(output);
+    await backupFile(output, agentConfig?.disableBackup);
     await writeGeneratedFile(output, content);
   }
   getDefaultOutputPath(projectRoot: string): string {

@@ -16,6 +16,8 @@ export interface IAgentConfig {
   outputPathConfig?: string;
   /** MCP propagation config for this agent. */
   mcp?: McpConfig;
+  /** Disable backup file creation for this agent */
+  disableBackup?: boolean;
 }
 
 export interface IAgent {

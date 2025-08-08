@@ -154,4 +154,33 @@ it('loads config from custom path via configPath option', async () => {
       expect(config.gitignore?.enabled).toBeUndefined();
     });
   });
+
+  describe('disable_backup configuration', () => {
+    it('parses disable_backup = true', async () => {
+      const content = `disable_backup = true`;
+      await fs.writeFile(path.join(rulerDir, 'ruler.toml'), content);
+      const config = await loadConfig({ projectRoot: tmpDir });
+      expect(config.disableBackup).toBe(true);
+    });
+
+    it('parses disable_backup = false', async () => {
+      const content = `disable_backup = false`;
+      await fs.writeFile(path.join(rulerDir, 'ruler.toml'), content);
+      const config = await loadConfig({ projectRoot: tmpDir });
+      expect(config.disableBackup).toBe(false);
+    });
+
+    it('handles missing disable_backup key', async () => {
+      const content = `default_agents = ["A"]`;
+      await fs.writeFile(path.join(rulerDir, 'ruler.toml'), content);
+      const config = await loadConfig({ projectRoot: tmpDir });
+      expect(config.disableBackup).toBeUndefined();
+    });
+
+    it('handles empty config file for disable_backup', async () => {
+      await fs.writeFile(path.join(rulerDir, 'ruler.toml'), '');
+      const config = await loadConfig({ projectRoot: tmpDir });
+      expect(config.disableBackup).toBeUndefined();
+    });
+  });
 });

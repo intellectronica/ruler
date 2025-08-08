@@ -116,6 +116,7 @@ export async function applyAllAgentConfigs(
   verbose = false,
   dryRun = false,
   localOnly = false,
+  cliDisableBackup?: boolean,
 ): Promise<void> {
   // Load configuration (default_agents, per-agent overrides, CLI filters)
   logVerbose(
@@ -275,6 +276,17 @@ export async function applyAllAgentConfigs(
     );
   }
 
+  // Handle backup disable setting
+  // Configuration precedence: CLI > TOML > Default (false)
+  let disableBackup: boolean;
+  if (cliDisableBackup !== undefined) {
+    disableBackup = cliDisableBackup;
+  } else if (config.disableBackup !== undefined) {
+    disableBackup = config.disableBackup;
+  } else {
+    disableBackup = false; // Default disabled (backups enabled)
+  }
+
   // Collect all generated file paths for .gitignore
   const generatedPaths: string[] = [];
   let agentsMdWritten = false;
@@ -312,7 +324,8 @@ export async function applyAllAgentConfigs(
         }
         agentsMdWritten = true;
       }
-      let finalAgentConfig = agentConfig;
+      // Propagate disableBackup to agent config
+      let finalAgentConfig = { ...agentConfig, disableBackup };
       if (agent.getIdentifier() === 'augmentcode' && rulerMcpJson) {
         const resolvedStrategy =
           cliMcpStrategy ??
@@ -321,7 +334,7 @@ export async function applyAllAgentConfigs(
           'merge';
 
         finalAgentConfig = {
-          ...agentConfig,
+          ...finalAgentConfig,
           mcp: {
             ...agentConfig?.mcp,
             strategy: resolvedStrategy,

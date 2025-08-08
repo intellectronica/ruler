@@ -20,7 +20,7 @@ export class OpenCodeAgent implements IAgent {
     const outputPath =
       agentConfig?.outputPath ?? this.getDefaultOutputPath(projectRoot);
     const absolutePath = path.resolve(projectRoot, outputPath);
-    await backupFile(absolutePath);
+    await backupFile(absolutePath, agentConfig?.disableBackup);
     await writeGeneratedFile(absolutePath, concatenatedRules);
   }
 
