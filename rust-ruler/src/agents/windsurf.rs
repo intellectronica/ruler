@@ -1,8 +1,9 @@
 use anyhow::Result;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use serde_json::Value;
 use crate::agents::Agent;
 use crate::types::{AgentConfig, OutputPath};
+use crate::core::filesystem::{backup_file, write_generated_file, ensure_dir_exists};
 
 pub struct WindsurfAgent;
 
@@ -17,12 +18,24 @@ impl Agent for WindsurfAgent {
 
     fn apply_config(
         &self,
-        _concatenated_rules: &str,
-        _project_root: &Path,
+        concatenated_rules: &str,
+        project_root: &Path,
         _ruler_mcp_json: Option<&Value>,
-        _agent_config: Option<&AgentConfig>,
+        agent_config: Option<&AgentConfig>,
     ) -> Result<()> {
-        // TODO: Implement
+        let output_path = match agent_config.and_then(|c| c.output_path.as_ref()) {
+            Some(path) => PathBuf::from(path),
+            None => match self.default_output_path(project_root) {
+                OutputPath::Single(path) => path,
+                _ => unreachable!("WindsurfAgent should have single output path"),
+            },
+        };
+
+        if let Some(parent) = output_path.parent() {
+            ensure_dir_exists(parent)?;
+        }
+        backup_file(&output_path)?;
+        write_generated_file(&output_path, concatenated_rules)?;
         Ok(())
     }
 
