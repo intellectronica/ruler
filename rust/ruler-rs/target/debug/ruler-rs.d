@@ -1,1 +1,0 @@
-/Users/eleanor/Library/CloudStorage/GoogleDrive-elle.fnord@gmail.com/My\ Drive/Repositories/ruler/rust/ruler-rs/target/debug/ruler-rs: /Users/eleanor/Library/CloudStorage/GoogleDrive-elle.fnord@gmail.com/My\ Drive/Repositories/ruler/rust/ruler-rs/src/main.rs

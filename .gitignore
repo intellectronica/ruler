@@ -139,6 +139,8 @@ issue-body.md
 # VSCode subfolders
 .vscode/
 
+# Rust build artifacts
+/rust/**/target/
 
 # START Ruler Generated Files
 *.bak
