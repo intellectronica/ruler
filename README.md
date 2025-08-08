@@ -160,7 +160,7 @@ The `apply` command looks for `.ruler/` in the current directory tree, reading t
 | `--no-gitignore`               | Disable automatic .gitignore updates                                                                                                                       |
 | `--local-only`                 | Do not look for configuration in `$XDG_CONFIG_HOME`                                                                                                        |
 | `--verbose` / `-v`             | Display detailed output during execution                                                                                                                   |
-| `--disable-backup`             | Disable creation of `.bak` backup files when applying rules (default: false)                                                                              |
+| `--disable-backup`             | Disable creation of `.bak` backup files when applying rules (default: false, configurable via `disable_backup` in `ruler.toml`)                        |
 
 ### Common Examples
 
@@ -281,6 +281,10 @@ Defaults to `.ruler/ruler.toml` in the project root. Override with `--config` CL
 # Default agents to run when --agents is not specified
 # Uses case-insensitive substring matching
 default_agents = ["copilot", "claude", "aider"]
+
+# Global backup setting - disable creation of .bak backup files 
+# (default: false, meaning backups are enabled by default)
+disable_backup = false
 
 # --- Global MCP Server Configuration ---
 [mcp]

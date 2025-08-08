@@ -41,6 +41,7 @@ const rulerConfigSchema = z.object({
       enabled: z.boolean().optional(),
     })
     .optional(),
+  disable_backup: z.boolean().optional(),
 });
 
 /**
@@ -69,6 +70,8 @@ export interface LoadedConfig {
   mcp?: GlobalMcpConfig;
   /** Gitignore configuration section. */
   gitignore?: GitignoreConfig;
+  /** Global disable backup setting. */
+  disableBackup?: boolean;
 }
 
 /**
@@ -207,11 +210,16 @@ export async function loadConfig(
     gitignoreConfig.enabled = rawGitignoreSection.enabled;
   }
 
+  // Parse global disable_backup setting
+  const disableBackup =
+    typeof raw.disable_backup === 'boolean' ? raw.disable_backup : undefined;
+
   return {
     defaultAgents,
     agentConfigs,
     cliAgents,
     mcp: globalMcpConfig,
     gitignore: gitignoreConfig,
+    disableBackup,
   };
 }

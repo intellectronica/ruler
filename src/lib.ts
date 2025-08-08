@@ -116,7 +116,7 @@ export async function applyAllAgentConfigs(
   verbose = false,
   dryRun = false,
   localOnly = false,
-  disableBackup = false,
+  cliDisableBackup?: boolean,
 ): Promise<void> {
   // Load configuration (default_agents, per-agent overrides, CLI filters)
   logVerbose(
@@ -274,6 +274,17 @@ export async function applyAllAgentConfigs(
       `Selected all enabled agents: ${selected.map((a) => a.getName()).join(', ')}`,
       verbose,
     );
+  }
+
+  // Handle backup disable setting
+  // Configuration precedence: CLI > TOML > Default (false)
+  let disableBackup: boolean;
+  if (cliDisableBackup !== undefined) {
+    disableBackup = cliDisableBackup;
+  } else if (config.disableBackup !== undefined) {
+    disableBackup = config.disableBackup;
+  } else {
+    disableBackup = false; // Default disabled (backups enabled)
   }
 
   // Collect all generated file paths for .gitignore

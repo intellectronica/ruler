@@ -27,7 +27,7 @@ export class GooseAgent implements IAgent {
       this.getDefaultOutputPath(projectRoot);
 
     // Write rules to .goosehints
-    await backupFile(hintsPath);
+    await backupFile(hintsPath, agentConfig?.disableBackup);
     await writeGeneratedFile(hintsPath, concatenatedRules);
   }
 
