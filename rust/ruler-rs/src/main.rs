@@ -214,6 +214,16 @@ fn find_ruler_dir(start: &Path) -> Option<PathBuf> {
     None
 }
 
+fn global_ruler_dir() -> PathBuf {
+    if let Ok(xdg) = env::var("XDG_CONFIG_HOME") {
+        PathBuf::from(xdg).join("ruler")
+    } else {
+        directories::BaseDirs::new()
+            .map(|b| b.home_dir().join(".config").join("ruler"))
+            .unwrap_or_else(|| PathBuf::from(".config").join("ruler"))
+    }
+}
+
 fn read_markdown_files(ruler_dir: &Path) -> Result<Vec<PathBuf>, String> {
     let mut files: Vec<PathBuf> = vec![];
     for entry in WalkDir::new(ruler_dir).into_iter().filter_map(|e| e.ok()) {
@@ -674,8 +684,17 @@ fn cmd_apply(m: &ArgMatches) -> Result<(), String> {
     // Compute CWD once for consistent relative Source headers
     let _cwd = env::current_dir().unwrap();
 
-    let ruler_dir = find_ruler_dir(&project_root)
-        .ok_or_else(|| format!(".ruler directory not found (Searched from: {})", project_root.display()))?;
+    let ruler_dir = match find_ruler_dir(&project_root) {
+        Some(p) => p,
+        None => {
+            if !local_only {
+                let g = global_ruler_dir();
+                if g.is_dir() { g } else { return Err(format!(".ruler directory not found (Searched from: {}), and no global config at {}", project_root.display(), g.display())); }
+            } else {
+                return Err(format!(".ruler directory not found (Searched from: {})", project_root.display()));
+            }
+        }
+    };
     if verbose {
         eprintln!("[ruler:verbose] Found .ruler directory at: {}", ruler_dir.display());
     }
@@ -707,13 +726,28 @@ fn cmd_apply(m: &ArgMatches) -> Result<(), String> {
             .collect()
     } else {
         if !cfg.default_agents.is_empty() {
-            agents.into_iter().filter(|id| {
-                // enabled override takes precedence
-                if let Some(ac) = cfg.agents.get(*id) { if let Some(en) = ac.enabled { return en; } }
-                cfg.default_agents.iter().any(|d| d == id || display_name(id).to_lowercase().contains(id))
-            }).collect()
+            let defaults: Vec<String> = cfg.default_agents.iter().map(|s| s.to_lowercase()).collect();
+            agents
+                .into_iter()
+                .filter(|id| {
+                    // Per-agent enabled override takes precedence
+                    if let Some(ac) = cfg.agents.get(*id) {
+                        if let Some(en) = ac.enabled {
+                            return en;
+                        }
+                    }
+                    // Otherwise select if identifier equals a default or display name contains a default substring
+                    defaults.iter().any(|d|
+                        id == d || display_name(id).to_lowercase().contains(d)
+                    )
+                })
+                .collect()
         } else {
-            agents.into_iter().filter(|id| cfg.agents.get(*id).and_then(|a| a.enabled).unwrap_or(true)).collect()
+            // All agents except those explicitly disabled via per-agent config
+            agents
+                .into_iter()
+                .filter(|id| cfg.agents.get(*id).and_then(|a| a.enabled).unwrap_or(true))
+                .collect()
         }
     };
 
