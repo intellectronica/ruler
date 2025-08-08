@@ -24,7 +24,7 @@ pub struct McpConfig {
 }
 
 /// MCP merge strategy
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum McpStrategy {
     Merge,

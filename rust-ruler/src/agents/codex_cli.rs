@@ -3,8 +3,9 @@ use std::path::{Path, PathBuf};
 use std::collections::HashMap;
 use serde_json::Value;
 use crate::agents::Agent;
-use crate::types::{AgentConfig, OutputPath};
+use crate::types::{AgentConfig, OutputPath, McpStrategy};
 use crate::core::filesystem::{backup_file, write_generated_file, ensure_dir_exists};
+use crate::mcp::propagate::propagate_mcp_to_agent;
 
 pub struct CodexCliAgent;
 
@@ -40,35 +41,26 @@ impl Agent for CodexCliAgent {
         backup_file(&instructions_path)?;
         write_generated_file(&instructions_path, concatenated_rules)?;
 
-        // Handle MCP configuration (always enabled for now to match TypeScript behavior)
+                // Handle MCP configuration (always enabled for now to match TypeScript behavior)
         let mcp_enabled = agent_config
             .and_then(|c| c.mcp.as_ref().and_then(|m| m.enabled))
             .unwrap_or(true);
 
-        if mcp_enabled {
-            // Determine the config file path
-            let config_path = agent_config
-                .and_then(|c| c.output_path_config.as_ref())
-                .map(PathBuf::from)
-                .unwrap_or_else(|| default_paths.get("config").unwrap().clone());
+        if mcp_enabled && ruler_mcp_json.is_some() {
+            // Get the merge strategy from agent config, defaulting to merge
+            let strategy = agent_config
+                .and_then(|c| c.mcp.as_ref().and_then(|m| m.strategy.clone()))
+                .unwrap_or(McpStrategy::Merge);
 
-            // Ensure the parent directory exists
-            if let Some(parent) = config_path.parent() {
-                ensure_dir_exists(parent)?;
+            // Use the new MCP propagation system
+            if let Err(e) = propagate_mcp_to_agent(
+                "codex",
+                ruler_mcp_json.unwrap(),
+                project_root,
+                strategy,
+            ) {
+                eprintln!("Warning: Failed to propagate MCP config for Codex CLI: {}", e);
             }
-
-            // For now, create a basic MCP config with default example server
-            // This matches the default mcp.json content from init command
-            let default_mcp_config = r#"
-[mcp_servers.example]
-command = "node"
-args = ["/path/to/mcp-server.js"]
-env = { NODE_ENV = "production" }
-"#.trim();
-
-            // TODO: In Phase 3, implement full MCP server merging from ruler_mcp_json
-            // For now, just create the basic config to match TypeScript behavior
-            write_generated_file(&config_path, default_mcp_config)?;
         }
 
         Ok(())

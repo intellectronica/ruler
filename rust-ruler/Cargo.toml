@@ -22,3 +22,6 @@ serde_yaml = "0.9"
 anyhow = "1.0"
 walkdir = "2.5"
 directories = "5.0"
+
+[dev-dependencies]
+tempfile = "3.8"
