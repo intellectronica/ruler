@@ -1,0 +1,24 @@
+[package]
+name = "ruler"
+version = "0.2.19"
+edition = "2021"
+description = "Ruler — apply the same rules to all coding agents"
+authors = ["Eleanor Berger"]
+license = "MIT"
+homepage = "https://ai.intellectronica.net/ruler"
+repository = "https://github.com/intellectronica/ruler"
+keywords = ["ai", "developer-tools", "copilot", "codex", "claude", "cursor", "aider", "config", "rules", "automation"]
+
+[[bin]]
+name = "ruler"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4.5", features = ["derive"] }
+serde = { version = "1.0", features = ["derive"] }
+toml = "0.8"
+serde_json = "1.0"
+serde_yaml = "0.9"
+anyhow = "1.0"
+walkdir = "2.5"
+directories = "5.0"
