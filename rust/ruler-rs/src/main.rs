@@ -1,5 +1,6 @@
 use clap::{Arg, ArgAction, ArgMatches, Command};
 use serde::{Deserialize, Serialize};
+use serde_json::Value as JsonValue;
 use std::env;
 use std::ffi::OsStr;
 use std::fs;
@@ -43,6 +44,37 @@ fn main() {
                         .value_name("LIST"),
                 )
                 .arg(
+                    Arg::new("config")
+                        .long("config")
+                        .num_args(1)
+                        .value_name("FILE"),
+                )
+                .arg(
+                    Arg::new("with-mcp")
+                        .long("with-mcp")
+                        .action(ArgAction::SetTrue),
+                )
+                .arg(
+                    Arg::new("no-mcp")
+                        .long("no-mcp")
+                        .action(ArgAction::SetTrue),
+                )
+                .arg(
+                    Arg::new("mcp-overwrite")
+                        .long("mcp-overwrite")
+                        .action(ArgAction::SetTrue),
+                )
+                .arg(
+                    Arg::new("gitignore")
+                        .long("gitignore")
+                        .action(ArgAction::SetTrue),
+                )
+                .arg(
+                    Arg::new("no-gitignore")
+                        .long("no-gitignore")
+                        .action(ArgAction::SetTrue),
+                )
+                .arg(
                     Arg::new("verbose")
                         .long("verbose")
                         .short('v')
@@ -51,6 +83,11 @@ fn main() {
                 .arg(
                     Arg::new("dry-run")
                         .long("dry-run")
+                        .action(ArgAction::SetTrue),
+                )
+                .arg(
+                    Arg::new("local-only")
+                        .long("local-only")
                         .action(ArgAction::SetTrue),
                 ),
         )
@@ -69,6 +106,11 @@ fn main() {
                         .value_name("LIST"),
                 )
                 .arg(
+                    Arg::new("keep-backups")
+                        .long("keep-backups")
+                        .action(ArgAction::SetTrue),
+                )
+                .arg(
                     Arg::new("verbose")
                         .long("verbose")
                         .short('v')
@@ -77,6 +119,11 @@ fn main() {
                 .arg(
                     Arg::new("dry-run")
                         .long("dry-run")
+                        .action(ArgAction::SetTrue),
+                )
+                .arg(
+                    Arg::new("local-only")
+                        .long("local-only")
                         .action(ArgAction::SetTrue),
                 ),
         );
@@ -222,6 +269,260 @@ fn backup_if_exists(p: &Path) -> Result<(), String> {
     Ok(())
 }
 
+fn read_json_file(path: &Path) -> JsonValue {
+    if let Ok(s) = fs::read_to_string(path) {
+        serde_json::from_str::<JsonValue>(&s).unwrap_or(JsonValue::Object(Default::default()))
+    } else {
+        JsonValue::Object(Default::default())
+    }
+}
+
+fn write_json_pretty(path: &Path, v: &JsonValue) -> Result<(), String> {
+    ensure_parent(path)?;
+    let s = serde_json::to_string_pretty(v).map_err(|e| e.to_string())? + "\n";
+    fs::write(path, s).map_err(|e| e.to_string())
+}
+
+#[derive(Clone, Copy, PartialEq)]
+enum McpStrategy { Merge, Overwrite }
+
+fn merge_mcp(base: &JsonValue, incoming: &JsonValue, server_key: &str, strategy: McpStrategy) -> JsonValue {
+    // Normalize server maps
+    let mut base_obj = base.as_object().cloned().unwrap_or_default();
+    let base_servers = base_obj
+        .get(server_key)
+        .or_else(|| base_obj.get("mcpServers"))
+        .or_else(|| base_obj.get("mcp"))
+        .and_then(|v| v.as_object().cloned())
+        .unwrap_or_default();
+    let incoming_servers = incoming
+        .get(server_key)
+        .or_else(|| incoming.get("mcpServers"))
+        .or_else(|| incoming.get("mcp"))
+        .and_then(|v| v.as_object().cloned())
+        .unwrap_or_default();
+
+    let servers = if strategy == McpStrategy::Overwrite {
+        incoming_servers
+    } else {
+        let mut merged = base_servers;
+        for (k, v) in incoming_servers.into_iter() { merged.insert(k, v); }
+        merged
+    };
+
+    base_obj.remove("mcpServers"); // cleanup old key if present
+    let mut out = base_obj;
+    out.insert(server_key.to_string(), JsonValue::Object(servers));
+    JsonValue::Object(out)
+}
+
+fn get_native_mcp_path(adapter_name: &str, project_root: &Path) -> Option<PathBuf> {
+    let home = directories::BaseDirs::new().map(|b| b.home_dir().to_path_buf());
+    let mut candidates: Vec<PathBuf> = vec![];
+    match adapter_name {
+        "GitHub Copilot" => {
+            candidates.push(project_root.join(".vscode").join("mcp.json"));
+        }
+        "Cursor" => {
+            candidates.push(project_root.join(".cursor").join("mcp.json"));
+            if let Some(h) = &home { candidates.push(h.join(".cursor").join("mcp.json")); }
+        }
+        "Windsurf" => {
+            if let Some(h) = &home { candidates.push(h.join(".codeium").join("windsurf").join("mcp_config.json")); }
+        }
+        "Claude Code" => {
+            candidates.push(project_root.join(".mcp.json"));
+        }
+        "OpenAI Codex CLI" => {
+            if let Some(h) = &home { candidates.push(h.join(".codex").join("config.json")); }
+        }
+        "Aider" => {
+            candidates.push(project_root.join(".mcp.json"));
+        }
+        "Open Hands" => {
+            candidates.push(project_root.join(".openhands").join("config.toml"));
+        }
+        "Gemini CLI" => {
+            candidates.push(project_root.join(".gemini").join("settings.json"));
+        }
+        "AugmentCode" => {
+            candidates.push(project_root.join(".vscode").join("settings.json"));
+        }
+        "Kilo Code" => {
+            candidates.push(project_root.join(".kilocode").join("mcp.json"));
+        }
+        "OpenCode" => {
+            candidates.push(project_root.join("opencode.json"));
+            if let Some(h) = &home { candidates.push(h.join(".config").join("opencode").join("opencode.json")); }
+        }
+        _ => {}
+    }
+    for p in &candidates {
+        if p.exists() { return Some(p.clone()); }
+    }
+    candidates.into_iter().next()
+}
+
+fn transform_ruler_to_augment_servers(ruler: &JsonValue) -> Vec<JsonValue> {
+    let mut servers: Vec<JsonValue> = vec![];
+    if let Some(map) = ruler.get("mcpServers").and_then(|v| v.as_object()) {
+        for (name, cfg) in map.iter() {
+            let mut obj = serde_json::Map::new();
+            obj.insert("name".into(), JsonValue::String(name.clone()));
+            if let Some(c) = cfg.get("command").cloned() { obj.insert("command".into(), c); }
+            if let Some(a) = cfg.get("args").cloned() { obj.insert("args".into(), a); }
+            if let Some(e) = cfg.get("env").cloned() { obj.insert("env".into(), e); }
+            servers.push(JsonValue::Object(obj));
+        }
+    }
+    servers
+}
+
+fn update_vscode_settings_for_augment(settings_path: &Path, ruler_mcp: &JsonValue, strategy: McpStrategy) -> Result<(), String> {
+    let mut settings = read_json_file(settings_path);
+    let servers = transform_ruler_to_augment_servers(ruler_mcp);
+    let root = settings.as_object_mut().unwrap();
+    let key = "augment.advanced";
+    if !root.contains_key(key) { root.insert(key.into(), JsonValue::Object(Default::default())); }
+    let adv = root.get_mut(key).unwrap().as_object_mut().unwrap();
+    if strategy == McpStrategy::Overwrite {
+        adv.insert("mcpServers".into(), JsonValue::Array(servers));
+    } else {
+        let mut existing: Vec<JsonValue> = adv.get("mcpServers").and_then(|v| v.as_array().cloned()).unwrap_or_default();
+        // merge by name
+        for s in servers.into_iter() {
+            let name = s.get("name").and_then(|v| v.as_str()).unwrap_or("");
+            if let Some(pos) = existing.iter().position(|e| e.get("name").and_then(|v| v.as_str()) == Some(name)) {
+                existing[pos] = s;
+            } else {
+                existing.push(s);
+            }
+        }
+        adv.insert("mcpServers".into(), JsonValue::Array(existing));
+    }
+    write_json_pretty(settings_path, &JsonValue::Object(root.clone()))
+}
+
+fn propagate_mcp_to_openhands(ruler_mcp: &JsonValue, dest: &Path) -> Result<(), String> {
+    // Build or update TOML with mcp.stdio_servers = [ { name, command, args, env } ]
+    let mut toml_val: toml::Value = if dest.exists() {
+        fs::read_to_string(dest).ok().and_then(|s| toml::from_str(&s).ok()).unwrap_or(toml::Value::Table(Default::default()))
+    } else {
+        toml::Value::Table(Default::default())
+    };
+    // Navigate to mcp.stdio_servers
+    let mcp_tbl = toml_val.as_table_mut().unwrap().entry("mcp").or_insert(toml::Value::Table(Default::default())).as_table_mut().unwrap();
+    let arr = mcp_tbl.entry("stdio_servers").or_insert(toml::Value::Array(vec![])).as_array_mut().unwrap();
+    // Build map by name
+    let mut existing: std::collections::BTreeMap<String, toml::Value> = std::collections::BTreeMap::new();
+    for item in arr.iter() {
+        if let Some(name) = item.get("name").and_then(|v| v.as_str()) {
+            existing.insert(name.to_string(), item.clone());
+        }
+    }
+    if let Some(servers) = ruler_mcp.get("mcpServers").and_then(|v| v.as_object()) {
+        for (name, cfg) in servers.iter() {
+            let mut entry = toml::value::Table::new();
+            entry.insert("name".into(), toml::Value::String(name.clone()));
+            if let Some(cmd) = cfg.get("command").and_then(|v| v.as_str()) { entry.insert("command".into(), toml::Value::String(cmd.to_string())); }
+            if let Some(args) = cfg.get("args").and_then(|v| v.as_array()) {
+                let toml_args: Vec<toml::Value> = args.iter().filter_map(|a| a.as_str().map(|s| toml::Value::String(s.to_string()))).collect();
+                entry.insert("args".into(), toml::Value::Array(toml_args));
+            }
+            if let Some(envm) = cfg.get("env").and_then(|v| v.as_object()) {
+                let mut t = toml::value::Table::new();
+                for (k, v) in envm.iter() { if let Some(s) = v.as_str() { t.insert(k.clone(), toml::Value::String(s.to_string())); } }
+                entry.insert("env".into(), toml::Value::Table(t));
+            }
+            existing.insert(name.clone(), toml::Value::Table(entry));
+        }
+    }
+    // Write back to array in stable order
+    let mut new_arr: Vec<toml::Value> = existing.into_values().collect();
+    // replace
+    *arr = new_arr;
+    ensure_parent(dest)?;
+    let s = toml::to_string(&toml_val).map_err(|e| e.to_string())?;
+    fs::write(dest, s).map_err(|e| e.to_string())
+}
+
+fn propagate_mcp_to_opencode(ruler_mcp: &JsonValue, dest: &Path) -> Result<(), String> {
+    // Transform to OpenCode format
+    let mut mcp_map: serde_json::Map<String, JsonValue> = serde_json::Map::new();
+    if let Some(servers) = ruler_mcp.get("mcpServers").and_then(|v| v.as_object()) {
+        for (name, cfg) in servers.iter() {
+            let is_remote = cfg.get("url").is_some();
+            let mut entry = serde_json::Map::new();
+            if is_remote {
+                entry.insert("type".into(), JsonValue::String("remote".into()));
+                if let Some(url) = cfg.get("url").cloned() { entry.insert("url".into(), url); }
+                if let Some(h) = cfg.get("headers").cloned() { entry.insert("headers".into(), h); }
+            } else {
+                entry.insert("type".into(), JsonValue::String("local".into()));
+                // Combine command and args
+                let mut cmd: Vec<JsonValue> = vec![];
+                if let Some(c) = cfg.get("command").and_then(|v| v.as_str()) { cmd.push(JsonValue::String(c.to_string())); }
+                if let Some(args) = cfg.get("args").and_then(|v| v.as_array()) {
+                    for a in args { if let Some(s) = a.as_str() { cmd.push(JsonValue::String(s.to_string())); } }
+                }
+                if !cmd.is_empty() { entry.insert("command".into(), JsonValue::Array(cmd)); }
+                if let Some(env) = cfg.get("env").cloned() { entry.insert("environment".into(), env); }
+            }
+            entry.insert("enabled".into(), JsonValue::Bool(true));
+            mcp_map.insert(name.clone(), JsonValue::Object(entry));
+        }
+    }
+    let mut final_obj = read_json_file(dest).as_object().cloned().unwrap_or_default();
+    final_obj.insert("$schema".into(), JsonValue::String("https://opencode.ai/config.json".into()));
+    // merge mcp
+    let existing_mcp = final_obj.get("mcp").and_then(|v| v.as_object()).cloned().unwrap_or_default();
+    let mut merged_mcp = existing_mcp;
+    for (k, v) in mcp_map.into_iter() { merged_mcp.insert(k, v); }
+    final_obj.insert("mcp".into(), JsonValue::Object(merged_mcp));
+    write_json_pretty(dest, &JsonValue::Object(final_obj))
+}
+
+fn propagate_mcp_to_codex(ruler_mcp: &JsonValue, dest: &Path, strategy: McpStrategy) -> Result<(), String> {
+    // Codex expects TOML with [mcp_servers.<name>] sections
+    let mut doc: toml::Value = if dest.exists() {
+        fs::read_to_string(dest).ok().and_then(|s| toml::from_str(&s).ok()).unwrap_or(toml::Value::Table(Default::default()))
+    } else { toml::Value::Table(Default::default()) };
+    let tbl = doc.as_table_mut().unwrap();
+    // Prepare existing map of server tables
+    let mut existing: std::collections::BTreeMap<String, toml::value::Table> = std::collections::BTreeMap::new();
+    for (k, v) in tbl.iter() {
+        if let Some(rest) = k.strip_prefix("mcp_servers.") {
+            if let Some(t) = v.as_table() { existing.insert(rest.to_string(), t.clone()); }
+        }
+    }
+    if strategy == McpStrategy::Overwrite { existing.clear(); }
+    if let Some(servers) = ruler_mcp.get("mcpServers").and_then(|v| v.as_object()) {
+        for (name, cfg) in servers.iter() {
+            let mut t = toml::value::Table::new();
+            if let Some(cmd) = cfg.get("command").and_then(|v| v.as_str()) { t.insert("command".into(), toml::Value::String(cmd.to_string())); }
+            if let Some(args) = cfg.get("args").and_then(|v| v.as_array()) {
+                let arr: Vec<toml::Value> = args.iter().filter_map(|a| a.as_str().map(|s| toml::Value::String(s.to_string()))).collect();
+                t.insert("args".into(), toml::Value::Array(arr));
+            }
+            if let Some(envm) = cfg.get("env").and_then(|v| v.as_object()) {
+                let mut env_tbl = toml::value::Table::new();
+                for (ek, ev) in envm.iter() { if let Some(s) = ev.as_str() { env_tbl.insert(ek.clone(), toml::Value::String(s.to_string())); } }
+                t.insert("env".into(), toml::Value::Table(env_tbl));
+            }
+            existing.insert(name.clone(), t);
+        }
+    }
+    // Rebuild tbl: keep non-mcp_servers keys
+    let keys: Vec<String> = tbl.keys().cloned().collect();
+    for k in keys { if k.starts_with("mcp_servers.") { tbl.remove(&k); } }
+    for (name, t) in existing.into_iter() {
+        tbl.insert(format!("mcp_servers.{}", name), toml::Value::Table(t));
+    }
+    ensure_parent(dest)?;
+    let s = toml::to_string(&doc).map_err(|e| e.to_string())?;
+    fs::write(dest, s).map_err(|e| e.to_string())
+}
+
 fn update_gitignore(project_root: &Path, paths: &[PathBuf]) -> Result<(), String> {
     let gi = project_root.join(".gitignore");
     let mut content = String::new();
@@ -290,6 +591,15 @@ fn cmd_apply(m: &ArgMatches) -> Result<(), String> {
     let agents_filter: Option<Vec<String>> = m
         .get_one::<String>("agents")
         .map(|s| s.split(',').map(|a| a.trim().to_lowercase()).collect());
+    let _config_path = m.get_one::<String>("config").cloned();
+    let local_only = m.get_flag("local-only");
+    let with_mcp = m.get_flag("with-mcp");
+    let no_mcp = m.get_flag("no-mcp");
+    let mcp_enabled = if no_mcp { false } else if with_mcp { true } else { true };
+    let mcp_strategy = if m.get_flag("mcp-overwrite") { McpStrategy::Overwrite } else { McpStrategy::Merge };
+    let no_gitignore = m.get_flag("no-gitignore");
+    let yes_gitignore = m.get_flag("gitignore");
+    let gitignore_enabled = if no_gitignore { false } else if yes_gitignore { true } else { true };
 
     // Compute CWD once for consistent relative Source headers
     let _cwd = env::current_dir().unwrap();
@@ -307,9 +617,18 @@ fn cmd_apply(m: &ArgMatches) -> Result<(), String> {
     if verbose {
         eprintln!("[ruler:verbose] Concatenated rules length: {} characters", concatenated.len());
     }
+    // Load Ruler MCP JSON if present
+    let ruler_mcp_path = ruler_dir.join("mcp.json");
+    let ruler_mcp_json = if ruler_mcp_path.exists() {
+        if verbose { eprintln!("[ruler:verbose] Loaded MCP configuration from: {}", ruler_mcp_path.display()); }
+        read_json_file(&ruler_mcp_path)
+    } else { JsonValue::Object(Default::default()) };
 
-    // Limit to four agents used in functional test: copilot, claude, cursor, aider
-    let agents = vec!["copilot", "claude", "cursor", "aider"];
+    // Full supported agents
+    let agents = vec![
+        "copilot", "claude", "codex", "cursor", "windsurf", "cline", "aider", "firebase",
+        "openhands", "gemini-cli", "jules", "junie", "augmentcode", "kilocode", "opencode", "goose", "crush", "amp"
+    ];
     let selected: Vec<&str> = if let Some(filters) = agents_filter {
         agents
             .into_iter()
@@ -320,6 +639,7 @@ fn cmd_apply(m: &ArgMatches) -> Result<(), String> {
     };
 
     let mut generated_paths: Vec<PathBuf> = vec![];
+    let mut agents_md_written = false;
 
     for id in selected {
         if verbose { eprintln!("[ruler:verbose] Processing agent: {}", display_name(id)); }
@@ -330,12 +650,29 @@ fn cmd_apply(m: &ArgMatches) -> Result<(), String> {
                 backup_if_exists(&dest)?;
                 fs::write(&dest, &concatenated).map_err(|e| e.to_string())?;
                 generated_paths.push(dest);
+                // MCP
+                if mcp_enabled {
+                    if let Some(dest_mcp) = get_native_mcp_path(display_name(id), &project_root) {
+                        let existing = read_json_file(&dest_mcp);
+                        let merged = merge_mcp(&existing, &ruler_mcp_json, "servers", mcp_strategy);
+                        write_json_pretty(&dest_mcp, &merged)?;
+                        if dest_mcp.starts_with(&project_root) { generated_paths.push(dest_mcp); }
+                    }
+                }
             }
             "claude" => {
                 let dest = project_root.join("CLAUDE.md");
                 backup_if_exists(&dest)?;
                 fs::write(&dest, &concatenated).map_err(|e| e.to_string())?;
                 generated_paths.push(dest);
+                if mcp_enabled {
+                    if let Some(dest_mcp) = get_native_mcp_path(display_name(id), &project_root) {
+                        let existing = read_json_file(&dest_mcp);
+                        let merged = merge_mcp(&existing, &ruler_mcp_json, "mcpServers", mcp_strategy);
+                        write_json_pretty(&dest_mcp, &merged)?;
+                        if dest_mcp.starts_with(&project_root) { generated_paths.push(dest_mcp); }
+                    }
+                }
             }
             "cursor" => {
                 let dest = project_root
@@ -351,6 +688,14 @@ fn cmd_apply(m: &ArgMatches) -> Result<(), String> {
                 content.push_str(concatenated.trim_start());
                 fs::write(&dest, content).map_err(|e| e.to_string())?;
                 generated_paths.push(dest);
+                if mcp_enabled {
+                    if let Some(dest_mcp) = get_native_mcp_path(display_name(id), &project_root) {
+                        let existing = read_json_file(&dest_mcp);
+                        let merged = merge_mcp(&existing, &ruler_mcp_json, "mcpServers", mcp_strategy);
+                        write_json_pretty(&dest_mcp, &merged)?;
+                        if dest_mcp.starts_with(&project_root) { generated_paths.push(dest_mcp); }
+                    }
+                }
             }
             "aider" => {
                 let md = project_root.join("ruler_aider_instructions.md");
@@ -371,12 +716,118 @@ fn cmd_apply(m: &ArgMatches) -> Result<(), String> {
                 fs::write(&cfg, yaml).map_err(|e| e.to_string())?;
                 generated_paths.push(md);
                 generated_paths.push(cfg);
+                if mcp_enabled {
+                    if let Some(dest_mcp) = get_native_mcp_path(display_name(id), &project_root) {
+                        let existing = read_json_file(&dest_mcp);
+                        let merged = merge_mcp(&existing, &ruler_mcp_json, "mcpServers", mcp_strategy);
+                        write_json_pretty(&dest_mcp, &merged)?;
+                        if dest_mcp.starts_with(&project_root) { generated_paths.push(dest_mcp); }
+                    }
+                }
+            }
+            "codex" => {
+                let md = project_root.join("AGENTS.md");
+                if !agents_md_written { backup_if_exists(&md)?; fs::write(&md, &concatenated).map_err(|e| e.to_string())?; agents_md_written = true; }
+                generated_paths.push(md);
+                if mcp_enabled {
+                    // Write TOML at .codex/config.toml
+                    let dest = project_root.join(".codex").join("config.toml");
+                    propagate_mcp_to_codex(&ruler_mcp_json, &dest, mcp_strategy)?;
+                    generated_paths.push(dest);
+                }
+            }
+            "windsurf" => {
+                let dest = project_root.join(".windsurf").join("rules").join("ruler_windsurf_instructions.md");
+                ensure_parent(&dest)?; backup_if_exists(&dest)?; fs::write(&dest, &concatenated).map_err(|e| e.to_string())?; generated_paths.push(dest);
+            }
+            "cline" => {
+                let dest = project_root.join(".clinerules"); backup_if_exists(&dest)?; fs::write(&dest, &concatenated).map_err(|e| e.to_string())?; generated_paths.push(dest);
+            }
+            "firebase" => {
+                let dest = project_root.join(".idx").join("airules.md"); ensure_parent(&dest)?; backup_if_exists(&dest)?; fs::write(&dest, &concatenated).map_err(|e| e.to_string())?; generated_paths.push(dest);
+            }
+            "openhands" => {
+                let dest = project_root.join(".openhands").join("microagents").join("repo.md"); ensure_parent(&dest)?; backup_if_exists(&dest)?; fs::write(&dest, &concatenated).map_err(|e| e.to_string())?; generated_paths.push(dest);
+                if mcp_enabled {
+                    if let Some(dest_mcp) = get_native_mcp_path(display_name(id), &project_root) {
+                        propagate_mcp_to_openhands(&ruler_mcp_json, &dest_mcp)?;
+                        if dest_mcp.starts_with(&project_root) { generated_paths.push(dest_mcp); }
+                    }
+                }
+            }
+            "gemini-cli" => {
+                let dest = project_root.join("GEMINI.md"); backup_if_exists(&dest)?; fs::write(&dest, &concatenated).map_err(|e| e.to_string())?; generated_paths.push(dest);
+                if mcp_enabled {
+                    if let Some(dest_mcp) = get_native_mcp_path(display_name(id), &project_root) {
+                        let existing = read_json_file(&dest_mcp);
+                        let merged = merge_mcp(&existing, &ruler_mcp_json, "mcpServers", mcp_strategy);
+                        write_json_pretty(&dest_mcp, &merged)?;
+                        if dest_mcp.starts_with(&project_root) { generated_paths.push(dest_mcp); }
+                    }
+                }
+            }
+            "jules" => {
+                let md = project_root.join("AGENTS.md");
+                if !agents_md_written { backup_if_exists(&md)?; fs::write(&md, &concatenated).map_err(|e| e.to_string())?; agents_md_written = true; }
+                generated_paths.push(md);
+            }
+            "junie" => {
+                let dest = project_root.join(".junie").join("guidelines.md"); ensure_parent(&dest)?; backup_if_exists(&dest)?; fs::write(&dest, &concatenated).map_err(|e| e.to_string())?; generated_paths.push(dest);
+            }
+            "augmentcode" => {
+                let dest = project_root.join(".augment").join("rules").join("ruler_augment_instructions.md"); ensure_parent(&dest)?; backup_if_exists(&dest)?; fs::write(&dest, &concatenated).map_err(|e| e.to_string())?; generated_paths.push(dest);
+                if mcp_enabled {
+                    if let Some(dest_settings) = get_native_mcp_path(display_name(id), &project_root) {
+                        update_vscode_settings_for_augment(&dest_settings, &ruler_mcp_json, mcp_strategy)?;
+                        if dest_settings.starts_with(&project_root) { generated_paths.push(dest_settings); }
+                    }
+                }
+            }
+            "kilocode" => {
+                let dest = project_root.join(".kilocode").join("rules").join("ruler_kilocode_instructions.md"); ensure_parent(&dest)?; backup_if_exists(&dest)?; fs::write(&dest, &concatenated).map_err(|e| e.to_string())?; generated_paths.push(dest);
+                if mcp_enabled {
+                    if let Some(dest_mcp) = get_native_mcp_path(display_name(id), &project_root) {
+                        let existing = read_json_file(&dest_mcp);
+                        let merged = merge_mcp(&existing, &ruler_mcp_json, "mcpServers", mcp_strategy);
+                        write_json_pretty(&dest_mcp, &merged)?;
+                        if dest_mcp.starts_with(&project_root) { generated_paths.push(dest_mcp); }
+                    }
+                }
+            }
+            "opencode" => {
+                let md = project_root.join("AGENTS.md"); backup_if_exists(&md)?; fs::write(&md, &concatenated).map_err(|e| e.to_string())?; generated_paths.push(md);
+                if mcp_enabled {
+                    if let Some(dest_mcp) = get_native_mcp_path(display_name(id), &project_root) {
+                        propagate_mcp_to_opencode(&ruler_mcp_json, &dest_mcp)?;
+                        if dest_mcp.starts_with(&project_root) { generated_paths.push(dest_mcp); }
+                    }
+                }
+            }
+            "goose" => {
+                let dest = project_root.join(".goosehints"); backup_if_exists(&dest)?; fs::write(&dest, &concatenated).map_err(|e| e.to_string())?; generated_paths.push(dest);
+            }
+            "crush" => {
+                let md = project_root.join("CRUSH.md"); backup_if_exists(&md)?; fs::write(&md, &concatenated).map_err(|e| e.to_string())?; generated_paths.push(md);
+                // Transform MCP to { mcp: {...} }
+                if mcp_enabled {
+                    let mut obj = serde_json::Map::new();
+                    let servers = ruler_mcp_json.get("mcpServers").cloned().unwrap_or(JsonValue::Object(Default::default()));
+                    obj.insert("mcp".into(), servers);
+                    let mcp_path = project_root.join(".crush.json");
+                    write_json_pretty(&mcp_path, &JsonValue::Object(obj))?;
+                    generated_paths.push(mcp_path);
+                }
+            }
+            "amp" => {
+                let dest = project_root.join("AGENT.md"); backup_if_exists(&dest)?; fs::write(&dest, &concatenated).map_err(|e| e.to_string())?; generated_paths.push(dest);
             }
             _ => {}
         }
     }
 
-    update_gitignore(&project_root, &generated_paths)?;
+    if gitignore_enabled {
+        update_gitignore(&project_root, &generated_paths)?;
+    }
     println!("Ruler apply completed successfully.");
     Ok(())
 }
@@ -385,8 +836,22 @@ fn display_name(id: &str) -> &str {
     match id {
         "copilot" => "GitHub Copilot",
         "claude" => "Claude Code",
+        "codex" => "OpenAI Codex CLI",
         "cursor" => "Cursor",
         "aider" => "Aider",
+        "windsurf" => "Windsurf",
+        "cline" => "Cline",
+        "firebase" => "Firebase Studio",
+        "openhands" => "Open Hands",
+        "gemini-cli" => "Gemini CLI",
+        "jules" => "Jules",
+        "junie" => "Junie",
+        "augmentcode" => "AugmentCode",
+        "kilocode" => "Kilo Code",
+        "opencode" => "OpenCode",
+        "goose" => "Goose",
+        "crush" => "Crush",
+        "amp" => "Amp",
         _ => id,
     }
 }
@@ -394,6 +859,7 @@ fn display_name(id: &str) -> &str {
 fn cmd_revert(m: &ArgMatches) -> Result<(), String> {
     let project_root = opt_project_root(m);
     let verbose = m.get_flag("verbose");
+    let keep_backups = m.get_flag("keep-backups");
     let items = vec![
         project_root.join("CLAUDE.md"),
         project_root.join(".github").join("copilot-instructions.md"),
@@ -403,15 +869,32 @@ fn cmd_revert(m: &ArgMatches) -> Result<(), String> {
             .join("ruler_cursor_instructions.mdc"),
         project_root.join("ruler_aider_instructions.md"),
         project_root.join(".aider.conf.yml"),
+        project_root.join("AGENTS.md"),
+        project_root.join(".clinerules"),
+        project_root.join(".windsurf").join("rules").join("ruler_windsurf_instructions.md"),
+        project_root.join(".idx").join("airules.md"),
+        project_root.join(".openhands").join("microagents").join("repo.md"),
+        project_root.join("GEMINI.md"),
+        project_root.join(".junie").join("guidelines.md"),
+        project_root.join(".augment").join("rules").join("ruler_augment_instructions.md"),
+        project_root.join(".kilocode").join("rules").join("ruler_kilocode_instructions.md"),
+        project_root.join(".goosehints"),
+        project_root.join("CRUSH.md"),
+        project_root.join("AGENT.md"),
         project_root.join(".vscode").join("mcp.json"),
         project_root.join(".cursor").join("mcp.json"),
         project_root.join(".mcp.json"),
+        project_root.join(".gemini").join("settings.json"),
+        project_root.join(".kilocode").join("mcp.json"),
+        project_root.join("opencode.json"),
+        project_root.join(".crush.json"),
     ];
     for p in items {
-    let bak = PathBuf::from(format!("{}.bak", p.to_string_lossy()));
-    if bak.exists() {
+        let bak = PathBuf::from(format!("{}.bak", p.to_string_lossy()));
+        if bak.exists() {
             if !m.get_flag("dry-run") {
                 fs::copy(&bak, &p).ok();
+                if !keep_backups { let _ = fs::remove_file(&bak); }
                 if verbose { eprintln!("[ruler:verbose] Restored from backup: {}", p.display()); }
             }
         } else if p.exists() {
@@ -439,7 +922,9 @@ fn cmd_revert(m: &ArgMatches) -> Result<(), String> {
         }
     }
     // Remove empty dirs for the four agents
-    for d in [".github", ".cursor", ".vscode"] {
+    for d in [
+        ".github", ".cursor", ".vscode", ".windsurf", ".junie", ".augment", ".kilocode", ".openhands", ".idx", ".gemini"
+    ] {
         let dir = project_root.join(d);
         if dir.exists() {
             // attempt to remove dir tree if empty
