@@ -53,6 +53,7 @@ fn main() {
                 .arg(
                     Arg::new("with-mcp")
                         .long("with-mcp")
+                        .alias("mcp")
                         .action(ArgAction::SetTrue),
                 )
                 .arg(
