@@ -1,0 +1,1 @@
+Cloned<Filter<std::slice::Iter<'_, Box<dyn Agent>>, {closure@src/cli/commands.rs:238:34: 238:41}>>

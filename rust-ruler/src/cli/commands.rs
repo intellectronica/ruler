@@ -140,28 +140,151 @@ pub fn apply_command(
     dry_run: bool,
     local_only: bool,
 ) -> Result<()> {
-    // Simple implementation - just print what would be done for now
+    use crate::core::{filesystem, config as config_loader, rules};
+    use crate::types::{ConfigOptions, create_ruler_error};
+    use crate::agents::{get_all_agents, Agent};
+    use std::path::PathBuf;
+
     let action_prefix = if dry_run { "[ruler:dry-run]" } else { "[ruler]" };
     
     if verbose {
         println!("Loading configuration from project root: {}", project_root);
     }
     
-    println!("{} Apply command called with project_root: {}", action_prefix, project_root);
+    // Load configuration
+    let config_options = ConfigOptions {
+        project_root: PathBuf::from(&project_root),
+        cli_agents: agents.clone(),
+        config_path: config.map(PathBuf::from),
+    };
     
-    if let Some(ref agents_list) = agents {
-        if verbose {
-            println!("Agents specified: {:?}", agents_list);
+    let loaded_config = config_loader::load_config(config_options)?;
+    
+    if verbose {
+        println!("Loaded configuration with {} agent configs", loaded_config.agent_configs.len());
+    }
+    
+    // Find .ruler directory
+    let ruler_dir = filesystem::find_ruler_dir(&PathBuf::from(&project_root), !local_only)?
+        .ok_or_else(|| create_ruler_error(
+            ".ruler directory not found",
+            &format!("Searched from: {}", project_root)
+        ))?;
+    
+    if verbose {
+        println!("Found .ruler directory at: {}", ruler_dir.display());
+    }
+    
+    // Read markdown files
+    let files = filesystem::read_markdown_files(&ruler_dir)?;
+    if verbose {
+        println!("Found {} markdown files in ruler configuration directory", files.len());
+    }
+    
+    // Concatenate rules
+    let concatenated = rules::concatenate_rules(&files);
+    if verbose {
+        println!("Concatenated rules length: {} characters", concatenated.len());
+    }
+    
+    // Get all available agents
+    let all_agents = get_all_agents();
+    
+    // Determine which agents to run
+    let selected_agents: Vec<&Box<dyn Agent>> = if let Some(ref agent_names) = agents {
+        // CLI specified agents
+        let mut selected = Vec::new();
+        for agent_name in agent_names {
+            let agent_name_lower = agent_name.to_lowercase();
+            let found = all_agents.iter().find(|agent| {
+                agent.identifier() == agent_name_lower || 
+                agent.name().to_lowercase().contains(&agent_name_lower)
+            });
+            
+            match found {
+                Some(agent) => selected.push(agent),
+                None => {
+                    let valid_agents: Vec<_> = all_agents.iter().map(|a| a.identifier()).collect();
+                    return Err(create_ruler_error(
+                        &format!("Invalid agent specified: {}", agent_name),
+                        &format!("Valid agents are: {}", valid_agents.join(", "))
+                    ));
+                }
+            }
         }
-        for agent in agents_list {
-            println!("{} Would apply rules to agent: {}", action_prefix, agent);
+        selected
+    } else if let Some(ref default_agents) = loaded_config.default_agents {
+        // Config specified default agents
+        let mut selected = Vec::new();
+        for agent_name in default_agents {
+            let agent_name_lower = agent_name.to_lowercase();
+            let found = all_agents.iter().find(|agent| {
+                agent.identifier() == agent_name_lower || 
+                agent.name().to_lowercase().contains(&agent_name_lower)
+            });
+            
+            if let Some(agent) = found {
+                // Check if this agent is explicitly disabled in config
+                let agent_config = loaded_config.agent_configs.get(agent.identifier());
+                let enabled = agent_config.and_then(|c| c.enabled).unwrap_or(true);
+                if enabled {
+                    selected.push(agent);
+                }
+            }
         }
+        selected
     } else {
-        println!("{} Would apply rules to all enabled agents", action_prefix);
+        // All agents, but respect enabled flags
+        all_agents.iter().filter(|agent| {
+            let agent_config = loaded_config.agent_configs.get(agent.identifier());
+            let enabled = agent_config.and_then(|c| c.enabled).unwrap_or(true);
+            enabled
+        }).collect()
+    };
+    
+    if verbose {
+        let agent_names: Vec<_> = selected_agents.iter().map(|a| a.name()).collect();
+        println!("Selected agents: {}", agent_names.join(", "));
+    }
+    
+    // Apply configuration for each selected agent
+    for agent in &selected_agents {
+        println!("{} Applying rules for {}...", action_prefix, agent.name());
+        
+        if verbose {
+            println!("Processing agent: {}", agent.name());
+        }
+        
+        let agent_config = loaded_config.agent_configs.get(agent.identifier());
+        
+        if !dry_run {
+            agent.apply_config(
+                &concatenated,
+                &PathBuf::from(&project_root),
+                None, // TODO: Add MCP support later
+                agent_config,
+            )?;
+        } else {
+            // For dry run, just show what would be done
+            let output_path = match agent_config.and_then(|c| c.output_path.as_ref()) {
+                Some(path) => PathBuf::from(path),
+                None => match agent.default_output_path(&PathBuf::from(&project_root)) {
+                    crate::types::OutputPath::Single(path) => path,
+                    crate::types::OutputPath::Multiple(paths) => {
+                        // For dry run, just pick the first available path
+                        paths.values().next().unwrap_or(&PathBuf::from("unknown")).clone()
+                    },
+                },
+            };
+            
+            if verbose {
+                println!("DRY RUN: Would write rules to: {}", output_path.display());
+            }
+        }
     }
     
     if !dry_run {
-        println!("✓ Configuration applied successfully (placeholder)");
+        println!("Ruler apply completed successfully.");
     } else {
         println!("✓ Dry run completed - no files were modified");
     }
