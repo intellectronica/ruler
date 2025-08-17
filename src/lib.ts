@@ -1,22 +1,5 @@
 import { IAgent } from './agents/IAgent';
-import { CopilotAgent } from './agents/CopilotAgent';
-import { ClaudeAgent } from './agents/ClaudeAgent';
-import { CodexCliAgent } from './agents/CodexCliAgent';
-import { CursorAgent } from './agents/CursorAgent';
-import { WindsurfAgent } from './agents/WindsurfAgent';
-import { ClineAgent } from './agents/ClineAgent';
-import { AiderAgent } from './agents/AiderAgent';
-import { FirebaseAgent } from './agents/FirebaseAgent';
-import { OpenHandsAgent } from './agents/OpenHandsAgent';
-import { GeminiCliAgent } from './agents/GeminiCliAgent';
-import { JulesAgent } from './agents/JulesAgent';
-import { JunieAgent } from './agents/JunieAgent';
-import { AugmentCodeAgent } from './agents/AugmentCodeAgent';
-import { KiloCodeAgent } from './agents/KiloCodeAgent';
-import { OpenCodeAgent } from './agents/OpenCodeAgent';
-import { CrushAgent } from './agents/CrushAgent';
-import { GooseAgent } from './agents/GooseAgent';
-import { AmpAgent } from './agents/AmpAgent';
+import { allAgents } from './agents';
 import { McpStrategy } from './types';
 import { logVerbose } from './constants';
 import {
@@ -26,26 +9,9 @@ import {
   updateGitignore,
 } from './core/apply-engine';
 
-const agents: IAgent[] = [
-  new CopilotAgent(),
-  new ClaudeAgent(),
-  new CodexCliAgent(),
-  new CursorAgent(),
-  new WindsurfAgent(),
-  new ClineAgent(),
-  new AiderAgent(),
-  new FirebaseAgent(),
-  new OpenHandsAgent(),
-  new GeminiCliAgent(),
-  new JulesAgent(),
-  new JunieAgent(),
-  new AugmentCodeAgent(),
-  new KiloCodeAgent(),
-  new OpenCodeAgent(),
-  new GooseAgent(),
-  new CrushAgent(),
-  new AmpAgent(),
-];
+const agents: IAgent[] = allAgents;
+
+export { allAgents };
 
 /**
  * Applies ruler configurations for all supported AI agents.
