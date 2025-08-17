@@ -46,8 +46,6 @@ const agents: IAgent[] = [
   new AmpAgent(),
 ];
 
-
-
 /**
  * Reverts ruler configurations for selected AI agents.
  */
@@ -194,7 +192,9 @@ export async function revertAllAgentConfigs(
     console.log(`  Backup files removed: ${totalBackupsRemoved}`);
   }
   if (cleanupResult.directoriesRemoved > 0) {
-    console.log(`  Empty directories removed: ${cleanupResult.directoriesRemoved}`);
+    console.log(
+      `  Empty directories removed: ${cleanupResult.directoriesRemoved}`,
+    );
   }
   if (gitignoreCleaned) {
     console.log(`  .gitignore cleaned: yes`);
@@ -210,7 +210,7 @@ async function cleanGitignore(
   dryRun: boolean,
 ): Promise<boolean> {
   const gitignorePath = path.join(projectRoot, '.gitignore');
-  
+
   try {
     await fs.access(gitignorePath);
   } catch {

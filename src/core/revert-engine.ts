@@ -438,63 +438,6 @@ async function removeAdditionalAgentFiles(
 }
 
 /**
- * Removes the ruler-managed block from .gitignore file.
- */
-async function cleanGitignore(
-  projectRoot: string,
-  verbose: boolean,
-  dryRun: boolean,
-): Promise<boolean> {
-  const gitignorePath = path.join(projectRoot, '.gitignore');
-  const gitignoreExists = await fileExists(gitignorePath);
-
-  if (!gitignoreExists) {
-    logVerbose('No .gitignore file found', verbose);
-    return false;
-  }
-
-  const content = await fs.readFile(gitignorePath, 'utf8');
-  const startMarker = '# START Ruler Generated Files';
-  const endMarker = '# END Ruler Generated Files';
-
-  const startIndex = content.indexOf(startMarker);
-  const endIndex = content.indexOf(endMarker);
-
-  if (startIndex === -1 || endIndex === -1) {
-    logVerbose('No ruler-managed block found in .gitignore', verbose);
-    return false;
-  }
-
-  const actionPrefix = dryRun ? '[ruler:dry-run]' : '[ruler]';
-
-  if (dryRun) {
-    logVerbose(
-      `${actionPrefix} Would remove ruler block from .gitignore`,
-      verbose,
-    );
-  } else {
-    const beforeBlock = content.substring(0, startIndex);
-    const afterBlock = content.substring(endIndex + endMarker.length);
-
-    let newContent = beforeBlock + afterBlock;
-    newContent = newContent.replace(/\n{3,}/g, '\n\n'); // Replace 3+ newlines with 2
-
-    if (newContent.trim() === '') {
-      await fs.unlink(gitignorePath);
-      logVerbose(`${actionPrefix} Removed empty .gitignore file`, verbose);
-    } else {
-      await fs.writeFile(gitignorePath, newContent);
-      logVerbose(
-        `${actionPrefix} Removed ruler block from .gitignore`,
-        verbose,
-      );
-    }
-  }
-
-  return true;
-}
-
-/**
  * Reverts configuration for a single agent.
  * @param agent The agent to revert
  * @param projectRoot Root directory of the project
@@ -575,11 +518,7 @@ export async function revertAgentConfiguration(
           }
         }
       } else {
-        const mcpRemoved = await removeGeneratedFile(
-          mcpPath,
-          verbose,
-          dryRun,
-        );
+        const mcpRemoved = await removeGeneratedFile(mcpPath, verbose, dryRun);
         if (mcpRemoved) {
           result.removed++;
         }

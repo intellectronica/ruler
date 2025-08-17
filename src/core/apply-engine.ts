@@ -282,8 +282,7 @@ async function handleMcpConfiguration(
 ): Promise<void> {
   const dest = await getNativeMcpPath(agent.getName(), projectRoot);
   const mcpEnabledForAgent =
-    cliMcpEnabled &&
-    (agentConfig?.mcp?.enabled ?? config.mcp?.enabled ?? true);
+    cliMcpEnabled && (agentConfig?.mcp?.enabled ?? config.mcp?.enabled ?? true);
   const rulerDir = await FileSystemUtils.findRulerDir(projectRoot, true);
   const rulerMcpFile = rulerDir ? path.join(rulerDir, 'mcp.json') : '';
 
@@ -345,12 +344,7 @@ async function handleMcpConfiguration(
           logVerbose(`DRY RUN: Would apply MCP config to: ${dest}`, true);
         } else {
           const existing = await readNativeMcp(dest);
-          const merged = mergeMcp(
-            existing,
-            rulerMcpJson,
-            strategy,
-            serverKey,
-          );
+          const merged = mergeMcp(existing, rulerMcpJson, strategy, serverKey);
           await writeNativeMcp(dest, merged);
         }
       }
