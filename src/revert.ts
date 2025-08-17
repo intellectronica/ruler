@@ -21,7 +21,7 @@ import { OpenCodeAgent } from './agents/OpenCodeAgent';
 import { GooseAgent } from './agents/GooseAgent';
 import { AmpAgent } from './agents/AmpAgent';
 import { getNativeMcpPath } from './paths/mcp';
-import { IAgentConfig } from './agents/IAgent';
+import { getAgentOutputPaths } from './agents/agent-utils';
 import { createRulerError, logVerbose } from './constants';
 import {
   readVSCodeSettings,
@@ -48,45 +48,6 @@ const agents: IAgent[] = [
   new GooseAgent(),
   new AmpAgent(),
 ];
-
-/**
- * Gets all output paths for an agent, taking into account any config overrides.
- * This is a copy of the function from lib.ts to maintain consistency.
- */
-function getAgentOutputPaths(
-  agent: IAgent,
-  projectRoot: string,
-  agentConfig?: IAgentConfig,
-): string[] {
-  const paths: string[] = [];
-  const defaults = agent.getDefaultOutputPath(projectRoot);
-
-  if (typeof defaults === 'string') {
-    const actualPath = agentConfig?.outputPath ?? defaults;
-    paths.push(actualPath);
-  } else {
-    const defaultPaths = defaults as Record<string, string>;
-
-    if ('instructions' in defaultPaths) {
-      const instructionsPath =
-        agentConfig?.outputPathInstructions ?? defaultPaths.instructions;
-      paths.push(instructionsPath);
-    }
-
-    if ('config' in defaultPaths) {
-      const configPath = agentConfig?.outputPathConfig ?? defaultPaths.config;
-      paths.push(configPath);
-    }
-
-    for (const [key, defaultPath] of Object.entries(defaultPaths)) {
-      if (key !== 'instructions' && key !== 'config') {
-        paths.push(defaultPath);
-      }
-    }
-  }
-
-  return paths;
-}
 
 /**
  * Checks if a file exists.
