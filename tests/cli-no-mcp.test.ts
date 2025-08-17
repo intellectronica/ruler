@@ -30,7 +30,7 @@ describe('cli-no-mcp', () => {
   it('does not apply MCP when --no-mcp is used', async () => {
     const nativePath = path.join(tmpDir, '.vscode', 'mcp.json');
     const before = await fs.readFile(nativePath, 'utf8');
-    execSync('npm run build', { stdio: 'inherit' });
+    
     execSync(
       `node dist/cli/index.js apply --project-root ${tmpDir} --no-mcp`,
       { stdio: 'inherit' },

@@ -43,7 +43,7 @@ describe('mcp-key-overwrite', () => {
   });
 
   it('should overwrite with correct keys for different agents', async () => {
-    execSync('npm run build', { stdio: 'inherit' });
+    
     execSync(`node dist/cli/index.js apply --project-root ${tmpDir} --agents copilot,cursor --mcp-overwrite`, {
       stdio: 'inherit',
     });

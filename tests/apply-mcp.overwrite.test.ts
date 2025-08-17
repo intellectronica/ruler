@@ -30,7 +30,7 @@ describe('apply-mcp.overwrite', () => {
   });
 
   it('overwrites existing native config when --mcp-overwrite is used', async () => {
-    execSync('npm run build', { stdio: 'inherit' });
+    
     execSync(
       `node dist/cli/index.js apply --project-root ${tmpDir} --mcp-overwrite`,
       { stdio: 'inherit' },

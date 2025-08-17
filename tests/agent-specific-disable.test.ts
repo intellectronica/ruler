@@ -44,7 +44,7 @@ enabled = false
   });
 
   it('skips disabled agent but merges others', async () => {
-    execSync('npm run build', { stdio: 'inherit' });
+    
     execSync(`node dist/cli/index.js apply --project-root ${tmpDir}`, {
       stdio: 'inherit',
     });

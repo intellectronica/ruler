@@ -43,7 +43,7 @@ describe('mcp-key-per-agent', () => {
   });
 
   it('should use "servers" key for Copilot and "mcpServers" key for Cursor', async () => {
-    execSync('npm run build', { stdio: 'inherit' });
+    
     execSync(`node dist/cli/index.js apply --project-root ${tmpDir} --agents copilot,cursor`, {
       stdio: 'inherit',
     });

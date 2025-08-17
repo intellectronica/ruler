@@ -34,7 +34,7 @@ enabled = false
   it('does not touch native config when [mcp] enabled=false', async () => {
     const nativePath = path.join(tmpDir, '.vscode', 'mcp.json');
     const before = await fs.readFile(nativePath, 'utf8');
-    execSync('npm run build', { stdio: 'inherit' });
+    
     execSync(`node dist/cli/index.js apply --project-root ${tmpDir}`, {
       stdio: 'inherit',
     });

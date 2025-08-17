@@ -30,7 +30,7 @@ describe('apply-mcp.merge', () => {
   });
 
   it('merges servers from .ruler/mcp.json and existing native config', async () => {
-    execSync('npm run build', { stdio: 'inherit' });
+    
     execSync(`node dist/cli/index.js apply --project-root ${tmpDir}`, {
       stdio: 'inherit',
     });

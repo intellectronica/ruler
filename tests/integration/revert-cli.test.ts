@@ -14,7 +14,7 @@ describe('Revert CLI Integration', () => {
     await fs.mkdir(rulerDir, { recursive: true });
     await fs.writeFile(path.join(rulerDir, 'instructions.md'), 'Test Rule');
     
-    execSync('npm run build', { stdio: 'inherit' });
+    
   });
 
   afterEach(async () => {
