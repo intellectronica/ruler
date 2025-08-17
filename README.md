@@ -1,11 +1,27 @@
 # Ruler: Centralise Your AI Coding Assistant Instructions
 
-[![CI](https://github.com/intellectronica/ruler/actions/workflows/ci.yml/badge.svg)](https://github.com/intellectronica/ruler/actions/workflows/ci.yml)
-[![npm version](https://badge.fury.io/js/%40intellectronica%2Fruler.svg)](https://badge.fury.io/js/%40intellectronica%2Fruler)
-![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
-
-- **GitHub**: [intellectronica/ruler](https://github.com/intellectronica/ruler)
-- **NPM**: [@intellectronica/ruler](https://www.npmjs.com/package/@intellectronica/ruler)
+<table>
+  <tr>
+    <td style="vertical-align: top;">
+      <p>
+        <a href="https://github.com/intellectronica/ruler/actions/workflows/ci.yml"><img src="https://github.com/intellectronica/ruler/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+        <a href="https://www.npmjs.com/package/@intellectronica/ruler"><img src="https://badge.fury.io/js/%40intellectronica%2Fruler.svg" alt="npm version"></a>
+        <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT">
+      </p>
+      <ul>
+        <li><strong>GitHub</strong>: <a href="https://github.com/intellectronica/ruler">intellectronica/ruler</a></li>
+        <li><strong>NPM</strong>: <a href="https://www.npmjs.com/package/@intellectronica/ruler">@intellectronica/ruler</a></li>
+      </ul>
+      <hr />
+      <p>
+        <em>Animation by <a href="https://isaacflath.com/">Isaac Flath</a> of <strong><a href="https://elite-ai-assisted-coding.dev/">Elite AI-Assisted Coding</a></strong></em> ➡︎
+      </p>
+    </td>
+    <td style="vertical-align: top; width:33%;">
+      <img src="img/ruler-short.gif" alt="Ruler demo" style="width:100%; height:auto; display:block;" />
+    </td>
+  </tr>
+</table>
 
 ---
 
