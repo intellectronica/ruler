@@ -15,7 +15,7 @@ describe('End-to-End ruler init command', () => {
 
   it('creates .ruler directory and default files', async () => {
     // Build and run init
-    execSync('npm run build', { stdio: 'inherit' });
+    
     execSync(`node dist/cli/index.js init --project-root ${tmpDir}`, {
       stdio: 'inherit',
     });
