@@ -1,6 +1,6 @@
 # Ruler: Centralise Your AI Coding Assistant Instructions
 
-<table>
+<table style="width:100%">
   <tr>
     <td style="vertical-align: top;">
       <p>
