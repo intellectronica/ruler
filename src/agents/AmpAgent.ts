@@ -1,5 +1,5 @@
 import { IAgent, IAgentConfig } from './IAgent';
-import { writeGeneratedFile } from '../core/FileSystemUtils';
+import { writeGeneratedFile, backupFile } from '../core/FileSystemUtils';
 import * as path from 'path';
 
 export class AmpAgent implements IAgent {
@@ -20,6 +20,8 @@ export class AmpAgent implements IAgent {
     const outputPath =
       agentConfig?.outputPath ?? this.getDefaultOutputPath(projectRoot);
     const absolutePath = path.resolve(projectRoot, outputPath);
+
+    await backupFile(absolutePath);
     await writeGeneratedFile(absolutePath, concatenatedRules);
   }
 
