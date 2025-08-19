@@ -17,6 +17,7 @@ import { OpenCodeAgent } from './OpenCodeAgent';
 import { CrushAgent } from './CrushAgent';
 import { GooseAgent } from './GooseAgent';
 import { AmpAgent } from './AmpAgent';
+import { RooAgent } from './RooAgent';
 
 export const allAgents: IAgent[] = [
   new CopilotAgent(),
@@ -37,4 +38,5 @@ export const allAgents: IAgent[] = [
   new GooseAgent(),
   new CrushAgent(),
   new AmpAgent(),
+  new RooAgent(),
 ];
