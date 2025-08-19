@@ -1,4 +1,5 @@
 import { IAgent } from './IAgent';
+import { AbstractAgent } from './AbstractAgent';
 import { CopilotAgent } from './CopilotAgent';
 import { ClaudeAgent } from './ClaudeAgent';
 import { CodexCliAgent } from './CodexCliAgent';
@@ -17,6 +18,8 @@ import { OpenCodeAgent } from './OpenCodeAgent';
 import { CrushAgent } from './CrushAgent';
 import { GooseAgent } from './GooseAgent';
 import { AmpAgent } from './AmpAgent';
+
+export { AbstractAgent };
 
 export const allAgents: IAgent[] = [
   new CopilotAgent(),
