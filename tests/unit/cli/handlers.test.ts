@@ -134,7 +134,7 @@ describe('CLI Handlers', () => {
 
       const exitSpy = jest
         .spyOn(process, 'exit')
-        .mockImplementation((code?: number) => {
+        .mockImplementation((code?: string | number | null | undefined) => {
           throw new Error(`process.exit: ${code}`);
         });
 
@@ -292,7 +292,7 @@ describe('CLI Handlers', () => {
 
       const exitSpy = jest
         .spyOn(process, 'exit')
-        .mockImplementation((code?: number) => {
+        .mockImplementation((code?: string | number | null | undefined) => {
           throw new Error(`process.exit: ${code}`);
         });
 
