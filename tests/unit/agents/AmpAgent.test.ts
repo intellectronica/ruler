@@ -5,14 +5,19 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
 
-jest.mock('../../../src/core/FileSystemUtils');
+// Only mock FileSystemUtils for unit tests, not integration tests
+const mockWriteGeneratedFile = jest.fn();
+jest.mock('../../../src/core/FileSystemUtils', () => ({
+  ...jest.requireActual('../../../src/core/FileSystemUtils'),
+  writeGeneratedFile: mockWriteGeneratedFile,
+}));
 
 describe('AmpAgent', () => {
   let agent: AmpAgent;
 
   beforeEach(() => {
     agent = new AmpAgent();
-    jest.clearAllMocks();
+    mockWriteGeneratedFile.mockClear();
   });
 
   it('should return the correct identifier', () => {
@@ -28,15 +33,13 @@ describe('AmpAgent', () => {
   });
 
   it('should apply ruler config to the default output path', async () => {
-    const writeGeneratedFile = jest.spyOn(FileSystemUtils, 'writeGeneratedFile');
     await agent.applyRulerConfig('rules', '/root', null);
-    expect(writeGeneratedFile).toHaveBeenCalledWith('/root/AGENT.md', 'rules');
+    expect(mockWriteGeneratedFile).toHaveBeenCalledWith('/root/AGENT.md', 'rules');
   });
 
   it('should apply ruler config to a custom output path', async () => {
-    const writeGeneratedFile = jest.spyOn(FileSystemUtils, 'writeGeneratedFile');
     await agent.applyRulerConfig('rules', '/root', null, { outputPath: 'CUSTOM.md' });
-    expect(writeGeneratedFile).toHaveBeenCalledWith('/root/CUSTOM.md', 'rules');
+    expect(mockWriteGeneratedFile).toHaveBeenCalledWith('/root/CUSTOM.md', 'rules');
   });
 
   describe('integration with backup and revert functionality', () => {
@@ -44,9 +47,6 @@ describe('AmpAgent', () => {
     let realAgent: AmpAgent;
 
     beforeEach(async () => {
-      // Restore the real implementation for integration tests
-      jest.restoreAllMocks();
-      
       tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'amp-agent-test-'));
       realAgent = new AmpAgent();
       
@@ -58,8 +58,6 @@ describe('AmpAgent', () => {
 
     afterEach(async () => {
       await fs.rm(tmpDir, { recursive: true, force: true });
-      // Re-mock for the next set of unit tests
-      jest.clearAllMocks();
     });
 
     it('should create AGENT.md file when applying ruler config', async () => {

@@ -169,13 +169,13 @@ describe('CrushAgent', () => {
       const rules = 'Custom rules';
       const mcpJson = { mcpServers: { 'custom-server': { command: 'echo' } } };
       
-      await testAgent.applyRulerConfig(rules, tmpDir, mcpJson, {
-        outputPathInstructions: path.join(tmpDir, customInstructionsPath),
-        outputPathConfig: path.join(tmpDir, customMcpPath)
-      });
-      
       const customInstructionsFullPath = path.join(tmpDir, customInstructionsPath);
       const customMcpFullPath = path.join(tmpDir, customMcpPath);
+      
+      await testAgent.applyRulerConfig(rules, tmpDir, mcpJson, {
+        outputPathInstructions: customInstructionsFullPath,
+        outputPathConfig: customMcpFullPath
+      });
       
       const instructionsContent = await fs.readFile(customInstructionsFullPath, 'utf8');
       const mcpContent = JSON.parse(await fs.readFile(customMcpFullPath, 'utf8'));
