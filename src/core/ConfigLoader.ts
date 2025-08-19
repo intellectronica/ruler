@@ -122,7 +122,7 @@ export async function loadConfig(
     }
   } catch (err) {
     if (err instanceof Error && (err as ErrnoException).code !== 'ENOENT') {
-      if (err.message.includes('[RulerError]')) {
+      if (err.message.includes('[ruler]')) {
         throw err; // Re-throw validation errors
       }
       console.warn(
