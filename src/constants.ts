@@ -1,4 +1,4 @@
-export const ERROR_PREFIX = '[RulerError]';
+export const ERROR_PREFIX = '[ruler]';
 
 export function createRulerError(message: string, context?: string): Error {
   const fullMessage = context
