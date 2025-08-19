@@ -6,18 +6,20 @@ import * as path from 'path';
 import * as os from 'os';
 
 // Only mock FileSystemUtils for unit tests, not integration tests
-const mockWriteGeneratedFile = jest.fn();
-jest.mock('../../../src/core/FileSystemUtils', () => ({
-  ...jest.requireActual('../../../src/core/FileSystemUtils'),
-  writeGeneratedFile: mockWriteGeneratedFile,
-}));
+jest.mock('../../../src/core/FileSystemUtils', () => {
+  const actual = jest.requireActual('../../../src/core/FileSystemUtils');
+  return {
+    ...actual,
+    writeGeneratedFile: jest.fn(),
+  };
+});
 
 describe('AmpAgent', () => {
   let agent: AmpAgent;
 
   beforeEach(() => {
     agent = new AmpAgent();
-    mockWriteGeneratedFile.mockClear();
+    (FileSystemUtils.writeGeneratedFile as jest.Mock).mockClear();
   });
 
   it('should return the correct identifier', () => {
@@ -34,12 +36,12 @@ describe('AmpAgent', () => {
 
   it('should apply ruler config to the default output path', async () => {
     await agent.applyRulerConfig('rules', '/root', null);
-    expect(mockWriteGeneratedFile).toHaveBeenCalledWith('/root/AGENT.md', 'rules');
+    expect(FileSystemUtils.writeGeneratedFile).toHaveBeenCalledWith('/root/AGENT.md', 'rules');
   });
 
   it('should apply ruler config to a custom output path', async () => {
     await agent.applyRulerConfig('rules', '/root', null, { outputPath: 'CUSTOM.md' });
-    expect(mockWriteGeneratedFile).toHaveBeenCalledWith('/root/CUSTOM.md', 'rules');
+    expect(FileSystemUtils.writeGeneratedFile).toHaveBeenCalledWith('/root/CUSTOM.md', 'rules');
   });
 
   describe('integration with backup and revert functionality', () => {
