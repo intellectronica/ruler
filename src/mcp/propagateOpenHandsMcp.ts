@@ -3,13 +3,23 @@ import * as TOML from 'toml';
 import { stringify } from '@iarna/toml';
 import { ensureDirExists } from '../core/FileSystemUtils';
 import * as path from 'path';
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 interface StdioServer {
   name: string;
   command: string;
   args?: string[];
   env?: Record<string, string>;
+}
+
+interface RulerMcpServer {
+  command: string;
+  args?: string[];
+  env?: Record<string, string>;
+}
+
+function isRulerMcpServer(value: unknown): value is RulerMcpServer {
+  const server = value as RulerMcpServer;
+  return server && typeof server.command === 'string';
 }
 
 export async function propagateMcpToOpenHands(
@@ -27,7 +37,11 @@ export async function propagateMcpToOpenHands(
   // Always use the legacy Ruler MCP config format as input (top-level "mcpServers" key)
   const rulerServers = rulerMcp.mcpServers || {};
 
-  let config: any = {};
+  let config: {
+    mcp?: {
+      stdio_servers?: StdioServer[];
+    };
+  } = {};
   try {
     const tomlContent = await fs.readFile(openHandsConfigPath, 'utf8');
     config = TOML.parse(tomlContent);
@@ -47,8 +61,8 @@ export async function propagateMcpToOpenHands(
   );
 
   for (const [name, serverDef] of Object.entries(rulerServers)) {
-    const { command, args, env } = serverDef as any;
-    if (command) {
+    if (isRulerMcpServer(serverDef)) {
+      const { command, args, env } = serverDef;
       const newServer: StdioServer = { name, command };
       if (args) newServer.args = args;
       if (env) newServer.env = env;

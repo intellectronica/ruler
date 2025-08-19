@@ -1,7 +1,6 @@
 import * as fs from 'fs/promises';
 import { ensureDirExists } from '../core/FileSystemUtils';
 import * as path from 'path';
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 interface OpenCodeMcpServer {
   type: 'local' | 'remote';
@@ -17,46 +16,66 @@ interface OpenCodeConfig {
   mcp: Record<string, OpenCodeMcpServer>;
 }
 
+interface LocalServer {
+  command: string | string[];
+  args?: string[];
+  env?: Record<string, string>;
+}
+
+interface RemoteServer {
+  url: string;
+  headers?: Record<string, string>;
+}
+
+function isLocalServer(value: unknown): value is LocalServer {
+  const server = value as LocalServer;
+  return (
+    server &&
+    (typeof server.command === 'string' || Array.isArray(server.command))
+  );
+}
+
+function isRemoteServer(value: unknown): value is RemoteServer {
+  const server = value as RemoteServer;
+  return server && typeof server.url === 'string';
+}
+
+interface RulerMcp {
+  mcpServers?: Record<string, unknown>;
+}
+
 /**
  * Transform ruler MCP configuration to OpenCode's specific format
  */
-function transformToOpenCodeFormat(
-  rulerMcp: Record<string, unknown>,
-): OpenCodeConfig {
+function transformToOpenCodeFormat(rulerMcp: RulerMcp): OpenCodeConfig {
   const rulerServers = rulerMcp.mcpServers || {};
   const openCodeServers: Record<string, OpenCodeMcpServer> = {};
 
   for (const [name, serverDef] of Object.entries(rulerServers)) {
-    const server = serverDef as any;
-
-    // Determine if this is a local or remote server
-    const isRemote = !!server.url;
-
     const openCodeServer: OpenCodeMcpServer = {
-      type: isRemote ? 'remote' : 'local',
-      enabled: true, // Always true as per the issue requirements
+      type: 'local',
+      enabled: true,
     };
 
-    if (isRemote) {
-      // Remote server configuration
-      openCodeServer.url = server.url;
-      if (server.headers) {
-        openCodeServer.headers = server.headers;
+    if (isRemoteServer(serverDef)) {
+      openCodeServer.type = 'remote';
+      openCodeServer.url = serverDef.url;
+      if (serverDef.headers) {
+        openCodeServer.headers = serverDef.headers;
+      }
+    } else if (isLocalServer(serverDef)) {
+      openCodeServer.type = 'local';
+      const command = Array.isArray(serverDef.command)
+        ? serverDef.command
+        : [serverDef.command];
+      const args = serverDef.args || [];
+      openCodeServer.command = [...command, ...args];
+
+      if (serverDef.env) {
+        openCodeServer.environment = serverDef.env;
       }
     } else {
-      // Local server configuration
-      if (server.command) {
-        // Combine command and args into a single array
-        const command = Array.isArray(server.command)
-          ? server.command
-          : [server.command];
-        const args = server.args || [];
-        openCodeServer.command = [...command, ...args];
-      }
-
-      if (server.env) {
-        openCodeServer.environment = server.env;
-      }
+      continue;
     }
 
     openCodeServers[name] = openCodeServer;
@@ -72,7 +91,7 @@ export async function propagateMcpToOpenCode(
   rulerMcpPath: string,
   openCodeConfigPath: string,
 ): Promise<void> {
-  let rulerMcp;
+  let rulerMcp: RulerMcp = {};
   try {
     const rulerJsonContent = await fs.readFile(rulerMcpPath, 'utf8');
     rulerMcp = JSON.parse(rulerJsonContent);
@@ -81,7 +100,7 @@ export async function propagateMcpToOpenCode(
   }
 
   // Read existing OpenCode config if it exists
-  let existingConfig: any = {};
+  let existingConfig: Partial<OpenCodeConfig> & Record<string, unknown> = {};
   try {
     const existingContent = await fs.readFile(openCodeConfigPath, 'utf8');
     existingConfig = JSON.parse(existingContent);
