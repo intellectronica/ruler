@@ -1,11 +1,10 @@
 import * as path from 'path';
-import { IAgent, IAgentConfig } from './IAgent';
-import { backupFile, writeGeneratedFile } from '../core/FileSystemUtils';
+import { AbstractAgent } from './AbstractAgent';
 
 /**
- * Claude Code agent adapter (stub implementation).
+ * Claude Code agent adapter.
  */
-export class ClaudeAgent implements IAgent {
+export class ClaudeAgent extends AbstractAgent {
   getIdentifier(): string {
     return 'claude';
   }
@@ -14,17 +13,6 @@ export class ClaudeAgent implements IAgent {
     return 'Claude Code';
   }
 
-  async applyRulerConfig(
-    concatenatedRules: string,
-    projectRoot: string,
-    rulerMcpJson: Record<string, unknown> | null, // eslint-disable-line @typescript-eslint/no-unused-vars
-    agentConfig?: IAgentConfig,
-  ): Promise<void> {
-    const output =
-      agentConfig?.outputPath ?? this.getDefaultOutputPath(projectRoot);
-    await backupFile(output);
-    await writeGeneratedFile(output, concatenatedRules);
-  }
   getDefaultOutputPath(projectRoot: string): string {
     return path.join(projectRoot, 'CLAUDE.md');
   }

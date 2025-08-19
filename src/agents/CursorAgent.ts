@@ -1,5 +1,6 @@
 import * as path from 'path';
-import { IAgent, IAgentConfig } from './IAgent';
+import { AbstractAgent } from './AbstractAgent';
+import { IAgentConfig } from './IAgent';
 import {
   backupFile,
   writeGeneratedFile,
@@ -7,9 +8,9 @@ import {
 } from '../core/FileSystemUtils';
 
 /**
- * Cursor agent adapter (stub implementation).
+ * Cursor agent adapter.
  */
-export class CursorAgent implements IAgent {
+export class CursorAgent extends AbstractAgent {
   getIdentifier(): string {
     return 'cursor';
   }
@@ -26,16 +27,18 @@ export class CursorAgent implements IAgent {
   ): Promise<void> {
     const output =
       agentConfig?.outputPath ?? this.getDefaultOutputPath(projectRoot);
+    const absolutePath = path.resolve(projectRoot, output);
 
     // Cursor expects a YAML front-matter block with an `alwaysApply` flag.
     // See: https://docs.cursor.com/context/rules#rule-anatomy
     const frontMatter = ['---', 'alwaysApply: true', '---', ''].join('\n');
     const content = `${frontMatter}${concatenatedRules.trimStart()}`;
 
-    await ensureDirExists(path.dirname(output));
-    await backupFile(output);
-    await writeGeneratedFile(output, content);
+    await ensureDirExists(path.dirname(absolutePath));
+    await backupFile(absolutePath);
+    await writeGeneratedFile(absolutePath, content);
   }
+
   getDefaultOutputPath(projectRoot: string): string {
     return path.join(
       projectRoot,

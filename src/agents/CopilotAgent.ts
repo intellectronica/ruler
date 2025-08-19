@@ -1,15 +1,10 @@
 import * as path from 'path';
-import { IAgent, IAgentConfig } from './IAgent';
-import {
-  backupFile,
-  writeGeneratedFile,
-  ensureDirExists,
-} from '../core/FileSystemUtils';
+import { AbstractAgent } from './AbstractAgent';
 
 /**
- * GitHub Copilot agent adapter (stub implementation).
+ * GitHub Copilot agent adapter.
  */
-export class CopilotAgent implements IAgent {
+export class CopilotAgent extends AbstractAgent {
   getIdentifier(): string {
     return 'copilot';
   }
@@ -18,18 +13,6 @@ export class CopilotAgent implements IAgent {
     return 'GitHub Copilot';
   }
 
-  async applyRulerConfig(
-    concatenatedRules: string,
-    projectRoot: string,
-    rulerMcpJson: Record<string, unknown> | null, // eslint-disable-line @typescript-eslint/no-unused-vars
-    agentConfig?: IAgentConfig,
-  ): Promise<void> {
-    const output =
-      agentConfig?.outputPath ?? this.getDefaultOutputPath(projectRoot);
-    await ensureDirExists(path.dirname(output));
-    await backupFile(output);
-    await writeGeneratedFile(output, concatenatedRules);
-  }
   getDefaultOutputPath(projectRoot: string): string {
     return path.join(projectRoot, '.github', 'copilot-instructions.md');
   }
