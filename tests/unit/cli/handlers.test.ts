@@ -201,6 +201,9 @@ describe('CLI Handlers', () => {
         global: true,
       };
 
+      // Mock the mkdir to resolve successfully
+      (fs.mkdir as jest.Mock).mockResolvedValue(undefined);
+
       await initHandler(argv);
 
       expect(fs.mkdir).toHaveBeenCalledWith(mockGlobalDir, { recursive: true });
@@ -208,13 +211,16 @@ describe('CLI Handlers', () => {
 
     it('should handle custom XDG_CONFIG_HOME for global initialization', async () => {
       const originalXdgConfigHome = process.env.XDG_CONFIG_HOME;
-      process.env.XDG_CONFIG_HOME = '/custom/config/path';
+      process.env.XDG_CONFIG_HOME = '/tmp/custom/config/path';
 
-      const mockCustomDir = path.join('/custom/config/path', 'ruler');
+      const mockCustomDir = path.join('/tmp/custom/config/path', 'ruler');
       const argv = {
         'project-root': mockProjectRoot,
         global: true,
       };
+
+      // Mock the mkdir to resolve successfully
+      (fs.mkdir as jest.Mock).mockResolvedValue(undefined);
 
       await initHandler(argv);
 
