@@ -44,6 +44,9 @@ describe('AmpAgent', () => {
     let realAgent: AmpAgent;
 
     beforeEach(async () => {
+      // Restore the real implementation for integration tests
+      jest.restoreAllMocks();
+      
       tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'amp-agent-test-'));
       realAgent = new AmpAgent();
       
@@ -55,6 +58,8 @@ describe('AmpAgent', () => {
 
     afterEach(async () => {
       await fs.rm(tmpDir, { recursive: true, force: true });
+      // Re-mock for the next set of unit tests
+      jest.clearAllMocks();
     });
 
     it('should create AGENT.md file when applying ruler config', async () => {
@@ -68,17 +73,16 @@ describe('AmpAgent', () => {
 
     it('should create backup when overwriting existing AGENT.md file', async () => {
       const agentPath = path.join(tmpDir, 'AGENT.md');
-      const backupPath = `${agentPath}.bak`;
       const originalContent = 'Original content';
       const newContent = 'New rules';
       
       // Create original file
       await fs.writeFile(agentPath, originalContent);
       
-      // Apply new rules (this should create backup)
+      // Apply new rules (AmpAgent itself doesn't create backups, that's handled by the apply-engine)
       await realAgent.applyRulerConfig(newContent, tmpDir, null);
       
-      // Verify original content is backed up (need to use apply-engine which handles backups)
+      // Verify new content is written
       const content = await fs.readFile(agentPath, 'utf8');
       expect(content).toBe(newContent);
     });
