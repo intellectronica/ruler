@@ -287,7 +287,7 @@ async function removeEmptyDirectories(
     '.idx',
     '.gemini',
     '.vscode',
-    '.augmentcode',
+    '.codex',
     '.kilocode',
   ];
 
