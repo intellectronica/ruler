@@ -1,11 +1,10 @@
 import * as path from 'path';
-import { IAgent, IAgentConfig } from './IAgent';
-import { backupFile, writeGeneratedFile } from '../core/FileSystemUtils';
+import { AbstractAgent } from './AbstractAgent';
 
 /**
- * Cline agent adapter (stub implementation).
+ * Cline agent adapter.
  */
-export class ClineAgent implements IAgent {
+export class ClineAgent extends AbstractAgent {
   getIdentifier(): string {
     return 'cline';
   }
@@ -14,17 +13,6 @@ export class ClineAgent implements IAgent {
     return 'Cline';
   }
 
-  async applyRulerConfig(
-    concatenatedRules: string,
-    projectRoot: string,
-    rulerMcpJson: Record<string, unknown> | null, // eslint-disable-line @typescript-eslint/no-unused-vars
-    agentConfig?: IAgentConfig,
-  ): Promise<void> {
-    const output =
-      agentConfig?.outputPath ?? this.getDefaultOutputPath(projectRoot);
-    await backupFile(output);
-    await writeGeneratedFile(output, concatenatedRules);
-  }
   getDefaultOutputPath(projectRoot: string): string {
     return path.join(projectRoot, '.clinerules');
   }

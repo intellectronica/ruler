@@ -1,28 +1,13 @@
-import { IAgent, IAgentConfig } from './IAgent';
-import { writeGeneratedFile, backupFile } from '../core/FileSystemUtils';
 import * as path from 'path';
+import { AbstractAgent } from './AbstractAgent';
 
-export class AmpAgent implements IAgent {
+export class AmpAgent extends AbstractAgent {
   getIdentifier(): string {
     return 'amp';
   }
 
   getName(): string {
     return 'Amp';
-  }
-
-  async applyRulerConfig(
-    concatenatedRules: string,
-    projectRoot: string,
-    rulerMcpJson: Record<string, unknown> | null,
-    agentConfig?: IAgentConfig,
-  ): Promise<void> {
-    const outputPath =
-      agentConfig?.outputPath ?? this.getDefaultOutputPath(projectRoot);
-    const absolutePath = path.resolve(projectRoot, outputPath);
-
-    await backupFile(absolutePath);
-    await writeGeneratedFile(absolutePath, concatenatedRules);
   }
 
   getDefaultOutputPath(projectRoot: string): string {
