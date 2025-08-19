@@ -1,10 +1,23 @@
 import * as path from 'path';
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { promises as fs } from 'fs';
 import * as toml from 'toml';
 import { stringify } from '@iarna/toml';
 import { IAgent, IAgentConfig } from './IAgent';
 import { backupFile, writeGeneratedFile } from '../core/FileSystemUtils';
+
+interface McpServer {
+  command: string;
+  args?: string[];
+  env?: Record<string, string>;
+}
+
+interface CodexCliConfig {
+  mcp_servers?: Record<string, McpServer>;
+}
+
+interface RulerMcp {
+  mcpServers?: Record<string, McpServer>;
+}
 
 /**
  * OpenAI Codex CLI agent adapter.
@@ -21,7 +34,7 @@ export class CodexCliAgent implements IAgent {
   async applyRulerConfig(
     concatenatedRules: string,
     projectRoot: string,
-    rulerMcpJson: Record<string, unknown> | null,
+    rulerMcpJson: RulerMcp | null,
     agentConfig?: IAgentConfig,
   ): Promise<void> {
     // Get default paths
@@ -50,11 +63,10 @@ export class CodexCliAgent implements IAgent {
       const strategy = agentConfig?.mcp?.strategy ?? 'merge';
 
       // Extract MCP servers from ruler config
-      const rulerServers =
-        (rulerMcpJson.mcpServers as Record<string, any>) || {};
+      const rulerServers = rulerMcpJson.mcpServers || {};
 
       // Read existing TOML config if it exists
-      let existingConfig: Record<string, any> = {};
+      let existingConfig: CodexCliConfig = {};
       try {
         const existingContent = await fs.readFile(configPath, 'utf8');
         existingConfig = toml.parse(existingContent);
@@ -63,7 +75,7 @@ export class CodexCliAgent implements IAgent {
       }
 
       // Create the updated config
-      const updatedConfig: Record<string, any> = { ...existingConfig };
+      const updatedConfig: CodexCliConfig = { ...existingConfig };
 
       // Initialize mcp_servers if it doesn't exist
       if (!updatedConfig.mcp_servers) {
@@ -78,24 +90,28 @@ export class CodexCliAgent implements IAgent {
       // Add the ruler servers
       for (const [serverName, serverConfig] of Object.entries(rulerServers)) {
         // Create a properly formatted MCP server entry
-        const mcpServer: Record<string, any> = {
+        const mcpServer: McpServer = {
           command: serverConfig.command,
-          args: serverConfig.args,
         };
-
+        if (serverConfig.args) {
+          mcpServer.args = serverConfig.args;
+        }
         // Format env as an inline table
         if (serverConfig.env) {
           mcpServer.env = serverConfig.env;
         }
 
-        updatedConfig.mcp_servers[serverName] = mcpServer;
+        if (updatedConfig.mcp_servers) {
+          updatedConfig.mcp_servers[serverName] = mcpServer;
+        }
       }
 
       // Convert to TOML with special handling for env to ensure it's an inline table
       let tomlContent = '';
 
       // Handle non-mcp_servers sections first
-      const configWithoutMcpServers = { ...updatedConfig };
+      const configWithoutMcpServers: Omit<CodexCliConfig, 'mcp_servers'> &
+        Record<string, unknown> = { ...updatedConfig };
       delete configWithoutMcpServers.mcp_servers;
       if (Object.keys(configWithoutMcpServers).length > 0) {
         tomlContent += stringify(configWithoutMcpServers);
@@ -106,10 +122,9 @@ export class CodexCliAgent implements IAgent {
         updatedConfig.mcp_servers &&
         Object.keys(updatedConfig.mcp_servers).length > 0
       ) {
-        for (const [serverName, serverConfigRaw] of Object.entries(
+        for (const [serverName, serverConfig] of Object.entries(
           updatedConfig.mcp_servers,
         )) {
-          const serverConfig = serverConfigRaw as Record<string, any>;
           tomlContent += `\n[mcp_servers.${serverName}]\n`;
 
           // Add command

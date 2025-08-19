@@ -117,4 +117,28 @@ stdio_servers = [
       expect.objectContaining({ env: serverEnv }),
     );
   });
+
+  it('should handle malformed rulerMcp data gracefully', async () => {
+    const rulerMcp = {
+      mcpServers: {
+        // 'command' is missing
+        fetch: { args: ['mcp-fetch'] },
+        // serverDef is not an object
+        git: 'invalid',
+        // serverDef is null
+        fs: null,
+      },
+    };
+
+    await fs.writeFile(rulerMcpPath, JSON.stringify(rulerMcp));
+
+    await propagateMcpToOpenHands(rulerMcpPath, openHandsConfigPath);
+
+    const content = await fs.readFile(openHandsConfigPath, 'utf8');
+    const parsed = TOML.parse(content);
+    expect(parsed.mcp).toBeDefined();
+    const mcp: any = parsed.mcp;
+    // No servers should have been added
+    expect(mcp.stdio_servers).toHaveLength(0);
+  });
 });
