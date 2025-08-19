@@ -47,8 +47,13 @@ describe('AmpAgent', () => {
   describe('integration with backup and revert functionality', () => {
     let tmpDir: string;
     let realAgent: AmpAgent;
+    let originalWriteGeneratedFile: any;
 
     beforeEach(async () => {
+      // Restore the real writeGeneratedFile implementation for integration tests
+      originalWriteGeneratedFile = jest.requireActual('../../../src/core/FileSystemUtils').writeGeneratedFile;
+      (FileSystemUtils.writeGeneratedFile as jest.Mock).mockImplementation(originalWriteGeneratedFile);
+      
       tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'amp-agent-test-'));
       realAgent = new AmpAgent();
       
@@ -60,6 +65,8 @@ describe('AmpAgent', () => {
 
     afterEach(async () => {
       await fs.rm(tmpDir, { recursive: true, force: true });
+      // Restore the mock for unit tests
+      (FileSystemUtils.writeGeneratedFile as jest.Mock).mockReset();
     });
 
     it('should create AGENT.md file when applying ruler config', async () => {
