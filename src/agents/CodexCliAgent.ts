@@ -53,7 +53,7 @@ export class CodexCliAgent extends AgentsMdAgent {
     );
 
     // Resolve config path helper (mirrors previous logic)
-    const defaultInstructionsPath = path.join(projectRoot, 'AGENTS.md');
+    const defaultInstructionsPath = path.join(projectRoot, AgentsMdAgent.INSTRUCTIONS_FILENAME);
     const defaults = {
       instructions: defaultInstructionsPath,
       config: path.join(projectRoot, '.codex', 'config.toml'),
