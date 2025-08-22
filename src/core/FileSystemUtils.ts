@@ -4,6 +4,13 @@ import * as os from 'os';
 
 // Internal flag to ensure we only emit the legacy warning once per process.
 let legacyWarningEmitted = false;
+/**
+ * TEST-ONLY: resets the legacy warning emission flag so unit tests can assert
+ * behavior in isolation. Not documented for public use.
+ */
+export function __resetLegacyWarningForTests() {
+  legacyWarningEmitted = false;
+}
 
 /**
  * Gets the XDG config directory path, falling back to ~/.config if XDG_CONFIG_HOME is not set.

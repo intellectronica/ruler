@@ -2,7 +2,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import os from 'os';
 import { loadRulerConfiguration } from '../../../src/core/apply-engine';
-import * as FileSystemUtils from '../../../src/core/FileSystemUtils';
+import { __resetLegacyWarningForTests } from '../../../src/core/FileSystemUtils';
 
 // We'll capture console warnings to assert legacy warning emitted only once.
 describe('AGENTS.md fallback behavior', () => {
@@ -20,6 +20,7 @@ describe('AGENTS.md fallback behavior', () => {
     console.warn = (...args: any[]) => {
       warnMessages.push(args.join(' '));
     };
+    __resetLegacyWarningForTests();
   });
 
   afterEach(async () => {
@@ -71,5 +72,18 @@ describe('AGENTS.md fallback behavior', () => {
     expect(result.concatenatedRules).toContain('# New Agents Rules');
     const legacyWarnings = warnMessages.filter(m => m.includes('legacy') && m.includes('instructions.md'));
     expect(legacyWarnings.length).toBe(0);
+  });
+
+  it('emits warning only once across multiple configuration loads when only legacy file present', async () => {
+    await writeConfig();
+    const legacy = path.join(rulerDir, 'instructions.md');
+    await fs.writeFile(legacy, '# Legacy Rules');
+
+    const result1 = await loadRulerConfiguration(tmpDir, undefined, false);
+    const result2 = await loadRulerConfiguration(tmpDir, undefined, false);
+    expect(result1.concatenatedRules).toContain('# Legacy Rules');
+    expect(result2.concatenatedRules).toContain('# Legacy Rules');
+    const legacyWarnings = warnMessages.filter(m => m.includes('legacy') && m.includes('instructions.md'));
+    expect(legacyWarnings.length).toBe(1);
   });
 });
