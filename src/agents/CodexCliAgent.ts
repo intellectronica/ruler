@@ -47,14 +47,11 @@ export class CodexCliAgent extends AgentsMdAgent {
         agentConfig?.outputPathInstructions ||
         undefined,
     });
-
-  // Resolve config path helper (mirrors previous logic)
+    // Resolve config path helper (mirrors previous logic)
     const defaults = {
       instructions: path.join(projectRoot, DEFAULT_RULES_FILENAME),
       config: path.join(projectRoot, '.codex', 'config.toml'),
     };
-
-    // Handle MCP configuration if enabled
     const mcpEnabled = agentConfig?.mcp?.enabled ?? true;
     if (mcpEnabled && rulerMcpJson) {
       // Determine the config file path
