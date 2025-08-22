@@ -5,6 +5,7 @@ import { stringify } from '@iarna/toml';
 import { IAgentConfig } from './IAgent';
 import { AgentsMdAgent } from './AgentsMdAgent';
 import { writeGeneratedFile } from '../core/FileSystemUtils';
+import { DEFAULT_RULES_FILENAME } from '../constants';
 
 interface McpServer {
   command: string;
@@ -39,23 +40,17 @@ export class CodexCliAgent extends AgentsMdAgent {
     agentConfig?: IAgentConfig,
   ): Promise<void> {
     // First perform idempotent AGENTS.md write via base class (instructions file).
-    await super.applyRulerConfig(
-      concatenatedRules,
-      projectRoot,
-      rulerMcpJson as unknown as Record<string, unknown> | null,
-      {
-        // Preserve explicit outputPath precedence semantics if provided.
-        outputPath:
-          agentConfig?.outputPath ||
-          agentConfig?.outputPathInstructions ||
-          undefined,
-      },
-    );
+    await super.applyRulerConfig(concatenatedRules, projectRoot, null, {
+      // Preserve explicit outputPath precedence semantics if provided.
+      outputPath:
+        agentConfig?.outputPath ||
+        agentConfig?.outputPathInstructions ||
+        undefined,
+    });
 
-    // Resolve config path helper (mirrors previous logic)
-    const defaultInstructionsPath = path.join(projectRoot, AgentsMdAgent.INSTRUCTIONS_FILENAME);
+  // Resolve config path helper (mirrors previous logic)
     const defaults = {
-      instructions: defaultInstructionsPath,
+      instructions: path.join(projectRoot, DEFAULT_RULES_FILENAME),
       config: path.join(projectRoot, '.codex', 'config.toml'),
     };
 
