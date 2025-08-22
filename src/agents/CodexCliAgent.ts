@@ -2,8 +2,9 @@ import * as path from 'path';
 import { promises as fs } from 'fs';
 import * as toml from 'toml';
 import { stringify } from '@iarna/toml';
-import { IAgent, IAgentConfig } from './IAgent';
-import { backupFile, writeGeneratedFile } from '../core/FileSystemUtils';
+import { IAgentConfig } from './IAgent';
+import { AgentsMdAgent } from './AgentsMdAgent';
+import { writeGeneratedFile } from '../core/FileSystemUtils';
 
 interface McpServer {
   command: string;
@@ -22,7 +23,7 @@ interface RulerMcp {
 /**
  * OpenAI Codex CLI agent adapter.
  */
-export class CodexCliAgent implements IAgent {
+export class CodexCliAgent extends AgentsMdAgent {
   getIdentifier(): string {
     return 'codex';
   }
@@ -37,18 +38,26 @@ export class CodexCliAgent implements IAgent {
     rulerMcpJson: RulerMcp | null,
     agentConfig?: IAgentConfig,
   ): Promise<void> {
-    // Get default paths
-    const defaults = this.getDefaultOutputPath(projectRoot);
+    // First perform idempotent AGENTS.md write via base class (instructions file).
+    await super.applyRulerConfig(
+      concatenatedRules,
+      projectRoot,
+      rulerMcpJson as unknown as Record<string, unknown> | null,
+      {
+        // Preserve explicit outputPath precedence semantics if provided.
+        outputPath:
+          agentConfig?.outputPath ||
+          agentConfig?.outputPathInstructions ||
+          undefined,
+      },
+    );
 
-    // Determine the instructions file path
-    const instructionsPath =
-      agentConfig?.outputPath ??
-      agentConfig?.outputPathInstructions ??
-      defaults.instructions;
-
-    // Write the instructions file
-    await backupFile(instructionsPath);
-    await writeGeneratedFile(instructionsPath, concatenatedRules);
+    // Resolve config path helper (mirrors previous logic)
+    const defaultInstructionsPath = path.join(projectRoot, 'AGENTS.md');
+    const defaults = {
+      instructions: defaultInstructionsPath,
+      config: path.join(projectRoot, '.codex', 'config.toml'),
+    };
 
     // Handle MCP configuration if enabled
     const mcpEnabled = agentConfig?.mcp?.enabled ?? true;
@@ -158,12 +167,5 @@ export class CodexCliAgent implements IAgent {
 
       await writeGeneratedFile(configPath, tomlContent);
     }
-  }
-
-  getDefaultOutputPath(projectRoot: string): Record<string, string> {
-    return {
-      instructions: path.join(projectRoot, 'AGENTS.md'),
-      config: path.join(projectRoot, '.codex', 'config.toml'),
-    };
   }
 }
