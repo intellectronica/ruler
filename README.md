@@ -54,7 +54,7 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 
 | Agent            | Rules File(s)                                    | MCP Configuration                                   |
 | ---------------- | ------------------------------------------------ | --------------------------------------------------- |
-| AgentsMd         | `.ruler/AGENTS.md`                               | -                                                   |
+| AgentsMd         | `AGENTS.md`                                      | -                                                   |
 | GitHub Copilot   | `.github/copilot-instructions.md`                | `.vscode/mcp.json`                                  |
 | Claude Code      | `CLAUDE.md`                                      | `.mcp.json`                                         |
 | OpenAI Codex CLI | `AGENTS.md`                                      | `.codex/config.toml`, `~/.codex/config.json`        |

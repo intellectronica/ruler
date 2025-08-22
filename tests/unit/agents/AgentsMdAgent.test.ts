@@ -9,15 +9,12 @@ import * as os from 'os';
 describe('AgentsMdAgent', () => {
   let agent: AgentsMdAgent;
   let tmpDir: string;
-  let rulerDir: string;
   let targetFile: string;
 
   beforeEach(async () => {
     agent = new AgentsMdAgent();
     tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'agentsmd-agent-test-'));
-    rulerDir = path.join(tmpDir, '.ruler');
-    await fs.mkdir(rulerDir, { recursive: true });
-    targetFile = path.join(rulerDir, 'AGENTS.md');
+  targetFile = path.join(tmpDir, 'AGENTS.md');
   });
 
   afterEach(async () => {
@@ -30,7 +27,7 @@ describe('AgentsMdAgent', () => {
   });
 
   it('returns correct default output path', () => {
-    const expected = path.join(tmpDir, '.ruler', 'AGENTS.md');
+  const expected = path.join(tmpDir, 'AGENTS.md');
     expect(agent.getDefaultOutputPath(tmpDir)).toBe(expected);
   });
 

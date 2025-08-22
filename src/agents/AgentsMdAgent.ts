@@ -9,7 +9,7 @@ import {
 } from '../core/FileSystemUtils';
 
 /**
- * Pseudo-agent that ensures the concatenated rules are written to `.ruler/AGENTS.md`.
+ * Pseudo-agent that ensures the concatenated rules are written to root-level `AGENTS.md`.
  * Does not participate in MCP propagation. Idempotent: only writes (and creates a backup)
  * when content differs from existing file.
  */
@@ -23,7 +23,7 @@ export class AgentsMdAgent extends AbstractAgent {
   }
 
   getDefaultOutputPath(projectRoot: string): string {
-    return path.join(projectRoot, '.ruler', 'AGENTS.md');
+    return path.join(projectRoot, 'AGENTS.md');
   }
 
   async applyRulerConfig(
