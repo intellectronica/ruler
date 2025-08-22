@@ -26,7 +26,7 @@ describe('End-to-End ruler init command', () => {
     await expect(fs.stat(rulerDir)).resolves.toBeDefined();
     await expect(
       fs.readFile(instr, 'utf8'),
-    ).resolves.toMatch(/^# Ruler Instructions/);
+    ).resolves.toMatch(/^# AGENTS\.md/);
     await expect(
       fs.readFile(toml, 'utf8'),
     ).resolves.toMatch(/^# Ruler Configuration File/);
@@ -43,5 +43,19 @@ describe('End-to-End ruler init command', () => {
     runRulerWithInheritedStdio('init', projectRoot);
     expect(await fs.readFile(instr, 'utf8')).toBe('KEEP');
     expect(await fs.readFile(toml, 'utf8')).toBe('KEEP');
+  });
+
+  it('creates AGENTS.md alongside legacy instructions.md if legacy exists', async () => {
+    // create isolated new project root to not interfere with earlier tests
+    const { projectRoot } = await setupTestProject();
+    const rulerDir = path.join(projectRoot, '.ruler');
+    await fs.mkdir(rulerDir, { recursive: true });
+    const legacyPath = path.join(rulerDir, 'instructions.md');
+    await fs.writeFile(legacyPath, 'LEGACY');
+    runRulerWithInheritedStdio('init', projectRoot);
+    const newPath = path.join(rulerDir, 'AGENTS.md');
+    await expect(fs.readFile(legacyPath, 'utf8')).resolves.toBe('LEGACY');
+  await expect(fs.readFile(newPath, 'utf8')).resolves.toMatch(/^# AGENTS\.md/);
+    await teardownTestProject(projectRoot);
   });
 });
