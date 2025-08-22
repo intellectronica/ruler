@@ -3,7 +3,7 @@ import { revertAllAgentConfigs } from '../revert';
 import * as path from 'path';
 import * as os from 'os';
 import * as fs from 'fs/promises';
-import { ERROR_PREFIX } from '../constants';
+import { ERROR_PREFIX, DEFAULT_RULES_FILENAME } from '../constants';
 import { McpStrategy } from '../types';
 
 export interface ApplyArgs {
@@ -93,7 +93,7 @@ export async function initHandler(argv: InitArgs): Promise<void> {
       )
     : path.join(projectRoot, '.ruler');
   await fs.mkdir(rulerDir, { recursive: true });
-  const instructionsPath = path.join(rulerDir, 'instructions.md');
+  const instructionsPath = path.join(rulerDir, DEFAULT_RULES_FILENAME);
   const tomlPath = path.join(rulerDir, 'ruler.toml');
   const exists = async (p: string) => {
     try {
@@ -166,7 +166,7 @@ and apply them to your configured AI coding agents.
     await fs.writeFile(instructionsPath, DEFAULT_INSTRUCTIONS);
     console.log(`[ruler] Created ${instructionsPath}`);
   } else {
-    console.log(`[ruler] instructions.md already exists, skipping`);
+    console.log(`[ruler] ${DEFAULT_RULES_FILENAME} already exists, skipping`);
   }
   if (!(await exists(tomlPath))) {
     await fs.writeFile(tomlPath, DEFAULT_TOML);

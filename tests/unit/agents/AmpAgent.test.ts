@@ -32,7 +32,8 @@ describe('AmpAgent', () => {
   });
 
   it('should return the correct default output path', () => {
-    expect(agent.getDefaultOutputPath('/root')).toBe('/root/AGENT.md');
+    const base = path.join(os.tmpdir(), 'amp-agent-path-test');
+    expect(agent.getDefaultOutputPath(base)).toBe(path.join(base, 'AGENT.md'));
   });
 
   it('should apply ruler config to the default output path', async () => {
@@ -41,11 +42,11 @@ describe('AmpAgent', () => {
       FileSystemUtils,
       'writeGeneratedFile',
     );
-
-    await agent.applyRulerConfig('rules', '/root', null);
-
-    expect(backupFile).toHaveBeenCalledWith('/root/AGENT.md');
-    expect(writeGeneratedFile).toHaveBeenCalledWith('/root/AGENT.md', 'rules');
+    const base = await fs.mkdtemp(path.join(os.tmpdir(), 'amp-agent-default-'));
+    await agent.applyRulerConfig('rules', base, null);
+    const expected = path.join(base, 'AGENT.md');
+    expect(backupFile).toHaveBeenCalledWith(expected);
+    expect(writeGeneratedFile).toHaveBeenCalledWith(expected, 'rules');
   });
 
   it('should apply ruler config to a custom output path', async () => {
@@ -54,13 +55,11 @@ describe('AmpAgent', () => {
       FileSystemUtils,
       'writeGeneratedFile',
     );
-
-    await agent.applyRulerConfig('rules', '/root', null, {
-      outputPath: 'CUSTOM.md',
-    });
-
-    expect(backupFile).toHaveBeenCalledWith('/root/CUSTOM.md');
-    expect(writeGeneratedFile).toHaveBeenCalledWith('/root/CUSTOM.md', 'rules');
+    const base = await fs.mkdtemp(path.join(os.tmpdir(), 'amp-agent-custom-'));
+    await agent.applyRulerConfig('rules', base, null, { outputPath: 'CUSTOM.md' });
+    const expected = path.join(base, 'CUSTOM.md');
+    expect(backupFile).toHaveBeenCalledWith(expected);
+    expect(writeGeneratedFile).toHaveBeenCalledWith(expected, 'rules');
   });
 
   describe('integration with backup and revert functionality', () => {
