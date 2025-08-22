@@ -7,8 +7,7 @@ describe('RuleProcessor', () => {
       { path: '/project/.ruler/a.md', content: 'A rule' },
       { path: '/project/.ruler/b.md', content: 'B rule' },
     ];
-    jest.spyOn(process, 'cwd').mockReturnValue('/project');
-    const result = concatenateRules(files);
+  const result = concatenateRules(files, '/project');
     expect(result).toContain('Source: .ruler/a.md');
     expect(result).toContain('A rule');
     expect(result).toContain('Source: .ruler/b.md');

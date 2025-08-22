@@ -123,7 +123,24 @@ export async function readMarkdownFiles(
   // Sort the remaining others for stable deterministic concatenation order.
   others.sort((a, b) => a.path.localeCompare(b.path));
 
-  const ordered = primaryFile ? [primaryFile, ...others] : others;
+  let ordered = primaryFile ? [primaryFile, ...others] : others;
+
+  // NEW: Prepend repository root AGENTS.md (outside .ruler) if it exists and is not identical path.
+  try {
+    const repoRoot = path.dirname(rulerDir); // .ruler parent
+    const rootAgentsPath = path.join(repoRoot, 'AGENTS.md');
+    if (rootAgentsPath !== topLevelAgents) {
+      const stat = await fs.stat(rootAgentsPath);
+      if (stat.isFile()) {
+        const content = await fs.readFile(rootAgentsPath, 'utf8');
+        // Prepend so it has highest precedence
+        ordered = [{ path: rootAgentsPath, content }, ...ordered];
+      }
+    }
+  } catch {
+    // ignore if root AGENTS.md not present
+  }
+
   return ordered;
 }
 
