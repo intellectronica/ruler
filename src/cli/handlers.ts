@@ -93,7 +93,8 @@ export async function initHandler(argv: InitArgs): Promise<void> {
       )
     : path.join(projectRoot, '.ruler');
   await fs.mkdir(rulerDir, { recursive: true });
-  const instructionsPath = path.join(rulerDir, DEFAULT_RULES_FILENAME);
+  const instructionsPath = path.join(rulerDir, DEFAULT_RULES_FILENAME); // .ruler/AGENTS.md
+  const legacyPath = path.join(rulerDir, 'instructions.md');
   const tomlPath = path.join(rulerDir, 'ruler.toml');
   const exists = async (p: string) => {
     try {
@@ -103,14 +104,7 @@ export async function initHandler(argv: InitArgs): Promise<void> {
       return false;
     }
   };
-  const DEFAULT_INSTRUCTIONS = `# Ruler Instructions
-
-These are your centralised AI agent instructions (primary file: AGENTS.md).
-Add your coding guidelines, style guides, and other project-specific context here.
-
-Ruler will concatenate all .md files in this directory (and its subdirectories),
-starting with AGENTS.md (if present), then remaining files in sorted order.
-`;
+  const DEFAULT_INSTRUCTIONS = `# AGENTS.md\n\nCentralised AI agent instructions. Add coding guidelines, style guides, and project context here.\n\nRuler concatenates all .md files in this directory (and subdirectories), starting with AGENTS.md (if present), then remaining files in sorted order.\n`;
   const DEFAULT_TOML = `# Ruler Configuration File
 # See https://ai.intellectronica.net/ruler for documentation.
 
@@ -163,8 +157,14 @@ starting with AGENTS.md (if present), then remaining files in sorted order.
 # output_path = ".kilocode/rules/ruler_kilocode_instructions.md"
 `;
   if (!(await exists(instructionsPath))) {
+    // Create new AGENTS.md regardless of legacy presence.
     await fs.writeFile(instructionsPath, DEFAULT_INSTRUCTIONS);
     console.log(`[ruler] Created ${instructionsPath}`);
+    if (await exists(legacyPath)) {
+      console.log(
+        '[ruler] Legacy instructions.md detected (kept for backward compatibility).',
+      );
+    }
   } else {
     console.log(`[ruler] ${DEFAULT_RULES_FILENAME} already exists, skipping`);
   }

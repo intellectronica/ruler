@@ -164,6 +164,7 @@ describe('CLI Handlers', () => {
   const mockInstructionsPath = path.join(mockRulerDir, 'AGENTS.md');
     const mockTomlPath = path.join(mockRulerDir, 'ruler.toml');
     const mockMcpPath = path.join(mockRulerDir, 'mcp.json');
+  const mockLegacyPath = path.join(mockRulerDir, 'instructions.md');
 
     beforeEach(() => {
       (fs.access as jest.Mock).mockRejectedValue(new Error('File not found'));
@@ -182,7 +183,7 @@ describe('CLI Handlers', () => {
       expect(fs.mkdir).toHaveBeenCalledWith(mockRulerDir, { recursive: true });
       expect(fs.writeFile).toHaveBeenCalledWith(
         mockInstructionsPath,
-        expect.stringContaining('# Ruler Instructions'),
+        expect.stringContaining('# AGENTS.md'),
       );
       expect(fs.writeFile).toHaveBeenCalledWith(
         mockTomlPath,
@@ -243,6 +244,27 @@ describe('CLI Handlers', () => {
       await initHandler(argv);
 
       expect(fs.writeFile).not.toHaveBeenCalled();
+    });
+
+    it('should create AGENTS.md when legacy instructions.md exists (legacy preserved)', async () => {
+      // access sequence: AGENTS.md (fail), legacy instructions.md (exists), ruler.toml (fail), mcp.json (fail)
+      (fs.access as jest.Mock)
+        .mockRejectedValueOnce(new Error('AGENTS missing'))
+        .mockResolvedValueOnce(undefined) // legacy exists
+        .mockRejectedValueOnce(new Error('toml missing'))
+        .mockRejectedValueOnce(new Error('mcp missing'));
+      const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+      const argv = { 'project-root': mockProjectRoot, global: false };
+      // Simulate legacy existing by making read of legacy path succeed when probed later (we'll implement probe)
+      // We'll adjust implementation to check legacy path existence separately.
+      await initHandler(argv);
+      expect(fs.writeFile).toHaveBeenCalledWith(
+        mockInstructionsPath,
+        expect.stringContaining('# AGENTS.md'),
+      );
+      // Expect a notice about legacy detection once implementation added
+      expect(logSpy.mock.calls.some(c => /legacy instructions\.md detected/i.test(c[0]))).toBe(true);
+      logSpy.mockRestore();
     });
   });
 
