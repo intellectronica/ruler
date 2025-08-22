@@ -129,7 +129,7 @@ export async function readMarkdownFiles(
   try {
     const repoRoot = path.dirname(rulerDir); // .ruler parent
     const rootAgentsPath = path.join(repoRoot, 'AGENTS.md');
-    if (rootAgentsPath !== topLevelAgents) {
+    if (path.resolve(rootAgentsPath) !== path.resolve(topLevelAgents)) {
       const stat = await fs.stat(rootAgentsPath);
       if (stat.isFile()) {
         const content = await fs.readFile(rootAgentsPath, 'utf8');
