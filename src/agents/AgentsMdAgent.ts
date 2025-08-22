@@ -2,7 +2,11 @@ import * as path from 'path';
 import { promises as fs } from 'fs';
 import { AbstractAgent } from './AbstractAgent';
 import { IAgentConfig } from './IAgent';
-import { backupFile, ensureDirExists, writeGeneratedFile } from '../core/FileSystemUtils';
+import {
+  backupFile,
+  ensureDirExists,
+  writeGeneratedFile,
+} from '../core/FileSystemUtils';
 
 /**
  * Pseudo-agent that ensures the concatenated rules are written to `.ruler/AGENTS.md`.
@@ -28,7 +32,8 @@ export class AgentsMdAgent extends AbstractAgent {
     rulerMcpJson: Record<string, unknown> | null, // eslint-disable-line @typescript-eslint/no-unused-vars
     agentConfig?: IAgentConfig,
   ): Promise<void> {
-    const output = agentConfig?.outputPath ?? this.getDefaultOutputPath(projectRoot);
+    const output =
+      agentConfig?.outputPath ?? this.getDefaultOutputPath(projectRoot);
     const absolutePath = path.resolve(projectRoot, output);
     await ensureDirExists(path.dirname(absolutePath));
 
