@@ -1,16 +1,11 @@
-import * as path from 'path';
-import { AbstractAgent } from './AbstractAgent';
+import { AgentsMdAgent } from './AgentsMdAgent';
 
-export class JulesAgent extends AbstractAgent {
+// Jules agent now simply inherits AgentsMdAgent behavior (idempotent AGENTS.md writes).
+export class JulesAgent extends AgentsMdAgent {
   getIdentifier(): string {
     return 'jules';
   }
-
   getName(): string {
     return 'Jules';
-  }
-
-  getDefaultOutputPath(projectRoot: string): string {
-    return path.join(projectRoot, 'AGENTS.md');
   }
 }

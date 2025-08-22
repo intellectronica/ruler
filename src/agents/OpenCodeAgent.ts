@@ -1,33 +1,14 @@
-import { IAgent, IAgentConfig } from './IAgent';
-import { backupFile, writeGeneratedFile } from '../core/FileSystemUtils';
-import * as path from 'path';
+import { AgentsMdAgent } from './AgentsMdAgent';
 
-export class OpenCodeAgent implements IAgent {
+// OpenCode agent now reuses AgentsMdAgent idempotent write to AGENTS.md.
+// Only customization needed is identifier, name, and custom MCP server key.
+export class OpenCodeAgent extends AgentsMdAgent {
   getIdentifier(): string {
     return 'opencode';
   }
-
   getName(): string {
     return 'OpenCode';
   }
-
-  async applyRulerConfig(
-    concatenatedRules: string,
-    projectRoot: string,
-    rulerMcpJson: Record<string, unknown> | null, // eslint-disable-line @typescript-eslint/no-unused-vars
-    agentConfig?: IAgentConfig,
-  ): Promise<void> {
-    const outputPath =
-      agentConfig?.outputPath ?? this.getDefaultOutputPath(projectRoot);
-    const absolutePath = path.resolve(projectRoot, outputPath);
-    await backupFile(absolutePath);
-    await writeGeneratedFile(absolutePath, concatenatedRules);
-  }
-
-  getDefaultOutputPath(projectRoot: string): string {
-    return path.join(projectRoot, 'AGENTS.md');
-  }
-
   getMcpServerKey(): string {
     return 'mcp';
   }
