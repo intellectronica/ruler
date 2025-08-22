@@ -161,7 +161,7 @@ describe('CLI Handlers', () => {
 
   describe('initHandler', () => {
     const mockRulerDir = path.join(mockProjectRoot, '.ruler');
-    const mockInstructionsPath = path.join(mockRulerDir, 'instructions.md');
+  const mockInstructionsPath = path.join(mockRulerDir, 'AGENTS.md');
     const mockTomlPath = path.join(mockRulerDir, 'ruler.toml');
     const mockMcpPath = path.join(mockRulerDir, 'mcp.json');
 

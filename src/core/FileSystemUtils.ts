@@ -2,6 +2,9 @@ import { promises as fs } from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 
+// Internal flag to ensure we only emit the legacy warning once per process.
+let legacyWarningEmitted = false;
+
 /**
  * Gets the XDG config directory path, falling back to ~/.config if XDG_CONFIG_HOME is not set.
  */
@@ -63,7 +66,9 @@ export async function findRulerDir(
 export async function readMarkdownFiles(
   rulerDir: string,
 ): Promise<{ path: string; content: string }[]> {
-  const results: { path: string; content: string }[] = [];
+  const mdFiles: { path: string; content: string }[] = [];
+
+  // Gather all markdown files (recursive) first
   async function walk(dir: string) {
     const entries = await fs.readdir(dir, { withFileTypes: true });
     for (const entry of entries) {
@@ -72,13 +77,54 @@ export async function readMarkdownFiles(
         await walk(fullPath);
       } else if (entry.isFile() && entry.name.endsWith('.md')) {
         const content = await fs.readFile(fullPath, 'utf8');
-        results.push({ path: fullPath, content });
+        mdFiles.push({ path: fullPath, content });
       }
     }
   }
   await walk(rulerDir);
-  results.sort((a, b) => a.path.localeCompare(b.path));
-  return results;
+
+  // Prioritisation logic:
+  // 1. Prefer top-level AGENTS.md if present.
+  // 2. If AGENTS.md absent but legacy instructions.md present, use it (emit one-time warning).
+  // 3. Include any remaining .md files (excluding whichever of the above was used if present) in
+  //    sorted order AFTER the preferred primary file so that new concatenation priority starts with AGENTS.md.
+  const topLevelAgents = path.join(rulerDir, 'AGENTS.md');
+  const topLevelLegacy = path.join(rulerDir, 'instructions.md');
+
+  // Separate primary candidates from others
+  let primaryFile: { path: string; content: string } | null = null;
+  const others: { path: string; content: string }[] = [];
+
+  for (const f of mdFiles) {
+    if (f.path === topLevelAgents) {
+      primaryFile = f; // Highest priority
+    }
+  }
+  if (!primaryFile) {
+    for (const f of mdFiles) {
+      if (f.path === topLevelLegacy) {
+        primaryFile = f;
+        if (!legacyWarningEmitted) {
+          console.warn(
+            '[ruler] Warning: Using legacy .ruler/instructions.md. Please migrate to AGENTS.md. This fallback will be removed in a future release.',
+          );
+          legacyWarningEmitted = true;
+        }
+        break;
+      }
+    }
+  }
+
+  for (const f of mdFiles) {
+    if (primaryFile && f.path === primaryFile.path) continue;
+    others.push(f);
+  }
+
+  // Sort the remaining others for stable deterministic concatenation order.
+  others.sort((a, b) => a.path.localeCompare(b.path));
+
+  const ordered = primaryFile ? [primaryFile, ...others] : others;
+  return ordered;
 }
 
 /**

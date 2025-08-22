@@ -21,7 +21,7 @@ describe('End-to-End ruler init command', () => {
     runRulerWithInheritedStdio('init', projectRoot);
 
     const rulerDir = path.join(projectRoot, '.ruler');
-    const instr = path.join(rulerDir, 'instructions.md');
+  const instr = path.join(rulerDir, 'AGENTS.md');
     const toml = path.join(rulerDir, 'ruler.toml');
     await expect(fs.stat(rulerDir)).resolves.toBeDefined();
     await expect(
@@ -35,7 +35,7 @@ describe('End-to-End ruler init command', () => {
   it('does not overwrite existing files', async () => {
     const { projectRoot } = testProject;
     const rulerDir = path.join(projectRoot, '.ruler');
-    const instr = path.join(rulerDir, 'instructions.md');
+  const instr = path.join(rulerDir, 'AGENTS.md');
     const toml = path.join(rulerDir, 'ruler.toml');
     // Prepopulate with markers
     await fs.writeFile(instr, 'KEEP');
