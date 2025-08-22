@@ -52,7 +52,7 @@ describe('End-to-End ruler init command', () => {
     await fs.mkdir(rulerDir, { recursive: true });
     const legacyPath = path.join(rulerDir, 'instructions.md');
     await fs.writeFile(legacyPath, 'LEGACY');
-    runRulerWithInheritedStdio('init', projectRoot);
+    await runRulerWithInheritedStdio('init', projectRoot);
     const newPath = path.join(rulerDir, 'AGENTS.md');
     await expect(fs.readFile(legacyPath, 'utf8')).resolves.toBe('LEGACY');
   await expect(fs.readFile(newPath, 'utf8')).resolves.toMatch(/^# AGENTS\.md/);
