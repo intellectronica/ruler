@@ -54,6 +54,7 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 
 | Agent            | Rules File(s)                                    | MCP Configuration                                   |
 | ---------------- | ------------------------------------------------ | --------------------------------------------------- |
+| AgentsMd         | `AGENTS.md`                                      | -                                                   |
 | GitHub Copilot   | `.github/copilot-instructions.md`                | `.vscode/mcp.json`                                  |
 | Claude Code      | `CLAUDE.md`                                      | `.mcp.json`                                         |
 | OpenAI Codex CLI | `AGENTS.md`                                      | `.codex/config.toml`, `~/.codex/config.json`        |
@@ -167,7 +168,7 @@ The `apply` command looks for `.ruler/` in the current directory tree, reading t
 | Option                         | Description                                                                                                                                                |
 | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `--project-root <path>`        | Path to your project's root (default: current directory)                                                                                                   |
-| `--agents <agent1,agent2,...>` | Comma-separated list of agent names to target (amp, copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, junie, augmentcode, kilocode) |
+| `--agents <agent1,agent2,...>` | Comma-separated list of agent names to target (agentsmd, amp, copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, junie, augmentcode, kilocode) |
 | `--config <path>`              | Path to a custom `ruler.toml` configuration file                                                                                                           |
 | `--mcp` / `--with-mcp`         | Enable applying MCP server configurations (default: true)                                                                                                  |
 | `--no-mcp`                     | Disable applying MCP server configurations                                                                                                                 |
@@ -239,7 +240,7 @@ ruler revert [options]
 | Option                         | Description                                                                                                                                             |
 | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `--project-root <path>`        | Path to your project's root (default: current directory)                                                                                                |
-| `--agents <agent1,agent2,...>` | Comma-separated list of agent names to revert (amp, copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, junie, kilocode, opencode) |
+| `--agents <agent1,agent2,...>` | Comma-separated list of agent names to revert (agentsmd, amp, copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, junie, kilocode, opencode) |
 | `--config <path>`              | Path to a custom `ruler.toml` configuration file                                                                                                        |
 | `--keep-backups`               | Keep backup files (.bak) after restoration (default: false)                                                                                             |
 | `--dry-run`                    | Preview changes without actually reverting files                                                                                                        |

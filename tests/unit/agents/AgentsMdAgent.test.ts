@@ -1,0 +1,70 @@
+import { AgentsMdAgent } from '../../../src/agents/AgentsMdAgent';
+import * as fs from 'fs/promises';
+import * as path from 'path';
+import * as os from 'os';
+
+/**
+ * Tests for AgentsMdAgent pseudo-agent which writes concatenated rules to `.ruler/AGENTS.md`.
+ */
+describe('AgentsMdAgent', () => {
+  let agent: AgentsMdAgent;
+  let tmpDir: string;
+  let targetFile: string;
+
+  beforeEach(async () => {
+    agent = new AgentsMdAgent();
+    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'agentsmd-agent-test-'));
+  targetFile = path.join(tmpDir, 'AGENTS.md');
+  });
+
+  afterEach(async () => {
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  });
+
+  it('has correct identifier and name', () => {
+    expect(agent.getIdentifier()).toBe('agentsmd');
+    expect(agent.getName()).toBe('AgentsMd');
+  });
+
+  it('returns correct default output path', () => {
+  const expected = path.join(tmpDir, 'AGENTS.md');
+    expect(agent.getDefaultOutputPath(tmpDir)).toBe(expected);
+  });
+
+  it('writes rules when file does not exist', async () => {
+    const rules = 'Initial rules content';
+    await agent.applyRulerConfig(rules, tmpDir, null);
+    const written = await fs.readFile(targetFile, 'utf8');
+    expect(written).toBe(rules);
+    // No backup expected for first write
+    await expect(fs.access(`${targetFile}.bak`)).rejects.toThrow();
+  });
+
+  it('creates backup and writes new content when content changes', async () => {
+    const initial = 'Initial rules content';
+    await agent.applyRulerConfig(initial, tmpDir, null);
+    const modified = 'Modified rules content';
+    await agent.applyRulerConfig(modified, tmpDir, null);
+    const written = await fs.readFile(targetFile, 'utf8');
+    expect(written).toBe(modified);
+    const backup = await fs.readFile(`${targetFile}.bak`, 'utf8');
+    expect(backup).toBe(initial);
+  });
+
+  it('skips rewrite when content unchanged (no new backup overwrite)', async () => {
+    const initial = 'Stable content';
+    await agent.applyRulerConfig(initial, tmpDir, null);
+    const statBefore = await fs.stat(targetFile);
+    await new Promise((r) => setTimeout(r, 10)); // ensure mtime would differ if rewritten
+    await agent.applyRulerConfig(initial, tmpDir, null);
+    const statAfter = await fs.stat(targetFile);
+    // mtime should be unchanged because write skipped
+    expect(statAfter.mtimeMs).toBe(statBefore.mtimeMs);
+    // Still no backup since never changed
+    await expect(fs.access(`${targetFile}.bak`)).rejects.toThrow();
+  });
+
+  it('returns empty MCP server key (no MCP propagation)', () => {
+    expect(agent.getMcpServerKey()).toBe('');
+  });
+});
