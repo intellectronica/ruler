@@ -82,7 +82,7 @@ describe('AmpAgent', () => {
       // Create .ruler directory for revert functionality
       const rulerDir = path.join(tmpDir, '.ruler');
       await fs.mkdir(rulerDir, { recursive: true });
-      await fs.writeFile(path.join(rulerDir, 'instructions.md'), 'Test rules');
+  await fs.writeFile(path.join(rulerDir, 'AGENTS.md'), 'Test rules');
     });
 
     afterEach(async () => {

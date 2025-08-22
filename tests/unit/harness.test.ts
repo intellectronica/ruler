@@ -36,7 +36,7 @@ describe('Test Harness', () => {
 
     it('creates files when provided', async () => {
       const files = {
-        '.ruler/instructions.md': '# Test Instructions',
+        '.ruler/AGENTS.md': '# Test Instructions',
         '.ruler/ruler.toml': 'default_agents = ["GitHub Copilot"]',
         'README.md': '# Test Project'
       };
@@ -107,7 +107,7 @@ describe('Test Harness', () => {
     beforeEach(async () => {
       // Create a basic test project with ruler configuration
       testProject = await setupTestProject({
-        '.ruler/instructions.md': '# Test Rule',
+        '.ruler/AGENTS.md': '# Test Rule',
         '.ruler/ruler.toml': 'default_agents = ["GitHub Copilot"]'
       });
     });

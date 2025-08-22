@@ -14,7 +14,7 @@ jest.mock('fs', () => {
         if (path.includes('mcp.json')) {
           return Promise.resolve('{"mcpServers": {}}');
         }
-        if (path.includes('instructions.md')) {
+  if (path.includes('AGENTS.md')) {
           return Promise.resolve('# Test Instructions');
         }
         if (path.includes('ruler.toml')) {
@@ -31,7 +31,7 @@ jest.mock('fs', () => {
       }),
       readdir: jest.fn().mockImplementation((dir) => {
         if (dir.includes('.ruler')) {
-          return Promise.resolve(['instructions.md', 'mcp.json', 'ruler.toml']);
+          return Promise.resolve(['AGENTS.md', 'mcp.json', 'ruler.toml']);
         }
         return Promise.resolve([]);
       }),
@@ -49,7 +49,7 @@ jest.mock('../../src/core/FileSystemUtils', () => ({
   findRulerDir: jest.fn().mockResolvedValue('/test/.ruler'),
   readMarkdownFiles: jest.fn().mockResolvedValue([
     {
-      path: '/test/.ruler/instructions.md',
+      path: '/test/.ruler/AGENTS.md',
       content: '# Test Instructions',
     },
   ]),
