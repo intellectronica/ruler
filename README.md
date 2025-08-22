@@ -98,10 +98,11 @@ npx @intellectronica/ruler apply
 1. Navigate to your project's root directory
 2. Run `ruler init`
 3. This creates:
-   - `.ruler/` directory
-   - `.ruler/instructions.md`: A starter Markdown file for your rules
-   - `.ruler/ruler.toml`: The main configuration file for Ruler
-   - `.ruler/mcp.json`: An example MCP server configuration
+  - `.ruler/` directory
+  - `.ruler/AGENTS.md`: The primary (new) starter Markdown file for your rules
+  - `.ruler/ruler.toml`: The main configuration file for Ruler
+  - `.ruler/mcp.json`: An example MCP server configuration
+  - (Optional legacy fallback) If you previously used `.ruler/instructions.md`, it is still respected when `AGENTS.md` is absent, with a one-time deprecation warning per process.
 
 Additionally, you can create a global configuration to use when no local `.ruler/` directory is found:
 
@@ -117,10 +118,17 @@ The global configuration will be created to `$XDG_CONFIG_HOME/ruler` (default: `
 
 This is your central hub for all AI agent instructions:
 
-- **Rule Files (`*.md`)**: Discovered recursively from `.ruler/` or `$XDG_CONFIG_HOME/ruler` and alphabetically concatenated
+- **Primary File Order & Precedence**:
+  1. A repository root `AGENTS.md` (outside `.ruler/`) if present (highest precedence, prepended)
+  2. `.ruler/AGENTS.md` (new default starter file)
+  3. Legacy `.ruler/instructions.md` (only if `.ruler/AGENTS.md` absent; emits a single deprecation warning per process)
+  4. Remaining discovered `.md` files under `.ruler/` (and subdirectories) in sorted order
+- **Rule Files (`*.md`)**: Discovered recursively from `.ruler/` or `$XDG_CONFIG_HOME/ruler` and concatenated in the order above
 - **Concatenation Marker**: Each file's content is prepended with `--- Source: <relative_path_to_md_file> ---` for traceability
 - **`ruler.toml`**: Master configuration for Ruler's behavior, agent selection, and output paths
 - **`mcp.json`**: Shared MCP server settings
+
+This ordering lets you keep a short, high-impact root `AGENTS.md` (e.g. executive project summary) while housing detailed guidance inside `.ruler/`.
 
 ### Best Practices for Rule Files
 
@@ -446,7 +454,7 @@ cd your-project
 ruler init
 
 # Edit the generated files
-# - Add your coding guidelines to .ruler/instructions.md
+# - Add your coding guidelines to .ruler/AGENTS.md (or keep adding additional .md files)
 # - Customize .ruler/ruler.toml if needed
 
 # Apply rules to all AI agents
@@ -564,8 +572,8 @@ A: Ruler creates backups with `.bak` extension before overwriting any existing f
 **Q: Can I run Ruler in CI/CD pipelines?**
 A: Yes! Use `ruler apply --no-gitignore` in CI to avoid modifying `.gitignore`. See the GitHub Actions example above.
 
-**Q: How do I migrate from version 0.1.x to 0.2.0?**
-A: Version 0.2.0 is backward compatible. Your existing `.ruler/` directory and `ruler.toml` will continue to work. New features like verbose logging and improved error messages are opt-in.
+**Q: How do I migrate from older versions using `instructions.md`?**
+A: Simply rename `.ruler/instructions.md` to `.ruler/AGENTS.md` (recommended). If you keep the legacy file and omit `AGENTS.md`, Ruler will still use it but will emit a one-time deprecation warning. Having both causes `AGENTS.md` to take precedence; the legacy file is still concatenated afterward.
 
 ## Development
 
