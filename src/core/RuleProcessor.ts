@@ -6,9 +6,11 @@ import * as path from 'path';
  */
 export function concatenateRules(
   files: { path: string; content: string }[],
+  baseDir?: string,
 ): string {
+  const base = baseDir || process.cwd();
   const sections = files.map(({ path: filePath, content }) => {
-    const rel = path.relative(process.cwd(), filePath);
+    const rel = path.relative(base, filePath);
     return ['---', `Source: ${rel}`, '---', content.trim(), ''].join('\n');
   });
   return sections.join('\n');

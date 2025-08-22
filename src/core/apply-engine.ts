@@ -52,7 +52,7 @@ export async function loadRulerConfiguration(
 
   // Read and concatenate the markdown rule files
   const files = await FileSystemUtils.readMarkdownFiles(rulerDir);
-  const concatenatedRules = concatenateRules(files);
+  const concatenatedRules = concatenateRules(files, path.dirname(rulerDir));
 
   // Load and validate the mcp.json file
   const mcpFile = path.join(rulerDir, 'mcp.json');
