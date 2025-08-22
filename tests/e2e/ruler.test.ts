@@ -287,7 +287,7 @@ output_path = "custom-claude.md"`;
     beforeAll(async () => {
       // Create a dedicated test project for gitignore testing
       gitignoreTestProject = await setupTestProject({
-        '.ruler/instructions.md': 'test'
+        '.ruler/AGENTS.md': 'test'
       });
 
       // Create the necessary subdirectories that the agents will write to
