@@ -105,11 +105,11 @@ export async function initHandler(argv: InitArgs): Promise<void> {
   };
   const DEFAULT_INSTRUCTIONS = `# Ruler Instructions
 
-These are your centralised AI agent instructions.
+These are your centralised AI agent instructions (primary file: AGENTS.md).
 Add your coding guidelines, style guides, and other project-specific context here.
 
-Ruler will concatenate all .md files in this directory (and its subdirectories)
-and apply them to your configured AI coding agents.
+Ruler will concatenate all .md files in this directory (and its subdirectories),
+starting with AGENTS.md (if present), then remaining files in sorted order.
 `;
   const DEFAULT_TOML = `# Ruler Configuration File
 # See https://ai.intellectronica.net/ruler for documentation.

@@ -1,7 +1,7 @@
 export const ERROR_PREFIX = '[ruler]';
-// Centralized default rules filename. Initially points to legacy 'instructions.md'.
-// Future tasks will flip this to 'AGENTS.md' while preserving backward compatibility.
-export const DEFAULT_RULES_FILENAME = 'instructions.md';
+// Centralized default rules filename. Now points to 'AGENTS.md'.
+// Legacy '.ruler/instructions.md' is still supported as a fallback with a warning.
+export const DEFAULT_RULES_FILENAME = 'AGENTS.md';
 
 export function createRulerError(message: string, context?: string): Error {
   const fullMessage = context
