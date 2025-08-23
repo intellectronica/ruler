@@ -47,7 +47,7 @@ describe('ZedAgent', () => {
     }
   });
 
-  it('creates .zed/settings.json with MCP server configuration when file does not exist', async () => {
+  it('creates .zed/settings.json with transformed MCP server configuration when file does not exist', async () => {
     const { projectRoot } = await setupTestProject({
       '.ruler/AGENTS.md': 'Test rules',
     });
@@ -58,23 +58,27 @@ describe('ZedAgent', () => {
       const mcpJson = {
         mcpServers: {
           'test-server': {
+            type: 'stdio',
             command: 'echo',
             args: ['hello'],
+            env: { TEST: 'value' },
           },
         },
       };
 
       await agent.applyRulerConfig(rules, projectRoot, mcpJson);
 
-      // Check that .zed/settings.json was created with MCP configuration
+      // Check that .zed/settings.json was created with transformed MCP configuration
       const zedSettingsPath = path.join(projectRoot, '.zed', 'settings.json');
       const settingsContent = await fs.readFile(zedSettingsPath, 'utf8');
       const settings = JSON.parse(settingsContent);
 
       expect(settings.context_servers).toEqual({
         'test-server': {
+          source: 'custom',
           command: 'echo',
           args: ['hello'],
+          env: { TEST: 'value' },
         },
       });
     } finally {
@@ -82,7 +86,7 @@ describe('ZedAgent', () => {
     }
   });
 
-  it('merges MCP server configuration into existing .zed/settings.json file', async () => {
+  it('merges transformed MCP server configuration into existing .zed/settings.json file', async () => {
     const { projectRoot } = await setupTestProject({
       '.ruler/AGENTS.md': 'Test rules',
     });
@@ -96,6 +100,7 @@ describe('ZedAgent', () => {
         theme: 'dark',
         context_servers: {
           'existing-server': {
+            source: 'custom',
             command: 'ls',
             args: ['-la'],
           },
@@ -108,25 +113,30 @@ describe('ZedAgent', () => {
       const mcpJson = {
         mcpServers: {
           'new-server': {
+            type: 'stdio',
             command: 'pwd',
+            env: { NODE_ENV: 'test' },
           },
         },
       };
 
       await agent.applyRulerConfig(rules, projectRoot, mcpJson);
 
-      // Check that the settings.json was properly merged
+      // Check that the settings.json was properly merged with transformed format
       const settingsContent = await fs.readFile(zedSettingsPath, 'utf8');
       const settings = JSON.parse(settingsContent);
 
       expect(settings.theme).toBe('dark'); // Existing setting preserved
       expect(settings.context_servers).toEqual({
         'existing-server': {
+          source: 'custom',
           command: 'ls',
           args: ['-la'],
         },
         'new-server': {
+          source: 'custom',
           command: 'pwd',
+          env: { NODE_ENV: 'test' },
         },
       });
     } finally {
@@ -153,7 +163,7 @@ describe('ZedAgent', () => {
     }
   });
 
-  it('handles overwrite strategy for MCP servers', async () => {
+  it('handles overwrite strategy for MCP servers with format transformation', async () => {
     const { projectRoot } = await setupTestProject({
       '.ruler/AGENTS.md': 'Test rules',
     });
@@ -167,6 +177,7 @@ describe('ZedAgent', () => {
         theme: 'dark',
         context_servers: {
           'existing-server': {
+            source: 'custom',
             command: 'ls',
             args: ['-la'],
           },
@@ -179,7 +190,10 @@ describe('ZedAgent', () => {
       const mcpJson = {
         mcpServers: {
           'new-server': {
+            type: 'stdio',
             command: 'pwd',
+            args: ['--version'],
+            env: { DEBUG: '1' },
           },
         },
       };
@@ -189,18 +203,48 @@ describe('ZedAgent', () => {
         mcp: { strategy: 'overwrite' },
       });
 
-      // Check that the MCP servers were replaced, but other settings preserved
+      // Check that the MCP servers were replaced with transformed format, but other settings preserved
       const settingsContent = await fs.readFile(zedSettingsPath, 'utf8');
       const settings = JSON.parse(settingsContent);
 
       expect(settings.theme).toBe('dark'); // Existing non-MCP setting preserved
       expect(settings.context_servers).toEqual({
         'new-server': {
+          source: 'custom',
           command: 'pwd',
+          args: ['--version'],
+          env: { DEBUG: '1' },
         },
-      }); // Only new servers, existing MCP servers replaced
+      }); // Only new servers with transformed format, existing MCP servers replaced
     } finally {
       await teardownTestProject(projectRoot);
     }
+  });
+
+  it('transforms MCP server configuration from ruler format to Zed format', () => {
+    const agent = new ZedAgent();
+    
+    // Test transformation of a typical ruler MCP server configuration
+    const rulerConfig = {
+      type: 'stdio',
+      command: 'node',
+      args: ['/path/to/server.js'],
+      env: { NODE_ENV: 'production', DEBUG: 'true' },
+      someOtherField: 'preserved',
+    };
+
+    // Access the private method via any cast for testing
+    const transformed = (agent as any).transformMcpServerForZed(rulerConfig);
+
+    expect(transformed).toEqual({
+      source: 'custom',
+      command: 'node',
+      args: ['/path/to/server.js'],
+      env: { NODE_ENV: 'production', DEBUG: 'true' },
+      someOtherField: 'preserved',
+    });
+
+    // Ensure "type" field is removed
+    expect(transformed.type).toBeUndefined();
   });
 });

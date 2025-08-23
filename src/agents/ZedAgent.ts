@@ -55,12 +55,21 @@ export class ZedAgent extends AgentsMdAgent {
         // For overwrite, preserve all existing settings except MCP servers
         mergedSettings = { ...existingSettings };
 
-        // Extract incoming MCP servers
+        // Extract incoming MCP servers and transform them for Zed format
         const incomingServers =
           (rulerMcpJson.mcpServers as Record<string, unknown>) || {};
 
+        const transformedServers: Record<string, unknown> = {};
+        for (const [serverName, serverConfig] of Object.entries(
+          incomingServers,
+        )) {
+          transformedServers[serverName] = this.transformMcpServerForZed(
+            serverConfig as Record<string, unknown>,
+          );
+        }
+
         // Replace MCP servers completely
-        mergedSettings[this.getMcpServerKey()] = incomingServers;
+        mergedSettings[this.getMcpServerKey()] = transformedServers;
       } else {
         // For merge strategy, preserve all existing settings
         const baseServers =
@@ -71,7 +80,18 @@ export class ZedAgent extends AgentsMdAgent {
         const incomingServers =
           (rulerMcpJson.mcpServers as Record<string, unknown>) || {};
 
-        const mergedServers = { ...baseServers, ...incomingServers };
+        // Transform incoming servers for Zed format
+        const transformedIncomingServers: Record<string, unknown> = {};
+        for (const [serverName, serverConfig] of Object.entries(
+          incomingServers,
+        )) {
+          transformedIncomingServers[serverName] =
+            this.transformMcpServerForZed(
+              serverConfig as Record<string, unknown>,
+            );
+        }
+
+        const mergedServers = { ...baseServers, ...transformedIncomingServers };
 
         mergedSettings = {
           ...existingSettings,
@@ -90,5 +110,23 @@ export class ZedAgent extends AgentsMdAgent {
 
   getMcpServerKey(): string {
     return 'context_servers';
+  }
+
+  /**
+   * Transform MCP server configuration from ruler format to Zed format.
+   * Converts "type": "stdio" to "source": "custom" and preserves other fields.
+   */
+  private transformMcpServerForZed(
+    rulerServer: Record<string, unknown>,
+  ): Record<string, unknown> {
+    const transformedServer = { ...rulerServer };
+
+    // Remove "type" field if present
+    delete transformedServer.type;
+
+    // Add "source": "custom" as required by Zed
+    transformedServer.source = 'custom';
+
+    return transformedServer;
   }
 }
