@@ -89,6 +89,6 @@ export class ZedAgent extends AgentsMdAgent {
   }
 
   getMcpServerKey(): string {
-    return 'mcpServers';
+    return 'context_servers';
   }
 }

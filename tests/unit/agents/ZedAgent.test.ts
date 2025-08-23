@@ -24,9 +24,9 @@ describe('ZedAgent', () => {
     expect(agent.getName()).toBe('Zed');
   });
 
-  it('should use mcpServers as MCP key', () => {
+  it('should use context_servers as MCP key', () => {
     const agent = new ZedAgent();
-    expect(agent.getMcpServerKey()).toBe('mcpServers');
+    expect(agent.getMcpServerKey()).toBe('context_servers');
   });
 
   it('writes AGENTS.md via base class', async () => {
@@ -71,7 +71,7 @@ describe('ZedAgent', () => {
       const settingsContent = await fs.readFile(zedSettingsPath, 'utf8');
       const settings = JSON.parse(settingsContent);
 
-      expect(settings.mcpServers).toEqual({
+      expect(settings.context_servers).toEqual({
         'test-server': {
           command: 'echo',
           args: ['hello'],
@@ -94,7 +94,7 @@ describe('ZedAgent', () => {
       const zedSettingsPath = path.join(zedDir, 'settings.json');
       const existingSettings = {
         theme: 'dark',
-        mcpServers: {
+        context_servers: {
           'existing-server': {
             command: 'ls',
             args: ['-la'],
@@ -120,7 +120,7 @@ describe('ZedAgent', () => {
       const settings = JSON.parse(settingsContent);
 
       expect(settings.theme).toBe('dark'); // Existing setting preserved
-      expect(settings.mcpServers).toEqual({
+      expect(settings.context_servers).toEqual({
         'existing-server': {
           command: 'ls',
           args: ['-la'],
@@ -165,7 +165,7 @@ describe('ZedAgent', () => {
       const zedSettingsPath = path.join(zedDir, 'settings.json');
       const existingSettings = {
         theme: 'dark',
-        mcpServers: {
+        context_servers: {
           'existing-server': {
             command: 'ls',
             args: ['-la'],
@@ -194,7 +194,7 @@ describe('ZedAgent', () => {
       const settings = JSON.parse(settingsContent);
 
       expect(settings.theme).toBe('dark'); // Existing non-MCP setting preserved
-      expect(settings.mcpServers).toEqual({
+      expect(settings.context_servers).toEqual({
         'new-server': {
           command: 'pwd',
         },
