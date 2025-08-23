@@ -25,19 +25,24 @@ export class AiderAgent implements IAgent {
     agentConfig?: IAgentConfig,
   ): Promise<void> {
     // First perform idempotent AGENTS.md write via composed AgentsMdAgent
-    await this.agentsMdAgent.applyRulerConfig(concatenatedRules, projectRoot, null, {
-      // Preserve explicit outputPath precedence semantics if provided.
-      outputPath:
-        agentConfig?.outputPath ||
-        agentConfig?.outputPathInstructions ||
-        undefined,
-    });
+    await this.agentsMdAgent.applyRulerConfig(
+      concatenatedRules,
+      projectRoot,
+      null,
+      {
+        // Preserve explicit outputPath precedence semantics if provided.
+        outputPath:
+          agentConfig?.outputPath ||
+          agentConfig?.outputPathInstructions ||
+          undefined,
+      },
+    );
 
     // Now handle .aider.conf.yml configuration
     const cfgPath =
       agentConfig?.outputPathConfig ??
       this.getDefaultOutputPath(projectRoot).config;
-    
+
     interface AiderConfig {
       read?: string[];
       [key: string]: unknown;
@@ -54,13 +59,14 @@ export class AiderAgent implements IAgent {
     if (!Array.isArray(doc.read)) {
       doc.read = [];
     }
-    
+
     // Determine the actual agents file path (AGENTS.md by default, or custom path)
-    const agentsPath = agentConfig?.outputPath ||
+    const agentsPath =
+      agentConfig?.outputPath ||
       agentConfig?.outputPathInstructions ||
       this.getDefaultOutputPath(projectRoot).instructions;
     const name = path.basename(agentsPath);
-    
+
     if (!doc.read.includes(name)) {
       doc.read.push(name);
     }
@@ -73,7 +79,7 @@ export class AiderAgent implements IAgent {
       config: path.join(projectRoot, '.aider.conf.yml'),
     };
   }
-  
+
   getMcpServerKey(): string {
     return this.agentsMdAgent.getMcpServerKey();
   }
