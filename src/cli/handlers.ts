@@ -142,7 +142,7 @@ export async function initHandler(argv: InitArgs): Promise<void> {
 
 # [agents.aider]
 # enabled = true
-# output_path_instructions = "ruler_aider_instructions.md"
+# output_path_instructions = "AGENTS.md"
 # output_path_config = ".aider.conf.yml"
 
 # [agents.firebase]

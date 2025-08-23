@@ -43,12 +43,12 @@ describe('Revert Agent Integration', () => {
     });
 
     it('should handle agent with multiple output paths (AiderAgent)', async () => {
-      await fs.writeFile(path.join(tmpDir, 'ruler_aider_instructions.md'), 'Aider instructions');
-      await fs.writeFile(path.join(tmpDir, '.aider.conf.yml'), 'read: [ruler_aider_instructions.md]');
+      await fs.writeFile(path.join(tmpDir, 'AGENTS.md'), 'Aider instructions');
+      await fs.writeFile(path.join(tmpDir, '.aider.conf.yml'), 'read: [AGENTS.md]');
       
       await revertAllAgentConfigs(tmpDir, ['aider'], undefined, false, false, false);
       
-      await expect(fs.access(path.join(tmpDir, 'ruler_aider_instructions.md'))).rejects.toThrow();
+      await expect(fs.access(path.join(tmpDir, 'AGENTS.md'))).rejects.toThrow();
       await expect(fs.access(path.join(tmpDir, '.aider.conf.yml'))).rejects.toThrow();
     });
 

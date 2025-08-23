@@ -63,7 +63,7 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | Windsurf         | `.windsurf/rules/ruler_windsurf_instructions.md` | `~/.codeium/windsurf/mcp_config.json`               |
 | Cline            | `.clinerules`                                    | -                                                   |
 | Amp              | `AGENT.md`                                       | -                                                   |
-| Aider            | `ruler_aider_instructions.md`, `.aider.conf.yml` | `.mcp.json`                                         |
+| Aider            | `AGENTS.md`, `.aider.conf.yml` | `.mcp.json`                                         |
 | Firebase Studio  | `.idx/airules.md`                                | -                                                   |
 | Open Hands       | `.openhands/microagents/repo.md`                 | `.openhands/config.toml`                            |
 | Gemini CLI       | `GEMINI.md`                                      | `.gemini/settings.json`                             |
@@ -323,7 +323,7 @@ output_path = "CLAUDE.md"
 
 [agents.aider]
 enabled = true
-output_path_instructions = "ruler_aider_instructions.md"
+output_path_instructions = "AGENTS.md"
 output_path_config = ".aider.conf.yml"
 
 # OpenAI Codex CLI agent and MCP config
@@ -432,7 +432,7 @@ node_modules/
 .windsurf/rules/ruler_windsurf_instructions.md
 AGENTS.md
 CLAUDE.md
-ruler_aider_instructions.md
+AGENTS.md
 # END Ruler Generated Files
 
 dist/

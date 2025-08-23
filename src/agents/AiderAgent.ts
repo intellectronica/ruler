@@ -1,13 +1,15 @@
 import * as path from 'path';
 import { IAgent, IAgentConfig } from './IAgent';
+import { AgentsMdAgent } from './AgentsMdAgent';
 import { backupFile, writeGeneratedFile } from '../core/FileSystemUtils';
 import * as fs from 'fs/promises';
 import * as yaml from 'js-yaml';
 
 /**
- * Aider agent adapter (stub implementation).
+ * Aider agent adapter that uses AGENTS.md for instructions and .aider.conf.yml for configuration.
  */
 export class AiderAgent implements IAgent {
+  private agentsMdAgent = new AgentsMdAgent();
   getIdentifier(): string {
     return 'aider';
   }
@@ -19,18 +21,23 @@ export class AiderAgent implements IAgent {
   async applyRulerConfig(
     concatenatedRules: string,
     projectRoot: string,
-    rulerMcpJson: Record<string, unknown> | null, // eslint-disable-line @typescript-eslint/no-unused-vars
+    rulerMcpJson: Record<string, unknown> | null,
     agentConfig?: IAgentConfig,
   ): Promise<void> {
-    const mdPath =
-      agentConfig?.outputPathInstructions ??
-      this.getDefaultOutputPath(projectRoot).instructions;
-    await backupFile(mdPath);
-    await writeGeneratedFile(mdPath, concatenatedRules);
+    // First perform idempotent AGENTS.md write via composed AgentsMdAgent
+    await this.agentsMdAgent.applyRulerConfig(concatenatedRules, projectRoot, null, {
+      // Preserve explicit outputPath precedence semantics if provided.
+      outputPath:
+        agentConfig?.outputPath ||
+        agentConfig?.outputPathInstructions ||
+        undefined,
+    });
 
+    // Now handle .aider.conf.yml configuration
     const cfgPath =
       agentConfig?.outputPathConfig ??
       this.getDefaultOutputPath(projectRoot).config;
+    
     interface AiderConfig {
       read?: string[];
       [key: string]: unknown;
@@ -47,7 +54,13 @@ export class AiderAgent implements IAgent {
     if (!Array.isArray(doc.read)) {
       doc.read = [];
     }
-    const name = path.basename(mdPath);
+    
+    // Determine the actual agents file path (AGENTS.md by default, or custom path)
+    const agentsPath = agentConfig?.outputPath ||
+      agentConfig?.outputPathInstructions ||
+      this.getDefaultOutputPath(projectRoot).instructions;
+    const name = path.basename(agentsPath);
+    
     if (!doc.read.includes(name)) {
       doc.read.push(name);
     }
@@ -56,8 +69,12 @@ export class AiderAgent implements IAgent {
   }
   getDefaultOutputPath(projectRoot: string): Record<string, string> {
     return {
-      instructions: path.join(projectRoot, 'ruler_aider_instructions.md'),
+      instructions: path.join(projectRoot, 'AGENTS.md'),
       config: path.join(projectRoot, '.aider.conf.yml'),
     };
+  }
+  
+  getMcpServerKey(): string {
+    return this.agentsMdAgent.getMcpServerKey();
   }
 }
