@@ -52,6 +52,9 @@ export async function getNativeMcpPath(
       candidates.push(path.join(projectRoot, 'opencode.json'));
       candidates.push(path.join(home, '.config', 'opencode', 'opencode.json'));
       break;
+    case 'Zed':
+      candidates.push(path.join(home, '.zed', 'settings.json'));
+      break;
     default:
       return null;
   }

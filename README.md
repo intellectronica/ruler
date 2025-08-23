@@ -72,6 +72,7 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | Kilo Code        | `.kilocode/rules/ruler_kilocode_instructions.md` | `.kilocode/mcp.json`                                |
 | OpenCode         | `AGENTS.md`                                      | `opencode.json`, `~/.config/opencode/opencode.json` |
 | Goose            | `.goosehints`                                    | -                                                   |
+| Zed              | `AGENTS.md`                                      | `~/.zed/settings.json`                              |
 
 ## Getting Started
 
