@@ -18,6 +18,7 @@ import { OpenCodeAgent } from './OpenCodeAgent';
 import { CrushAgent } from './CrushAgent';
 import { GooseAgent } from './GooseAgent';
 import { AmpAgent } from './AmpAgent';
+import { ZedAgent } from './ZedAgent';
 import { AgentsMdAgent } from './AgentsMdAgent';
 
 export { AbstractAgent };
@@ -41,5 +42,6 @@ export const allAgents: IAgent[] = [
   new GooseAgent(),
   new CrushAgent(),
   new AmpAgent(),
+  new ZedAgent(),
   new AgentsMdAgent(),
 ];
