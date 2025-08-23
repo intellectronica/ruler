@@ -145,7 +145,6 @@ issue-body.md
 
 # START Ruler Generated Files
 *.bak
-.github/copilot-instructions.md
 .qwen/settings.json
 .qwen/settings.json.bak
 AGENTS.md
