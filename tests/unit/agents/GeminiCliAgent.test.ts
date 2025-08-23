@@ -14,6 +14,11 @@ describe('GeminiCliAgent', () => {
     expect(agent instanceof AgentsMdAgent).toBe(true);
   });
 
+  it('should use mcpServers as MCP key', () => {
+    const agent = new GeminiCliAgent();
+    expect(agent.getMcpServerKey()).toBe('mcpServers');
+  });
+
   it('writes AGENTS.md and sets contextFileName in .gemini/settings.json', async () => {
     const { projectRoot } = await setupTestProject({
       '.ruler/AGENTS.md': 'Rule A',

@@ -43,4 +43,9 @@ export class GeminiCliAgent extends AgentsMdAgent {
     await fs.mkdir(path.dirname(settingsPath), { recursive: true });
     await fs.writeFile(settingsPath, JSON.stringify(updated, null, 2));
   }
+
+  // Ensure MCP merging uses the correct key for Gemini (.gemini/settings.json)
+  getMcpServerKey(): string {
+    return 'mcpServers';
+  }
 }
