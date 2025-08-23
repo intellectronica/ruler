@@ -150,10 +150,10 @@ describe('Agent Adapters', () => {
       const agent = new AiderAgent();
       // No existing config
       await agent.applyRulerConfig('aider rules', tmpDir, null);
-      const mdFile = path.join(tmpDir, 'ruler_aider_instructions.md');
+      const mdFile = path.join(tmpDir, 'AGENTS.md');
       expect(await fs.readFile(mdFile, 'utf8')).toBe('aider rules');
       const cfg = yaml.load(await fs.readFile(path.join(tmpDir, '.aider.conf.yml'), 'utf8')) as any;
-      expect(cfg.read).toContain('ruler_aider_instructions.md');
+      expect(cfg.read).toContain('AGENTS.md');
 
       // Existing config with read not array
       const cfgPath = path.join(tmpDir, '.aider.conf.yml');
@@ -161,7 +161,7 @@ describe('Agent Adapters', () => {
       await agent.applyRulerConfig('new aider', tmpDir, null);
       const updated = yaml.load(await fs.readFile(cfgPath, 'utf8')) as any;
       expect(Array.isArray(updated.read)).toBe(true);
-      expect(updated.read).toContain('ruler_aider_instructions.md');
+      expect(updated.read).toContain('AGENTS.md');
     });
   });
   it('uses custom outputPathInstructions when provided', async () => {

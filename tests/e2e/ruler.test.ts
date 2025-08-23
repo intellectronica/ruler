@@ -29,7 +29,6 @@ describe('End-to-End Ruler CLI', () => {
     await fs.rm(path.join(projectRoot, '.cursor'), { recursive: true, force: true });
     await fs.rm(path.join(projectRoot, '.windsurf'), { recursive: true, force: true });
     await fs.rm(path.join(projectRoot, '.clinerules'), { force: true });
-    await fs.rm(path.join(projectRoot, 'ruler_aider_instructions.md'), { force: true });
     await fs.rm(path.join(projectRoot, '.aider.conf.yml'), { force: true });
     await fs.rm(path.join(projectRoot, '.junie'), { recursive: true, force: true });
     await fs.rm(path.join(projectRoot, '.idx'), { recursive: true, force: true });
@@ -58,7 +57,7 @@ describe('End-to-End Ruler CLI', () => {
     const cursorPath = path.join(projectRoot, '.cursor', 'rules', 'ruler_cursor_instructions.mdc');
     const windsurfPath = path.join(projectRoot, '.windsurf', 'rules', 'ruler_windsurf_instructions.md');
     const clinePath = path.join(projectRoot, '.clinerules');
-    const aiderMd = path.join(projectRoot, 'ruler_aider_instructions.md');
+    const aiderMd = path.join(projectRoot, 'AGENTS.md');
     const aiderCfg = path.join(projectRoot, '.aider.conf.yml');
     const firebasePath = path.join(projectRoot, '.idx', 'airules.md');
     const openHandsInstructionsPath = path.join(
@@ -88,7 +87,7 @@ describe('End-to-End Ruler CLI', () => {
       expect(fs.readFile(windsurfPath, 'utf8')).resolves.toContain('Rule A'),
       expect(fs.readFile(clinePath, 'utf8')).resolves.toContain('Rule B'),
       expect(fs.readFile(aiderMd, 'utf8')).resolves.toContain('Rule A'),
-      expect(fs.readFile(aiderCfg, 'utf8')).resolves.toContain('ruler_aider_instructions.md'),
+      expect(fs.readFile(aiderCfg, 'utf8')).resolves.toContain('AGENTS.md'),
       expect(fs.readFile(firebasePath, 'utf8')).resolves.toContain('Rule B'),
       expect(
         fs.readFile(openHandsInstructionsPath, 'utf8'),
@@ -209,7 +208,7 @@ output_path = "awesome.md"
       expect(gitignoreContent).toContain('.cursor/rules/ruler_cursor_instructions.mdc');
       expect(gitignoreContent).toContain('.windsurf/rules/ruler_windsurf_instructions.md');
       expect(gitignoreContent).toContain('.clinerules');
-      expect(gitignoreContent).toContain('ruler_aider_instructions.md');
+      expect(gitignoreContent).toContain('AGENTS.md');
       expect(gitignoreContent).toContain('.aider.conf.yml');
       expect(gitignoreContent).toContain('.idx/airules.md');
       expect(gitignoreContent).toContain('.openhands/microagents/repo.md');
