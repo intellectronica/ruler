@@ -1,5 +1,4 @@
 import * as path from 'path';
-import * as os from 'os';
 import { promises as fs } from 'fs';
 import { AgentsMdAgent } from './AgentsMdAgent';
 import { IAgentConfig } from './IAgent';
@@ -8,7 +7,7 @@ import { mergeMcp } from '../mcp/merge';
 /**
  * Zed editor agent adapter.
  * Inherits from AgentsMdAgent to write instructions to AGENTS.md and handles
- * MCP server configuration in ~/.zed/settings.json.
+ * MCP server configuration in .zed/settings.json at the project root.
  */
 export class ZedAgent extends AgentsMdAgent {
   getIdentifier(): string {
@@ -33,8 +32,7 @@ export class ZedAgent extends AgentsMdAgent {
     // Handle MCP server configuration if enabled and provided
     const mcpEnabled = agentConfig?.mcp?.enabled ?? true;
     if (mcpEnabled && rulerMcpJson) {
-      const homeDir = process.env.HOME || os.homedir();
-      const zedSettingsPath = path.join(homeDir, '.zed', 'settings.json');
+      const zedSettingsPath = path.join(projectRoot, '.zed', 'settings.json');
 
       // Read existing settings
       let existingSettings: Record<string, unknown> = {};

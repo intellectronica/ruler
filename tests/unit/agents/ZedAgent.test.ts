@@ -1,6 +1,5 @@
 import { promises as fs } from 'fs';
 import * as path from 'path';
-import * as os from 'os';
 import { ZedAgent } from '../../../src/agents/ZedAgent';
 import { AgentsMdAgent } from '../../../src/agents/AgentsMdAgent';
 import { setupTestProject, teardownTestProject } from '../../harness';
@@ -48,15 +47,10 @@ describe('ZedAgent', () => {
     }
   });
 
-  it('creates ~/.zed/settings.json with MCP server configuration when file does not exist', async () => {
+  it('creates .zed/settings.json with MCP server configuration when file does not exist', async () => {
     const { projectRoot } = await setupTestProject({
       '.ruler/AGENTS.md': 'Test rules',
     });
-    
-    // Create a temporary home directory for this test
-    const tempHome = await fs.mkdtemp(path.join(os.tmpdir(), 'zed-agent-test-'));
-    const originalHome = process.env.HOME;
-    process.env.HOME = tempHome;
     
     try {
       const agent = new ZedAgent();
@@ -72,8 +66,8 @@ describe('ZedAgent', () => {
 
       await agent.applyRulerConfig(rules, projectRoot, mcpJson);
 
-      // Check that ~/.zed/settings.json was created with MCP configuration
-      const zedSettingsPath = path.join(tempHome, '.zed', 'settings.json');
+      // Check that .zed/settings.json was created with MCP configuration
+      const zedSettingsPath = path.join(projectRoot, '.zed', 'settings.json');
       const settingsContent = await fs.readFile(zedSettingsPath, 'utf8');
       const settings = JSON.parse(settingsContent);
 
@@ -84,25 +78,18 @@ describe('ZedAgent', () => {
         },
       });
     } finally {
-      process.env.HOME = originalHome;
-      await fs.rm(tempHome, { recursive: true, force: true });
       await teardownTestProject(projectRoot);
     }
   });
 
-  it('merges MCP server configuration into existing ~/.zed/settings.json file', async () => {
+  it('merges MCP server configuration into existing .zed/settings.json file', async () => {
     const { projectRoot } = await setupTestProject({
       '.ruler/AGENTS.md': 'Test rules',
     });
     
-    // Create a temporary home directory for this test
-    const tempHome = await fs.mkdtemp(path.join(os.tmpdir(), 'zed-agent-test-'));
-    const originalHome = process.env.HOME;
-    process.env.HOME = tempHome;
-    
     try {
       // Create existing settings.json with some MCP servers
-      const zedDir = path.join(tempHome, '.zed');
+      const zedDir = path.join(projectRoot, '.zed');
       await fs.mkdir(zedDir, { recursive: true });
       const zedSettingsPath = path.join(zedDir, 'settings.json');
       const existingSettings = {
@@ -143,21 +130,14 @@ describe('ZedAgent', () => {
         },
       });
     } finally {
-      process.env.HOME = originalHome;
-      await fs.rm(tempHome, { recursive: true, force: true });
       await teardownTestProject(projectRoot);
     }
   });
 
-  it('does not modify ~/.zed/settings.json when no MCP config provided', async () => {
+  it('does not modify .zed/settings.json when no MCP config provided', async () => {
     const { projectRoot } = await setupTestProject({
       '.ruler/AGENTS.md': 'Test rules',
     });
-    
-    // Create a temporary home directory for this test
-    const tempHome = await fs.mkdtemp(path.join(os.tmpdir(), 'zed-agent-test-'));
-    const originalHome = process.env.HOME;
-    process.env.HOME = tempHome;
     
     try {
       const agent = new ZedAgent();
@@ -165,12 +145,10 @@ describe('ZedAgent', () => {
 
       await agent.applyRulerConfig(rules, projectRoot, null);
 
-      // Check that ~/.zed/settings.json was not created
-      const zedSettingsPath = path.join(tempHome, '.zed', 'settings.json');
+      // Check that .zed/settings.json was not created
+      const zedSettingsPath = path.join(projectRoot, '.zed', 'settings.json');
       await expect(fs.access(zedSettingsPath)).rejects.toThrow();
     } finally {
-      process.env.HOME = originalHome;
-      await fs.rm(tempHome, { recursive: true, force: true });
       await teardownTestProject(projectRoot);
     }
   });
@@ -180,14 +158,9 @@ describe('ZedAgent', () => {
       '.ruler/AGENTS.md': 'Test rules',
     });
     
-    // Create a temporary home directory for this test
-    const tempHome = await fs.mkdtemp(path.join(os.tmpdir(), 'zed-agent-test-'));
-    const originalHome = process.env.HOME;
-    process.env.HOME = tempHome;
-    
     try {
       // Create existing settings.json with some MCP servers
-      const zedDir = path.join(tempHome, '.zed');
+      const zedDir = path.join(projectRoot, '.zed');
       await fs.mkdir(zedDir, { recursive: true });
       const zedSettingsPath = path.join(zedDir, 'settings.json');
       const existingSettings = {
@@ -227,8 +200,6 @@ describe('ZedAgent', () => {
         },
       }); // Only new servers, existing MCP servers replaced
     } finally {
-      process.env.HOME = originalHome;
-      await fs.rm(tempHome, { recursive: true, force: true });
       await teardownTestProject(projectRoot);
     }
   });
