@@ -2,7 +2,6 @@ import * as path from 'path';
 import { promises as fs } from 'fs';
 import { AgentsMdAgent } from './AgentsMdAgent';
 import { IAgentConfig } from './IAgent';
-import { mergeMcp } from '../mcp/merge';
 
 /**
  * Zed editor agent adapter.
@@ -48,29 +47,32 @@ export class ZedAgent extends AgentsMdAgent {
 
       // Get the merge strategy
       const strategy = agentConfig?.mcp?.strategy ?? 'merge';
-      
+
       // Handle merging based on strategy
       let mergedSettings: Record<string, unknown>;
-      
+
       if (strategy === 'overwrite') {
         // For overwrite, preserve all existing settings except MCP servers
         mergedSettings = { ...existingSettings };
-        
+
         // Extract incoming MCP servers
-        const incomingServers = 
+        const incomingServers =
           (rulerMcpJson.mcpServers as Record<string, unknown>) || {};
-        
+
         // Replace MCP servers completely
         mergedSettings[this.getMcpServerKey()] = incomingServers;
       } else {
         // For merge strategy, preserve all existing settings
         const baseServers =
-          (existingSettings[this.getMcpServerKey()] as Record<string, unknown>) || {};
+          (existingSettings[this.getMcpServerKey()] as Record<
+            string,
+            unknown
+          >) || {};
         const incomingServers =
           (rulerMcpJson.mcpServers as Record<string, unknown>) || {};
-        
+
         const mergedServers = { ...baseServers, ...incomingServers };
-        
+
         mergedSettings = {
           ...existingSettings,
           [this.getMcpServerKey()]: mergedServers,
@@ -79,7 +81,10 @@ export class ZedAgent extends AgentsMdAgent {
 
       // Write updated settings
       await fs.mkdir(path.dirname(zedSettingsPath), { recursive: true });
-      await fs.writeFile(zedSettingsPath, JSON.stringify(mergedSettings, null, 2));
+      await fs.writeFile(
+        zedSettingsPath,
+        JSON.stringify(mergedSettings, null, 2),
+      );
     }
   }
 
