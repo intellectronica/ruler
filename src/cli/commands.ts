@@ -23,7 +23,7 @@ export function run(): void {
           .option('agents', {
             type: 'string',
             description:
-              'Comma-separated list of agent identifiers: amp, copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, junie, kilocode, opencode, crush',
+              'Comma-separated list of agent identifiers: amp, copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, junie, kilocode, opencode, crush, zed',
           })
           .option('config', {
             type: 'string',
@@ -97,7 +97,7 @@ export function run(): void {
           .option('agents', {
             type: 'string',
             description:
-              'Comma-separated list of agent identifiers: amp, copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, junie, kilocode, opencode, crush',
+              'Comma-separated list of agent identifiers: amp, copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, junie, kilocode, opencode, crush, zed',
           })
           .option('config', {
             type: 'string',
