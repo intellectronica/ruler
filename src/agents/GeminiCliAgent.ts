@@ -1,9 +1,9 @@
-import { IAgent, IAgentConfig } from './IAgent';
+import { IAgentConfig } from './IAgent';
 import * as path from 'path';
 import { promises as fs } from 'fs';
-import { mergeMcp } from '../mcp/merge';
+import { AgentsMdAgent } from './AgentsMdAgent';
 
-export class GeminiCliAgent implements IAgent {
+export class GeminiCliAgent extends AgentsMdAgent {
   getIdentifier(): string {
     return 'gemini-cli';
   }
@@ -15,41 +15,32 @@ export class GeminiCliAgent implements IAgent {
   async applyRulerConfig(
     concatenatedRules: string,
     projectRoot: string,
-    rulerMcpJson: Record<string, unknown> | null,
+    rulerMcpJson: Record<string, unknown> | null, // eslint-disable-line @typescript-eslint/no-unused-vars
     agentConfig?: IAgentConfig,
   ): Promise<void> {
-    const outputPath = this.getDefaultOutputPath(projectRoot);
-    await fs.writeFile(outputPath as string, concatenatedRules);
+    // First, perform idempotent write of AGENTS.md via base class
+    await super.applyRulerConfig(concatenatedRules, projectRoot, null, {
+      outputPath: agentConfig?.outputPath,
+    });
 
-    if (rulerMcpJson) {
-      const settingsPath = path.join(projectRoot, '.gemini', 'settings.json');
-      let existingSettings: Record<string, unknown> = {};
-      try {
-        const existingSettingsRaw = await fs.readFile(settingsPath, 'utf8');
-        existingSettings = JSON.parse(existingSettingsRaw);
-      } catch (error: unknown) {
-        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-          throw error;
-        }
+    // Ensure .gemini/settings.json has contextFileName set to AGENTS.md
+    const settingsPath = path.join(projectRoot, '.gemini', 'settings.json');
+    let existingSettings: Record<string, unknown> = {};
+    try {
+      const raw = await fs.readFile(settingsPath, 'utf8');
+      existingSettings = JSON.parse(raw);
+    } catch (err: unknown) {
+      if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
+        throw err;
       }
-
-      const merged = mergeMcp(
-        existingSettings,
-        rulerMcpJson,
-        agentConfig?.mcp?.strategy ?? 'merge',
-        this.getMcpServerKey(),
-      );
-
-      await fs.mkdir(path.dirname(settingsPath), { recursive: true });
-      await fs.writeFile(settingsPath, JSON.stringify(merged, null, 2));
     }
-  }
 
-  getDefaultOutputPath(projectRoot: string): string {
-    return path.join(projectRoot, 'GEMINI.md');
-  }
+    const updated = {
+      ...existingSettings,
+      contextFileName: 'AGENTS.md',
+    } as Record<string, unknown>;
 
-  getMcpServerKey(): string {
-    return 'mcpServers';
+    await fs.mkdir(path.dirname(settingsPath), { recursive: true });
+    await fs.writeFile(settingsPath, JSON.stringify(updated, null, 2));
   }
 }
