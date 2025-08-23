@@ -20,6 +20,7 @@ import { GooseAgent } from './GooseAgent';
 import { AmpAgent } from './AmpAgent';
 import { ZedAgent } from './ZedAgent';
 import { AgentsMdAgent } from './AgentsMdAgent';
+import { QwenCodeAgent } from './QwenCodeAgent';
 
 export { AbstractAgent };
 
@@ -43,5 +44,6 @@ export const allAgents: IAgent[] = [
   new CrushAgent(),
   new AmpAgent(),
   new ZedAgent(),
+  new QwenCodeAgent(),
   new AgentsMdAgent(),
 ];
