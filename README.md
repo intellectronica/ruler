@@ -62,7 +62,7 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | Cursor           | `.cursor/rules/ruler_cursor_instructions.mdc`    | `.cursor/mcp.json`, `~/.cursor/mcp.json`            |
 | Windsurf         | `.windsurf/rules/ruler_windsurf_instructions.md` | `~/.codeium/windsurf/mcp_config.json`               |
 | Cline            | `.clinerules`                                    | -                                                   |
-| Amp              | `AGENT.md`                                       | -                                                   |
+| Amp              | `AGENTS.md`                                      | -                                                   |
 | Aider            | `AGENTS.md`, `.aider.conf.yml` | `.mcp.json`                                         |
 | Firebase Studio  | `.idx/airules.md`                                | -                                                   |
 | Open Hands       | `.openhands/microagents/repo.md`                 | `.openhands/config.toml`                            |

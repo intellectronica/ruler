@@ -31,9 +31,13 @@ describe('AmpAgent', () => {
     expect(agent.getName()).toBe('Amp');
   });
 
+  it('should return empty MCP server key (no MCP propagation)', () => {
+    expect(agent.getMcpServerKey()).toBe('');
+  });
+
   it('should return the correct default output path', () => {
     const base = path.join(os.tmpdir(), 'amp-agent-path-test');
-    expect(agent.getDefaultOutputPath(base)).toBe(path.join(base, 'AGENT.md'));
+    expect(agent.getDefaultOutputPath(base)).toBe(path.join(base, 'AGENTS.md'));
   });
 
   it('should apply ruler config to the default output path', async () => {
@@ -44,7 +48,7 @@ describe('AmpAgent', () => {
     );
     const base = await fs.mkdtemp(path.join(os.tmpdir(), 'amp-agent-default-'));
     await agent.applyRulerConfig('rules', base, null);
-    const expected = path.join(base, 'AGENT.md');
+    const expected = path.join(base, 'AGENTS.md');
     expect(backupFile).toHaveBeenCalledWith(expected);
     expect(writeGeneratedFile).toHaveBeenCalledWith(expected, 'rules');
   });
@@ -91,17 +95,17 @@ describe('AmpAgent', () => {
       (FileSystemUtils.writeGeneratedFile as jest.Mock).mockReset();
     });
 
-    it('should create AGENT.md file when applying ruler config', async () => {
+    it('should create AGENTS.md file when applying ruler config', async () => {
       const rules = 'Amp agent rules';
       await realAgent.applyRulerConfig(rules, tmpDir, null);
 
-      const agentPath = path.join(tmpDir, 'AGENT.md');
+      const agentPath = path.join(tmpDir, 'AGENTS.md');
       const content = await fs.readFile(agentPath, 'utf8');
       expect(content).toBe(rules);
     });
 
-    it('should create backup when overwriting existing AGENT.md file', async () => {
-      const agentPath = path.join(tmpDir, 'AGENT.md');
+    it('should create backup when overwriting existing AGENTS.md file', async () => {
+      const agentPath = path.join(tmpDir, 'AGENTS.md');
       const originalContent = 'Original content';
       const newContent = 'New rules';
 
@@ -120,7 +124,7 @@ describe('AmpAgent', () => {
       const rules = 'Amp agent rules';
       await realAgent.applyRulerConfig(rules, tmpDir, null);
 
-      const agentPath = path.join(tmpDir, 'AGENT.md');
+      const agentPath = path.join(tmpDir, 'AGENTS.md');
 
       // Verify file exists
       await expect(fs.access(agentPath)).resolves.toBeUndefined();
@@ -140,7 +144,7 @@ describe('AmpAgent', () => {
     });
 
     it('should restore from backup when revert is called', async () => {
-      const agentPath = path.join(tmpDir, 'AGENT.md');
+      const agentPath = path.join(tmpDir, 'AGENTS.md');
       const backupPath = `${agentPath}.bak`;
       const originalContent = 'Original Amp content';
       const newContent = 'New Amp rules';
@@ -184,6 +188,25 @@ describe('AmpAgent', () => {
       const customFilePath = path.join(tmpDir, customPath);
       const content = await fs.readFile(customFilePath, 'utf8');
       expect(content).toBe(rules);
+    });
+
+    it('should skip rewrite when content is unchanged (idempotent behavior)', async () => {
+      const rules = 'Stable content for idempotent test';
+      
+      // First application
+      await realAgent.applyRulerConfig(rules, tmpDir, null);
+      const agentPath = path.join(tmpDir, 'AGENTS.md');
+      const statBefore = await fs.stat(agentPath);
+      
+      // Wait a bit to ensure mtime would differ if file was rewritten
+      await new Promise(resolve => setTimeout(resolve, 10));
+      
+      // Second application with same content
+      await realAgent.applyRulerConfig(rules, tmpDir, null);
+      const statAfter = await fs.stat(agentPath);
+      
+      // mtime should be unchanged because write was skipped
+      expect(statAfter.mtimeMs).toBe(statBefore.mtimeMs);
     });
   });
 });
