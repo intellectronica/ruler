@@ -42,6 +42,9 @@ export async function getNativeMcpPath(
     case 'Gemini CLI':
       candidates.push(path.join(projectRoot, '.gemini', 'settings.json'));
       break;
+    case 'Qwen Code':
+      candidates.push(path.join(projectRoot, '.qwen', 'settings.json'));
+      break;
     case 'AugmentCode':
       candidates.push(path.join(projectRoot, '.vscode', 'settings.json'));
       break;
