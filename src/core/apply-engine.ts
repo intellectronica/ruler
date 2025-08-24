@@ -220,7 +220,6 @@ export async function applyConfigurationsToAgents(
     } else {
       if (
         agent.getIdentifier() === 'jules' ||
-        agent.getIdentifier() === 'codex' ||
         agent.getIdentifier() === 'agentsmd'
       ) {
         if (agentsMdWritten) {
