@@ -23,19 +23,22 @@ function isRulerMcpServer(value: unknown): value is RulerMcpServer {
 }
 
 export async function propagateMcpToOpenHands(
-  rulerMcpPath: string,
+  rulerMcpData: Record<string, unknown> | null,
   openHandsConfigPath: string,
 ): Promise<void> {
-  let rulerMcp;
-  try {
-    const rulerJsonContent = await fs.readFile(rulerMcpPath, 'utf8');
-    rulerMcp = JSON.parse(rulerJsonContent);
-  } catch {
-    return;
-  }
+  const rulerMcp: Record<string, unknown> = rulerMcpData || {};
 
   // Always use the legacy Ruler MCP config format as input (top-level "mcpServers" key)
   const rulerServers = rulerMcp.mcpServers || {};
+
+  // Return early if no servers to process
+  if (
+    !rulerServers ||
+    typeof rulerServers !== 'object' ||
+    Object.keys(rulerServers).length === 0
+  ) {
+    return;
+  }
 
   let config: {
     mcp?: {

@@ -293,8 +293,6 @@ async function handleMcpConfiguration(
   const dest = await getNativeMcpPath(agent.getName(), projectRoot);
   const mcpEnabledForAgent =
     cliMcpEnabled && (agentConfig?.mcp?.enabled ?? config.mcp?.enabled ?? true);
-  const rulerDir = await FileSystemUtils.findRulerDir(projectRoot, true);
-  const rulerMcpFile = rulerDir ? path.join(rulerDir, 'mcp.json') : '';
 
   if (dest && mcpEnabledForAgent) {
     // Include MCP config file in .gitignore only if it's within the project directory
@@ -313,7 +311,7 @@ async function handleMcpConfiguration(
           verbose,
         );
       } else {
-        await propagateMcpToOpenHands(rulerMcpFile, dest);
+        await propagateMcpToOpenHands(rulerMcpJson, dest);
       }
     } else if (agent.getIdentifier() === 'augmentcode') {
       // *** Special handling for AugmentCode ***
