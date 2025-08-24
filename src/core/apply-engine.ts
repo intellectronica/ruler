@@ -43,7 +43,10 @@ function isLocalServer(serverConfig: unknown): boolean {
 /**
  * Transforms local MCP servers to use mcp-remote for agents that don't support remote servers.
  */
-function transformLocalToRemoteViaMcpRemote(
+/**
+ * Transforms local MCP servers to remote via supergateway for agents that don't support local servers.
+ */
+function transformLocalToRemoteViaSupergateway(
   rulerMcpJson: Record<string, unknown>,
   agentName: string,
 ): Record<string, unknown> {
@@ -52,21 +55,21 @@ function transformLocalToRemoteViaMcpRemote(
 
   for (const [serverName, serverConfig] of Object.entries(mcpServers)) {
     if (isLocalServer(serverConfig)) {
-      // Issue warning and transform to mcp-remote
+      // Issue warning and transform via supergateway
       issueOnceWarning(
         agentName,
         serverName,
-        `Agent ${agentName} doesn't support local MCP servers. Using mcp-remote as fallback for server "${serverName}".`
+        `Agent ${agentName} doesn't support local MCP servers. Using supergateway as fallback for server "${serverName}".`
       );
       
       const config = serverConfig as { command: string | string[]; args?: string[]; env?: Record<string, string> };
       const command = Array.isArray(config.command) ? config.command : [config.command];
       const args = config.args || [];
       
-      // Transform to mcp-remote configuration
+      // Transform to supergateway configuration to proxy local server as remote
       transformedServers[serverName] = {
         command: 'npx',
-        args: ['mcp-remote', ...command, ...args],
+        args: ['supergateway', '--stdio', ...command, ...args],
         env: config.env,
       };
     } else {
@@ -79,9 +82,9 @@ function transformLocalToRemoteViaMcpRemote(
 }
 
 /**
- * Transforms remote MCP servers to use supergateway for agents that don't support local servers.
+ * Transforms remote MCP servers to local via mcp-remote for agents that don't support remote servers.
  */
-function transformRemoteToLocalViaSupergateway(
+function transformRemoteToLocalViaMcpRemote(
   rulerMcpJson: Record<string, unknown>,
   agentName: string,
 ): Record<string, unknown> {
@@ -90,20 +93,19 @@ function transformRemoteToLocalViaSupergateway(
 
   for (const [serverName, serverConfig] of Object.entries(mcpServers)) {
     if (isRemoteServer(serverConfig)) {
-      // Issue warning and transform to supergateway
+      // Issue warning and transform via mcp-remote
       issueOnceWarning(
         agentName,
         serverName,
-        `Agent ${agentName} doesn't support remote MCP servers. Using supergateway as fallback for server "${serverName}".`
+        `Agent ${agentName} doesn't support remote MCP servers. Using mcp-remote as fallback for server "${serverName}".`
       );
       
       const config = serverConfig as { url: string; headers?: Record<string, string> };
       
-      // Transform to supergateway configuration
-      const args = ['--stdio', config.url];
+      // Transform to mcp-remote configuration to access remote server locally
       transformedServers[serverName] = {
-        command: 'supergateway',
-        args: args,
+        command: 'npx',
+        args: ['mcp-remote', config.url],
       };
     } else {
       // Keep local servers as-is
@@ -360,9 +362,9 @@ export async function applyConfigurationsToAgents(
           if (!supportsMcp) {
             transformedMcpJson = null; // Don't pass MCP config to agents that don't support it
           } else if (!supportsRemote && hasRemoteServers(rulerMcpJson)) {
-            transformedMcpJson = transformRemoteToLocalViaSupergateway(rulerMcpJson, agent.getName());
+            transformedMcpJson = transformRemoteToLocalViaMcpRemote(rulerMcpJson, agent.getName());
           } else if (!supportsLocal && hasLocalServers(rulerMcpJson)) {
-            transformedMcpJson = transformLocalToRemoteViaMcpRemote(rulerMcpJson, agent.getName());
+            transformedMcpJson = transformLocalToRemoteViaSupergateway(rulerMcpJson, agent.getName());
           }
         }
         
@@ -454,9 +456,9 @@ async function handleMcpConfiguration(
         let transformedMcpJson = rulerMcpJson;
         
         if (rulerMcpJson && !supportsRemote && hasRemoteServers(rulerMcpJson)) {
-          transformedMcpJson = transformRemoteToLocalViaSupergateway(rulerMcpJson, agent.getName());
+          transformedMcpJson = transformRemoteToLocalViaMcpRemote(rulerMcpJson, agent.getName());
         } else if (rulerMcpJson && !supportsLocal && hasLocalServers(rulerMcpJson)) {
-          transformedMcpJson = transformLocalToRemoteViaMcpRemote(rulerMcpJson, agent.getName());
+          transformedMcpJson = transformLocalToRemoteViaSupergateway(rulerMcpJson, agent.getName());
         }
         
         // Write the transformed configuration to a temporary file for OpenHands propagation
@@ -509,9 +511,9 @@ async function handleMcpConfiguration(
         
         // Transform configuration based on agent capabilities
         if (rulerMcpJson && !supportsRemote && hasRemoteServers(rulerMcpJson)) {
-          transformedMcpJson = transformRemoteToLocalViaSupergateway(rulerMcpJson, agent.getName());
+          transformedMcpJson = transformRemoteToLocalViaMcpRemote(rulerMcpJson, agent.getName());
         } else if (rulerMcpJson && !supportsLocal && hasLocalServers(rulerMcpJson)) {
-          transformedMcpJson = transformLocalToRemoteViaMcpRemote(rulerMcpJson, agent.getName());
+          transformedMcpJson = transformLocalToRemoteViaSupergateway(rulerMcpJson, agent.getName());
         }
 
         // Determine the correct server key for the agent

@@ -3,6 +3,8 @@ import { OpenHandsAgent } from '../../../src/agents/OpenHandsAgent';
 import { AgentsMdAgent } from '../../../src/agents/AgentsMdAgent';
 import { CopilotAgent } from '../../../src/agents/CopilotAgent';
 import { ClaudeAgent } from '../../../src/agents/ClaudeAgent';
+import { JulesAgent } from '../../../src/agents/JulesAgent';
+import { AmpAgent } from '../../../src/agents/AmpAgent';
 
 describe('Agent MCP Capabilities', () => {
   it('CodexCliAgent supports only local MCP servers', () => {
@@ -23,6 +25,16 @@ describe('Agent MCP Capabilities', () => {
     const agent = new AgentsMdAgent();
     expect(agent.supportsMcp?.()).toBe(false);
     // Local and remote capabilities are irrelevant when MCP is not supported
+  });
+
+  it('JulesAgent does not support MCP servers', () => {
+    const agent = new JulesAgent();
+    expect(agent.supportsMcp?.()).toBe(false);
+  });
+
+  it('AmpAgent does not support MCP servers', () => {
+    const agent = new AmpAgent();
+    expect(agent.supportsMcp?.()).toBe(false);
   });
 
   it('CopilotAgent supports both local and remote MCP servers (default)', () => {

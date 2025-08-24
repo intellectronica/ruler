@@ -9,7 +9,8 @@ export class JulesAgent extends AgentsMdAgent {
     return 'Jules';
   }
 
+  // Jules doesn't support configuring MCP servers
   supportsMcp(): boolean {
-    return true; // Override AgentsMdAgent's false default
+    return false;
   }
 }
