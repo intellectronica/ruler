@@ -160,4 +160,12 @@ export class CodexCliAgent extends AgentsMdAgent {
       await writeGeneratedFile(configPath, tomlContent);
     }
   }
+
+  supportsMcpStdio(): boolean {
+    return true;
+  }
+
+  supportsMcpRemote(): boolean {
+    return false; // Codex CLI only supports STDIO based on PR description
+  }
 }

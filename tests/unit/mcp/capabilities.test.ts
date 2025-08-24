@@ -2,6 +2,7 @@ import { getAgentMcpCapabilities, agentSupportsMcp, filterMcpConfigForAgent } fr
 import { OpenHandsAgent } from '../../../src/agents/OpenHandsAgent';
 import { AugmentCodeAgent } from '../../../src/agents/AugmentCodeAgent';
 import { CopilotAgent } from '../../../src/agents/CopilotAgent';
+import { CodexCliAgent } from '../../../src/agents/CodexCliAgent';
 
 describe('MCP Capabilities', () => {
   describe('getAgentMcpCapabilities', () => {
@@ -28,12 +29,21 @@ describe('MCP Capabilities', () => {
       expect(capabilities.supportsStdio).toBe(true);
       expect(capabilities.supportsRemote).toBe(true);
     });
+
+    it('returns correct capabilities for CodexCli (stdio only)', () => {
+      const agent = new CodexCliAgent();
+      const capabilities = getAgentMcpCapabilities(agent);
+      
+      expect(capabilities.supportsStdio).toBe(true);
+      expect(capabilities.supportsRemote).toBe(false);
+    });
   });
 
   describe('agentSupportsMcp', () => {
     it('returns true for agents that support MCP', () => {
       expect(agentSupportsMcp(new OpenHandsAgent())).toBe(true);
       expect(agentSupportsMcp(new CopilotAgent())).toBe(true);
+      expect(agentSupportsMcp(new CodexCliAgent())).toBe(true);
     });
 
     it('returns false for agents that do not support MCP', () => {
@@ -83,6 +93,18 @@ describe('MCP Capabilities', () => {
       const filtered = filterMcpConfigForAgent(emptyConfig, agent);
       
       expect(filtered).toBeNull();
+    });
+
+    it('filters servers based on agent capabilities (stdio only)', () => {
+      const agent = new CodexCliAgent();
+      const filtered = filterMcpConfigForAgent(testMcpConfig, agent);
+      
+      expect(filtered).not.toBeNull();
+      expect(filtered!.mcpServers).toEqual({
+        stdio_server: testMcpConfig.mcpServers.stdio_server
+        // remote_server should be excluded
+        // mixed_server should be excluded
+      });
     });
 
     it('returns null when mcpServers is not present', () => {

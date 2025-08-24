@@ -12,4 +12,12 @@ export class OpenCodeAgent extends AgentsMdAgent {
   getMcpServerKey(): string {
     return 'mcp';
   }
+
+  supportsMcpStdio(): boolean {
+    return true;
+  }
+
+  supportsMcpRemote(): boolean {
+    return true;
+  }
 }
