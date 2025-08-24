@@ -242,7 +242,24 @@ export async function loadUnifiedConfig(
   try {
     if (mcpJsonExists) {
       const raw = await fs.readFile(mcpFile, 'utf8');
-      const parsed = JSON.parse(raw) as Record<string, unknown>;
+      let parsed: Record<string, unknown>;
+      try {
+        parsed = JSON.parse(raw) as Record<string, unknown>;
+      } catch (e) {
+        // Lenient fallback: strip comments and trailing commas then retry
+        const stripped = raw
+          // strip /* */ comments
+          .replace(/\/\*[\s\S]*?\*\//g, '')
+          // strip // comments
+          .replace(/(^|\s+)\/\/.*$/gm, '$1')
+          // remove trailing commas before } or ]
+          .replace(/,\s*([}\]])/g, '$1');
+        try {
+          parsed = JSON.parse(stripped) as Record<string, unknown>;
+        } catch (e2) {
+          throw e; // rethrow original error for diagnostics
+        }
+      }
       meta.mcpFile = mcpFile;
 
       // Add deprecation warning if mcp.json exists (structured diagnostic)
