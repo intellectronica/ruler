@@ -39,7 +39,6 @@ describe('OpenCode MCP Integration', () => {
     });
 
     it('transforms ruler MCP config to OpenCode format for local servers', async () => {
-      const rulerMcpPath = path.join(tmpDir, 'ruler-mcp.json');
       const openCodePath = path.join(tmpDir, 'opencode.json');
 
       const rulerMcp = {
@@ -54,8 +53,7 @@ describe('OpenCode MCP Integration', () => {
         },
       };
 
-      await fs.writeFile(rulerMcpPath, JSON.stringify(rulerMcp));
-      await propagateMcpToOpenCode(rulerMcpPath, openCodePath);
+      await propagateMcpToOpenCode(rulerMcp, openCodePath);
 
       const result = JSON.parse(await fs.readFile(openCodePath, 'utf8'));
 
@@ -71,7 +69,6 @@ describe('OpenCode MCP Integration', () => {
     });
 
     it('transforms ruler MCP config to OpenCode format for remote servers', async () => {
-      const rulerMcpPath = path.join(tmpDir, 'ruler-mcp.json');
       const openCodePath = path.join(tmpDir, 'opencode.json');
 
       const rulerMcp = {
@@ -85,8 +82,7 @@ describe('OpenCode MCP Integration', () => {
         },
       };
 
-      await fs.writeFile(rulerMcpPath, JSON.stringify(rulerMcp));
-      await propagateMcpToOpenCode(rulerMcpPath, openCodePath);
+      await propagateMcpToOpenCode(rulerMcp, openCodePath);
 
       const result = JSON.parse(await fs.readFile(openCodePath, 'utf8'));
 
@@ -102,7 +98,6 @@ describe('OpenCode MCP Integration', () => {
     });
 
     it('merges with existing OpenCode configuration', async () => {
-      const rulerMcpPath = path.join(tmpDir, 'ruler-mcp.json');
       const openCodePath = path.join(tmpDir, 'opencode.json');
 
       // Create existing OpenCode config
@@ -127,9 +122,8 @@ describe('OpenCode MCP Integration', () => {
           },
         },
       };
-      await fs.writeFile(rulerMcpPath, JSON.stringify(rulerMcp));
 
-      await propagateMcpToOpenCode(rulerMcpPath, openCodePath);
+      await propagateMcpToOpenCode(rulerMcp, openCodePath);
 
       const result = JSON.parse(await fs.readFile(openCodePath, 'utf8'));
 
@@ -144,6 +138,34 @@ describe('OpenCode MCP Integration', () => {
         command: ['new-command'],
         enabled: true,
       });
+    });
+
+    it('creates minimal opencode.json when no ruler MCP config exists', async () => {
+      const openCodePath = path.join(tmpDir, 'opencode.json');
+
+      // Call propagation with null MCP data
+      await propagateMcpToOpenCode(null, openCodePath);
+
+      // Should create minimal opencode.json
+      const result = JSON.parse(await fs.readFile(openCodePath, 'utf8'));
+
+      expect(result.$schema).toBe('https://opencode.ai/config.json');
+      expect(result.mcp).toEqual({});
+    });
+
+    it('creates minimal opencode.json when ruler MCP config is empty', async () => {
+      const openCodePath = path.join(tmpDir, 'opencode.json');
+
+      // Create empty ruler MCP config
+      const rulerMcp = {};
+
+      await propagateMcpToOpenCode(rulerMcp, openCodePath);
+
+      // Should create minimal opencode.json
+      const result = JSON.parse(await fs.readFile(openCodePath, 'utf8'));
+
+      expect(result.$schema).toBe('https://opencode.ai/config.json');
+      expect(result.mcp).toEqual({});
     });
   });
 });

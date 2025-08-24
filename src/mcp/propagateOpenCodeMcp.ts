@@ -88,16 +88,10 @@ function transformToOpenCodeFormat(rulerMcp: RulerMcp): OpenCodeConfig {
 }
 
 export async function propagateMcpToOpenCode(
-  rulerMcpPath: string,
+  rulerMcpData: Record<string, unknown> | null,
   openCodeConfigPath: string,
 ): Promise<void> {
-  let rulerMcp: RulerMcp = {};
-  try {
-    const rulerJsonContent = await fs.readFile(rulerMcpPath, 'utf8');
-    rulerMcp = JSON.parse(rulerJsonContent);
-  } catch {
-    return;
-  }
+  const rulerMcp: RulerMcp = rulerMcpData || {};
 
   // Read existing OpenCode config if it exists
   let existingConfig: Partial<OpenCodeConfig> & Record<string, unknown> = {};
