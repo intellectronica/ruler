@@ -89,7 +89,8 @@ describe('apply-engine', () => {
         mcpServers: {
           test: {
             command: 'test-command',
-            args: ['--test']
+            args: ['--test'],
+            type: 'stdio'
           }
         }
       });

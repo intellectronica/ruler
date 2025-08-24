@@ -25,6 +25,7 @@ export interface TomlConfig {
   defaultAgents?: string[];
   agents: Record<string, AgentTomlConfig>;
   mcp?: McpToggleConfig;
+  mcpServers?: Record<string, McpServerDef>;
   gitignore?: GitignoreConfig;
 }
 
