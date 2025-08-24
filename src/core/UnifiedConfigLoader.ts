@@ -3,6 +3,7 @@ import * as path from 'path';
 import * as TOML from 'toml';
 import { sha256, stableJson } from './hash';
 import { concatenateRules } from './RuleProcessor';
+import * as FileSystemUtils from './FileSystemUtils';
 import {
   RulerUnifiedConfig,
   ConfigMeta,
@@ -25,9 +26,14 @@ export interface UnifiedLoadOptions {
 export async function loadUnifiedConfig(
   options: UnifiedLoadOptions,
 ): Promise<RulerUnifiedConfig> {
+  // Resolve the effective .ruler directory (local or global), mirroring the main loader behavior
+  const resolvedRulerDir =
+    (await FileSystemUtils.findRulerDir(options.projectRoot, true)) ||
+    path.join(options.projectRoot, '.ruler');
+
   const meta: ConfigMeta = {
     projectRoot: options.projectRoot,
-    rulerDir: path.join(options.projectRoot, '.ruler'),
+    rulerDir: resolvedRulerDir,
     loadedAt: new Date(),
     version: '0.0.0-dev',
   };
