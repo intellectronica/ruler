@@ -2,7 +2,6 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import os from 'os';
 import { loadRulerConfiguration } from '../../../src/core/apply-engine';
-import { __resetLegacyWarningForTests } from '../../../src/core/FileSystemUtils';
 
 // We'll capture console warnings to assert legacy warning emitted only once.
 describe('AGENTS.md fallback behavior', () => {
@@ -20,7 +19,6 @@ describe('AGENTS.md fallback behavior', () => {
     console.warn = (...args: any[]) => {
       warnMessages.push(args.join(' '));
     };
-    __resetLegacyWarningForTests();
   });
 
   afterEach(async () => {
@@ -32,19 +30,19 @@ describe('AGENTS.md fallback behavior', () => {
     await fs.writeFile(path.join(rulerDir, 'ruler.toml'), '');
   }
 
-  it('uses legacy instructions.md with single warning if only legacy file present', async () => {
+  it('uses legacy instructions.md without warning if only legacy file present', async () => {
     await writeConfig();
     const legacy = path.join(rulerDir, 'instructions.md');
     await fs.writeFile(legacy, '# Legacy Rules');
 
     const result = await loadRulerConfiguration(tmpDir, undefined, false);
     expect(result.concatenatedRules).toContain('# Legacy Rules');
-    // Expect a warning referencing legacy usage
-    const legacyWarnings = warnMessages.filter(m => m.includes('legacy') && m.includes('instructions.md'));
-    expect(legacyWarnings.length).toBe(1);
+  // Expect no legacy warning now that warning has been removed
+  const legacyWarnings = warnMessages.filter(m => m.includes('instructions.md'));
+  expect(legacyWarnings.length).toBe(0);
   });
 
-  it('prefers AGENTS.md ordering over legacy when both exist and emits no legacy warning', async () => {
+  it('prefers AGENTS.md ordering over legacy when both exist (no warning)', async () => {
     await writeConfig();
     const legacy = path.join(rulerDir, 'instructions.md');
     const agents = path.join(rulerDir, 'AGENTS.md');
@@ -58,9 +56,9 @@ describe('AGENTS.md fallback behavior', () => {
   const idxLegacy = result.concatenatedRules.indexOf('# Legacy Rules');
   expect(idxNew).toBeGreaterThanOrEqual(0);
   expect(idxLegacy).toBeGreaterThan(idxNew);
-    // No legacy warning since AGENTS.md present
-    const legacyWarnings = warnMessages.filter(m => m.includes('legacy') && m.includes('instructions.md'));
-    expect(legacyWarnings.length).toBe(0);
+  // No legacy warning expected
+  const legacyWarnings = warnMessages.filter(m => m.includes('instructions.md'));
+  expect(legacyWarnings.length).toBe(0);
   });
 
   it('uses AGENTS.md without warning when only AGENTS.md present', async () => {
@@ -70,20 +68,8 @@ describe('AGENTS.md fallback behavior', () => {
 
     const result = await loadRulerConfiguration(tmpDir, undefined, false);
     expect(result.concatenatedRules).toContain('# New Agents Rules');
-    const legacyWarnings = warnMessages.filter(m => m.includes('legacy') && m.includes('instructions.md'));
+    const legacyWarnings = warnMessages.filter(m => m.includes('instructions.md'));
     expect(legacyWarnings.length).toBe(0);
   });
-
-  it('emits warning only once across multiple configuration loads when only legacy file present', async () => {
-    await writeConfig();
-    const legacy = path.join(rulerDir, 'instructions.md');
-    await fs.writeFile(legacy, '# Legacy Rules');
-
-    const result1 = await loadRulerConfiguration(tmpDir, undefined, false);
-    const result2 = await loadRulerConfiguration(tmpDir, undefined, false);
-    expect(result1.concatenatedRules).toContain('# Legacy Rules');
-    expect(result2.concatenatedRules).toContain('# Legacy Rules');
-    const legacyWarnings = warnMessages.filter(m => m.includes('legacy') && m.includes('instructions.md'));
-    expect(legacyWarnings.length).toBe(1);
-  });
+  // Removed test verifying single warning emission; warning no longer produced.
 });

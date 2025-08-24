@@ -279,7 +279,7 @@ describe('CLI Handlers', () => {
       expect(fs.writeFile).not.toHaveBeenCalled();
     });
 
-    it('should create AGENTS.md when legacy instructions.md exists (legacy preserved)', async () => {
+  it('should create AGENTS.md when legacy instructions.md exists (legacy preserved silently)', async () => {
       // access sequence: AGENTS.md (fail), legacy instructions.md (exists), ruler.toml (fail)
       (fs.access as jest.Mock)
         .mockRejectedValueOnce(new Error('AGENTS missing'))
@@ -295,7 +295,8 @@ describe('CLI Handlers', () => {
         expect.stringContaining('# AGENTS.md'),
       );
       // Expect a notice about legacy detection once implementation added
-      expect(logSpy.mock.calls.some(c => /legacy instructions\.md detected/i.test(c[0]))).toBe(true);
+  // No legacy notice expected anymore
+  expect(logSpy.mock.calls.some(c => /legacy instructions\.md detected/i.test(c[0]))).toBe(false);
       logSpy.mockRestore();
     });
   });
