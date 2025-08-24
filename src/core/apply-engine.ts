@@ -218,14 +218,17 @@ export async function applyConfigurationsToAgents(
         verbose,
       );
     } else {
+      let skipApplyForThisAgent = false;
       if (
         agent.getIdentifier() === 'jules' ||
         agent.getIdentifier() === 'agentsmd'
       ) {
         if (agentsMdWritten) {
-          continue;
+          // Skip rewriting AGENTS.md, but still allow MCP handling below
+          skipApplyForThisAgent = true;
+        } else {
+          agentsMdWritten = true;
         }
-        agentsMdWritten = true;
       }
       let finalAgentConfig = agentConfig;
       if (agent.getIdentifier() === 'augmentcode' && rulerMcpJson) {
@@ -244,12 +247,14 @@ export async function applyConfigurationsToAgents(
         };
       }
 
-      await agent.applyRulerConfig(
-        concatenatedRules,
-        projectRoot,
-        rulerMcpJson,
-        finalAgentConfig,
-      );
+      if (!skipApplyForThisAgent) {
+        await agent.applyRulerConfig(
+          concatenatedRules,
+          projectRoot,
+          rulerMcpJson,
+          finalAgentConfig,
+        );
+      }
     }
 
     // Handle MCP configuration
