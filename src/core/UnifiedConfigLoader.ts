@@ -55,13 +55,22 @@ export async function loadUnifiedConfig(
     }
   }
 
+  let defaultAgents: string[] | undefined;
+  if (
+    tomlRaw &&
+    typeof tomlRaw === 'object' &&
+    (tomlRaw as Record<string, unknown>).default_agents &&
+    Array.isArray((tomlRaw as Record<string, unknown>).default_agents)
+  ) {
+    defaultAgents = ((tomlRaw as Record<string, unknown>).default_agents as unknown[]).map(
+      (a) => String(a),
+    );
+  }
   const toml: TomlConfig = {
     raw: tomlRaw,
     schemaVersion: 1,
     agents: {},
-    defaultAgents: Array.isArray((tomlRaw as any)?.default_agents)
-      ? (tomlRaw as any).default_agents.map((a: unknown) => String(a))
-      : undefined,
+    defaultAgents,
   };
 
   // Collect rule markdown files
@@ -122,22 +131,37 @@ export async function loadUnifiedConfig(
   const mcpFile = path.join(meta.rulerDir, 'mcp.json');
   try {
     const raw = await fs.readFile(mcpFile, 'utf8');
-    const parsed = JSON.parse(raw) as Record<string, unknown>;
+  const parsed = JSON.parse(raw) as Record<string, unknown>;
     meta.mcpFile = mcpFile;
-    const serversRaw = (parsed as any).mcpServers || (parsed as any).servers || {};
+  const parsedObj = parsed as Record<string, unknown>;
+  const serversRaw = (parsedObj.mcpServers as unknown) || (parsedObj.servers as unknown) || {};
     const servers: Record<string, McpServerDef> = {};
     if (serversRaw && typeof serversRaw === 'object') {
-      for (const [name, def] of Object.entries(serversRaw as Record<string, any>)) {
+      for (const [name, def] of Object.entries(
+        serversRaw as Record<string, Record<string, unknown>>,
+      )) {
         if (!def || typeof def !== 'object') continue;
         const server: McpServerDef = {};
         if (typeof def.command === 'string') server.command = def.command;
         if (Array.isArray(def.command)) server.command = def.command[0];
         if (Array.isArray(def.args)) server.args = def.args.map(String);
-        if (def.env && typeof def.env === 'object') server.env = Object.fromEntries(
-          Object.entries(def.env).filter(([k,v]) => typeof v === 'string') as [string,string][]);
+        if (def.env && typeof def.env === 'object') {
+          server.env = Object.fromEntries(
+            Object.entries(def.env).filter(([, v]) => typeof v === 'string') as [
+              string,
+              string,
+            ][],
+          );
+        }
         if (typeof def.url === 'string') server.url = def.url;
-        if (def.headers && typeof def.headers === 'object') server.headers = Object.fromEntries(
-          Object.entries(def.headers).filter(([k,v]) => typeof v === 'string') as [string,string][]);
+        if (def.headers && typeof def.headers === 'object') {
+          server.headers = Object.fromEntries(
+            Object.entries(def.headers).filter(([, v]) => typeof v === 'string') as [
+              string,
+              string,
+            ][],
+          );
+        }
         // Derive type
         if (server.url) server.type = 'remote';
         else if (server.command) server.type = 'stdio';
@@ -168,14 +192,46 @@ export async function loadUnifiedConfig(
     mcp,
     agents: {},
     diagnostics,
-    hash: sha256(
-      stableJson({
-        toml: toml.defaultAgents,
-        rules: rules.concatenatedHash,
-        mcp: mcp ? mcp.hash : null,
-      }),
-    ),
+    hash: '', // placeholder, recompute after agents
   };
+
+  // Agent resolution (basic): enabled set is CLI override or default_agents
+  const cliAgents =
+    options.cliAgents && options.cliAgents.length > 0
+      ? options.cliAgents
+      : undefined;
+  const enabledList = cliAgents ?? toml.defaultAgents ?? [];
+  for (const name of enabledList) {
+    config.agents[name] = {
+      identifier: name,
+      enabled: true,
+      output: {},
+      mcp: { enabled: false, strategy: 'merge' },
+    };
+  }
+  // If CLI provided, mark defaults not included as disabled (optional design choice)
+  if (cliAgents) {
+    for (const name of toml.defaultAgents ?? []) {
+      if (!config.agents[name]) {
+        config.agents[name] = {
+          identifier: name,
+          enabled: false,
+          output: {},
+          mcp: { enabled: false, strategy: 'merge' },
+        };
+      }
+    }
+  }
+
+  // Recompute hash including agents list
+  config.hash = sha256(
+    stableJson({
+      toml: toml.defaultAgents,
+      rules: rules.concatenatedHash,
+      mcp: mcp ? mcp.hash : null,
+      agents: Object.entries(config.agents).map(([k, v]) => [k, v.enabled]),
+    }),
+  );
 
   return config;
 }
