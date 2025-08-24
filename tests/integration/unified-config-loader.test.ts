@@ -1,10 +1,13 @@
 import * as path from 'path';
+import { loadUnifiedConfig } from '../../src/core/UnifiedConfigLoader';
 
-// Integration test placeholder. Will switch to real loader once implemented.
-
-describe('UnifiedConfigLoader integration (placeholder)', () => {
+describe('UnifiedConfigLoader integration', () => {
   const projectRoot = path.join(__dirname, 'fixtures', 'unified');
-  test('will load unified config and produce expected subset (placeholder)', async () => {
-    expect(false).toBe(true);
+  test('loads config, rules, and mcp servers', async () => {
+    const unified = await loadUnifiedConfig({ projectRoot });
+    expect(unified.toml.defaultAgents).toEqual(['copilot']);
+    expect(unified.rules.files.map(f => f.relativePath)).toEqual(['AGENTS.md', 'extra.md']);
+    // MCP not yet implemented -> expect null for now.
+    expect(unified.mcp).toBeNull();
   });
 });

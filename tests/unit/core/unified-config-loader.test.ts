@@ -1,10 +1,8 @@
 import { promises as fs } from 'fs';
 import * as path from 'path';
+import { loadUnifiedConfig } from '../../../src/core/UnifiedConfigLoader';
 
-// The loader will be implemented later; import path placeholder to satisfy TS for now.
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-
-describe('UnifiedConfigLoader (TDD skeleton)', () => {
+describe('UnifiedConfigLoader (basic)', () => {
   const tmpRoot = path.join(__dirname, '..', '..', '..', 'tmp-fixtures', 'unified-basic');
   const rulerDir = path.join(tmpRoot, '.ruler');
   const tomlPath = path.join(rulerDir, 'ruler.toml');
@@ -16,13 +14,18 @@ describe('UnifiedConfigLoader (TDD skeleton)', () => {
     await fs.writeFile(path.join(rulerDir, 'extra.md'), 'Extra file');
   });
 
-  test('parses empty TOML producing defaults (placeholder expectation)', async () => {
-    // Once implemented we will load and assert structure.
-    // For now, fail explicitly to ensure test turns green only after implementation.
-    expect(false).toBe(true);
+  test('parses empty TOML producing defaults', async () => {
+    const unified = await loadUnifiedConfig({ projectRoot: tmpRoot });
+    expect(unified.toml.defaultAgents).toBeUndefined();
+    expect(Object.keys(unified.toml.agents)).toHaveLength(0);
+    expect(unified.rules.files.length).toBe(2);
   });
 
   test('orders rule files with AGENTS.md first', async () => {
-    expect(false).toBe(true);
+    const unified = await loadUnifiedConfig({ projectRoot: tmpRoot });
+    expect(unified.rules.files[0].relativePath).toMatch(/AGENTS\.md$/);
+  const rels = unified.rules.files.map((f) => f.relativePath);
+    expect(rels).toEqual(['AGENTS.md', 'extra.md']);
+  expect(unified.rules.concatenated).toMatch(/Source: \.ruler\/AGENTS.md[\s\S]*Source: \.ruler\/extra.md/);
   });
 });
