@@ -350,10 +350,26 @@ export async function applyConfigurationsToAgents(
       }
 
       if (!skipApplyForThisAgent) {
+        // Transform MCP configuration based on agent capabilities before passing to agent
+        let transformedMcpJson = rulerMcpJson;
+        if (rulerMcpJson) {
+          const supportsLocal = agent.supportsLocalMcp?.() ?? true;
+          const supportsRemote = agent.supportsRemoteMcp?.() ?? true;
+          const supportsMcp = agent.supportsMcp?.() ?? true;
+          
+          if (!supportsMcp) {
+            transformedMcpJson = null; // Don't pass MCP config to agents that don't support it
+          } else if (!supportsRemote && hasRemoteServers(rulerMcpJson)) {
+            transformedMcpJson = transformRemoteToLocalViaSupergateway(rulerMcpJson, agent.getName());
+          } else if (!supportsLocal && hasLocalServers(rulerMcpJson)) {
+            transformedMcpJson = transformLocalToRemoteViaMcpRemote(rulerMcpJson, agent.getName());
+          }
+        }
+        
         await agent.applyRulerConfig(
           concatenatedRules,
           projectRoot,
-          rulerMcpJson,
+          transformedMcpJson,
           finalAgentConfig,
         );
       }
