@@ -11,6 +11,7 @@ import {
   McpBundle,
   ConfigDiagnostic,
   RuleFile,
+  McpServerDef,
 } from './UnifiedConfigTypes';
 
 export interface UnifiedLoadOptions {
@@ -116,17 +117,62 @@ export async function loadUnifiedConfig(
     concatenatedHash: sha256(concatenated),
   };
 
+  // MCP normalization
+  let mcp: McpBundle | null = null;
+  const mcpFile = path.join(meta.rulerDir, 'mcp.json');
+  try {
+    const raw = await fs.readFile(mcpFile, 'utf8');
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    meta.mcpFile = mcpFile;
+    const serversRaw = (parsed as any).mcpServers || (parsed as any).servers || {};
+    const servers: Record<string, McpServerDef> = {};
+    if (serversRaw && typeof serversRaw === 'object') {
+      for (const [name, def] of Object.entries(serversRaw as Record<string, any>)) {
+        if (!def || typeof def !== 'object') continue;
+        const server: McpServerDef = {};
+        if (typeof def.command === 'string') server.command = def.command;
+        if (Array.isArray(def.command)) server.command = def.command[0];
+        if (Array.isArray(def.args)) server.args = def.args.map(String);
+        if (def.env && typeof def.env === 'object') server.env = Object.fromEntries(
+          Object.entries(def.env).filter(([k,v]) => typeof v === 'string') as [string,string][]);
+        if (typeof def.url === 'string') server.url = def.url;
+        if (def.headers && typeof def.headers === 'object') server.headers = Object.fromEntries(
+          Object.entries(def.headers).filter(([k,v]) => typeof v === 'string') as [string,string][]);
+        // Derive type
+        if (server.url) server.type = 'remote';
+        else if (server.command) server.type = 'stdio';
+        servers[name] = server;
+      }
+    }
+    mcp = {
+      servers,
+      raw: parsed,
+      hash: sha256(stableJson(servers)),
+    };
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
+      diagnostics.push({
+        severity: 'warning',
+        code: 'MCP_READ_ERROR',
+        message: 'Failed to read mcp.json',
+        file: mcpFile,
+        detail: (err as Error).message,
+      });
+    }
+  }
+
   const config: RulerUnifiedConfig = {
     meta,
     toml,
   rules,
-    mcp: null as McpBundle | null,
+    mcp,
     agents: {},
     diagnostics,
     hash: sha256(
       stableJson({
         toml: toml.defaultAgents,
         rules: rules.concatenatedHash,
+        mcp: mcp ? mcp.hash : null,
       }),
     ),
   };
