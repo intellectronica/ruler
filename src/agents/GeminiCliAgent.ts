@@ -48,4 +48,12 @@ export class GeminiCliAgent extends AgentsMdAgent {
   getMcpServerKey(): string {
     return 'mcpServers';
   }
+
+  supportsMcpStdio(): boolean {
+    return true;
+  }
+
+  supportsMcpRemote(): boolean {
+    return true;
+  }
 }

@@ -20,4 +20,12 @@ export class CopilotAgent extends AbstractAgent {
   getMcpServerKey(): string {
     return 'servers';
   }
+
+  supportsMcpStdio(): boolean {
+    return true;
+  }
+
+  supportsMcpRemote(): boolean {
+    return true;
+  }
 }

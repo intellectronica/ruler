@@ -16,4 +16,12 @@ export class ClaudeAgent extends AbstractAgent {
   getDefaultOutputPath(projectRoot: string): string {
     return path.join(projectRoot, 'CLAUDE.md');
   }
+
+  supportsMcpStdio(): boolean {
+    return true;
+  }
+
+  supportsMcpRemote(): boolean {
+    return true;
+  }
 }

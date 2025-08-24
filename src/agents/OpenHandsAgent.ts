@@ -13,4 +13,12 @@ export class OpenHandsAgent extends AbstractAgent {
   getDefaultOutputPath(projectRoot: string): string {
     return path.join(projectRoot, '.openhands', 'microagents', 'repo.md');
   }
+
+  supportsMcpStdio(): boolean {
+    return true;
+  }
+
+  supportsMcpRemote(): boolean {
+    return true;
+  }
 }

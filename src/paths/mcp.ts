@@ -45,9 +45,6 @@ export async function getNativeMcpPath(
     case 'Qwen Code':
       candidates.push(path.join(projectRoot, '.qwen', 'settings.json'));
       break;
-    case 'AugmentCode':
-      candidates.push(path.join(projectRoot, '.vscode', 'settings.json'));
-      break;
     case 'Kilo Code':
       candidates.push(path.join(projectRoot, '.kilocode', 'mcp.json'));
       break;

@@ -51,4 +51,16 @@ export interface IAgent {
    * Defaults to 'mcpServers' if not implemented.
    */
   getMcpServerKey?(): string;
+
+  /**
+   * Returns whether this agent supports MCP STDIO servers.
+   * Defaults to false if not implemented.
+   */
+  supportsMcpStdio?(): boolean;
+
+  /**
+   * Returns whether this agent supports MCP remote servers.
+   * Defaults to false if not implemented.
+   */
+  supportsMcpRemote?(): boolean;
 }

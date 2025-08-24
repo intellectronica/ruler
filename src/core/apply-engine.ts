@@ -9,6 +9,7 @@ import { getNativeMcpPath, readNativeMcp, writeNativeMcp } from '../paths/mcp';
 import { propagateMcpToOpenHands } from '../mcp/propagateOpenHandsMcp';
 import { propagateMcpToOpenCode } from '../mcp/propagateOpenCodeMcp';
 import { getAgentOutputPaths } from '../agents/agent-utils';
+import { agentSupportsMcp, filterMcpConfigForAgent } from '../mcp/capabilities';
 import { createRulerError, logVerbose } from '../constants';
 import { McpStrategy } from '../types';
 
@@ -290,11 +291,31 @@ async function handleMcpConfiguration(
   cliMcpEnabled = true,
   cliMcpStrategy?: McpStrategy,
 ): Promise<void> {
+  // Check if agent supports MCP at all
+  if (!agentSupportsMcp(agent)) {
+    logVerbose(
+      `Agent ${agent.getName()} does not support MCP - skipping MCP configuration`,
+      verbose,
+    );
+    return;
+  }
+
   const dest = await getNativeMcpPath(agent.getName(), projectRoot);
   const mcpEnabledForAgent =
     cliMcpEnabled && (agentConfig?.mcp?.enabled ?? config.mcp?.enabled ?? true);
 
-  if (dest && mcpEnabledForAgent) {
+  if (dest && mcpEnabledForAgent && rulerMcpJson) {
+    // Filter MCP configuration based on agent capabilities
+    const filteredMcpJson = filterMcpConfigForAgent(rulerMcpJson, agent);
+    
+    if (!filteredMcpJson) {
+      logVerbose(
+        `No compatible MCP servers found for ${agent.getName()} - skipping MCP configuration`,
+        verbose,
+      );
+      return;
+    }
+
     // Include MCP config file in .gitignore only if it's within the project directory
     if (dest.startsWith(projectRoot)) {
       const relativeDest = path.relative(projectRoot, dest);
@@ -311,16 +332,7 @@ async function handleMcpConfiguration(
           verbose,
         );
       } else {
-        await propagateMcpToOpenHands(rulerMcpJson, dest);
-      }
-    } else if (agent.getIdentifier() === 'augmentcode') {
-      // *** Special handling for AugmentCode ***
-      // AugmentCode handles MCP configuration internally in applyRulerConfig
-      if (dryRun) {
-        logVerbose(
-          `DRY RUN: AugmentCode MCP config handled internally via VSCode settings`,
-          verbose,
-        );
+        await propagateMcpToOpenHands(filteredMcpJson, dest);
       }
     } else if (agent.getIdentifier() === 'opencode') {
       // *** Special handling for OpenCode ***
@@ -330,31 +342,30 @@ async function handleMcpConfiguration(
           verbose,
         );
       } else {
-        await propagateMcpToOpenCode(rulerMcpJson, dest);
+        await propagateMcpToOpenCode(filteredMcpJson, dest);
       }
     } else {
-      if (rulerMcpJson) {
-        const strategy =
-          cliMcpStrategy ??
-          agentConfig?.mcp?.strategy ??
-          config.mcp?.strategy ??
-          'merge';
+      // Standard MCP handling using capabilities
+      const strategy =
+        cliMcpStrategy ??
+        agentConfig?.mcp?.strategy ??
+        config.mcp?.strategy ??
+        'merge';
 
-        // Determine the correct server key for the agent
-        const serverKey = agent.getMcpServerKey?.() ?? 'mcpServers';
+      // Determine the correct server key for the agent
+      const serverKey = agent.getMcpServerKey?.() ?? 'mcpServers';
 
-        logVerbose(
-          `Applying MCP config for ${agent.getName()} with strategy: ${strategy} and key: ${serverKey}`,
-          verbose,
-        );
+      logVerbose(
+        `Applying filtered MCP config for ${agent.getName()} with strategy: ${strategy} and key: ${serverKey}`,
+        verbose,
+      );
 
-        if (dryRun) {
-          logVerbose(`DRY RUN: Would apply MCP config to: ${dest}`, true);
-        } else {
-          const existing = await readNativeMcp(dest);
-          const merged = mergeMcp(existing, rulerMcpJson, strategy, serverKey);
-          await writeNativeMcp(dest, merged);
-        }
+      if (dryRun) {
+        logVerbose(`DRY RUN: Would apply MCP config to: ${dest}`, verbose);
+      } else {
+        const existing = await readNativeMcp(dest);
+        const merged = mergeMcp(existing, filteredMcpJson, strategy, serverKey);
+        await writeNativeMcp(dest, merged);
       }
     }
   }
