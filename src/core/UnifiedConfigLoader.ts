@@ -126,17 +126,126 @@ export async function loadUnifiedConfig(
     concatenatedHash: sha256(concatenated),
   };
 
-  // MCP normalization
+  // Parse TOML MCP servers
+  const tomlMcpServers: Record<string, McpServerDef> = {};
+  if (tomlRaw && typeof tomlRaw === 'object') {
+    const tomlObj = tomlRaw as Record<string, unknown>;
+    if (tomlObj.mcp_servers && typeof tomlObj.mcp_servers === 'object') {
+      const mcpServersRaw = tomlObj.mcp_servers as Record<string, unknown>;
+      for (const [name, def] of Object.entries(mcpServersRaw)) {
+        if (!def || typeof def !== 'object') continue;
+        const serverDef = def as Record<string, unknown>;
+        const server: McpServerDef = {};
+
+        // Parse command and args
+        if (typeof serverDef.command === 'string') {
+          server.command = serverDef.command;
+        }
+        if (Array.isArray(serverDef.args)) {
+          server.args = serverDef.args.map(String);
+        }
+
+        // Parse env
+        if (serverDef.env && typeof serverDef.env === 'object') {
+          server.env = Object.fromEntries(
+            Object.entries(serverDef.env).filter(
+              ([, v]) => typeof v === 'string',
+            ),
+          ) as Record<string, string>;
+        }
+
+        // Parse URL and headers
+        if (typeof serverDef.url === 'string') {
+          server.url = serverDef.url;
+        }
+        if (serverDef.headers && typeof serverDef.headers === 'object') {
+          server.headers = Object.fromEntries(
+            Object.entries(serverDef.headers).filter(
+              ([, v]) => typeof v === 'string',
+            ),
+          ) as Record<string, string>;
+        }
+
+        // Validate server configuration
+        const hasCommand = !!server.command;
+        const hasUrl = !!server.url;
+
+        if (!hasCommand && !hasUrl) {
+          diagnostics.push({
+            severity: 'warning',
+            code: 'MCP_TOML_INVALID_SERVER',
+            message: `MCP server '${name}' must have at least one of command or url`,
+            file: tomlFile,
+          });
+          continue;
+        }
+
+        if (hasCommand && hasUrl) {
+          diagnostics.push({
+            severity: 'warning',
+            code: 'MCP_TOML_FIELD_CONFLICT',
+            message: `MCP server '${name}' has both command and url - using url (remote)`,
+            file: tomlFile,
+          });
+        }
+
+        if (hasCommand && server.headers) {
+          diagnostics.push({
+            severity: 'warning',
+            code: 'MCP_TOML_FIELD_CONFLICT',
+            message: `MCP server '${name}' has headers with command (should be used with url only)`,
+            file: tomlFile,
+          });
+        }
+
+        if (hasUrl && server.env) {
+          diagnostics.push({
+            severity: 'warning',
+            code: 'MCP_TOML_FIELD_CONFLICT',
+            message: `MCP server '${name}' has env with url (should be used with command only)`,
+            file: tomlFile,
+          });
+        }
+
+        // Derive type - remote takes precedence if both are present
+        if (server.url) {
+          server.type = 'remote';
+        } else if (server.command) {
+          server.type = 'stdio';
+        }
+
+        tomlMcpServers[name] = server;
+      }
+    }
+  }
+
+  // Store TOML MCP servers in toml config
+  toml.mcpServers = tomlMcpServers;
+
+  // MCP normalization - merge JSON and TOML
   let mcp: McpBundle | null = null;
   const mcpFile = path.join(meta.rulerDir, 'mcp.json');
+  const jsonMcpServers: Record<string, McpServerDef> = {};
+  let mcpJsonExists = false;
+
   try {
     const raw = await fs.readFile(mcpFile, 'utf8');
     const parsed = JSON.parse(raw) as Record<string, unknown>;
     meta.mcpFile = mcpFile;
+    mcpJsonExists = true;
+
+    // Add deprecation warning if mcp.json exists
+    diagnostics.push({
+      severity: 'warning',
+      code: 'MCP_JSON_DEPRECATED',
+      message:
+        'mcp.json detected: please migrate MCP servers to ruler.toml [mcp_servers.*] sections',
+      file: mcpFile,
+    });
+
     const parsedObj = parsed as Record<string, unknown>;
     const serversRaw =
       (parsedObj.mcpServers as unknown) || (parsedObj.servers as unknown) || {};
-    const servers: Record<string, McpServerDef> = {};
     if (serversRaw && typeof serversRaw === 'object') {
       for (const [name, def] of Object.entries(
         serversRaw as Record<string, Record<string, unknown>>,
@@ -162,14 +271,9 @@ export async function loadUnifiedConfig(
         // Derive type
         if (server.url) server.type = 'remote';
         else if (server.command) server.type = 'stdio';
-        servers[name] = server;
+        jsonMcpServers[name] = server;
       }
     }
-    mcp = {
-      servers,
-      raw: parsed,
-      hash: sha256(stableJson(servers)),
-    };
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
       diagnostics.push({
@@ -180,6 +284,18 @@ export async function loadUnifiedConfig(
         detail: (err as Error).message,
       });
     }
+  }
+
+  // Merge servers: start with JSON, overlay TOML (TOML wins per server name)
+  const mergedServers = { ...jsonMcpServers, ...tomlMcpServers };
+
+  // Create MCP bundle if we have any servers
+  if (Object.keys(mergedServers).length > 0 || mcpJsonExists) {
+    mcp = {
+      servers: mergedServers,
+      raw: mcpJsonExists ? { mcpServers: jsonMcpServers } : {},
+      hash: sha256(stableJson(mergedServers)),
+    };
   }
 
   const config: RulerUnifiedConfig = {

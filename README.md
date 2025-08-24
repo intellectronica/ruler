@@ -309,6 +309,21 @@ enabled = true
 # Global merge strategy: 'merge' or 'overwrite' (default: 'merge')
 merge_strategy = "merge"
 
+# --- MCP Server Definitions ---
+[mcp_servers.filesystem]
+command = "npx"
+args = ["-y", "@modelcontextprotocol/server-filesystem", "/path/to/project"]
+
+[mcp_servers.git]
+command = "npx" 
+args = ["-y", "@modelcontextprotocol/server-git", "--repository", "."]
+
+[mcp_servers.remote_api]
+url = "https://api.example.com"
+
+[mcp_servers.remote_api.headers]
+Authorization = "Bearer your-token"
+
 # --- Global .gitignore Configuration ---
 [gitignore]
 # Enable/disable automatic .gitignore updates (default: true)
@@ -377,9 +392,36 @@ output_path = ".kilocode/rules/ruler_kilocode_instructions.md"
 
 MCP provides broader context to AI models through server configurations. Ruler can manage and distribute these settings across compatible agents.
 
-### `.ruler/mcp.json`
+### TOML Configuration (Recommended)
 
-Define your project's MCP servers:
+You can now define MCP servers directly in `ruler.toml` using the `[mcp_servers.<name>]` syntax:
+
+```toml
+# Global MCP behavior
+[mcp]
+enabled = true
+merge_strategy = "merge"  # or "overwrite"
+
+# Local (stdio) server
+[mcp_servers.filesystem]
+command = "npx"
+args = ["-y", "@modelcontextprotocol/server-filesystem", "/path/to/project"]
+
+[mcp_servers.filesystem.env]
+API_KEY = "your-api-key"
+
+# Remote server
+[mcp_servers.search]
+url = "https://mcp.example.com"
+
+[mcp_servers.search.headers]
+Authorization = "Bearer your-token"
+"X-API-Version" = "v1"
+```
+
+### Legacy `.ruler/mcp.json` (Deprecated)
+
+For backward compatibility, you can still use the JSON format, but you'll receive a warning encouraging migration to TOML:
 
 ```json
 {
@@ -400,8 +442,35 @@ Define your project's MCP servers:
 }
 ```
 
+### Configuration Precedence
 
-Ruler uses this file with the `merge` (default) or `overwrite` strategy, controlled by `ruler.toml` or CLI flags.
+When both TOML and JSON configurations are present:
+1. **TOML servers take precedence** over JSON servers with the same name
+2. **Servers are merged** from both sources (unless using overwrite strategy)
+3. **Deprecation warning** is shown encouraging migration to TOML
+
+### Server Types
+
+**Local/stdio servers** require a `command` field:
+```toml
+[mcp_servers.local_server]
+command = "node"
+args = ["server.js"]
+
+[mcp_servers.local_server.env]
+DEBUG = "1"
+```
+
+**Remote servers** require a `url` field:
+```toml
+[mcp_servers.remote_server]  
+url = "https://api.example.com"
+
+[mcp_servers.remote_server.headers]
+Authorization = "Bearer token"
+```
+
+Ruler uses this configuration with the `merge` (default) or `overwrite` strategy, controlled by `ruler.toml` or CLI flags.
 
 **Note for OpenAI Codex CLI:** To apply the local Codex CLI MCP configuration, set the `CODEX_HOME` environment variable to your project’s `.codex` directory:
 ```bash

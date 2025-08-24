@@ -1,11 +1,9 @@
 import * as path from 'path';
-import { promises as fs } from 'fs';
 import * as FileSystemUtils from './FileSystemUtils';
 import { concatenateRules } from './RuleProcessor';
 import { loadConfig, LoadedConfig, IAgentConfig } from './ConfigLoader';
 import { updateGitignore as updateGitignoreUtil } from './GitignoreUtils';
 import { IAgent } from '../agents/IAgent';
-import { validateMcp } from '../mcp/validate';
 import { mergeMcp } from '../mcp/merge';
 import { getNativeMcpPath, readNativeMcp, writeNativeMcp } from '../paths/mcp';
 import { propagateMcpToOpenHands } from '../mcp/propagateOpenHandsMcp';
@@ -54,20 +52,16 @@ export async function loadRulerConfiguration(
   const files = await FileSystemUtils.readMarkdownFiles(rulerDir);
   const concatenatedRules = concatenateRules(files, path.dirname(rulerDir));
 
-  // Load and validate the mcp.json file
-  const mcpFile = path.join(rulerDir, 'mcp.json');
+  // Load unified config to get merged MCP configuration
+  const { loadUnifiedConfig } = await import('./UnifiedConfigLoader');
+  const unifiedConfig = await loadUnifiedConfig({ projectRoot, configPath });
+
+  // Synthesize rulerMcpJson from unified MCP bundle for backward compatibility
   let rulerMcpJson: Record<string, unknown> | null = null;
-  try {
-    const raw = await fs.readFile(mcpFile, 'utf8');
-    rulerMcpJson = JSON.parse(raw) as Record<string, unknown>;
-    validateMcp(rulerMcpJson);
-  } catch (err: unknown) {
-    if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
-      throw createRulerError(
-        `Failed to load MCP configuration`,
-        `File: ${mcpFile}, Error: ${(err as Error).message}`,
-      );
-    }
+  if (unifiedConfig.mcp && Object.keys(unifiedConfig.mcp.servers).length > 0) {
+    rulerMcpJson = {
+      mcpServers: unifiedConfig.mcp.servers,
+    };
   }
 
   return {
