@@ -23,13 +23,21 @@ describe('End-to-End ruler init command', () => {
     const rulerDir = path.join(projectRoot, '.ruler');
   const instr = path.join(rulerDir, 'AGENTS.md');
     const toml = path.join(rulerDir, 'ruler.toml');
+    const mcpJson = path.join(rulerDir, 'mcp.json');
+    
     await expect(fs.stat(rulerDir)).resolves.toBeDefined();
     await expect(
       fs.readFile(instr, 'utf8'),
     ).resolves.toMatch(/^# AGENTS\.md/);
-    await expect(
-      fs.readFile(toml, 'utf8'),
-    ).resolves.toMatch(/^# Ruler Configuration File/);
+    
+    const tomlContent = await fs.readFile(toml, 'utf8');
+    expect(tomlContent).toMatch(/^# Ruler Configuration File/);
+    expect(tomlContent).toContain('# --- MCP Servers ---');
+    expect(tomlContent).toContain('[mcp_servers.example_stdio]');
+    expect(tomlContent).toContain('[mcp_servers.example_remote]');
+    
+    // Verify mcp.json is NOT created
+    await expect(fs.stat(mcpJson)).rejects.toThrow();
   });
 
   it('does not overwrite existing files', async () => {
