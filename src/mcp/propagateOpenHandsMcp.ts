@@ -30,9 +30,13 @@ export async function propagateMcpToOpenHands(
 
   // Always use the legacy Ruler MCP config format as input (top-level "mcpServers" key)
   const rulerServers = rulerMcp.mcpServers || {};
-  
+
   // Return early if no servers to process
-  if (!rulerServers || typeof rulerServers !== 'object' || Object.keys(rulerServers).length === 0) {
+  if (
+    !rulerServers ||
+    typeof rulerServers !== 'object' ||
+    Object.keys(rulerServers).length === 0
+  ) {
     return;
   }
 
