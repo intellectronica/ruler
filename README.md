@@ -699,5 +699,43 @@ MIT
 
 ---
 
+## Development and Testing
+
+### Running Tests
+
+The project includes comprehensive test coverage with unit, integration, and end-to-end tests:
+
+```bash
+# Run all tests
+npm test
+
+# Run with coverage
+npm run test:coverage
+
+# Run integration tests specifically
+npm run test:integration
+
+# Run tests in watch mode
+npm run test:watch
+```
+
+### Integration Testing
+
+The project includes comprehensive integration tests that validate the complete CLI workflow:
+
+- **`npm run test:integration`**: Runs a full end-to-end integration test that:
+  1. Creates a temporary test directory
+  2. Runs `ruler init` to set up the initial structure
+  3. Creates custom `ruler.toml` with MCP servers (both stdio and remote)
+  4. Creates sample `AGENTS.md` and additional markdown files for concatenation
+  5. Runs `ruler apply` to generate all agent configuration files
+  6. Inspects and validates all generated files contain expected content
+  7. Outputs the content of all generated files for manual verification
+  8. Validates MCP server configurations were properly applied
+
+This integration test ensures the entire CLI workflow functions correctly and can be used for manual testing or CI validation.
+
+---
+
 © Eleanor Berger  
 [ai.intellectronica.net](https://ai.intellectronica.net/)
