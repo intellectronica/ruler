@@ -18,9 +18,12 @@ describe('propagateMcpToOpenHands', () => {
     await fs.rm(tmpDir, { recursive: true, force: true });
   });
 
-  it('should create a new config.toml with stdio_servers', async () => {
+  it('should skip local servers and only configure remote servers', async () => {
     const rulerMcp = {
-      mcpServers: { fetch: { command: 'uvx', args: ['mcp-fetch'] } },
+      mcpServers: { 
+        localServer: { command: 'uvx', args: ['mcp-fetch'] },
+        remoteServer: { url: 'https://api.example.com/mcp' }
+      },
     };
 
     await fs.writeFile(rulerMcpPath, JSON.stringify(rulerMcp));
@@ -31,25 +34,28 @@ describe('propagateMcpToOpenHands', () => {
     const parsed = TOML.parse(content);
     expect(parsed.mcp).toBeDefined();
     const mcp: any = parsed.mcp;
-    expect(mcp.stdio_servers).toHaveLength(1);
-    expect(mcp.stdio_servers[0]).toEqual({
-      name: 'fetch',
-      command: 'uvx',
-      args: ['mcp-fetch'],
-    });
+    
+    // Should have remote servers only
+    expect(mcp.servers).toBeDefined();
+    expect(mcp.servers.remoteServer).toEqual({ url: 'https://api.example.com/mcp' });
+    expect(mcp.servers.localServer).toBeUndefined(); // Local server should be skipped
+    
+    // Should not have stdio_servers section at all
+    expect(mcp.stdio_servers).toBeUndefined();
   });
 
-  it('should merge servers into an existing config.toml', async () => {
+  it('should merge remote servers into an existing config.toml', async () => {
     const rulerMcp = {
-      mcpServers: { git: { command: 'npx', args: ['mcp-git'] } },
+      mcpServers: { 
+        api: { url: 'https://api.ruler.com/mcp' }
+      },
     };
 
     await fs.writeFile(rulerMcpPath, JSON.stringify(rulerMcp));
     const existingToml = `
-[mcp]
-stdio_servers = [
-  { name = "fs", command = "npx", args = ["mcp-fs"] }
-]
+[mcp.servers]
+  [mcp.servers.github]
+    url = "https://api.github.com/mcp"
     `;
     await fs.writeFile(openHandsConfigPath, existingToml);
 
@@ -58,30 +64,23 @@ stdio_servers = [
     const content = await fs.readFile(openHandsConfigPath, 'utf8');
     const parsed = TOML.parse(content);
     const mcp: any = parsed.mcp;
-    expect(mcp.stdio_servers).toHaveLength(2);
-    expect(mcp.stdio_servers).toContainEqual({
-      name: 'fs',
-      command: 'npx',
-      args: ['mcp-fs'],
-    });
-    expect(mcp.stdio_servers).toContainEqual({
-      name: 'git',
-      command: 'npx',
-      args: ['mcp-git'],
-    });
+    expect(Object.keys(mcp.servers)).toHaveLength(2);
+    expect(mcp.servers.github).toEqual({ url: 'https://api.github.com/mcp' });
+    expect(mcp.servers.api).toEqual({ url: 'https://api.ruler.com/mcp' });
   });
 
-  it('should not add duplicate servers', async () => {
+  it('should overwrite existing servers with same name', async () => {
     const rulerMcp = {
-      mcpServers: { fs: { command: 'uvx', args: ['mcp-fs-new'] } },
+      mcpServers: { 
+        api: { url: 'https://api.new.com/mcp' }
+      },
     };
 
     await fs.writeFile(rulerMcpPath, JSON.stringify(rulerMcp));
     const existingToml = `
-[mcp]
-stdio_servers = [
-  { name = "fs", command = "npx", args = ["mcp-fs-old"] }
-]
+[mcp.servers]
+  [mcp.servers.api]
+    url = "https://api.old.com/mcp"
     `;
     await fs.writeFile(openHandsConfigPath, existingToml);
 
@@ -90,32 +89,31 @@ stdio_servers = [
     const content = await fs.readFile(openHandsConfigPath, 'utf8');
     const parsed = TOML.parse(content);
     const mcp: any = parsed.mcp;
-    expect(mcp.stdio_servers).toHaveLength(1);
-    // The existing server should be overwritten by the new one from ruler
-    expect(mcp.stdio_servers[0]).toEqual({
-      name: 'fs',
-      command: 'uvx',
-      args: ['mcp-fs-new'],
-    });
+    expect(Object.keys(mcp.servers)).toHaveLength(1);
+    expect(mcp.servers.api).toEqual({ url: 'https://api.new.com/mcp' });
   });
 
-  it('should propagate env variables for stdio servers', async () => {
-    const serverEnv = { TEST_VAR: 'value', ANOTHER: '123' };
+  it('should handle only remote servers and skip all local servers', async () => {
     const rulerMcp = {
       mcpServers: {
-        fetch: { command: 'uvx', args: ['mcp-fetch'], env: serverEnv },
+        // All local servers should be skipped
+        fs: { command: 'npx', args: ['mcp-fs'] },
+        git: { command: 'uvx', args: ['mcp-git'] },
+        // Only remote servers should be included
+        api: { url: 'https://api.example.com/mcp' },
       },
     };
     await fs.writeFile(rulerMcpPath, JSON.stringify(rulerMcp));
 
     await propagateMcpToOpenHands(rulerMcpPath, openHandsConfigPath);
 
-    const contentWithEnv = await fs.readFile(openHandsConfigPath, 'utf8');
-    const parsedWithEnv: any = TOML.parse(contentWithEnv);
-    expect(parsedWithEnv.mcp.stdio_servers).toHaveLength(1);
-    expect(parsedWithEnv.mcp.stdio_servers[0]).toEqual(
-      expect.objectContaining({ env: serverEnv }),
-    );
+    const content = await fs.readFile(openHandsConfigPath, 'utf8');
+    const parsed: any = TOML.parse(content);
+    expect(parsed.mcp.servers).toBeDefined();
+    expect(Object.keys(parsed.mcp.servers)).toHaveLength(1);
+    expect(parsed.mcp.servers.api).toEqual({ url: 'https://api.example.com/mcp' });
+    expect(parsed.mcp.servers.fs).toBeUndefined();
+    expect(parsed.mcp.servers.git).toBeUndefined();
   });
 
   it('should handle malformed rulerMcp data gracefully', async () => {
@@ -138,7 +136,7 @@ stdio_servers = [
     const parsed = TOML.parse(content);
     expect(parsed.mcp).toBeDefined();
     const mcp: any = parsed.mcp;
-    // No servers should have been added
-    expect(mcp.stdio_servers).toHaveLength(0);
+    // No servers should have been added since none are valid remote servers
+    expect(Object.keys(mcp.servers || {})).toHaveLength(0);
   });
 });

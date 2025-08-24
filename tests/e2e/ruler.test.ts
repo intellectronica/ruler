@@ -12,7 +12,10 @@ describe('End-to-End Ruler CLI', () => {
     testProject = await setupTestProject({
       '.ruler/a.md': 'Rule A',
       '.ruler/b.md': 'Rule B',
-      '.ruler/mcp.json': JSON.stringify({ mcpServers: { example: { command: 'uvx', args: ['mcp-example'] } } })
+      '.ruler/mcp.json': JSON.stringify({ mcpServers: { 
+        example: { command: 'uvx', args: ['mcp-example'] },
+        remote_example: { url: 'https://api.example.com/mcp' }
+      } })
     });
   });
 
@@ -98,7 +101,7 @@ describe('End-to-End Ruler CLI', () => {
       .then(async () => {
         const ohToml = await fs.readFile(openHandsConfigPath, 'utf8');
         const ohParsed: any = TOML.parse(ohToml);
-        expect(ohParsed.mcp.stdio_servers[0].name).toBe('example');
+        expect(ohParsed.mcp.servers.remote_example.url).toBe('https://api.example.com/mcp');
       });
   }, 30000);
 

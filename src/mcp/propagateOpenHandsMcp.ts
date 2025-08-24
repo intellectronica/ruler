@@ -4,22 +4,23 @@ import { stringify } from '@iarna/toml';
 import { ensureDirExists } from '../core/FileSystemUtils';
 import * as path from 'path';
 
-interface StdioServer {
-  name: string;
-  command: string;
-  args?: string[];
-  env?: Record<string, string>;
+interface RemoteServer {
+  url: string;
 }
 
 interface RulerMcpServer {
-  command: string;
+  command?: string;
   args?: string[];
   env?: Record<string, string>;
+  url?: string;
 }
 
 function isRulerMcpServer(value: unknown): value is RulerMcpServer {
   const server = value as RulerMcpServer;
-  return server && typeof server.command === 'string';
+  return (
+    server &&
+    (typeof server.command === 'string' || typeof server.url === 'string')
+  );
 }
 
 export async function propagateMcpToOpenHands(
@@ -39,7 +40,7 @@ export async function propagateMcpToOpenHands(
 
   let config: {
     mcp?: {
-      stdio_servers?: StdioServer[];
+      servers?: Record<string, RemoteServer>;
     };
   } = {};
   try {
@@ -52,25 +53,17 @@ export async function propagateMcpToOpenHands(
   if (!config.mcp) {
     config.mcp = {};
   }
-  if (!config.mcp.stdio_servers) {
-    config.mcp.stdio_servers = [];
+  if (!config.mcp.servers) {
+    config.mcp.servers = {};
   }
 
-  const existingServers = new Map<string, StdioServer>(
-    config.mcp.stdio_servers.map((s: StdioServer) => [s.name, s]),
-  );
-
+  // Only add servers that have URLs (remote servers)
+  // Skip local servers entirely since OpenHands doesn't support them
   for (const [name, serverDef] of Object.entries(rulerServers)) {
-    if (isRulerMcpServer(serverDef)) {
-      const { command, args, env } = serverDef;
-      const newServer: StdioServer = { name, command };
-      if (args) newServer.args = args;
-      if (env) newServer.env = env;
-      existingServers.set(name, newServer);
+    if (isRulerMcpServer(serverDef) && serverDef.url) {
+      config.mcp.servers[name] = { url: serverDef.url };
     }
   }
-
-  config.mcp.stdio_servers = Array.from(existingServers.values());
 
   await ensureDirExists(path.dirname(openHandsConfigPath));
   await fs.writeFile(openHandsConfigPath, stringify(config));
