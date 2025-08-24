@@ -1,7 +1,11 @@
 import { OpenCodeAgent } from '../../../src/agents/OpenCodeAgent';
-import * as FileSystemUtils from '../../../src/core/FileSystemUtils';
+import * as fs from 'fs/promises';
+import * as path from 'path';
 
-jest.mock('../../../src/core/FileSystemUtils');
+// Mock fs module
+jest.mock('fs/promises');
+
+const mockedFs = jest.mocked(fs);
 
 describe('OpenCodeAgent', () => {
   let agent: OpenCodeAgent;
@@ -19,31 +23,93 @@ describe('OpenCodeAgent', () => {
     expect(agent.getName()).toBe('OpenCode');
   });
 
-  it('should return the correct MCP server key', () => {
-    expect(agent.getMcpServerKey()).toBe('mcp');
+  it('should return the correct default output paths', () => {
+    const paths = agent.getDefaultOutputPath('/root');
+    expect(paths.instructions).toBe('/root/AGENTS.md');
+    expect(paths.mcp).toBe('/root/opencode.json');
   });
 
-  it('should return the correct default output path', () => {
-    expect(agent.getDefaultOutputPath('/root')).toBe('/root/AGENTS.md');
+  it('should support MCP stdio', () => {
+    expect(agent.supportsMcpStdio()).toBe(true);
   });
 
-  it('should apply ruler config to the default output path', async () => {
-    const writeGeneratedFile = jest.spyOn(
-      FileSystemUtils,
-      'writeGeneratedFile',
-    );
+  it('should support MCP remote', () => {
+    expect(agent.supportsMcpRemote()).toBe(true);
+  });
+
+  it('should create opencode.json with schema and empty MCP when no MCP config provided', async () => {
+    mockedFs.readFile.mockRejectedValue(new Error('File not found'));
+
     await agent.applyRulerConfig('rules', '/root', null);
-    expect(writeGeneratedFile).toHaveBeenCalledWith('/root/AGENTS.md', 'rules');
+
+    expect(mockedFs.writeFile).toHaveBeenCalledWith('/root/AGENTS.md', 'rules');
+    expect(mockedFs.writeFile).toHaveBeenCalledWith(
+      '/root/opencode.json', 
+      JSON.stringify({
+        $schema: 'https://opencode.ai/config.json',
+        mcp: {}
+      }, null, 2)
+    );
   });
 
-  it('should apply ruler config to a custom output path', async () => {
-    const writeGeneratedFile = jest.spyOn(
-      FileSystemUtils,
-      'writeGeneratedFile',
+  it('should create opencode.json with MCP servers when MCP config provided', async () => {
+    const mcpConfig = {
+      mcpServers: {
+        'test-server': {
+          command: 'echo',
+          args: ['hello']
+        }
+      }
+    };
+
+    mockedFs.readFile.mockRejectedValue(new Error('File not found'));
+
+    await agent.applyRulerConfig('rules', '/root', mcpConfig);
+
+    expect(mockedFs.writeFile).toHaveBeenCalledWith('/root/AGENTS.md', 'rules');
+    expect(mockedFs.writeFile).toHaveBeenCalledWith(
+      '/root/opencode.json', 
+      JSON.stringify({
+        $schema: 'https://opencode.ai/config.json',
+        mcp: {
+          'test-server': {
+            command: 'echo',
+            args: ['hello']
+          }
+        }
+      }, null, 2)
     );
-    await agent.applyRulerConfig('rules', '/root', null, {
-      outputPath: 'CUSTOM.md',
+  });
+
+  it('should apply ruler config to custom paths from agent config', async () => {
+    const mcpConfig = {
+      mcpServers: {
+        'test-server': {
+          command: 'echo',
+          args: ['hello']
+        }
+      }
+    };
+
+    mockedFs.readFile.mockRejectedValue(new Error('File not found'));
+
+    await agent.applyRulerConfig('rules', '/root', mcpConfig, {
+      outputPathInstructions: 'CUSTOM.md',
+      outputPathConfig: 'custom-opencode.json'
     });
-    expect(writeGeneratedFile).toHaveBeenCalledWith('/root/CUSTOM.md', 'rules');
+
+    expect(mockedFs.writeFile).toHaveBeenCalledWith('/root/CUSTOM.md', 'rules');
+    expect(mockedFs.writeFile).toHaveBeenCalledWith(
+      '/root/custom-opencode.json', 
+      JSON.stringify({
+        $schema: 'https://opencode.ai/config.json',
+        mcp: {
+          'test-server': {
+            command: 'echo',
+            args: ['hello']
+          }
+        }
+      }, null, 2)
+    );
   });
 });

@@ -61,4 +61,12 @@ export class CrushAgent implements IAgent {
       await fs.writeFile(mcpPath, JSON.stringify(finalMcpConfig, null, 2));
     }
   }
+
+  supportsMcpStdio(): boolean {
+    return true;
+  }
+
+  supportsMcpRemote(): boolean {
+    return true;
+  }
 }

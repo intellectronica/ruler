@@ -26,4 +26,12 @@ export class KiloCodeAgent extends AbstractAgent {
   getMcpServerKey(): string {
     return 'mcpServers';
   }
+
+  supportsMcpStdio(): boolean {
+    return true;
+  }
+
+  supportsMcpRemote(): boolean {
+    return true;
+  }
 }

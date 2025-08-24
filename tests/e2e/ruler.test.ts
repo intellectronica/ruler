@@ -286,7 +286,8 @@ output_path = "custom-claude.md"`;
     beforeAll(async () => {
       // Create a dedicated test project for gitignore testing
       gitignoreTestProject = await setupTestProject({
-        '.ruler/AGENTS.md': 'test'
+        '.ruler/AGENTS.md': 'test',
+        '.ruler/mcp.json': JSON.stringify({ mcpServers: { example: { command: 'uvx', args: ['mcp-example'] } } })
       });
 
       // Create the necessary subdirectories that the agents will write to

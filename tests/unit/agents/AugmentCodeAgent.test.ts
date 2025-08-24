@@ -30,8 +30,9 @@ describe('AugmentCodeAgent', () => {
       expect(agent.getDefaultOutputPath(tmpDir)).toBe(expected);
     });
 
-    it('returns correct MCP server key', () => {
-      expect(agent.getMcpServerKey()).toBe('mcpServers');
+    it('returns that MCP is not supported', () => {
+      expect(agent.supportsMcpStdio()).toBe(false);
+      expect(agent.supportsMcpRemote()).toBe(false);
     });
   });
 
@@ -67,7 +68,7 @@ describe('AugmentCodeAgent', () => {
       expect(content).toBe('custom guidelines');
     });
 
-    it('creates MCP configuration when provided', async () => {
+    it('ignores MCP configuration when provided', async () => {
       const mcpConfig = {
         mcpServers: {
           filesystem: {
@@ -79,20 +80,23 @@ describe('AugmentCodeAgent', () => {
 
       await agent.applyRulerConfig('test guidelines', tmpDir, mcpConfig);
 
+      // Only the instructions file should be created, no VSCode settings
+      const instructionsPath = path.join(tmpDir, '.augment', 'rules', 'ruler_augment_instructions.md');
       const settingsPath = path.join(tmpDir, '.vscode', 'settings.json');
-      const settingsContent = await fs.readFile(settingsPath, 'utf8');
-      const parsedSettings = JSON.parse(settingsContent);
-
-      expect(parsedSettings['augment.advanced'].mcpServers).toEqual([
-        {
-          name: 'filesystem',
-          command: 'npx',
-          args: ['-y', '@modelcontextprotocol/server-filesystem', tmpDir]
-        }
-      ]);
+      
+      const instructionsContent = await fs.readFile(instructionsPath, 'utf8');
+      expect(instructionsContent).toBe('test guidelines');
+      
+      // VSCode settings should not be created since AugmentCode doesn't support MCP
+      try {
+        await fs.access(settingsPath);
+        fail('VSCode settings file should not have been created');
+      } catch (error: unknown) {
+        expect((error as NodeJS.ErrnoException).code).toBe('ENOENT');
+      }
     });
 
-    it('merges with existing MCP configuration', async () => {
+    it('ignores existing MCP configuration and merge requests', async () => {
       const settingsPath = path.join(tmpDir, '.vscode', 'settings.json');
       const existingSettings = {
         'augment.advanced': {
@@ -123,27 +127,18 @@ describe('AugmentCodeAgent', () => {
 
       await agent.applyRulerConfig('test guidelines', tmpDir, newMcpConfig);
 
-      const updatedContent = await fs.readFile(settingsPath, 'utf8');
-      const updatedSettings = JSON.parse(updatedContent);
+      // Check that the instructions file was created
+      const instructionsPath = path.join(tmpDir, '.augment', 'rules', 'ruler_augment_instructions.md');
+      const instructionsContent = await fs.readFile(instructionsPath, 'utf8');
+      expect(instructionsContent).toBe('test guidelines');
 
-      // Should have both existing and new servers
-      const mcpServers = updatedSettings['augment.advanced'].mcpServers;
-      expect(mcpServers).toHaveLength(2);
-      expect(mcpServers.find((s: any) => s.name === 'existing')).toEqual({
-        name: 'existing',
-        command: 'existing-command',
-        args: ['existing-arg']
-      });
-      expect(mcpServers.find((s: any) => s.name === 'filesystem')).toEqual({
-        name: 'filesystem',
-        command: 'npx',
-        args: ['-y', '@modelcontextprotocol/server-filesystem', tmpDir]
-      });
-      // Other settings should be preserved
-      expect(updatedSettings['other.setting']).toEqual(existingSettings['other.setting']);
+      // Check that existing VSCode settings were not modified (AugmentCode doesn't support MCP)
+      const settingsContent = await fs.readFile(settingsPath, 'utf8');
+      const parsedSettings = JSON.parse(settingsContent);
+      expect(parsedSettings).toEqual(existingSettings);
     });
 
-    it('uses overwrite strategy when specified', async () => {
+    it('ignores overwrite strategy when specified (no MCP support)', async () => {
       const settingsPath = path.join(tmpDir, '.vscode', 'settings.json');
       const existingSettings = {
         'augment.advanced': {
@@ -172,17 +167,15 @@ describe('AugmentCodeAgent', () => {
         mcp: { strategy: 'overwrite' }
       });
 
-      const updatedContent = await fs.readFile(settingsPath, 'utf8');
-      const updatedSettings = JSON.parse(updatedContent);
+      // Check that the instructions file was created
+      const instructionsPath = path.join(tmpDir, '.augment', 'rules', 'ruler_augment_instructions.md');
+      const instructionsContent = await fs.readFile(instructionsPath, 'utf8');
+      expect(instructionsContent).toBe('test guidelines');
 
-      // Should only have new servers, existing should be gone
-      const mcpServers = updatedSettings['augment.advanced'].mcpServers;
-      expect(mcpServers).toHaveLength(1);
-      expect(mcpServers[0]).toEqual({
-        name: 'filesystem',
-        command: 'npx',
-        args: ['-y', '@modelcontextprotocol/server-filesystem', tmpDir]
-      });
+      // Check that existing VSCode settings were not modified (AugmentCode doesn't support MCP)
+      const settingsContent = await fs.readFile(settingsPath, 'utf8');
+      const parsedSettings = JSON.parse(settingsContent);
+      expect(parsedSettings).toEqual(existingSettings);
     });
   });
 });

@@ -47,4 +47,12 @@ export class CursorAgent extends AbstractAgent {
       'ruler_cursor_instructions.mdc',
     );
   }
+
+  supportsMcpStdio(): boolean {
+    return true;
+  }
+
+  supportsMcpRemote(): boolean {
+    return true;
+  }
 }

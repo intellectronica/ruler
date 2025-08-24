@@ -21,4 +21,12 @@ export class WindsurfAgent extends AbstractAgent {
       'ruler_windsurf_instructions.md',
     );
   }
+
+  supportsMcpStdio(): boolean {
+    return true;
+  }
+
+  supportsMcpRemote(): boolean {
+    return true;
+  }
 }

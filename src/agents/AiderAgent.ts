@@ -83,4 +83,12 @@ export class AiderAgent implements IAgent {
   getMcpServerKey(): string {
     return this.agentsMdAgent.getMcpServerKey();
   }
+
+  supportsMcpStdio(): boolean {
+    return true;
+  }
+
+  supportsMcpRemote(): boolean {
+    return true;
+  }
 }

@@ -1,13 +1,6 @@
 import * as path from 'path';
 import { IAgent, IAgentConfig } from './IAgent';
 import { backupFile, writeGeneratedFile } from '../core/FileSystemUtils';
-import {
-  readVSCodeSettings,
-  writeVSCodeSettings,
-  transformRulerToAugmentMcp,
-  mergeAugmentMcpServers,
-  getVSCodeSettingsPath,
-} from '../vscode/settings';
 
 /**
  * AugmentCode agent adapter.
@@ -25,7 +18,7 @@ export class AugmentCodeAgent implements IAgent {
   async applyRulerConfig(
     concatenatedRules: string,
     projectRoot: string,
-    rulerMcpJson: Record<string, unknown> | null,
+    rulerMcpJson: Record<string, unknown> | null, // eslint-disable-line @typescript-eslint/no-unused-vars
     agentConfig?: IAgentConfig,
   ): Promise<void> {
     const output =
@@ -33,20 +26,8 @@ export class AugmentCodeAgent implements IAgent {
     await backupFile(output);
     await writeGeneratedFile(output, concatenatedRules);
 
-    if (rulerMcpJson) {
-      const settingsPath = getVSCodeSettingsPath(projectRoot);
-      await backupFile(settingsPath);
-
-      const existingSettings = await readVSCodeSettings(settingsPath);
-      const augmentServers = transformRulerToAugmentMcp(rulerMcpJson);
-      const mergedSettings = mergeAugmentMcpServers(
-        existingSettings,
-        augmentServers,
-        agentConfig?.mcp?.strategy ?? 'merge',
-      );
-
-      await writeVSCodeSettings(settingsPath, mergedSettings);
-    }
+    // AugmentCode does not support MCP servers
+    // MCP configuration is ignored for this agent
   }
 
   getDefaultOutputPath(projectRoot: string): string {
@@ -58,7 +39,12 @@ export class AugmentCodeAgent implements IAgent {
     );
   }
 
-  getMcpServerKey(): string {
-    return 'mcpServers';
+  // AugmentCode does not support MCP servers
+  supportsMcpStdio(): boolean {
+    return false;
+  }
+
+  supportsMcpRemote(): boolean {
+    return false;
   }
 }
