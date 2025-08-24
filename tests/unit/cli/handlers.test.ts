@@ -163,7 +163,6 @@ describe('CLI Handlers', () => {
     const mockRulerDir = path.join(mockProjectRoot, '.ruler');
   const mockInstructionsPath = path.join(mockRulerDir, 'AGENTS.md');
     const mockTomlPath = path.join(mockRulerDir, 'ruler.toml');
-    const mockMcpPath = path.join(mockRulerDir, 'mcp.json');
   const mockLegacyPath = path.join(mockRulerDir, 'instructions.md');
 
     beforeEach(() => {
@@ -189,10 +188,45 @@ describe('CLI Handlers', () => {
         mockTomlPath,
         expect.stringContaining('# Ruler Configuration File'),
       );
-      expect(fs.writeFile).toHaveBeenCalledWith(
-        mockMcpPath,
-        expect.stringContaining('mcpServers'),
+    });
+
+    it('should NOT create mcp.json file', async () => {
+      const argv = {
+        'project-root': mockProjectRoot,
+        global: false,
+      };
+
+      await initHandler(argv);
+
+      // Verify mcp.json is never written
+      expect(fs.writeFile).not.toHaveBeenCalledWith(
+        expect.stringContaining('mcp.json'),
+        expect.anything(),
       );
+    });
+
+    it('should include sample MCP server sections in ruler.toml', async () => {
+      const argv = {
+        'project-root': mockProjectRoot,
+        global: false,
+      };
+
+      await initHandler(argv);
+
+      // Find the call that writes to ruler.toml
+      const tomlWriteCall = (fs.writeFile as jest.Mock).mock.calls.find(
+        call => call[0] === mockTomlPath
+      );
+      
+      expect(tomlWriteCall).toBeDefined();
+      const tomlContent = tomlWriteCall[1];
+      
+      // Verify MCP server sections are present
+      expect(tomlContent).toContain('# --- MCP Servers ---');
+      expect(tomlContent).toContain('[mcp_servers.example_stdio]');
+      expect(tomlContent).toContain('[mcp_servers.example_remote]');
+      expect(tomlContent).toContain('# command = "node"');
+      expect(tomlContent).toContain('# url = "https://api.example.com/mcp"');
     });
 
     it('should handle global initialization', async () => {
@@ -233,8 +267,7 @@ describe('CLI Handlers', () => {
     it('should skip creating files that already exist', async () => {
       (fs.access as jest.Mock)
         .mockResolvedValueOnce(undefined) // instructions.md exists
-        .mockResolvedValueOnce(undefined) // ruler.toml exists
-        .mockResolvedValueOnce(undefined); // mcp.json exists
+        .mockResolvedValueOnce(undefined); // ruler.toml exists
 
       const argv = {
         'project-root': mockProjectRoot,
@@ -247,12 +280,11 @@ describe('CLI Handlers', () => {
     });
 
     it('should create AGENTS.md when legacy instructions.md exists (legacy preserved)', async () => {
-      // access sequence: AGENTS.md (fail), legacy instructions.md (exists), ruler.toml (fail), mcp.json (fail)
+      // access sequence: AGENTS.md (fail), legacy instructions.md (exists), ruler.toml (fail)
       (fs.access as jest.Mock)
         .mockRejectedValueOnce(new Error('AGENTS missing'))
         .mockResolvedValueOnce(undefined) // legacy exists
-        .mockRejectedValueOnce(new Error('toml missing'))
-        .mockRejectedValueOnce(new Error('mcp missing'));
+        .mockRejectedValueOnce(new Error('toml missing'));
       const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
       const argv = { 'project-root': mockProjectRoot, global: false };
       // Simulate legacy existing by making read of legacy path succeed when probed later (we'll implement probe)

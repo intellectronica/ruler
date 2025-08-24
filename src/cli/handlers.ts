@@ -155,6 +155,20 @@ export async function initHandler(argv: InitArgs): Promise<void> {
 # [agents.kilocode]
 # enabled = true
 # output_path = ".kilocode/rules/ruler_kilocode_instructions.md"
+
+# --- MCP Servers ---
+# Define Model Context Protocol servers here. Two examples:
+# 1. A stdio server (local executable)
+# 2. A remote server (HTTP-based)
+
+[mcp_servers.example_stdio]
+# command = "node"
+# args = ["scripts/your-mcp-server.js"]
+# env = { API_KEY = "replace_me" }
+
+[mcp_servers.example_remote]
+# url = "https://api.example.com/mcp"
+# headers = { Authorization = "Bearer REPLACE_ME" }
 `;
   if (!(await exists(instructionsPath))) {
     // Create new AGENTS.md regardless of legacy presence.
@@ -173,26 +187,6 @@ export async function initHandler(argv: InitArgs): Promise<void> {
     console.log(`[ruler] Created ${tomlPath}`);
   } else {
     console.log(`[ruler] ruler.toml already exists, skipping`);
-  }
-  const mcpPath = path.join(rulerDir, 'mcp.json');
-  const DEFAULT_MCP_JSON = `{
-  "mcpServers": {
-    "example": {
-      "type": "stdio",
-      "command": "node",
-      "args": ["/path/to/mcp-server.js"],
-      "env": {
-        "NODE_ENV": "production"
-      }
-    }
-  }
-}
-`;
-  if (!(await exists(mcpPath))) {
-    await fs.writeFile(mcpPath, DEFAULT_MCP_JSON);
-    console.log(`[ruler] Created ${mcpPath}`);
-  } else {
-    console.log(`[ruler] mcp.json already exists, skipping`);
   }
 }
 
