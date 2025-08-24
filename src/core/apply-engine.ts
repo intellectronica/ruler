@@ -332,7 +332,7 @@ async function handleMcpConfiguration(
           verbose,
         );
       } else {
-        await propagateMcpToOpenCode(rulerMcpFile, dest);
+        await propagateMcpToOpenCode(rulerMcpJson, dest);
       }
     } else {
       if (rulerMcpJson) {
