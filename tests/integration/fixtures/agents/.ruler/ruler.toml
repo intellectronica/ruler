@@ -1,0 +1,5 @@
+default_agents=["alpha","beta"]
+[agents.alpha]
+output_path="alpha.md"
+[agents.beta]
+output_path="beta.md"
