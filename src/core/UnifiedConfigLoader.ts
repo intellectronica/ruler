@@ -243,6 +243,11 @@ export async function loadUnifiedConfig(
       file: mcpFile,
     });
 
+    // Console warning mirroring legacy instructions.md style
+    console.warn(
+      '[ruler] Warning: Using legacy .ruler/mcp.json. Please migrate to ruler.toml. This fallback will be removed in a future release.',
+    );
+
     const parsedObj = parsed as Record<string, unknown>;
     const serversRaw =
       (parsedObj.mcpServers as unknown) || (parsedObj.servers as unknown) || {};
