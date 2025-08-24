@@ -3,6 +3,7 @@ import * as path from 'path';
 import * as TOML from 'toml';
 import { sha256, stableJson } from './hash';
 import { concatenateRules } from './RuleProcessor';
+import * as FileSystemUtils from './FileSystemUtils';
 import {
   RulerUnifiedConfig,
   ConfigMeta,
@@ -25,9 +26,14 @@ export interface UnifiedLoadOptions {
 export async function loadUnifiedConfig(
   options: UnifiedLoadOptions,
 ): Promise<RulerUnifiedConfig> {
+  // Resolve the effective .ruler directory (local or global), mirroring the main loader behavior
+  const resolvedRulerDir =
+    (await FileSystemUtils.findRulerDir(options.projectRoot, true)) ||
+    path.join(options.projectRoot, '.ruler');
+
   const meta: ConfigMeta = {
     projectRoot: options.projectRoot,
-    rulerDir: path.join(options.projectRoot, '.ruler'),
+    rulerDir: resolvedRulerDir,
     loadedAt: new Date(),
     version: '0.0.0-dev',
   };
@@ -242,7 +248,24 @@ export async function loadUnifiedConfig(
   try {
     if (mcpJsonExists) {
       const raw = await fs.readFile(mcpFile, 'utf8');
-      const parsed = JSON.parse(raw) as Record<string, unknown>;
+      let parsed: Record<string, unknown>;
+      try {
+        parsed = JSON.parse(raw) as Record<string, unknown>;
+      } catch (e) {
+        // Lenient fallback: strip comments and trailing commas then retry
+        const stripped = raw
+          // strip /* */ comments
+          .replace(/\/\*[\s\S]*?\*\//g, '')
+          // strip // comments
+          .replace(/(^|\s+)\/\/.*$/gm, '$1')
+          // remove trailing commas before } or ]
+          .replace(/,\s*([}\]])/g, '$1');
+        try {
+          parsed = JSON.parse(stripped) as Record<string, unknown>;
+        } catch {
+          throw e; // rethrow original error for diagnostics
+        }
+      }
       meta.mcpFile = mcpFile;
 
       // Add deprecation warning if mcp.json exists (structured diagnostic)
