@@ -228,54 +228,68 @@ export async function loadUnifiedConfig(
   const jsonMcpServers: Record<string, McpServerDef> = {};
   let mcpJsonExists = false;
 
+  // Pre-flight existence check so users see warning even if JSON invalid
   try {
-    const raw = await fs.readFile(mcpFile, 'utf8');
-    const parsed = JSON.parse(raw) as Record<string, unknown>;
-    meta.mcpFile = mcpFile;
+    await fs.access(mcpFile);
     mcpJsonExists = true;
+    console.warn(
+      '[ruler] Warning: Using legacy .ruler/mcp.json. Please migrate to ruler.toml. This fallback will be removed in a future release.',
+    );
+  } catch {
+    // file not present
+  }
 
-    // Add deprecation warning if mcp.json exists
-    diagnostics.push({
-      severity: 'warning',
-      code: 'MCP_JSON_DEPRECATED',
-      message:
-        'mcp.json detected: please migrate MCP servers to ruler.toml [mcp_servers.*] sections',
-      file: mcpFile,
-    });
+  try {
+    if (mcpJsonExists) {
+      const raw = await fs.readFile(mcpFile, 'utf8');
+      const parsed = JSON.parse(raw) as Record<string, unknown>;
+      meta.mcpFile = mcpFile;
 
-    const parsedObj = parsed as Record<string, unknown>;
-    const serversRaw =
-      (parsedObj.mcpServers as unknown) || (parsedObj.servers as unknown) || {};
-    if (serversRaw && typeof serversRaw === 'object') {
-      for (const [name, def] of Object.entries(
-        serversRaw as Record<string, Record<string, unknown>>,
-      )) {
-        if (!def || typeof def !== 'object') continue;
-        const server: McpServerDef = {};
-        if (typeof def.command === 'string') server.command = def.command;
-        if (Array.isArray(def.command)) server.command = def.command[0];
-        if (Array.isArray(def.args)) server.args = def.args.map(String);
-        if (def.env && typeof def.env === 'object') {
-          server.env = Object.fromEntries(
-            Object.entries(def.env).filter(([, v]) => typeof v === 'string'),
-          ) as Record<string, string>;
+      // Add deprecation warning if mcp.json exists (structured diagnostic)
+      diagnostics.push({
+        severity: 'warning',
+        code: 'MCP_JSON_DEPRECATED',
+        message:
+          'mcp.json detected: please migrate MCP servers to ruler.toml [mcp_servers.*] sections',
+        file: mcpFile,
+      });
+
+      const parsedObj = parsed as Record<string, unknown>;
+      const serversRaw =
+        (parsedObj.mcpServers as unknown) ||
+        (parsedObj.servers as unknown) ||
+        {};
+      if (serversRaw && typeof serversRaw === 'object') {
+        for (const [name, def] of Object.entries(
+          serversRaw as Record<string, Record<string, unknown>>,
+        )) {
+          if (!def || typeof def !== 'object') continue;
+          const server: McpServerDef = {};
+          if (typeof def.command === 'string') server.command = def.command;
+          if (Array.isArray(def.command)) server.command = def.command[0];
+          if (Array.isArray(def.args)) server.args = def.args.map(String);
+          if (def.env && typeof def.env === 'object') {
+            server.env = Object.fromEntries(
+              Object.entries(def.env).filter(([, v]) => typeof v === 'string'),
+            ) as Record<string, string>;
+          }
+          if (typeof def.url === 'string') server.url = def.url;
+          if (def.headers && typeof def.headers === 'object') {
+            server.headers = Object.fromEntries(
+              Object.entries(def.headers).filter(
+                ([, v]) => typeof v === 'string',
+              ),
+            ) as Record<string, string>;
+          }
+          // Derive type
+          if (server.url) server.type = 'remote';
+          else if (server.command) server.type = 'stdio';
+          jsonMcpServers[name] = server;
         }
-        if (typeof def.url === 'string') server.url = def.url;
-        if (def.headers && typeof def.headers === 'object') {
-          server.headers = Object.fromEntries(
-            Object.entries(def.headers).filter(
-              ([, v]) => typeof v === 'string',
-            ),
-          ) as Record<string, string>;
-        }
-        // Derive type
-        if (server.url) server.type = 'remote';
-        else if (server.command) server.type = 'stdio';
-        jsonMcpServers[name] = server;
       }
     }
   } catch (err) {
-    if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
+    if (mcpJsonExists) {
       diagnostics.push({
         severity: 'warning',
         code: 'MCP_READ_ERROR',

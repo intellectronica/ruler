@@ -42,6 +42,17 @@ export async function loadRulerConfiguration(
     );
   }
 
+  // Early legacy mcp.json existence warning (some code paths may not parse it)
+  try {
+    const legacyMcpPath = path.join(rulerDir, 'mcp.json');
+    await (await import('fs/promises')).access(legacyMcpPath);
+    console.warn(
+      '[ruler] Warning: Using legacy .ruler/mcp.json. Please migrate to ruler.toml. This fallback will be removed in a future release.',
+    );
+  } catch {
+    // ignore
+  }
+
   // Load the ruler.toml configuration
   const config = await loadConfig({
     projectRoot,

@@ -56,6 +56,16 @@ export function runRuler(command: string, projectRoot: string): string {
 }
 
 /**
+ * Runs the CLI and returns combined stdout+stderr explicitly (useful when warnings may go to stderr).
+ */
+export function runRulerAll(command: string, projectRoot: string): string {
+  // NOTE: execSync only returns stdout. console.warn writes to stderr.
+  // We redirect stderr (2) to stdout (1) so legacy warnings emitted via console.warn are captured.
+  const fullCommand = `node dist/cli/index.js ${command} --project-root ${projectRoot} 2>&1`;
+  return execSync(fullCommand, { stdio: ['pipe', 'pipe', 'pipe'], encoding: 'utf8' });
+}
+
+/**
  * Executes a Ruler CLI command against a test project with inherited stdio
  * @param command Command string (e.g., 'apply --agents copilot')
  * @param projectRoot Path to the test project directory
