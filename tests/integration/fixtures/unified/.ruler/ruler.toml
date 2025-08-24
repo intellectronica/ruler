@@ -1,0 +1,3 @@
+default_agents=["copilot"]
+[agents.copilot]
+output_path=".github/copilot-instructions.md"
