@@ -34,7 +34,7 @@ export function filterMcpConfigForAgent(
   agent: IAgent,
 ): Record<string, unknown> | null {
   const capabilities = getAgentMcpCapabilities(agent);
-  
+
   if (!agentSupportsMcp(agent)) {
     return null;
   }
@@ -48,22 +48,24 @@ export function filterMcpConfigForAgent(
 
   for (const [serverName, serverConfig] of Object.entries(servers)) {
     const config = serverConfig as Record<string, unknown>;
-    
+
     // Determine server type
     const hasCommand = 'command' in config;
     const hasUrl = 'url' in config;
-    
+
     const isStdio = hasCommand && !hasUrl;
     const isRemote = hasUrl && !hasCommand;
-    
+
     // Include server if agent supports its type
-    if ((isStdio && capabilities.supportsStdio) || 
-        (isRemote && capabilities.supportsRemote)) {
+    if (
+      (isStdio && capabilities.supportsStdio) ||
+      (isRemote && capabilities.supportsRemote)
+    ) {
       filteredServers[serverName] = serverConfig;
     }
   }
 
-  return Object.keys(filteredServers).length > 0 
+  return Object.keys(filteredServers).length > 0
     ? { mcpServers: filteredServers }
     : null;
 }

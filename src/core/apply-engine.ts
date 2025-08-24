@@ -307,7 +307,7 @@ async function handleMcpConfiguration(
   if (dest && mcpEnabledForAgent && rulerMcpJson) {
     // Filter MCP configuration based on agent capabilities
     const filteredMcpJson = filterMcpConfigForAgent(rulerMcpJson, agent);
-    
+
     if (!filteredMcpJson) {
       logVerbose(
         `No compatible MCP servers found for ${agent.getName()} - skipping MCP configuration`,
