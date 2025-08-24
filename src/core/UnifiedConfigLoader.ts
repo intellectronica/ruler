@@ -256,7 +256,7 @@ export async function loadUnifiedConfig(
           .replace(/,\s*([}\]])/g, '$1');
         try {
           parsed = JSON.parse(stripped) as Record<string, unknown>;
-        } catch (e2) {
+        } catch {
           throw e; // rethrow original error for diagnostics
         }
       }
