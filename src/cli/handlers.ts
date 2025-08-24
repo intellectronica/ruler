@@ -94,7 +94,6 @@ export async function initHandler(argv: InitArgs): Promise<void> {
     : path.join(projectRoot, '.ruler');
   await fs.mkdir(rulerDir, { recursive: true });
   const instructionsPath = path.join(rulerDir, DEFAULT_RULES_FILENAME); // .ruler/AGENTS.md
-  const legacyPath = path.join(rulerDir, 'instructions.md');
   const tomlPath = path.join(rulerDir, 'ruler.toml');
   const exists = async (p: string) => {
     try {
@@ -174,11 +173,6 @@ export async function initHandler(argv: InitArgs): Promise<void> {
     // Create new AGENTS.md regardless of legacy presence.
     await fs.writeFile(instructionsPath, DEFAULT_INSTRUCTIONS);
     console.log(`[ruler] Created ${instructionsPath}`);
-    if (await exists(legacyPath)) {
-      console.log(
-        '[ruler] Legacy instructions.md detected (kept for backward compatibility).',
-      );
-    }
   } else {
     console.log(`[ruler] ${DEFAULT_RULES_FILENAME} already exists, skipping`);
   }

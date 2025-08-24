@@ -2,16 +2,6 @@ import { promises as fs } from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 
-// Internal flag to ensure we only emit the legacy warning once per process.
-let legacyWarningEmitted = false;
-/**
- * TEST-ONLY: resets the legacy warning emission flag so unit tests can assert
- * behavior in isolation. Not documented for public use.
- */
-export function __resetLegacyWarningForTests() {
-  legacyWarningEmitted = false;
-}
-
 /**
  * Gets the XDG config directory path, falling back to ~/.config if XDG_CONFIG_HOME is not set.
  */
@@ -92,7 +82,7 @@ export async function readMarkdownFiles(
 
   // Prioritisation logic:
   // 1. Prefer top-level AGENTS.md if present.
-  // 2. If AGENTS.md absent but legacy instructions.md present, use it (emit one-time warning).
+  // 2. If AGENTS.md absent but legacy instructions.md present, use it (no longer emits a warning; legacy accepted silently).
   // 3. Include any remaining .md files (excluding whichever of the above was used if present) in
   //    sorted order AFTER the preferred primary file so that new concatenation priority starts with AGENTS.md.
   const topLevelAgents = path.join(rulerDir, 'AGENTS.md');
@@ -111,12 +101,6 @@ export async function readMarkdownFiles(
     for (const f of mdFiles) {
       if (f.path === topLevelLegacy) {
         primaryFile = f;
-        if (!legacyWarningEmitted) {
-          console.warn(
-            '[ruler] Warning: Using legacy .ruler/instructions.md. Please migrate to AGENTS.md. This fallback will be removed in a future release.',
-          );
-          legacyWarningEmitted = true;
-        }
         break;
       }
     }
