@@ -55,4 +55,28 @@ export abstract class AbstractAgent implements IAgent {
   getMcpServerKey?(): string {
     return 'mcpServers';
   }
+
+  /**
+   * Returns whether this agent supports local (STDIO) MCP servers.
+   * Defaults to true if not overridden.
+   */
+  supportsLocalMcp?(): boolean {
+    return true;
+  }
+
+  /**
+   * Returns whether this agent supports remote (HTTP) MCP servers.
+   * Defaults to true if not overridden.
+   */
+  supportsRemoteMcp?(): boolean {
+    return true;
+  }
+
+  /**
+   * Returns whether this agent supports MCP servers at all.
+   * Defaults to true if not overridden.
+   */
+  supportsMcp?(): boolean {
+    return true;
+  }
 }

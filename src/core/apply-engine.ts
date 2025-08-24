@@ -1,4 +1,5 @@
 import * as path from 'path';
+import { promises as fs } from 'fs';
 import * as FileSystemUtils from './FileSystemUtils';
 import { concatenateRules } from './RuleProcessor';
 import { loadConfig, LoadedConfig, IAgentConfig } from './ConfigLoader';
@@ -11,6 +12,107 @@ import { propagateMcpToOpenCode } from '../mcp/propagateOpenCodeMcp';
 import { getAgentOutputPaths } from '../agents/agent-utils';
 import { createRulerError, logVerbose } from '../constants';
 import { McpStrategy } from '../types';
+
+// Global set to track warnings issued for MCP server/agent combinations
+const mcpWarningsIssued = new Set<string>();
+
+/**
+ * Issue a warning once per MCP server and agent combination.
+ */
+function issueOnceWarning(agentName: string, serverName: string, message: string): void {
+  const key = `${agentName}:${serverName}`;
+  if (!mcpWarningsIssued.has(key)) {
+    console.warn(`[ruler] Warning: ${message}`);
+    mcpWarningsIssued.add(key);
+  }
+}
+
+/**
+ * Determines if an MCP server configuration is local (STDIO) or remote (HTTP).
+ */
+function isRemoteServer(serverConfig: unknown): boolean {
+  const config = serverConfig as Record<string, unknown>;
+  return config && typeof config.url === 'string';
+}
+
+function isLocalServer(serverConfig: unknown): boolean {
+  const config = serverConfig as Record<string, unknown>;
+  return config && (typeof config.command === 'string' || Array.isArray(config.command));
+}
+
+/**
+ * Transforms local MCP servers to use mcp-remote for agents that don't support remote servers.
+ */
+function transformLocalToRemoteViaMcpRemote(
+  rulerMcpJson: Record<string, unknown>,
+  agentName: string,
+): Record<string, unknown> {
+  const mcpServers = rulerMcpJson.mcpServers as Record<string, unknown> || {};
+  const transformedServers: Record<string, unknown> = {};
+
+  for (const [serverName, serverConfig] of Object.entries(mcpServers)) {
+    if (isLocalServer(serverConfig)) {
+      // Issue warning and transform to mcp-remote
+      issueOnceWarning(
+        agentName,
+        serverName,
+        `Agent ${agentName} doesn't support local MCP servers. Using mcp-remote as fallback for server "${serverName}".`
+      );
+      
+      const config = serverConfig as { command: string | string[]; args?: string[]; env?: Record<string, string> };
+      const command = Array.isArray(config.command) ? config.command : [config.command];
+      const args = config.args || [];
+      
+      // Transform to mcp-remote configuration
+      transformedServers[serverName] = {
+        command: 'npx',
+        args: ['mcp-remote', ...command, ...args],
+        env: config.env,
+      };
+    } else {
+      // Keep remote servers as-is
+      transformedServers[serverName] = serverConfig;
+    }
+  }
+
+  return { ...rulerMcpJson, mcpServers: transformedServers };
+}
+
+/**
+ * Transforms remote MCP servers to use supergateway for agents that don't support local servers.
+ */
+function transformRemoteToLocalViaSupergateway(
+  rulerMcpJson: Record<string, unknown>,
+  agentName: string,
+): Record<string, unknown> {
+  const mcpServers = rulerMcpJson.mcpServers as Record<string, unknown> || {};
+  const transformedServers: Record<string, unknown> = {};
+
+  for (const [serverName, serverConfig] of Object.entries(mcpServers)) {
+    if (isRemoteServer(serverConfig)) {
+      // Issue warning and transform to supergateway
+      issueOnceWarning(
+        agentName,
+        serverName,
+        `Agent ${agentName} doesn't support remote MCP servers. Using supergateway as fallback for server "${serverName}".`
+      );
+      
+      const config = serverConfig as { url: string; headers?: Record<string, string> };
+      
+      // Transform to supergateway configuration
+      const args = ['--stdio', config.url];
+      transformedServers[serverName] = {
+        command: 'supergateway',
+        args: args,
+      };
+    } else {
+      // Keep local servers as-is
+      transformedServers[serverName] = serverConfig;
+    }
+  }
+
+  return { ...rulerMcpJson, mcpServers: transformedServers };
+}
 
 /**
  * Configuration data loaded from the ruler setup
@@ -296,6 +398,21 @@ async function handleMcpConfiguration(
   const rulerDir = await FileSystemUtils.findRulerDir(projectRoot, true);
   const rulerMcpFile = rulerDir ? path.join(rulerDir, 'mcp.json') : '';
 
+  // Check if agent supports MCP at all
+  const supportsMcp = agent.supportsMcp?.() ?? true;
+  
+  if (!supportsMcp) {
+    if (rulerMcpJson && Object.keys(rulerMcpJson.mcpServers || {}).length > 0) {
+      // Issue warning once for the agent (using a dummy server name)
+      issueOnceWarning(
+        agent.getName(),
+        'any',
+        `Agent ${agent.getName()} doesn't support MCP servers. MCP configuration will be ignored.`
+      );
+    }
+    return;
+  }
+
   if (dest && mcpEnabledForAgent) {
     // Include MCP config file in .gitignore only if it's within the project directory
     if (dest.startsWith(projectRoot)) {
@@ -307,13 +424,39 @@ async function handleMcpConfiguration(
 
     if (agent.getIdentifier() === 'openhands') {
       // *** Special handling for Open Hands ***
+      // OpenHands uses TOML format, so we need special handling
       if (dryRun) {
         logVerbose(
           `DRY RUN: Would apply MCP config by updating TOML file: ${dest}`,
           verbose,
         );
       } else {
-        await propagateMcpToOpenHands(rulerMcpFile, dest);
+        // Check capabilities and transform if needed
+        const supportsLocal = agent.supportsLocalMcp?.() ?? true;
+        const supportsRemote = agent.supportsRemoteMcp?.() ?? true;
+        
+        let transformedMcpJson = rulerMcpJson;
+        
+        if (rulerMcpJson && !supportsRemote && hasRemoteServers(rulerMcpJson)) {
+          transformedMcpJson = transformRemoteToLocalViaSupergateway(rulerMcpJson, agent.getName());
+        } else if (rulerMcpJson && !supportsLocal && hasLocalServers(rulerMcpJson)) {
+          transformedMcpJson = transformLocalToRemoteViaMcpRemote(rulerMcpJson, agent.getName());
+        }
+        
+        // Write the transformed configuration to a temporary file for OpenHands propagation
+        const tmpMcpFile = path.join(path.dirname(rulerMcpFile), 'tmp-mcp.json');
+        if (transformedMcpJson) {
+          await fs.writeFile(tmpMcpFile, JSON.stringify(transformedMcpJson, null, 2));
+          await propagateMcpToOpenHands(tmpMcpFile, dest);
+          // Clean up temporary file
+          try {
+            await fs.unlink(tmpMcpFile);
+          } catch {
+            // Ignore cleanup errors
+          }
+        } else {
+          await propagateMcpToOpenHands(rulerMcpFile, dest);
+        }
       }
     } else if (agent.getIdentifier() === 'augmentcode') {
       // *** Special handling for AugmentCode ***
@@ -342,6 +485,19 @@ async function handleMcpConfiguration(
           config.mcp?.strategy ??
           'merge';
 
+        // Check agent capabilities and transform configuration if needed
+        const supportsLocal = agent.supportsLocalMcp?.() ?? true;
+        const supportsRemote = agent.supportsRemoteMcp?.() ?? true;
+        
+        let transformedMcpJson = rulerMcpJson;
+        
+        // Transform configuration based on agent capabilities
+        if (rulerMcpJson && !supportsRemote && hasRemoteServers(rulerMcpJson)) {
+          transformedMcpJson = transformRemoteToLocalViaSupergateway(rulerMcpJson, agent.getName());
+        } else if (rulerMcpJson && !supportsLocal && hasLocalServers(rulerMcpJson)) {
+          transformedMcpJson = transformLocalToRemoteViaMcpRemote(rulerMcpJson, agent.getName());
+        }
+
         // Determine the correct server key for the agent
         const serverKey = agent.getMcpServerKey?.() ?? 'mcpServers';
 
@@ -354,12 +510,30 @@ async function handleMcpConfiguration(
           logVerbose(`DRY RUN: Would apply MCP config to: ${dest}`, true);
         } else {
           const existing = await readNativeMcp(dest);
-          const merged = mergeMcp(existing, rulerMcpJson, strategy, serverKey);
+          const merged = mergeMcp(existing, transformedMcpJson, strategy, serverKey);
           await writeNativeMcp(dest, merged);
         }
       }
     }
   }
+}
+
+/**
+ * Checks if the MCP configuration contains any remote servers.
+ */
+function hasRemoteServers(rulerMcpJson: Record<string, unknown> | null): boolean {
+  if (!rulerMcpJson) return false;
+  const mcpServers = rulerMcpJson.mcpServers as Record<string, unknown> || {};
+  return Object.values(mcpServers).some(isRemoteServer);
+}
+
+/**
+ * Checks if the MCP configuration contains any local servers.
+ */
+function hasLocalServers(rulerMcpJson: Record<string, unknown> | null): boolean {
+  if (!rulerMcpJson) return false;
+  const mcpServers = rulerMcpJson.mcpServers as Record<string, unknown> || {};
+  return Object.values(mcpServers).some(isLocalServer);
 }
 
 /**

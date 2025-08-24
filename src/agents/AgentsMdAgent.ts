@@ -59,4 +59,8 @@ export class AgentsMdAgent extends AbstractAgent {
     // No MCP configuration for this pseudo-agent
     return '';
   }
+
+  supportsMcp(): boolean {
+    return false; // AgentsMd is a pseudo-agent that doesn't support MCP
+  }
 }

@@ -12,4 +12,8 @@ export class OpenCodeAgent extends AgentsMdAgent {
   getMcpServerKey(): string {
     return 'mcp';
   }
+
+  supportsMcp(): boolean {
+    return true; // Override AgentsMdAgent's false default
+  }
 }

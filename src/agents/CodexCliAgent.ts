@@ -33,6 +33,18 @@ export class CodexCliAgent extends AgentsMdAgent {
     return 'OpenAI Codex CLI';
   }
 
+  supportsLocalMcp(): boolean {
+    return true;
+  }
+
+  supportsRemoteMcp(): boolean {
+    return false; // Codex supports only STDIO MCP servers
+  }
+
+  supportsMcp(): boolean {
+    return true; // Override AgentsMdAgent's false default
+  }
+
   async applyRulerConfig(
     concatenatedRules: string,
     projectRoot: string,

@@ -48,4 +48,8 @@ export class GeminiCliAgent extends AgentsMdAgent {
   getMcpServerKey(): string {
     return 'mcpServers';
   }
+
+  supportsMcp(): boolean {
+    return true; // Override AgentsMdAgent's false default
+  }
 }

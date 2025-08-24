@@ -8,4 +8,8 @@ export class JulesAgent extends AgentsMdAgent {
   getName(): string {
     return 'Jules';
   }
+
+  supportsMcp(): boolean {
+    return true; // Override AgentsMdAgent's false default
+  }
 }

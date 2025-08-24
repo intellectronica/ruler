@@ -13,4 +13,12 @@ export class OpenHandsAgent extends AbstractAgent {
   getDefaultOutputPath(projectRoot: string): string {
     return path.join(projectRoot, '.openhands', 'microagents', 'repo.md');
   }
+
+  supportsLocalMcp(): boolean {
+    return false; // OpenHands supports only remote MCP servers
+  }
+
+  supportsRemoteMcp(): boolean {
+    return true;
+  }
 }

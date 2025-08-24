@@ -8,4 +8,8 @@ export class AmpAgent extends AgentsMdAgent {
   getName(): string {
     return 'Amp';
   }
+
+  supportsMcp(): boolean {
+    return true; // Override AgentsMdAgent's false default
+  }
 }
