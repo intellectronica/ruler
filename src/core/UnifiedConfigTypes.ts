@@ -28,7 +28,7 @@ export interface TomlConfig {
   gitignore?: GitignoreConfig;
 }
 
-export interface McpToggleConfig extends McpConfig {}
+export type McpToggleConfig = McpConfig;
 
 export interface AgentTomlConfig {
   enabled?: boolean;

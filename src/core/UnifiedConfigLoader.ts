@@ -62,9 +62,9 @@ export async function loadUnifiedConfig(
     (tomlRaw as Record<string, unknown>).default_agents &&
     Array.isArray((tomlRaw as Record<string, unknown>).default_agents)
   ) {
-    defaultAgents = ((tomlRaw as Record<string, unknown>).default_agents as unknown[]).map(
-      (a) => String(a),
-    );
+    defaultAgents = (
+      (tomlRaw as Record<string, unknown>).default_agents as unknown[]
+    ).map((a) => String(a));
   }
   const toml: TomlConfig = {
     raw: tomlRaw,
@@ -131,10 +131,11 @@ export async function loadUnifiedConfig(
   const mcpFile = path.join(meta.rulerDir, 'mcp.json');
   try {
     const raw = await fs.readFile(mcpFile, 'utf8');
-  const parsed = JSON.parse(raw) as Record<string, unknown>;
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
     meta.mcpFile = mcpFile;
-  const parsedObj = parsed as Record<string, unknown>;
-  const serversRaw = (parsedObj.mcpServers as unknown) || (parsedObj.servers as unknown) || {};
+    const parsedObj = parsed as Record<string, unknown>;
+    const serversRaw =
+      (parsedObj.mcpServers as unknown) || (parsedObj.servers as unknown) || {};
     const servers: Record<string, McpServerDef> = {};
     if (serversRaw && typeof serversRaw === 'object') {
       for (const [name, def] of Object.entries(
@@ -147,20 +148,16 @@ export async function loadUnifiedConfig(
         if (Array.isArray(def.args)) server.args = def.args.map(String);
         if (def.env && typeof def.env === 'object') {
           server.env = Object.fromEntries(
-            Object.entries(def.env).filter(([, v]) => typeof v === 'string') as [
-              string,
-              string,
-            ][],
-          );
+            Object.entries(def.env).filter(([, v]) => typeof v === 'string'),
+          ) as Record<string, string>;
         }
         if (typeof def.url === 'string') server.url = def.url;
         if (def.headers && typeof def.headers === 'object') {
           server.headers = Object.fromEntries(
-            Object.entries(def.headers).filter(([, v]) => typeof v === 'string') as [
-              string,
-              string,
-            ][],
-          );
+            Object.entries(def.headers).filter(
+              ([, v]) => typeof v === 'string',
+            ),
+          ) as Record<string, string>;
         }
         // Derive type
         if (server.url) server.type = 'remote';
@@ -188,7 +185,7 @@ export async function loadUnifiedConfig(
   const config: RulerUnifiedConfig = {
     meta,
     toml,
-  rules,
+    rules,
     mcp,
     agents: {},
     diagnostics,
