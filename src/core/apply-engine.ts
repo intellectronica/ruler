@@ -313,7 +313,7 @@ async function handleMcpConfiguration(
           verbose,
         );
       } else {
-        await propagateMcpToOpenHands(rulerMcpFile, dest);
+        await propagateMcpToOpenHands(rulerMcpJson, dest);
       }
     } else if (agent.getIdentifier() === 'augmentcode') {
       // *** Special handling for AugmentCode ***
