@@ -16,6 +16,7 @@ export interface ApplyArgs {
   verbose: boolean;
   'dry-run': boolean;
   'local-only': boolean;
+  hierarchical: boolean;
 }
 
 export interface InitArgs {
@@ -31,6 +32,7 @@ export interface RevertArgs {
   verbose: boolean;
   'dry-run': boolean;
   'local-only': boolean;
+  hierarchical: boolean;
 }
 
 /**
@@ -49,6 +51,7 @@ export async function applyHandler(argv: ApplyArgs): Promise<void> {
   const verbose = argv.verbose;
   const dryRun = argv['dry-run'];
   const localOnly = argv['local-only'];
+  const hierarchical = argv.hierarchical;
 
   // Determine gitignore preference: CLI > TOML > Default (enabled)
   // yargs handles --no-gitignore by setting gitignore to false
@@ -70,6 +73,7 @@ export async function applyHandler(argv: ApplyArgs): Promise<void> {
       verbose,
       dryRun,
       localOnly,
+      hierarchical,
     );
     console.log('Ruler apply completed successfully.');
   } catch (err: unknown) {
@@ -197,6 +201,7 @@ export async function revertHandler(argv: RevertArgs): Promise<void> {
   const verbose = argv.verbose;
   const dryRun = argv['dry-run'];
   const localOnly = argv['local-only'];
+  const hierarchical = argv.hierarchical;
 
   try {
     await revertAllAgentConfigs(
@@ -207,6 +212,7 @@ export async function revertHandler(argv: RevertArgs): Promise<void> {
       verbose,
       dryRun,
       localOnly,
+      hierarchical,
     );
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);

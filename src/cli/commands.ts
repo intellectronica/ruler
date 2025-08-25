@@ -61,6 +61,12 @@ export function run(): void {
             description:
               'Only search for local .ruler directories, ignore global config',
             default: false,
+          })
+          .option('hierarchical', {
+            type: 'boolean',
+            description:
+              'Enable hierarchical rule loading from nested .ruler directories',
+            default: false,
           });
       },
       applyHandler,
@@ -123,6 +129,12 @@ export function run(): void {
             type: 'boolean',
             description:
               'Only search for local .ruler directories, ignore global config',
+            default: false,
+          })
+          .option('hierarchical', {
+            type: 'boolean',
+            description:
+              'Enable hierarchical rule loading from nested .ruler directories',
             default: false,
           });
       },
