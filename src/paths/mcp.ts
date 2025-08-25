@@ -53,7 +53,8 @@ export async function getNativeMcpPath(
       candidates.push(path.join(home, '.config', 'opencode', 'opencode.json'));
       break;
     case 'Zed':
-      candidates.push(path.join(home, '.zed', 'settings.json'));
+      // Only consider project-local Zed settings (avoid writing to user home directory)
+      candidates.push(path.join(projectRoot, '.zed', 'settings.json'));
       break;
     default:
       return null;

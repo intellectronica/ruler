@@ -54,26 +54,26 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 
 | Agent            | Rules File(s)                                    | MCP Configuration / Notes                           |
 | ---------------- | ------------------------------------------------ | --------------------------------------------------- |
-| AGENTS.md        | `AGENTS.md`                                      | - (pseudo-agent ensuring root `AGENTS.md` exists)   |
+| AGENTS.md        | `AGENTS.md`                                      | (pseudo-agent ensuring root `AGENTS.md` exists)   |
 | GitHub Copilot   | `.github/copilot-instructions.md`                | `.vscode/mcp.json`                                  |
 | Claude Code      | `CLAUDE.md`                                      | `.mcp.json`                                         |
-| OpenAI Codex CLI | `AGENTS.md`                                      | `.codex/config.toml`, `~/.codex/config.json`        |
+| OpenAI Codex CLI | `AGENTS.md`                                      | `.codex/config.toml`                                |
 | Jules            | `AGENTS.md`                                      | -                                                   |
-| Cursor           | `.cursor/rules/ruler_cursor_instructions.mdc`    | `.cursor/mcp.json`, `~/.cursor/mcp.json`            |
-| Windsurf         | `.windsurf/rules/ruler_windsurf_instructions.md` | `~/.codeium/windsurf/mcp_config.json`               |
+| Cursor           | `.cursor/rules/ruler_cursor_instructions.mdc`    | `.cursor/mcp.json`                                  |
+| Windsurf         | `.windsurf/rules/ruler_windsurf_instructions.md` | -                                                   |
 | Cline            | `.clinerules`                                    | -                                                   |
 | Amp              | `AGENTS.md`                                      | -                                                   |
 | Aider            | `AGENTS.md`, `.aider.conf.yml`                   | `.mcp.json`                                         |
 | Firebase Studio  | `.idx/airules.md`                                | -                                                   |
-| Open Hands       | `.openhands/microagents/repo.md`                 | `.openhands/config.toml` (stdio + remote supported) |
+| Open Hands       | `.openhands/microagents/repo.md`                 | `.openhands/config.toml`  |
 | Gemini CLI       | `AGENTS.md`                                      | `.gemini/settings.json`                             |
 | Junie            | `.junie/guidelines.md`                           | -                                                   |
 | AugmentCode      | `.augment/rules/ruler_augment_instructions.md`   | `.vscode/settings.json`                             |
 | Kilo Code        | `.kilocode/rules/ruler_kilocode_instructions.md` | `.kilocode/mcp.json`                                |
-| OpenCode         | `AGENTS.md`                                      | `opencode.json`, `~/.config/opencode/opencode.json` |
+| opencode         | `AGENTS.md`                                      | `opencode.json`  |
 | Goose            | `.goosehints`                                    | -                                                   |
 | Qwen Code        | `AGENTS.md`                                      | `.qwen/settings.json`                               |
-| Zed              | `AGENTS.md`                                      | `settings.json` (project root)                      |
+| Zed              | `AGENTS.md`                                      | `.zed/settings.json` (project root, never $HOME)    |
 | Warp             | `WARP.md`                                        | -                                                   |
 | Kiro             | `.kiro/steering/ruler_kiro_instructions.md`      | -                                                   |
 
@@ -482,6 +482,8 @@ Authorization = "Bearer token"
 ```
 
 Ruler uses this configuration with the `merge` (default) or `overwrite` strategy, controlled by `ruler.toml` or CLI flags.
+
+**Home Directory Safety:** Ruler never writes MCP configuration files outside your project root. Any historical references to user home directories (e.g. `~/.codeium/windsurf/mcp_config.json` or `~/.zed/settings.json`) have been removed; only project-local paths are targeted.
 
 **Note for OpenAI Codex CLI:** To apply the local Codex CLI MCP configuration, set the `CODEX_HOME` environment variable to your project’s `.codex` directory:
 ```bash

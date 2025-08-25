@@ -313,6 +313,15 @@ async function handleMcpConfiguration(
       generatedPaths.push(`${relativeDest}.bak`);
     }
 
+    // Prevent writing MCP configs outside the project root (e.g., legacy home-directory targets)
+    if (!dest.startsWith(projectRoot)) {
+      logVerbose(
+        `Skipping MCP config for ${agent.getName()} because target path is outside project: ${dest}`,
+        verbose,
+      );
+      return;
+    }
+
     if (agent.getIdentifier() === 'openhands') {
       // *** Special handling for Open Hands ***
       if (dryRun) {
