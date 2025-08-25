@@ -21,6 +21,7 @@ import { AmpAgent } from './AmpAgent';
 import { ZedAgent } from './ZedAgent';
 import { AgentsMdAgent } from './AgentsMdAgent';
 import { QwenCodeAgent } from './QwenCodeAgent';
+import { KiroAgent } from './KiroAgent';
 
 export { AbstractAgent };
 
@@ -46,4 +47,5 @@ export const allAgents: IAgent[] = [
   new ZedAgent(),
   new QwenCodeAgent(),
   new AgentsMdAgent(),
+  new KiroAgent(),
 ];
