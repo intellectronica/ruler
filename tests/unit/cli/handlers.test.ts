@@ -36,7 +36,7 @@ describe('CLI Handlers', () => {
         verbose: true,
         'dry-run': false,
         'local-only': false,
-        hierarchical: false,
+        nested: false,
       };
 
       await applyHandler(argv);
@@ -63,7 +63,7 @@ describe('CLI Handlers', () => {
         verbose: false,
         'dry-run': false,
         'local-only': false,
-        hierarchical: false,
+        nested: false,
       };
 
       await applyHandler(argv);
@@ -91,7 +91,7 @@ describe('CLI Handlers', () => {
         verbose: false,
         'dry-run': false,
         'local-only': false,
-        hierarchical: false,
+        nested: false,
       };
 
       await applyHandler(argv);
@@ -118,7 +118,7 @@ describe('CLI Handlers', () => {
         verbose: false,
         'dry-run': false,
         'local-only': false,
-        hierarchical: false,
+        nested: false,
       };
 
       await applyHandler(argv);
@@ -155,7 +155,7 @@ describe('CLI Handlers', () => {
         verbose: false,
         'dry-run': false,
         'local-only': false,
-        hierarchical: false,
+        nested: false,
       };
 
       await expect(applyHandler(argv)).rejects.toThrow('process.exit: 1');
@@ -324,7 +324,6 @@ describe('CLI Handlers', () => {
         verbose: true,
         'dry-run': false,
         'local-only': false,
-        hierarchical: false,
       };
 
       await revertHandler(argv);
@@ -337,7 +336,6 @@ describe('CLI Handlers', () => {
         true,
         false,
         false,
-        false,
       );
     });
 
@@ -348,7 +346,6 @@ describe('CLI Handlers', () => {
         verbose: false,
         'dry-run': false,
         'local-only': false,
-        hierarchical: false,
       };
 
       await revertHandler(argv);
@@ -357,7 +354,6 @@ describe('CLI Handlers', () => {
         mockProjectRoot,
         undefined,
         undefined,
-        false,
         false,
         false,
         false,
@@ -382,7 +378,6 @@ describe('CLI Handlers', () => {
         verbose: false,
         'dry-run': false,
         'local-only': false,
-        hierarchical: false,
       };
 
       await expect(revertHandler(argv)).rejects.toThrow('process.exit: 1');

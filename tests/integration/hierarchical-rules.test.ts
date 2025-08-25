@@ -3,7 +3,7 @@ import * as path from 'path';
 import { applyAllAgentConfigs } from '../../src/lib';
 import { setupTestProject } from '../harness';
 
-describe('Hierarchical Rules Integration', () => {
+describe('Nested Rules Integration', () => {
   let testProject: { projectRoot: string };
 
   beforeAll(async () => {
@@ -15,7 +15,7 @@ describe('Hierarchical Rules Integration', () => {
     await fs.rm(testProject.projectRoot, { recursive: true, force: true });
   });
 
-  it('processes each .ruler directory independently in hierarchical mode', async () => {
+  it('processes each .ruler directory independently in nested mode', async () => {
     // Create nested directory structure
     const moduleDir = path.join(testProject.projectRoot, 'module');
     const submoduleDir = path.join(moduleDir, 'submodule');
@@ -42,7 +42,7 @@ describe('Hierarchical Rules Integration', () => {
       '# Submodule Rules\n\nThese are submodule-level rules that should only appear in submodule-level files.',
     );
 
-    // Apply with hierarchical flag from project root
+    // Apply with nested flag from project root
     await applyAllAgentConfigs(
       testProject.projectRoot, // Start from project root
       ['claude'], // Only test with one agent for simplicity
@@ -53,7 +53,7 @@ describe('Hierarchical Rules Integration', () => {
       false, // verbose
       false, // dryRun
       false, // localOnly
-      true, // hierarchical
+      true, // nested
     );
 
     // Check that each level has its own CLAUDE.md file
@@ -105,7 +105,7 @@ describe('Hierarchical Rules Integration', () => {
     expect(submoduleContent).not.toContain('Module Rules');
   });
 
-  it('falls back to single-directory behavior when hierarchical=false', async () => {
+  it('falls back to single-directory behavior when nested=false', async () => {
     // Create nested structure but only put rules in the root
     const moduleDir = path.join(testProject.projectRoot, 'module2');
     await fs.mkdir(path.join(moduleDir, '.ruler'), { recursive: true });
@@ -115,7 +115,7 @@ describe('Hierarchical Rules Integration', () => {
       '# Only Global Rules\n\nGlobal rules only.',
     );
 
-    // Apply without hierarchical flag (should use single-directory logic)
+    // Apply without nested flag (should use single-directory logic)
     await applyAllAgentConfigs(
       moduleDir,
       ['claude'],
@@ -126,7 +126,7 @@ describe('Hierarchical Rules Integration', () => {
       false,
       false,
       false,
-      false, // hierarchical = false
+      false, // nested = false
     );
 
     // Should work without errors (testing that single-directory logic still works)

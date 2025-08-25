@@ -3,13 +3,11 @@ import * as path from 'path';
 import os from 'os';
 import { findAllRulerDirs } from '../../../src/core/FileSystemUtils';
 
-describe('FileSystemUtils - Hierarchical', () => {
+describe('FileSystemUtils - Nested', () => {
   let tmpDir: string;
 
   beforeAll(async () => {
-    tmpDir = await fs.mkdtemp(
-      path.join(os.tmpdir(), 'ruler-hierarchical-test-'),
-    );
+    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ruler-nested-test-'));
   });
 
   afterAll(async () => {

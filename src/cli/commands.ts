@@ -62,10 +62,10 @@ export function run(): void {
               'Only search for local .ruler directories, ignore global config',
             default: false,
           })
-          .option('hierarchical', {
+          .option('nested', {
             type: 'boolean',
             description:
-              'Enable hierarchical rule loading from nested .ruler directories',
+              'Enable nested rule loading from nested .ruler directories',
             default: false,
           });
       },
