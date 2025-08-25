@@ -32,7 +32,6 @@ export interface RevertArgs {
   verbose: boolean;
   'dry-run': boolean;
   'local-only': boolean;
-  hierarchical: boolean;
 }
 
 /**
