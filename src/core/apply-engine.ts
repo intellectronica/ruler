@@ -40,16 +40,12 @@ export async function loadRulerConfiguration(
   projectRoot: string,
   configPath: string | undefined,
   localOnly: boolean,
-  hierarchical: boolean = false,
+  nested?: boolean,
 ): Promise<RulerConfiguration | HierarchicalRulerConfiguration[]> {
-  if (hierarchical) {
-    return await loadHierarchicalConfigurations(
-      projectRoot,
-      configPath,
-      localOnly,
-    );
+  if (nested) {
+    return loadHierarchicalConfigurations(projectRoot, configPath, localOnly);
   } else {
-    return await loadSingleConfiguration(projectRoot, configPath, localOnly);
+    return loadSingleConfiguration(projectRoot, configPath, localOnly);
   }
 }
 
