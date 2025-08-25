@@ -3,7 +3,7 @@ import * as path from 'path';
 import os from 'os';
 
 import {
-  loadRulerConfiguration,
+  loadSingleConfiguration,
   selectAgentsToRun,
   applyConfigurationsToAgents,
   updateGitignore,
@@ -81,12 +81,7 @@ describe('apply-engine', () => {
       });
       await fs.writeFile(path.join(rulerDir, 'mcp.json'), mcpContent);
 
-      const result = await loadRulerConfiguration(
-        tmpDir,
-        undefined,
-        false,
-        false,
-      );
+      const result = await loadSingleConfiguration(tmpDir, undefined, false);
 
       // Since hierarchical=false, result should be RulerConfiguration
       expect(result).toHaveProperty('config');
@@ -116,12 +111,7 @@ describe('apply-engine', () => {
       const rulesContent = '# Test rules';
       await fs.writeFile(path.join(rulerDir, 'instructions.md'), rulesContent);
 
-      const result = await loadRulerConfiguration(
-        tmpDir,
-        undefined,
-        false,
-        false,
-      );
+      const result = await loadSingleConfiguration(tmpDir, undefined, false);
 
       // Since hierarchical=false, result should be RulerConfiguration
       expect(result).toHaveProperty('config');
@@ -137,16 +127,13 @@ describe('apply-engine', () => {
     it('should throw error when .ruler directory not found', async () => {
       const nonExistentDir = path.join(tmpDir, 'nonexistent');
 
-      // Mock the findRulerDir to return null to simulate directory not found
-      const originalFindRulerDir = FileSystemUtils.findRulerDir;
       jest.spyOn(FileSystemUtils, 'findRulerDir').mockResolvedValue(null);
 
       try {
         await expect(
-          loadRulerConfiguration(nonExistentDir, undefined, true),
+          loadSingleConfiguration(nonExistentDir, undefined, true),
         ).rejects.toThrow('.ruler directory not found');
       } finally {
-        // Restore the original function
         (FileSystemUtils.findRulerDir as jest.Mock).mockRestore();
       }
     });

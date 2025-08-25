@@ -2,7 +2,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import os from 'os';
 import {
-  loadRulerConfiguration,
+  loadSingleConfiguration,
   RulerConfiguration,
 } from '../../../src/core/apply-engine';
 
@@ -38,12 +38,7 @@ describe('AGENTS.md fallback behavior', () => {
     const legacy = path.join(rulerDir, 'instructions.md');
     await fs.writeFile(legacy, '# Legacy Rules');
 
-    const result = await loadRulerConfiguration(
-      tmpDir,
-      undefined,
-      false,
-      false,
-    );
+    const result = await loadSingleConfiguration(tmpDir, undefined, false);
     expect((result as RulerConfiguration).concatenatedRules).toContain(
       '# Legacy Rules',
     );
@@ -61,12 +56,7 @@ describe('AGENTS.md fallback behavior', () => {
     await fs.writeFile(legacy, '# Legacy Rules');
     await fs.writeFile(agents, '# New Agents Rules');
 
-    const result = await loadRulerConfiguration(
-      tmpDir,
-      undefined,
-      false,
-      false,
-    );
+    const result = await loadSingleConfiguration(tmpDir, undefined, false);
     const configResult = result as RulerConfiguration;
     expect(configResult.concatenatedRules).toContain('# New Agents Rules');
     // Legacy content may still be concatenated, but AGENTS.md section should appear before legacy section.
@@ -86,12 +76,7 @@ describe('AGENTS.md fallback behavior', () => {
     const agents = path.join(rulerDir, 'AGENTS.md');
     await fs.writeFile(agents, '# New Agents Rules');
 
-    const result = await loadRulerConfiguration(
-      tmpDir,
-      undefined,
-      false,
-      false,
-    );
+    const result = await loadSingleConfiguration(tmpDir, undefined, false);
     expect((result as RulerConfiguration).concatenatedRules).toContain(
       '# New Agents Rules',
     );

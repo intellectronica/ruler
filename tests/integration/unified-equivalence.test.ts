@@ -1,19 +1,14 @@
 import * as path from 'path';
 import { loadUnifiedConfig } from '../../src/core/UnifiedConfigLoader';
 import {
-  loadRulerConfiguration,
+  loadSingleConfiguration,
   RulerConfiguration,
 } from '../../src/core/apply-engine';
 
 describe('Unified config equivalence (subset)', () => {
   const projectRoot = path.join(__dirname, 'fixtures/agents');
   test('matches defaults and concatenated rules', async () => {
-    const legacy = await loadRulerConfiguration(
-      projectRoot,
-      undefined,
-      false,
-      false,
-    );
+    const legacy = await loadSingleConfiguration(projectRoot, undefined, false);
     const unified = await loadUnifiedConfig({ projectRoot });
     const legacyConfig = legacy as RulerConfiguration;
     // Legacy default agents live under legacy.config.defaultAgents
