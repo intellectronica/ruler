@@ -5,12 +5,15 @@ import { createRulerError } from '../constants';
 /**
  * Resolves which agents should be selected based on configuration.
  * Handles precedence: CLI agents > default_agents > per-agent enabled flags > all agents
- * 
+ *
  * @param config Loaded configuration containing CLI agents, default agents, and per-agent configs
  * @param allAgents Array of all available agents
  * @returns Array of agents that should be processed
  */
-export function resolveSelectedAgents(config: LoadedConfig, allAgents: IAgent[]): IAgent[] {
+export function resolveSelectedAgents(
+  config: LoadedConfig,
+  allAgents: IAgent[],
+): IAgent[] {
   // CLI --agents > config.default_agents > per-agent.enabled flags > default all
   let selected = allAgents;
 

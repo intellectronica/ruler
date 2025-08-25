@@ -71,12 +71,15 @@ export async function revertAllAgentConfigs(
   } catch (error) {
     // For backward compatibility, revert continues with available agents if some are invalid
     // This preserves the original behavior where invalid agents were silently ignored
-    if (error instanceof Error && error.message.includes('Invalid agent specified')) {
+    if (
+      error instanceof Error &&
+      error.message.includes('Invalid agent specified')
+    ) {
       logVerbose(
         `Warning: ${error.message} - continuing with valid agents only`,
         verbose,
       );
-      
+
       // Fall back to the old logic without validation
       if (config.cliAgents && config.cliAgents.length > 0) {
         const filters = config.cliAgents.map((n) => n.toLowerCase());
@@ -96,19 +99,21 @@ export async function revertAllAgentConfigs(
             return override;
           }
           return defaults.some(
-            (d) => identifier === d || agent.getName().toLowerCase().includes(d),
+            (d) =>
+              identifier === d || agent.getName().toLowerCase().includes(d),
           );
         });
       } else {
         selected = agents.filter(
-          (agent) => config.agentConfigs[agent.getIdentifier()]?.enabled !== false,
+          (agent) =>
+            config.agentConfigs[agent.getIdentifier()]?.enabled !== false,
         );
       }
     } else {
       throw error;
     }
   }
-  
+
   logVerbose(
     `Selected agents: ${selected.map((a) => a.getName()).join(', ')}`,
     verbose,
