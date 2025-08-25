@@ -11,15 +11,87 @@ interface StdioServer {
   env?: Record<string, string>;
 }
 
+interface RemoteServerEntry {
+  url: string;
+  api_key?: string;
+}
+
 interface RulerMcpServer {
-  command: string;
+  command?: string;
   args?: string[];
   env?: Record<string, string>;
+  url?: string;
+  headers?: Record<string, string>;
 }
 
 function isRulerMcpServer(value: unknown): value is RulerMcpServer {
   const server = value as RulerMcpServer;
-  return server && typeof server.command === 'string';
+  return (
+    server &&
+    (typeof server.command === 'string' || typeof server.url === 'string')
+  );
+}
+
+function classifyRemoteServer(url: string): 'sse' | 'shttp' {
+  // Heuristic: URLs containing /sse path segments are classified as SSE
+  return /\/sse(\/|$)/i.test(url) ? 'sse' : 'shttp';
+}
+
+function extractApiKey(headers?: Record<string, string>): string | null {
+  if (!headers) return null;
+
+  const authHeader = headers.Authorization || headers.authorization;
+  if (!authHeader) return null;
+
+  // Extract Bearer token if that's the only header, or if only Authorization + standard content headers
+  const headerCount = Object.keys(headers).length;
+  const hasOnlyAuthHeader = headerCount === 1;
+  const hasOnlyStandardHeaders =
+    headerCount <= 2 &&
+    (headers['Content-Type'] ||
+      headers['content-type'] ||
+      headers['Accept'] ||
+      headers['accept']);
+
+  if (
+    (hasOnlyAuthHeader || hasOnlyStandardHeaders) &&
+    authHeader.startsWith('Bearer ')
+  ) {
+    return authHeader.substring('Bearer '.length);
+  }
+
+  return null;
+}
+
+function createRemoteServerEntry(
+  url: string,
+  headers?: Record<string, string>,
+): string | RemoteServerEntry {
+  const apiKey = extractApiKey(headers);
+  if (apiKey) {
+    return { url, api_key: apiKey };
+  }
+  return url;
+}
+
+function normalizeRemoteServerArray(
+  entries: (string | RemoteServerEntry)[],
+): (string | RemoteServerEntry)[] {
+  // TOML doesn't support mixed types in arrays, so we need to be consistent
+  // If any entry is an object, convert all simple URLs to objects
+  const hasObjectEntries = entries.some((entry) => typeof entry === 'object');
+
+  if (hasObjectEntries) {
+    return entries.map((entry) => {
+      if (typeof entry === 'string') {
+        return { url: entry };
+      }
+      return entry;
+    });
+  }
+
+  // All entries are strings, keep as is
+  return entries;
 }
 
 export async function propagateMcpToOpenHands(
@@ -43,6 +115,8 @@ export async function propagateMcpToOpenHands(
   let config: {
     mcp?: {
       stdio_servers?: StdioServer[];
+      sse_servers?: (string | RemoteServerEntry)[];
+      shttp_servers?: (string | RemoteServerEntry)[];
     };
   } = {};
   try {
@@ -58,22 +132,61 @@ export async function propagateMcpToOpenHands(
   if (!config.mcp.stdio_servers) {
     config.mcp.stdio_servers = [];
   }
+  if (!config.mcp.sse_servers) {
+    config.mcp.sse_servers = [];
+  }
+  if (!config.mcp.shttp_servers) {
+    config.mcp.shttp_servers = [];
+  }
 
-  const existingServers = new Map<string, StdioServer>(
+  // Build maps for merging existing servers
+  const existingStdioServers = new Map<string, StdioServer>(
     config.mcp.stdio_servers.map((s: StdioServer) => [s.name, s]),
   );
 
+  const existingSseServers = new Map<string, string | RemoteServerEntry>();
+  config.mcp.sse_servers.forEach((entry: string | RemoteServerEntry) => {
+    const url = typeof entry === 'string' ? entry : entry.url;
+    existingSseServers.set(url, entry);
+  });
+
+  const existingShttpServers = new Map<string, string | RemoteServerEntry>();
+  config.mcp.shttp_servers.forEach((entry: string | RemoteServerEntry) => {
+    const url = typeof entry === 'string' ? entry : entry.url;
+    existingShttpServers.set(url, entry);
+  });
+
   for (const [name, serverDef] of Object.entries(rulerServers)) {
     if (isRulerMcpServer(serverDef)) {
-      const { command, args, env } = serverDef;
-      const newServer: StdioServer = { name, command };
-      if (args) newServer.args = args;
-      if (env) newServer.env = env;
-      existingServers.set(name, newServer);
+      if (serverDef.command) {
+        // Stdio server
+        const { command, args, env } = serverDef;
+        const newServer: StdioServer = { name, command };
+        if (args) newServer.args = args;
+        if (env) newServer.env = env;
+        existingStdioServers.set(name, newServer);
+      } else if (serverDef.url) {
+        // Remote server
+        const classification = classifyRemoteServer(serverDef.url);
+        const entry = createRemoteServerEntry(serverDef.url, serverDef.headers);
+
+        if (classification === 'sse') {
+          existingSseServers.set(serverDef.url, entry);
+        } else {
+          existingShttpServers.set(serverDef.url, entry);
+        }
+      }
     }
   }
 
-  config.mcp.stdio_servers = Array.from(existingServers.values());
+  // Convert maps back to arrays and normalize for TOML compatibility
+  config.mcp.stdio_servers = Array.from(existingStdioServers.values());
+  config.mcp.sse_servers = normalizeRemoteServerArray(
+    Array.from(existingSseServers.values()),
+  );
+  config.mcp.shttp_servers = normalizeRemoteServerArray(
+    Array.from(existingShttpServers.values()),
+  );
 
   await ensureDirExists(path.dirname(openHandsConfigPath));
   await fs.writeFile(openHandsConfigPath, stringify(config));

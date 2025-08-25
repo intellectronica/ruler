@@ -41,6 +41,7 @@ describe('End-to-End Ruler CLI', () => {
     await fs.rm(path.join(projectRoot, '.ruler', 'ruler.toml'), { force: true });
     // Clean up Open Hands agent files
     await fs.rm(path.join(projectRoot, '.openhands'), { recursive: true, force: true });
+    await fs.rm(path.join(projectRoot, 'config.toml'), { force: true });
     await fs.rm(path.join(projectRoot, '.kilocode'), { recursive: true, force: true });
   });
 
@@ -68,7 +69,6 @@ describe('End-to-End Ruler CLI', () => {
     );
     const openHandsConfigPath = path.join(
       projectRoot,
-      '.openhands',
       'config.toml',
     );
     const juniePath = path.join(projectRoot, '.junie', 'guidelines.md');
@@ -212,9 +212,9 @@ output_path = "awesome.md"
       expect(gitignoreContent).toContain('.aider.conf.yml');
       expect(gitignoreContent).toContain('.idx/airules.md');
       expect(gitignoreContent).toContain('.openhands/microagents/repo.md');
-      expect(gitignoreContent).toContain('.openhands/config.toml');
+      expect(gitignoreContent).toContain('config.toml');
       expect(gitignoreContent).toContain('.openhands/microagents/repo.md');
-      expect(gitignoreContent).toContain('.openhands/config.toml');
+      expect(gitignoreContent).toContain('config.toml');
     });
 
     it('does not update .gitignore when --no-gitignore is used', async () => {

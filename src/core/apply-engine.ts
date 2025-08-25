@@ -209,7 +209,7 @@ async function loadSingleConfiguration(
   // Warn about legacy mcp.json
   await warnAboutLegacyMcpJson(primaryDir);
 
-  // Load configuration
+  // Load the ruler.toml configuration
   const config = await loadConfig({
     projectRoot,
     configPath,
@@ -580,6 +580,15 @@ async function applyMcpConfiguration(
   dryRun: boolean,
   verbose: boolean,
 ): Promise<void> {
+  // Prevent writing MCP configs outside the project root (e.g., legacy home-directory targets)
+  if (!dest.startsWith(projectRoot)) {
+    logVerbose(
+      `Skipping MCP config for ${agent.getName()} because target path is outside project: ${dest}`,
+      verbose,
+    );
+    return;
+  }
+
   if (agent.getIdentifier() === 'openhands') {
     return await applyOpenHandsMcpConfiguration(
       filteredMcpJson,
@@ -639,6 +648,37 @@ async function applyOpenCodeMcpConfiguration(
     );
   } else {
     await propagateMcpToOpenCode(filteredMcpJson, dest);
+  }
+}
+
+async function applyStandardMcpConfiguration(
+  agent: IAgent,
+  filteredMcpJson: Record<string, unknown>,
+  dest: string,
+  agentConfig: IAgentConfig | undefined,
+  config: LoadedConfig,
+  cliMcpStrategy: McpStrategy | undefined,
+  dryRun: boolean,
+  verbose: boolean,
+): Promise<void> {
+  const strategy =
+    cliMcpStrategy ??
+    agentConfig?.mcp?.strategy ??
+    config.mcp?.strategy ??
+    'merge';
+  const serverKey = agent.getMcpServerKey?.() ?? 'mcpServers';
+
+  logVerbose(
+    `Applying filtered MCP config for ${agent.getName()} with strategy: ${strategy} and key: ${serverKey}`,
+    verbose,
+  );
+
+  if (dryRun) {
+    logVerbose(`DRY RUN: Would apply MCP config to: ${dest}`, verbose);
+  } else {
+    const existing = await readNativeMcp(dest);
+    const merged = mergeMcp(existing, filteredMcpJson, strategy, serverKey);
+    await writeNativeMcp(dest, merged);
   }
 }
 

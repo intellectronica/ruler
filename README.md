@@ -54,28 +54,30 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 
 ## Supported AI Agents
 
-| Agent            | Rules File(s)                                    | MCP Configuration                                   |
-| ---------------- | ------------------------------------------------ | --------------------------------------------------- |
-| AGENTS.md        | `AGENTS.md`                                      | -                                                   |
-| GitHub Copilot   | `.github/copilot-instructions.md`                | `.vscode/mcp.json`                                  |
-| Claude Code      | `CLAUDE.md`                                      | `.mcp.json`                                         |
-| OpenAI Codex CLI | `AGENTS.md`                                      | `.codex/config.toml`, `~/.codex/config.json`        |
-| Jules            | `AGENTS.md`                                      | -                                                   |
-| Cursor           | `.cursor/rules/ruler_cursor_instructions.mdc`    | `.cursor/mcp.json`, `~/.cursor/mcp.json`            |
-| Windsurf         | `.windsurf/rules/ruler_windsurf_instructions.md` | `~/.codeium/windsurf/mcp_config.json`               |
-| Cline            | `.clinerules`                                    | -                                                   |
-| Amp              | `AGENTS.md`                                      | -                                                   |
-| Aider            | `AGENTS.md`, `.aider.conf.yml`                   | `.mcp.json`                                         |
-| Firebase Studio  | `.idx/airules.md`                                | -                                                   |
-| Open Hands       | `.openhands/microagents/repo.md`                 | `.openhands/config.toml`                            |
-| Gemini CLI       | `AGENTS.md`                                      | `.gemini/settings.json`                             |
-| Junie            | `.junie/guidelines.md`                           | -                                                   |
-| AugmentCode      | `.augment/rules/ruler_augment_instructions.md`   | `.vscode/settings.json`                             |
-| Kilo Code        | `.kilocode/rules/ruler_kilocode_instructions.md` | `.kilocode/mcp.json`                                |
-| OpenCode         | `AGENTS.md`                                      | `opencode.json`, `~/.config/opencode/opencode.json` |
-| Goose            | `.goosehints`                                    | -                                                   |
-| Qwen Code        | `AGENTS.md`                                      | `.qwen/settings.json`                               |
-| Zed              | `AGENTS.md`                                      | `~/.zed/settings.json`                              |
+| Agent            | Rules File(s)                                    | MCP Configuration / Notes                        |
+| ---------------- | ------------------------------------------------ | ------------------------------------------------ |
+| AGENTS.md        | `AGENTS.md`                                      | (pseudo-agent ensuring root `AGENTS.md` exists)  |
+| GitHub Copilot   | `.github/copilot-instructions.md`                | `.vscode/mcp.json`                               |
+| Claude Code      | `CLAUDE.md`                                      | `.mcp.json`                                      |
+| OpenAI Codex CLI | `AGENTS.md`                                      | `.codex/config.toml`                             |
+| Jules            | `AGENTS.md`                                      | -                                                |
+| Cursor           | `.cursor/rules/ruler_cursor_instructions.mdc`    | `.cursor/mcp.json`                               |
+| Windsurf         | `.windsurf/rules/ruler_windsurf_instructions.md` | -                                                |
+| Cline            | `.clinerules`                                    | -                                                |
+| Amp              | `AGENTS.md`                                      | -                                                |
+| Aider            | `AGENTS.md`, `.aider.conf.yml`                   | `.mcp.json`                                      |
+| Firebase Studio  | `.idx/airules.md`                                | -                                                |
+| Open Hands       | `.openhands/microagents/repo.md`                 | `.openhands/config.toml`                         |
+| Gemini CLI       | `AGENTS.md`                                      | `.gemini/settings.json`                          |
+| Junie            | `.junie/guidelines.md`                           | -                                                |
+| AugmentCode      | `.augment/rules/ruler_augment_instructions.md`   | `.vscode/settings.json`                          |
+| Kilo Code        | `.kilocode/rules/ruler_kilocode_instructions.md` | `.kilocode/mcp.json`                             |
+| opencode         | `AGENTS.md`                                      | `opencode.json`                                  |
+| Goose            | `.goosehints`                                    | -                                                |
+| Qwen Code        | `AGENTS.md`                                      | `.qwen/settings.json`                            |
+| Zed              | `AGENTS.md`                                      | `.zed/settings.json` (project root, never $HOME) |
+| Warp             | `WARP.md`                                        | -                                                |
+| Kiro             | `.kiro/steering/ruler_kiro_instructions.md`      | -                                                |
 
 ## Getting Started
 
@@ -102,12 +104,10 @@ npx @intellectronica/ruler apply
 1. Navigate to your project's root directory
 2. Run `ruler init`
 3. This creates:
-
-- `.ruler/` directory
-- `.ruler/AGENTS.md`: The primary (new) starter Markdown file for your rules
-- `.ruler/ruler.toml`: The main configuration file for Ruler
-- `.ruler/mcp.json`: An example MCP server configuration
-- (Optional legacy fallback) If you previously used `.ruler/instructions.md`, it is still respected when `AGENTS.md` is absent, with a one-time deprecation warning per process.
+  - `.ruler/` directory
+  - `.ruler/AGENTS.md`: The primary starter Markdown file for your rules
+  - `.ruler/ruler.toml`: The main configuration file for Ruler (now contains sample MCP server sections; legacy `.ruler/mcp.json` no longer scaffolded)
+  - (Optional legacy fallback) If you previously used `.ruler/instructions.md`, it is still respected when `AGENTS.md` is absent. (The prior runtime warning was removed.)
 
 Additionally, you can create a global configuration to use when no local `.ruler/` directory is found:
 
@@ -126,7 +126,7 @@ This is your central hub for all AI agent instructions:
 - **Primary File Order & Precedence**:
   1. A repository root `AGENTS.md` (outside `.ruler/`) if present (highest precedence, prepended)
   2. `.ruler/AGENTS.md` (new default starter file)
-  3. Legacy `.ruler/instructions.md` (only if `.ruler/AGENTS.md` absent; emits a single deprecation warning per process)
+  3. Legacy `.ruler/instructions.md` (only if `.ruler/AGENTS.md` absent; no longer emits a deprecation warning)
   4. Remaining discovered `.md` files under `.ruler/` (and subdirectories) in sorted order
 - **Rule Files (`*.md`)**: Discovered recursively from `.ruler/` or `$XDG_CONFIG_HOME/ruler` and concatenated in the order above
 - **Concatenation Marker**: Each file's content is prepended with `--- Source: <relative_path_to_md_file> ---` for traceability
@@ -211,19 +211,18 @@ The `apply` command looks for `.ruler/` in the current directory tree, reading t
 
 ### Options
 
-| Option                         | Description                                                                                                                                                               |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--project-root <path>`        | Path to your project's root (default: current directory)                                                                                                                  |
-| `--agents <agent1,agent2,...>` | Comma-separated list of agent names to target (agentsmd, amp, copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, junie, augmentcode, kilocode) |
-| `--config <path>`              | Path to a custom `ruler.toml` configuration file                                                                                                                          |
-| `--mcp` / `--with-mcp`         | Enable applying MCP server configurations (default: true)                                                                                                                 |
-| `--no-mcp`                     | Disable applying MCP server configurations                                                                                                                                |
-| `--mcp-overwrite`              | Overwrite native MCP config entirely instead of merging                                                                                                                   |
-| `--gitignore`                  | Enable automatic .gitignore updates (default: true)                                                                                                                       |
-| `--no-gitignore`               | Disable automatic .gitignore updates                                                                                                                                      |
-| `--local-only`                 | Do not look for configuration in `$XDG_CONFIG_HOME`                                                                                                                       |
-| `--nested`                     | Enable nested rule loading from nested `.ruler` directories                                                                                                               |
-| `--verbose` / `-v`             | Display detailed output during execution                                                                                                                                  |
+| Option                         | Description                                                                                                                                                                     |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--project-root <path>`        | Path to your project's root (default: current directory)                                                                                                                        |
+| `--agents <agent1,agent2,...>` | Comma-separated list of agent names to target (agentsmd, amp, copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, junie, augmentcode, kilocode, warp) |
+| `--config <path>`              | Path to a custom `ruler.toml` configuration file                                                                                                                                |
+| `--mcp` / `--with-mcp`         | Enable applying MCP server configurations (default: true)                                                                                                                       |
+| `--no-mcp`                     | Disable applying MCP server configurations                                                                                                                                      |
+| `--mcp-overwrite`              | Overwrite native MCP config entirely instead of merging                                                                                                                         |
+| `--gitignore`                  | Enable automatic .gitignore updates (default: true)                                                                                                                             |
+| `--no-gitignore`               | Disable automatic .gitignore updates                                                                                                                                            |
+| `--local-only`                 | Do not look for configuration in `$XDG_CONFIG_HOME`                                                                                                                             |
+| `--verbose` / `-v`             | Display detailed output during execution                                                                                                                                        |
 
 ### Common Examples
 
@@ -243,6 +242,12 @@ ruler apply --agents copilot,claude
 
 ```bash
 ruler apply --agents firebase
+```
+
+**Apply rules only to Warp:**
+
+```bash
+ruler apply --agents warp
 ```
 
 **Use a specific configuration file:**
@@ -284,15 +289,15 @@ ruler revert [options]
 
 ### Options
 
-| Option                         | Description                                                                                                                                                            |
-| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--project-root <path>`        | Path to your project's root (default: current directory)                                                                                                               |
-| `--agents <agent1,agent2,...>` | Comma-separated list of agent names to revert (agentsmd, amp, copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, junie, kilocode, opencode) |
-| `--config <path>`              | Path to a custom `ruler.toml` configuration file                                                                                                                       |
-| `--keep-backups`               | Keep backup files (.bak) after restoration (default: false)                                                                                                            |
-| `--dry-run`                    | Preview changes without actually reverting files                                                                                                                       |
-| `--verbose` / `-v`             | Display detailed output during execution                                                                                                                               |
-| `--local-only`                 | Only search for local .ruler directories, ignore global config                                                                                                         |
+| Option                         | Description                                                                                                                                                                  |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--project-root <path>`        | Path to your project's root (default: current directory)                                                                                                                     |
+| `--agents <agent1,agent2,...>` | Comma-separated list of agent names to revert (agentsmd, amp, copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, junie, kilocode, opencode, warp) |
+| `--config <path>`              | Path to a custom `ruler.toml` configuration file                                                                                                                             |
+| `--keep-backups`               | Keep backup files (.bak) after restoration (default: false)                                                                                                                  |
+| `--dry-run`                    | Preview changes without actually reverting files                                                                                                                             |
+| `--verbose` / `-v`             | Display detailed output during execution                                                                                                                                     |
+| `--local-only`                 | Only search for local .ruler directories, ignore global config                                                                                                               |
 
 ### Common Examples
 
@@ -417,6 +422,10 @@ enabled = false
 [agents.kilocode]
 enabled = true
 output_path = ".kilocode/rules/ruler_kilocode_instructions.md"
+
+[agents.warp]
+enabled = true
+output_path = "WARP.md"
 ```
 
 ### Configuration Precedence
@@ -458,7 +467,7 @@ Authorization = "Bearer your-token"
 
 ### Legacy `.ruler/mcp.json` (Deprecated)
 
-For backward compatibility, you can still use the JSON format, but you'll receive a warning encouraging migration to TOML:
+For backward compatibility, you can still use the JSON format; a warning is issued encouraging migration to TOML. The file is no longer created during `ruler init`.
 
 ```json
 {
@@ -485,7 +494,7 @@ When both TOML and JSON configurations are present:
 
 1. **TOML servers take precedence** over JSON servers with the same name
 2. **Servers are merged** from both sources (unless using overwrite strategy)
-3. **Deprecation warning** is shown encouraging migration to TOML
+3. **Deprecation warning** is shown encouraging migration to TOML (warning shown once per run)
 
 ### Server Types
 
@@ -500,8 +509,7 @@ args = ["server.js"]
 DEBUG = "1"
 ```
 
-**Remote servers** require a `url` field:
-
+**Remote servers** require a `url` field (headers optional; bearer Authorization token auto-extracted for OpenHands when possible):
 ```toml
 [mcp_servers.remote_server]
 url = "https://api.example.com"
@@ -511,6 +519,8 @@ Authorization = "Bearer token"
 ```
 
 Ruler uses this configuration with the `merge` (default) or `overwrite` strategy, controlled by `ruler.toml` or CLI flags.
+
+**Home Directory Safety:** Ruler never writes MCP configuration files outside your project root. Any historical references to user home directories (e.g. `~/.codeium/windsurf/mcp_config.json` or `~/.zed/settings.json`) have been removed; only project-local paths are targeted.
 
 **Note for OpenAI Codex CLI:** To apply the local Codex CLI MCP configuration, set the `CODEX_HOME` environment variable to your project’s `.codex` directory:
 
@@ -529,7 +539,7 @@ Ruler automatically manages your `.gitignore` file to keep generated agent confi
 - Preserves existing content outside this block
 - Sorts paths alphabetically and uses relative POSIX-style paths
 
-### Example `.gitignore` Section
+### Example `.gitignore` Section (sample - actual list depends on enabled agents)
 
 ```gitignore
 # Your existing rules
@@ -707,7 +717,19 @@ A: Ruler creates backups with `.bak` extension before overwriting any existing f
 A: Yes! Use `ruler apply --no-gitignore` in CI to avoid modifying `.gitignore`. See the GitHub Actions example above.
 
 **Q: How do I migrate from older versions using `instructions.md`?**
-A: Simply rename `.ruler/instructions.md` to `.ruler/AGENTS.md` (recommended). If you keep the legacy file and omit `AGENTS.md`, Ruler will still use it but will emit a one-time deprecation warning. Having both causes `AGENTS.md` to take precedence; the legacy file is still concatenated afterward.
+A: Simply rename `.ruler/instructions.md` to `.ruler/AGENTS.md` (recommended). If you keep the legacy file and omit `AGENTS.md`, Ruler will still use it (without emitting the old deprecation warning). Having both causes `AGENTS.md` to take precedence; the legacy file is still concatenated afterward.
+
+**Q: How does OpenHands MCP propagation classify servers?**
+A: Local stdio servers become `stdio_servers`. Remote URLs containing `/sse` are classified as `sse_servers`; others become `shttp_servers`. Bearer tokens in an `Authorization` header are extracted into `api_key` where possible.
+
+**Q: Where is Zed configuration written now?**
+A: Ruler writes a `settings.json` in the project root (not the user home dir) and transforms MCP server definitions to Zed's `context_servers` format including `source: "custom"`.
+
+**Q: What changed about MCP initialization?**
+A: `ruler init` now only adds example MCP server sections to `ruler.toml` instead of creating `.ruler/mcp.json`. The JSON file is still consumed if present, but TOML servers win on name conflicts.
+
+**Q: Is Kiro supported?**
+A: Yes. Kiro receives concatenated rules at `.kiro/steering/ruler_kiro_instructions.md`.
 
 ## Development
 

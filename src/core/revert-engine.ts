@@ -326,7 +326,7 @@ async function removeAdditionalAgentFiles(
     '.vscode/mcp.json',
     '.cursor/mcp.json',
     '.kilocode/mcp.json',
-    '.openhands/config.toml',
+    'config.toml',
   ];
 
   let filesRemoved = 0;

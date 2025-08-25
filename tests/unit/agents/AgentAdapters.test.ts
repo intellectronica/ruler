@@ -13,6 +13,7 @@ import { AiderAgent } from '../../../src/agents/AiderAgent';
 import { FirebaseAgent } from '../../../src/agents/FirebaseAgent';
 import { JunieAgent } from '../../../src/agents/JunieAgent';
 import { AugmentCodeAgent } from '../../../src/agents/AugmentCodeAgent';
+import { WarpAgent } from '../../../src/agents/WarpAgent';
 
 describe('Agent Adapters', () => {
   let tmpDir: string;
@@ -233,6 +234,25 @@ describe('Agent Adapters', () => {
       await fs.mkdir(path.dirname(custom), { recursive: true });
       await agent.applyRulerConfig('augment rules', tmpDir, null, { outputPath: custom });
       expect(await fs.readFile(custom, 'utf8')).toBe('augment rules');
+    });
+  });
+
+  describe('WarpAgent', () => {
+    it('backs up and writes WARP.md', async () => {
+      const agent = new WarpAgent();
+      const target = path.join(tmpDir, 'WARP.md');
+      await fs.writeFile(target, 'old warp');
+      await agent.applyRulerConfig('new warp', tmpDir, null);
+      expect(await fs.readFile(`${target}.bak`, 'utf8')).toBe('old warp');
+      expect(await fs.readFile(target, 'utf8')).toBe('new warp');
+    });
+
+    it('uses custom outputPath when provided', async () => {
+      const agent = new WarpAgent();
+      const custom = path.join(tmpDir, 'custom_warp.md');
+      await fs.mkdir(path.dirname(custom), { recursive: true });
+      await agent.applyRulerConfig('warp rules', tmpDir, null, { outputPath: custom });
+      expect(await fs.readFile(custom, 'utf8')).toBe('warp rules');
     });
   });
 });

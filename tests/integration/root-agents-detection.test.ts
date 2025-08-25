@@ -43,8 +43,8 @@ describe('Root AGENTS.md detection', () => {
     expect(innerIndex).toBeGreaterThan(rootIndex);
 
     // Verify source annotations reflect correct relative paths
-  expect(codexOutput).toMatch(/Source: AGENTS.md/);
-  expect(codexOutput).toMatch(/Source: \.ruler\/AGENTS.md/);
+  expect(codexOutput).toMatch(/<!-- Source: AGENTS.md -->/);
+  expect(codexOutput).toMatch(/<!-- Source: \.ruler\/AGENTS.md -->/);
   });
 
   it('uses only .ruler files when root AGENTS.md missing', async () => {
@@ -56,6 +56,6 @@ describe('Root AGENTS.md detection', () => {
     expect(codexOutput).toContain('Inner rules file');
     expect(codexOutput).toContain('Extra inner file');
     // Should NOT include a Source section for root AGENTS.md
-  expect(codexOutput).not.toMatch(/Source: AGENTS.md$/m);
+  expect(codexOutput).not.toMatch(/<!-- Source: AGENTS.md -->$/m);
   });
 });
