@@ -162,4 +162,185 @@ stdio_servers = [
       // Expected - file should not exist
     }
   });
+
+  it('should propagate remote servers to shttp_servers by default', async () => {
+    const rulerMcp = {
+      mcpServers: { 
+        api: { url: 'https://api.example.com/mcp' },
+        search: { url: 'https://search.example.com' }
+      },
+    };
+
+    await propagateMcpToOpenHands(rulerMcp, openHandsConfigPath);
+
+    const content = await fs.readFile(openHandsConfigPath, 'utf8');
+    const parsed = TOML.parse(content);
+    const mcp: any = parsed.mcp;
+    
+    expect(mcp.shttp_servers).toHaveLength(2);
+    expect(mcp.shttp_servers).toContain('https://api.example.com/mcp');
+    expect(mcp.shttp_servers).toContain('https://search.example.com');
+    expect(mcp.sse_servers).toHaveLength(0);
+  });
+
+  it('should classify URLs with /sse path as sse_servers', async () => {
+    const rulerMcp = {
+      mcpServers: { 
+        sse_api: { url: 'https://api.example.com/sse/mcp' },
+        realtime: { url: 'https://realtime.example.com/mcp/sse' }
+      },
+    };
+
+    await propagateMcpToOpenHands(rulerMcp, openHandsConfigPath);
+
+    const content = await fs.readFile(openHandsConfigPath, 'utf8');
+    const parsed = TOML.parse(content);
+    const mcp: any = parsed.mcp;
+    
+    expect(mcp.sse_servers).toHaveLength(2);
+    expect(mcp.sse_servers).toContain('https://api.example.com/sse/mcp');
+    expect(mcp.sse_servers).toContain('https://realtime.example.com/mcp/sse');
+    expect(mcp.shttp_servers).toHaveLength(0);
+  });
+
+  it('should extract api_key from Authorization Bearer header when it is the only header', async () => {
+    const rulerMcp = {
+      mcpServers: { 
+        auth_api: { 
+          url: 'https://secure.example.com/mcp',
+          headers: { Authorization: 'Bearer secret-token-123' }
+        }
+      },
+    };
+
+    await propagateMcpToOpenHands(rulerMcp, openHandsConfigPath);
+
+    const content = await fs.readFile(openHandsConfigPath, 'utf8');
+    const parsed = TOML.parse(content);
+    const mcp: any = parsed.mcp;
+    
+    expect(mcp.shttp_servers).toHaveLength(1);
+    expect(mcp.shttp_servers[0]).toEqual({
+      url: 'https://secure.example.com/mcp',
+      api_key: 'secret-token-123'
+    });
+  });
+
+  it('should fallback to simple URL when headers contain non-auth headers', async () => {
+    const rulerMcp = {
+      mcpServers: { 
+        complex_api: { 
+          url: 'https://complex.example.com/mcp',
+          headers: { 
+            Authorization: 'Bearer token-123',
+            'X-Custom-Header': 'custom-value',
+            'X-Another': 'another-value'
+          }
+        }
+      },
+    };
+
+    await propagateMcpToOpenHands(rulerMcp, openHandsConfigPath);
+
+    const content = await fs.readFile(openHandsConfigPath, 'utf8');
+    const parsed = TOML.parse(content);
+    const mcp: any = parsed.mcp;
+    
+    expect(mcp.shttp_servers).toHaveLength(1);
+    // Should be simple URL, not object with api_key
+    expect(mcp.shttp_servers[0]).toBe('https://complex.example.com/mcp');
+  });
+
+  it('should merge remote servers with existing OpenHands config', async () => {
+    const rulerMcp = {
+      mcpServers: { 
+        new_api: { url: 'https://new.example.com/mcp' }
+      },
+    };
+
+    const existingToml = `
+[mcp]
+shttp_servers = ["https://existing.example.com"]
+sse_servers = ["https://existing-sse.example.com/sse"]
+stdio_servers = [
+  { name = "fs", command = "npx", args = ["mcp-fs"] }
+]
+    `;
+    await fs.writeFile(openHandsConfigPath, existingToml);
+
+    await propagateMcpToOpenHands(rulerMcp, openHandsConfigPath);
+
+    const content = await fs.readFile(openHandsConfigPath, 'utf8');
+    const parsed = TOML.parse(content);
+    const mcp: any = parsed.mcp;
+    
+    expect(mcp.shttp_servers).toHaveLength(2);
+    expect(mcp.shttp_servers).toContain('https://existing.example.com');
+    expect(mcp.shttp_servers).toContain('https://new.example.com/mcp');
+    
+    expect(mcp.sse_servers).toHaveLength(1);
+    expect(mcp.sse_servers).toContain('https://existing-sse.example.com/sse');
+    
+    expect(mcp.stdio_servers).toHaveLength(1);
+    expect(mcp.stdio_servers[0].name).toBe('fs');
+  });
+
+  it('should handle mixed stdio and remote servers', async () => {
+    const rulerMcp = {
+      mcpServers: { 
+        fs: { command: 'npx', args: ['mcp-fs'] },
+        api: { url: 'https://api.example.com/mcp' },
+        sse_service: { url: 'https://realtime.example.com/sse' }
+      },
+    };
+
+    await propagateMcpToOpenHands(rulerMcp, openHandsConfigPath);
+
+    const content = await fs.readFile(openHandsConfigPath, 'utf8');
+    const parsed = TOML.parse(content);
+    const mcp: any = parsed.mcp;
+    
+    expect(mcp.stdio_servers).toHaveLength(1);
+    expect(mcp.stdio_servers[0]).toEqual({
+      name: 'fs',
+      command: 'npx',
+      args: ['mcp-fs']
+    });
+    
+    expect(mcp.shttp_servers).toHaveLength(1);
+    expect(mcp.shttp_servers).toContain('https://api.example.com/mcp');
+    
+    expect(mcp.sse_servers).toHaveLength(1);
+    expect(mcp.sse_servers).toContain('https://realtime.example.com/sse');
+  });
+
+  it('should overwrite remote servers with same URL', async () => {
+    const rulerMcp = {
+      mcpServers: { 
+        updated_api: { 
+          url: 'https://api.example.com/mcp',
+          headers: { Authorization: 'Bearer new-token' }
+        }
+      },
+    };
+
+    const existingToml = `
+[mcp]
+shttp_servers = ["https://api.example.com/mcp"]
+    `;
+    await fs.writeFile(openHandsConfigPath, existingToml);
+
+    await propagateMcpToOpenHands(rulerMcp, openHandsConfigPath);
+
+    const content = await fs.readFile(openHandsConfigPath, 'utf8');
+    const parsed = TOML.parse(content);
+    const mcp: any = parsed.mcp;
+    
+    expect(mcp.shttp_servers).toHaveLength(1);
+    // Should be updated with api_key object, not simple string
+    expect(mcp.shttp_servers[0]).toEqual({
+      url: 'https://api.example.com/mcp',
+      api_key: 'new-token'
+    });
+  });
 });
