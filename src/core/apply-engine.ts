@@ -115,7 +115,7 @@ async function findRulerDirectories(
 ): Promise<{ dirs: string[]; primaryDir: string }> {
   if (hierarchical) {
     const dirs = await FileSystemUtils.findAllRulerDirs(projectRoot);
-    let allDirs = [...dirs];
+    const allDirs = [...dirs];
 
     // Add global config if not local-only
     if (!localOnly) {

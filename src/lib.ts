@@ -1,4 +1,4 @@
-import { IAgent } from './agents/IAgent';
+import { IAgent, IAgentConfig } from './agents/IAgent';
 import { allAgents } from './agents';
 import { McpStrategy } from './types';
 import { logVerbose } from './constants';
@@ -139,6 +139,16 @@ export async function applyAllAgentConfigs(
   );
 }
 
+/**
+ * Normalizes per-agent config keys to agent identifiers for consistent lookup.
+ * Maps both exact identifier matches and substring matches with agent names.
+ * @param config The configuration object to normalize
+ * @param agents Array of available agents
+ */
+function normalizeAgentConfigs(
+  config: { agentConfigs: Record<string, IAgentConfig> },
+  agents: IAgent[],
+): void {
   // Normalize per-agent config keys to agent identifiers (exact match or substring match)
   config.agentConfigs = mapRawAgentConfigs(config.agentConfigs, agents);
 }
