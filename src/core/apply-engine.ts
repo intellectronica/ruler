@@ -10,7 +10,7 @@ import { propagateMcpToOpenHands } from '../mcp/propagateOpenHandsMcp';
 import { propagateMcpToOpenCode } from '../mcp/propagateOpenCodeMcp';
 import { getAgentOutputPaths } from '../agents/agent-utils';
 import { agentSupportsMcp, filterMcpConfigForAgent } from '../mcp/capabilities';
-import { createRulerError, logVerbose } from '../constants';
+import { createRulerError, logVerbose, actionPrefix } from '../constants';
 import { McpStrategy } from '../types';
 
 /**
@@ -185,8 +185,8 @@ export async function applyConfigurationsToAgents(
   let agentsMdWritten = false;
 
   for (const agent of agents) {
-    const actionPrefix = dryRun ? '[ruler:dry-run]' : '[ruler]';
-    console.log(`${actionPrefix} Applying rules for ${agent.getName()}...`);
+    const prefix = actionPrefix(dryRun);
+    console.log(`${prefix} Applying rules for ${agent.getName()}...`);
     logVerbose(`Processing agent: ${agent.getName()}`, verbose);
     const agentConfig = config.agentConfigs[agent.getIdentifier()];
 
@@ -401,15 +401,15 @@ export async function updateGitignore(
     uniquePaths.push('*.bak');
 
     if (uniquePaths.length > 0) {
-      const actionPrefix = dryRun ? '[ruler:dry-run]' : '[ruler]';
+      const prefix = actionPrefix(dryRun);
       if (dryRun) {
         console.log(
-          `${actionPrefix} Would update .gitignore with ${uniquePaths.length} unique path(s): ${uniquePaths.join(', ')}`,
+          `${prefix} Would update .gitignore with ${uniquePaths.length} unique path(s): ${uniquePaths.join(', ')}`,
         );
       } else {
         await updateGitignoreUtil(projectRoot, uniquePaths);
         console.log(
-          `${actionPrefix} Updated .gitignore with ${uniquePaths.length} unique path(s) in the Ruler block.`,
+          `${prefix} Updated .gitignore with ${uniquePaths.length} unique path(s) in the Ruler block.`,
         );
       }
     }
