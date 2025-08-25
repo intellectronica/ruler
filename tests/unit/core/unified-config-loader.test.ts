@@ -26,6 +26,6 @@ describe('UnifiedConfigLoader (basic)', () => {
     expect(unified.rules.files[0].relativePath).toMatch(/AGENTS\.md$/);
   const rels = unified.rules.files.map((f) => f.relativePath);
     expect(rels).toEqual(['AGENTS.md', 'extra.md']);
-  expect(unified.rules.concatenated).toMatch(/Source: \.ruler\/AGENTS.md[\s\S]*Source: \.ruler\/extra.md/);
+  expect(unified.rules.concatenated).toMatch(/<!-- Source: \.ruler\/AGENTS.md -->[\s\S]*<!-- Source: \.ruler\/extra.md -->/);
   });
 });

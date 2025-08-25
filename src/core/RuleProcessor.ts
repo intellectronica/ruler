@@ -13,9 +13,16 @@ export function concatenateRules(
     const rel = path.relative(base, filePath);
     // Normalize path separators to forward slashes for consistent output across platforms
     const normalizedRel = rel.replace(/\\/g, '/');
-    return ['---', `Source: ${normalizedRel}`, '---', content.trim(), ''].join(
-      '\n',
-    );
+    // New format: two leading blank lines, HTML comment with source, one blank line, then content, then trailing newline
+    // We intentionally trim content to avoid cascading blank lines, then ensure a final newline via join logic
+    return [
+      '', // first leading blank line
+      '', // second leading blank line
+      `<!-- Source: ${normalizedRel} -->`,
+      '', // single blank line after the comment
+      content.trim(),
+      '', // ensure file section ends with newline
+    ].join('\n');
   });
   return sections.join('\n');
 }
