@@ -23,27 +23,147 @@ export interface RulerConfiguration {
 }
 
 /**
+ * Configuration data for a specific .ruler directory in hierarchical mode
+ */
+export interface HierarchicalRulerConfiguration extends RulerConfiguration {
+  rulerDir: string;
+}
+
+/**
  * Loads all necessary configurations for ruler operation.
  * @param projectRoot Root directory of the project
  * @param configPath Optional custom config path
  * @param localOnly Whether to search only locally for .ruler directory
- * @returns Promise resolving to the loaded configuration
+ * @returns Promise resolving to the loaded configuration(s)
  */
 export async function loadRulerConfiguration(
   projectRoot: string,
   configPath: string | undefined,
   localOnly: boolean,
-): Promise<RulerConfiguration> {
-  // Find the .ruler directory
-  const rulerDir = await FileSystemUtils.findRulerDir(projectRoot, !localOnly);
-  if (!rulerDir) {
-    throw createRulerError(
-      `.ruler directory not found`,
-      `Searched from: ${projectRoot}`,
+  hierarchical: boolean = false,
+): Promise<RulerConfiguration | HierarchicalRulerConfiguration[]> {
+  if (hierarchical) {
+    return await loadHierarchicalConfigurations(
+      projectRoot,
+      configPath,
+      localOnly,
+    );
+  } else {
+    return await loadSingleConfiguration(projectRoot, configPath, localOnly);
+  }
+}
+
+export async function loadHierarchicalConfigurations(
+  projectRoot: string,
+  configPath: string | undefined,
+  localOnly: boolean,
+): Promise<HierarchicalRulerConfiguration[]> {
+  const { dirs: rulerDirs } = await findRulerDirectories(
+    projectRoot,
+    localOnly,
+    true,
+  );
+
+  const rootConfig = await loadConfig({
+    projectRoot,
+    configPath,
+  });
+
+  const results: HierarchicalRulerConfiguration[] = [];
+  const rulerDirConfigs = await processIndependentRulerDirs(rulerDirs);
+
+  for (const { rulerDir, files } of rulerDirConfigs) {
+    results.push(
+      await createHierarchicalConfiguration(rulerDir, files, rootConfig),
     );
   }
 
-  // Early legacy mcp.json existence warning (some code paths may not parse it)
+  return results;
+}
+
+/**
+ * Processes each .ruler directory independently, returning configuration for each.
+ * Each .ruler directory gets its own rules (not merged with others).
+ */
+async function processIndependentRulerDirs(
+  rulerDirs: string[],
+): Promise<
+  Array<{ rulerDir: string; files: { path: string; content: string }[] }>
+> {
+  const results: Array<{
+    rulerDir: string;
+    files: { path: string; content: string }[];
+  }> = [];
+
+  // Process each .ruler directory independently
+  for (const rulerDir of rulerDirs) {
+    const files = await FileSystemUtils.readMarkdownFiles(rulerDir);
+    results.push({ rulerDir, files });
+  }
+
+  return results;
+}
+
+async function createHierarchicalConfiguration(
+  rulerDir: string,
+  files: { path: string; content: string }[],
+  rootConfig: LoadedConfig,
+): Promise<HierarchicalRulerConfiguration> {
+  await warnAboutLegacyMcpJson(rulerDir);
+
+  const concatenatedRules = concatenateRules(files, path.dirname(rulerDir));
+
+  return {
+    rulerDir,
+    config: rootConfig,
+    concatenatedRules,
+    rulerMcpJson: null, // No nested MCP support - each level uses root config only
+  };
+}
+
+/**
+ * Finds ruler directories based on the specified mode.
+ */
+async function findRulerDirectories(
+  projectRoot: string,
+  localOnly: boolean,
+  hierarchical: boolean,
+): Promise<{ dirs: string[]; primaryDir: string }> {
+  if (hierarchical) {
+    const dirs = await FileSystemUtils.findAllRulerDirs(projectRoot);
+    let allDirs = [...dirs];
+
+    // Add global config if not local-only
+    if (!localOnly) {
+      const globalDir = await FileSystemUtils.findGlobalRulerDir();
+      if (globalDir) {
+        allDirs.push(globalDir);
+      }
+    }
+
+    if (allDirs.length === 0) {
+      throw createRulerError(
+        `.ruler directory not found`,
+        `Searched from: ${projectRoot}`,
+      );
+    }
+    return { dirs: allDirs, primaryDir: allDirs[0] };
+  } else {
+    const dir = await FileSystemUtils.findRulerDir(projectRoot, !localOnly);
+    if (!dir) {
+      throw createRulerError(
+        `.ruler directory not found`,
+        `Searched from: ${projectRoot}`,
+      );
+    }
+    return { dirs: [dir], primaryDir: dir };
+  }
+}
+
+/**
+ * Warns about legacy mcp.json files if they exist.
+ */
+async function warnAboutLegacyMcpJson(rulerDir: string): Promise<void> {
   try {
     const legacyMcpPath = path.join(rulerDir, 'mcp.json');
     await (await import('fs/promises')).access(legacyMcpPath);
@@ -53,16 +173,37 @@ export async function loadRulerConfiguration(
   } catch {
     // ignore
   }
+}
 
-  // Load the ruler.toml configuration
+/**
+ * Loads configuration for single-directory mode (existing behavior).
+ */
+export async function loadSingleConfiguration(
+  projectRoot: string,
+  configPath: string | undefined,
+  localOnly: boolean,
+): Promise<RulerConfiguration> {
+  // Find the single ruler directory
+  const { dirs: rulerDirs, primaryDir } = await findRulerDirectories(
+    projectRoot,
+    localOnly,
+    false, // single mode
+  );
+
+  // Warn about legacy mcp.json
+  await warnAboutLegacyMcpJson(primaryDir);
+
+  // Load configuration
   const config = await loadConfig({
     projectRoot,
     configPath,
   });
 
-  // Read and concatenate the markdown rule files
-  const files = await FileSystemUtils.readMarkdownFiles(rulerDir);
-  const concatenatedRules = concatenateRules(files, path.dirname(rulerDir));
+  // Read rule files
+  const files = await FileSystemUtils.readMarkdownFiles(rulerDirs[0]);
+
+  // Concatenate rules
+  const concatenatedRules = concatenateRules(files, path.dirname(primaryDir));
 
   // Load unified config to get merged MCP configuration
   const { loadUnifiedConfig } = await import('./UnifiedConfigLoader');
@@ -171,7 +312,101 @@ export function selectAgentsToRun(
 }
 
 /**
- * Applies configurations to the selected agents.
+ * Applies configurations to agents, handling both single and hierarchical modes.
+ * @param agents Array of agents to process
+ * @param configuration Either a single RulerConfiguration or array of HierarchicalRulerConfiguration
+ * @param projectRoot Root directory of the project
+ * @param verbose Whether to enable verbose logging
+ * @param dryRun Whether to perform a dry run
+ * @param cliMcpEnabled Whether MCP is enabled via CLI
+ * @param cliMcpStrategy MCP strategy from CLI
+ * @returns Promise resolving to array of generated file paths
+ */
+export async function applyConfigurations(
+  agents: IAgent[],
+  configuration: RulerConfiguration | HierarchicalRulerConfiguration[],
+  projectRoot: string,
+  verbose: boolean,
+  dryRun: boolean,
+  cliMcpEnabled = true,
+  cliMcpStrategy?: McpStrategy,
+): Promise<string[]> {
+  if (Array.isArray(configuration)) {
+    return await processHierarchicalConfigurations(
+      agents,
+      configuration,
+      verbose,
+      dryRun,
+      cliMcpEnabled,
+      cliMcpStrategy,
+    );
+  } else {
+    return await processSingleConfiguration(
+      agents,
+      configuration,
+      projectRoot,
+      verbose,
+      dryRun,
+      cliMcpEnabled,
+      cliMcpStrategy,
+    );
+  }
+}
+
+async function processHierarchicalConfigurations(
+  agents: IAgent[],
+  configurations: HierarchicalRulerConfiguration[],
+  verbose: boolean,
+  dryRun: boolean,
+  cliMcpEnabled: boolean,
+  cliMcpStrategy?: McpStrategy,
+): Promise<string[]> {
+  const allGeneratedPaths: string[] = [];
+
+  for (const config of configurations) {
+    console.log(`[ruler] Processing .ruler directory: ${config.rulerDir}`);
+    const rulerRoot = path.dirname(config.rulerDir);
+    const paths = await applyConfigurationsToAgents(
+      agents,
+      config.concatenatedRules,
+      config.rulerMcpJson,
+      config.config,
+      rulerRoot,
+      verbose,
+      dryRun,
+      cliMcpEnabled,
+      cliMcpStrategy,
+    );
+    allGeneratedPaths.push(...paths);
+  }
+
+  return allGeneratedPaths;
+}
+
+async function processSingleConfiguration(
+  agents: IAgent[],
+  configuration: RulerConfiguration,
+  projectRoot: string,
+  verbose: boolean,
+  dryRun: boolean,
+  cliMcpEnabled: boolean,
+  cliMcpStrategy?: McpStrategy,
+): Promise<string[]> {
+  return await applyConfigurationsToAgents(
+    agents,
+    configuration.concatenatedRules,
+    configuration.rulerMcpJson,
+    configuration.config,
+    projectRoot,
+    verbose,
+    dryRun,
+    cliMcpEnabled,
+    cliMcpStrategy,
+  );
+}
+
+/**
+ * Applies configurations to the selected agents (internal function).
  * @param agents Array of agents to process
  * @param concatenatedRules Concatenated rule content
  * @param rulerMcpJson MCP configuration JSON
@@ -181,7 +416,7 @@ export function selectAgentsToRun(
  * @param dryRun Whether to perform a dry run
  * @returns Promise resolving to array of generated file paths
  */
-export async function applyConfigurationsToAgents(
+async function applyConfigurationsToAgents(
   agents: IAgent[],
   concatenatedRules: string,
   rulerMcpJson: Record<string, unknown> | null,
@@ -276,9 +511,6 @@ export async function applyConfigurationsToAgents(
   return generatedPaths;
 }
 
-/**
- * Handles MCP configuration for a specific agent.
- */
 async function handleMcpConfiguration(
   agent: IAgent,
   agentConfig: IAgentConfig | undefined,
@@ -291,7 +523,6 @@ async function handleMcpConfiguration(
   cliMcpEnabled = true,
   cliMcpStrategy?: McpStrategy,
 ): Promise<void> {
-  // Check if agent supports MCP at all
   if (!agentSupportsMcp(agent)) {
     logVerbose(
       `Agent ${agent.getName()} does not support MCP - skipping MCP configuration`,
@@ -304,70 +535,144 @@ async function handleMcpConfiguration(
   const mcpEnabledForAgent =
     cliMcpEnabled && (agentConfig?.mcp?.enabled ?? config.mcp?.enabled ?? true);
 
-  if (dest && mcpEnabledForAgent && rulerMcpJson) {
-    // Filter MCP configuration based on agent capabilities
-    const filteredMcpJson = filterMcpConfigForAgent(rulerMcpJson, agent);
+  if (!dest || !mcpEnabledForAgent || !rulerMcpJson) {
+    return;
+  }
 
-    if (!filteredMcpJson) {
-      logVerbose(
-        `No compatible MCP servers found for ${agent.getName()} - skipping MCP configuration`,
-        verbose,
-      );
-      return;
-    }
+  const filteredMcpJson = filterMcpConfigForAgent(rulerMcpJson, agent);
+  if (!filteredMcpJson) {
+    logVerbose(
+      `No compatible MCP servers found for ${agent.getName()} - skipping MCP configuration`,
+      verbose,
+    );
+    return;
+  }
 
-    // Include MCP config file in .gitignore only if it's within the project directory
-    if (dest.startsWith(projectRoot)) {
-      const relativeDest = path.relative(projectRoot, dest);
-      generatedPaths.push(relativeDest);
-      // Also add the backup for the MCP file
-      generatedPaths.push(`${relativeDest}.bak`);
-    }
+  await updateGitignoreForMcpFile(dest, projectRoot, generatedPaths);
+  await applyMcpConfiguration(
+    agent,
+    filteredMcpJson,
+    dest,
+    agentConfig,
+    config,
+    cliMcpStrategy,
+    dryRun,
+    verbose,
+  );
+}
 
-    if (agent.getIdentifier() === 'openhands') {
-      // *** Special handling for Open Hands ***
-      if (dryRun) {
-        logVerbose(
-          `DRY RUN: Would apply MCP config by updating TOML file: ${dest}`,
-          verbose,
-        );
-      } else {
-        await propagateMcpToOpenHands(filteredMcpJson, dest);
-      }
-    } else if (agent.getIdentifier() === 'opencode') {
-      // *** Special handling for OpenCode ***
-      if (dryRun) {
-        logVerbose(
-          `DRY RUN: Would apply MCP config by updating OpenCode config file: ${dest}`,
-          verbose,
-        );
-      } else {
-        await propagateMcpToOpenCode(filteredMcpJson, dest);
-      }
-    } else {
-      // Standard MCP handling using capabilities
-      const strategy =
-        cliMcpStrategy ??
-        agentConfig?.mcp?.strategy ??
-        config.mcp?.strategy ??
-        'merge';
+async function updateGitignoreForMcpFile(
+  dest: string,
+  projectRoot: string,
+  generatedPaths: string[],
+): Promise<void> {
+  if (dest.startsWith(projectRoot)) {
+    const relativeDest = path.relative(projectRoot, dest);
+    generatedPaths.push(relativeDest);
+    generatedPaths.push(`${relativeDest}.bak`);
+  }
+}
 
-      // Determine the correct server key for the agent
-      const serverKey = agent.getMcpServerKey?.() ?? 'mcpServers';
+async function applyMcpConfiguration(
+  agent: IAgent,
+  filteredMcpJson: Record<string, unknown>,
+  dest: string,
+  agentConfig: IAgentConfig | undefined,
+  config: LoadedConfig,
+  cliMcpStrategy: McpStrategy | undefined,
+  dryRun: boolean,
+  verbose: boolean,
+): Promise<void> {
+  if (agent.getIdentifier() === 'openhands') {
+    return await applyOpenHandsMcpConfiguration(
+      filteredMcpJson,
+      dest,
+      dryRun,
+      verbose,
+    );
+  }
 
-      logVerbose(
-        `Applying filtered MCP config for ${agent.getName()} with strategy: ${strategy} and key: ${serverKey}`,
-        verbose,
-      );
+  if (agent.getIdentifier() === 'opencode') {
+    return await applyOpenCodeMcpConfiguration(
+      filteredMcpJson,
+      dest,
+      dryRun,
+      verbose,
+    );
+  }
 
-      if (dryRun) {
-        logVerbose(`DRY RUN: Would apply MCP config to: ${dest}`, verbose);
-      } else {
-        const existing = await readNativeMcp(dest);
-        const merged = mergeMcp(existing, filteredMcpJson, strategy, serverKey);
-        await writeNativeMcp(dest, merged);
-      }
-    }
+  return await applyStandardMcpConfiguration(
+    agent,
+    filteredMcpJson,
+    dest,
+    agentConfig,
+    config,
+    cliMcpStrategy,
+    dryRun,
+    verbose,
+  );
+}
+
+async function applyOpenHandsMcpConfiguration(
+  filteredMcpJson: Record<string, unknown>,
+  dest: string,
+  dryRun: boolean,
+  verbose: boolean,
+): Promise<void> {
+  if (dryRun) {
+    logVerbose(
+      `DRY RUN: Would apply MCP config by updating TOML file: ${dest}`,
+      verbose,
+    );
+  } else {
+    await propagateMcpToOpenHands(filteredMcpJson, dest);
+  }
+}
+
+async function applyOpenCodeMcpConfiguration(
+  filteredMcpJson: Record<string, unknown>,
+  dest: string,
+  dryRun: boolean,
+  verbose: boolean,
+): Promise<void> {
+  if (dryRun) {
+    logVerbose(
+      `DRY RUN: Would apply MCP config by updating OpenCode config file: ${dest}`,
+      verbose,
+    );
+  } else {
+    await propagateMcpToOpenCode(filteredMcpJson, dest);
+  }
+}
+
+async function applyStandardMcpConfiguration(
+  agent: IAgent,
+  filteredMcpJson: Record<string, unknown>,
+  dest: string,
+  agentConfig: IAgentConfig | undefined,
+  config: LoadedConfig,
+  cliMcpStrategy: McpStrategy | undefined,
+  dryRun: boolean,
+  verbose: boolean,
+): Promise<void> {
+  const strategy =
+    cliMcpStrategy ??
+    agentConfig?.mcp?.strategy ??
+    config.mcp?.strategy ??
+    'merge';
+  const serverKey = agent.getMcpServerKey?.() ?? 'mcpServers';
+
+  logVerbose(
+    `Applying filtered MCP config for ${agent.getName()} with strategy: ${strategy} and key: ${serverKey}`,
+    verbose,
+  );
+
+  if (dryRun) {
+    logVerbose(`DRY RUN: Would apply MCP config to: ${dest}`, verbose);
+  } else {
+    const existing = await readNativeMcp(dest);
+    const merged = mergeMcp(existing, filteredMcpJson, strategy, serverKey);
+    await writeNativeMcp(dest, merged);
   }
 }
 
