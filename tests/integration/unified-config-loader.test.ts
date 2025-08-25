@@ -23,7 +23,7 @@ describe('UnifiedConfigLoader integration', () => {
 
   test('loads nested configuration option', async () => {
     const unified = await loadUnifiedConfig({ projectRoot });
-    expect(unified.toml.nested).toBeUndefined(); // Default should be undefined
+    expect(unified.toml.nested).toBe(false); // Default should be false
 
     // Test with nested = true in TOML
     const tomlPath = path.join(projectRoot, '.ruler', 'ruler.toml');

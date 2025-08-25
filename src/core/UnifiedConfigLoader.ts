@@ -73,7 +73,7 @@ export async function loadUnifiedConfig(
     ).map((a) => String(a));
   }
 
-  let nested: boolean | undefined;
+  let nested = false;
   if (
     tomlRaw &&
     typeof tomlRaw === 'object' &&
