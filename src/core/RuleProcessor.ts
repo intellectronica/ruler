@@ -11,7 +11,11 @@ export function concatenateRules(
   const base = baseDir || process.cwd();
   const sections = files.map(({ path: filePath, content }) => {
     const rel = path.relative(base, filePath);
-    return ['---', `Source: ${rel}`, '---', content.trim(), ''].join('\n');
+    // Normalize path separators to forward slashes for consistent output across platforms
+    const normalizedRel = rel.replace(/\\/g, '/');
+    return ['---', `Source: ${normalizedRel}`, '---', content.trim(), ''].join(
+      '\n',
+    );
   });
   return sections.join('\n');
 }
