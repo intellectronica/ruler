@@ -114,6 +114,10 @@ export async function initHandler(argv: InitArgs): Promise<void> {
 # uncomment and populate the following line. If omitted, all agents are active.
 # default_agents = ["copilot", "claude"]
 
+# Enable nested rule loading from nested .ruler directories
+# When enabled, ruler will search for and process .ruler directories throughout the project hierarchy
+# nested = false
+
 # --- Agent Specific Configurations ---
 # You can enable/disable agents and override their default output paths here.
 # Use lowercase agent identifiers: amp, copilot, claude, codex, cursor, windsurf, cline, aider, kilocode
