@@ -292,9 +292,6 @@ describe('apply-engine', () => {
       expect(gitignoreExists).toBe(false);
     });
   });
-<<<<<<< HEAD
-});
-=======
 
   describe('dry-run logging patterns', () => {
     beforeEach(() => {
@@ -317,73 +314,12 @@ describe('apply-engine', () => {
         false,
         true, // dryRun=true
         true,
-        undefined
-      );
-      
-      const logCalls = consoleLogSpy.mock.calls.flat();
-      const hasRulerDryRunPrefix = logCalls.some(call => 
-        typeof call === 'string' && call.includes('[ruler:dry-run]')
-      );
-      
-      expect(hasRulerDryRunPrefix).toBe(true);
-      consoleLogSpy.mockRestore();
-    });
-
-    it('should use [ruler] prefix when dryRun is false', async () => {
-      const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
-      const mockAgents = [new MockAgent('Claude Code', 'claude')];
-      const config: LoadedConfig = { agentConfigs: {} };
-      const rules = '# Test rules';
-      const mcpJson = null;
-
-      await applyConfigurationsToAgents(
-        mockAgents,
-        rules,
-        mcpJson,
-        config,
-        tmpDir,
-        false,
-        false, // dryRun=false
-        true,
-        undefined
-      );
-      
-      const logCalls = consoleLogSpy.mock.calls.flat();
-      const hasRulerPrefix = logCalls.some(call => 
-        typeof call === 'string' && call.includes('[ruler]') && !call.includes('[ruler:dry-run]')
-      );
-      
-      expect(hasRulerPrefix).toBe(true);
-      consoleLogSpy.mockRestore();
-  });
-
-  describe('dry-run logging patterns', () => {
-    beforeEach(() => {
-      jest.clearAllMocks();
-    });
-
-    it('should use [ruler:dry-run] prefix when dryRun is true', async () => {
-      const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
-      const mockAgents = [new MockAgent('Claude Code', 'claude')];
-      const config: LoadedConfig = { agentConfigs: {} };
-      const rules = '# Test rules';
-      const mcpJson = null;
-
-      await applyConfigurationsToAgents(
-        mockAgents,
-        rules,
-        mcpJson,
-        config,
-        tmpDir,
-        false,
-        true, // dryRun=true
-        true,
-        undefined
+        undefined,
       );
 
       const logCalls = consoleLogSpy.mock.calls.flat();
-      const hasRulerDryRunPrefix = logCalls.some(call =>
-        typeof call === 'string' && call.includes('[ruler:dry-run]')
+      const hasRulerDryRunPrefix = logCalls.some(
+        (call) => typeof call === 'string' && call.includes('[ruler:dry-run]'),
       );
 
       expect(hasRulerDryRunPrefix).toBe(true);
@@ -406,12 +342,15 @@ describe('apply-engine', () => {
         false,
         false, // dryRun=false
         true,
-        undefined
+        undefined,
       );
 
       const logCalls = consoleLogSpy.mock.calls.flat();
-      const hasRulerPrefix = logCalls.some(call =>
-        typeof call === 'string' && call.includes('[ruler]') && !call.includes('[ruler:dry-run]')
+      const hasRulerPrefix = logCalls.some(
+        (call) =>
+          typeof call === 'string' &&
+          call.includes('[ruler]') &&
+          !call.includes('[ruler:dry-run]'),
       );
 
       expect(hasRulerPrefix).toBe(true);
