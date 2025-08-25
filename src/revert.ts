@@ -4,11 +4,13 @@ import * as FileSystemUtils from './core/FileSystemUtils';
 import { loadConfig } from './core/ConfigLoader';
 import { IAgent } from './agents/IAgent';
 import { allAgents } from './agents';
-import { createRulerError, logVerbose } from './constants';
+import { createRulerError, logVerbose, actionPrefix } from './constants';
 import {
   revertAgentConfiguration,
   cleanUpAuxiliaryFiles,
 } from './core/revert-engine';
+import { resolveSelectedAgents } from './core/agent-selection';
+import { mapRawAgentConfigs } from './core/config-utils';
 
 const agents: IAgent[] = allAgents;
 
@@ -47,62 +49,62 @@ export async function revertAllAgentConfigs(
   logVerbose(`Found .ruler directory at: ${rulerDir}`, verbose);
 
   // Normalize per-agent config keys to agent identifiers
-  const rawConfigs = config.agentConfigs;
-  const mappedConfigs: Record<string, (typeof rawConfigs)[string]> = {};
-  for (const [key, cfg] of Object.entries(rawConfigs)) {
-    const lowerKey = key.toLowerCase();
-    for (const agent of agents) {
-      const identifier = agent.getIdentifier();
-      if (
-        identifier === lowerKey ||
-        agent.getName().toLowerCase().includes(lowerKey)
-      ) {
-        mappedConfigs[identifier] = cfg;
+  config.agentConfigs = mapRawAgentConfigs(config.agentConfigs, agents);
+
+  // Select agents to revert (same logic as apply, but with backward compatibility for invalid agents)
+  let selected: IAgent[];
+  try {
+    selected = resolveSelectedAgents(config, agents);
+  } catch (error) {
+    // For backward compatibility, revert continues with available agents if some are invalid
+    // This preserves the original behavior where invalid agents were silently ignored
+    if (
+      error instanceof Error &&
+      error.message.includes('Invalid agent specified')
+    ) {
+      logVerbose(
+        `Warning: ${error.message} - continuing with valid agents only`,
+        verbose,
+      );
+
+      // Fall back to the old logic without validation
+      if (config.cliAgents && config.cliAgents.length > 0) {
+        const filters = config.cliAgents.map((n) => n.toLowerCase());
+        selected = agents.filter((agent) =>
+          filters.some(
+            (f) =>
+              agent.getIdentifier() === f ||
+              agent.getName().toLowerCase().includes(f),
+          ),
+        );
+      } else if (config.defaultAgents && config.defaultAgents.length > 0) {
+        const defaults = config.defaultAgents.map((n) => n.toLowerCase());
+        selected = agents.filter((agent) => {
+          const identifier = agent.getIdentifier();
+          const override = config.agentConfigs[identifier]?.enabled;
+          if (override !== undefined) {
+            return override;
+          }
+          return defaults.some(
+            (d) =>
+              identifier === d || agent.getName().toLowerCase().includes(d),
+          );
+        });
+      } else {
+        selected = agents.filter(
+          (agent) =>
+            config.agentConfigs[agent.getIdentifier()]?.enabled !== false,
+        );
       }
+    } else {
+      throw error;
     }
   }
-  config.agentConfigs = mappedConfigs;
 
-  // Select agents to revert (same logic as apply)
-  let selected = agents;
-  if (config.cliAgents && config.cliAgents.length > 0) {
-    const filters = config.cliAgents.map((n) => n.toLowerCase());
-    selected = agents.filter((agent) =>
-      filters.some(
-        (f) =>
-          agent.getIdentifier() === f ||
-          agent.getName().toLowerCase().includes(f),
-      ),
-    );
-    logVerbose(
-      `Selected agents via CLI filter: ${selected.map((a) => a.getName()).join(', ')}`,
-      verbose,
-    );
-  } else if (config.defaultAgents && config.defaultAgents.length > 0) {
-    const defaults = config.defaultAgents.map((n) => n.toLowerCase());
-    selected = agents.filter((agent) => {
-      const identifier = agent.getIdentifier();
-      const override = config.agentConfigs[identifier]?.enabled;
-      if (override !== undefined) {
-        return override;
-      }
-      return defaults.some(
-        (d) => identifier === d || agent.getName().toLowerCase().includes(d),
-      );
-    });
-    logVerbose(
-      `Selected agents via config default_agents: ${selected.map((a) => a.getName()).join(', ')}`,
-      verbose,
-    );
-  } else {
-    selected = agents.filter(
-      (agent) => config.agentConfigs[agent.getIdentifier()]?.enabled !== false,
-    );
-    logVerbose(
-      `Selected all enabled agents: ${selected.map((a) => a.getName()).join(', ')}`,
-      verbose,
-    );
-  }
+  logVerbose(
+    `Selected agents: ${selected.map((a) => a.getName()).join(', ')}`,
+    verbose,
+  );
 
   // Revert configurations for each agent
   let totalFilesProcessed = 0;
@@ -111,8 +113,8 @@ export async function revertAllAgentConfigs(
   let totalBackupsRemoved = 0;
 
   for (const agent of selected) {
-    const actionPrefix = dryRun ? '[ruler:dry-run]' : '[ruler]';
-    console.log(`${actionPrefix} Reverting ${agent.getName()}...`);
+    const prefix = actionPrefix(dryRun);
+    console.log(`${prefix} Reverting ${agent.getName()}...`);
 
     const agentConfig = config.agentConfigs[agent.getIdentifier()];
     const result = await revertAgentConfiguration(
@@ -145,12 +147,12 @@ export async function revertAllAgentConfigs(
       : false;
 
   // Display summary
-  const actionPrefix = dryRun ? '[ruler:dry-run]' : '[ruler]';
+  const prefix = actionPrefix(dryRun);
 
   if (dryRun) {
-    console.log(`${actionPrefix} Revert summary (dry run):`);
+    console.log(`${prefix} Revert summary (dry run):`);
   } else {
-    console.log(`${actionPrefix} Revert completed successfully.`);
+    console.log(`${prefix} Revert completed successfully.`);
   }
 
   console.log(`  Files processed: ${totalFilesProcessed}`);
@@ -198,13 +200,10 @@ async function cleanGitignore(
     return false;
   }
 
-  const actionPrefix = dryRun ? '[ruler:dry-run]' : '[ruler]';
+  const prefix = actionPrefix(dryRun);
 
   if (dryRun) {
-    logVerbose(
-      `${actionPrefix} Would remove ruler block from .gitignore`,
-      verbose,
-    );
+    logVerbose(`${prefix} Would remove ruler block from .gitignore`, verbose);
   } else {
     const beforeBlock = content.substring(0, startIndex);
     const afterBlock = content.substring(endIndex + endMarker.length);
@@ -214,13 +213,10 @@ async function cleanGitignore(
 
     if (newContent.trim() === '') {
       await fs.unlink(gitignorePath);
-      logVerbose(`${actionPrefix} Removed empty .gitignore file`, verbose);
+      logVerbose(`${prefix} Removed empty .gitignore file`, verbose);
     } else {
       await fs.writeFile(gitignorePath, newContent);
-      logVerbose(
-        `${actionPrefix} Removed ruler block from .gitignore`,
-        verbose,
-      );
+      logVerbose(`${prefix} Removed ruler block from .gitignore`, verbose);
     }
   }
 

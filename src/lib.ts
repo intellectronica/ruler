@@ -11,6 +11,7 @@ import {
   loadNestedConfigurations,
 } from './core/apply-engine';
 import { type LoadedConfig } from './core/ConfigLoader';
+import { mapRawAgentConfigs } from './core/config-utils';
 
 const agents: IAgent[] = allAgents;
 
@@ -138,32 +139,6 @@ export async function applyAllAgentConfigs(
   );
 }
 
-/**
- * Normalizes per-agent config keys to agent identifiers for consistent lookup.
- * Maps both exact identifier matches and substring matches with agent names.
- * @param config The configuration object to normalize
- * @param agents Array of available agents
- */
-function normalizeAgentConfigs(
-  config: { agentConfigs: Record<string, any> },
-  agents: IAgent[],
-): void {
-  const rawConfigs = config.agentConfigs;
-  const mappedConfigs: Record<string, (typeof rawConfigs)[string]> = {};
-
-  for (const [key, cfg] of Object.entries(rawConfigs)) {
-    const lowerKey = key.toLowerCase();
-    for (const agent of agents) {
-      const identifier = agent.getIdentifier();
-      // Exact match with identifier or substring match with display name for backwards compatibility
-      if (
-        identifier === lowerKey ||
-        agent.getName().toLowerCase().includes(lowerKey)
-      ) {
-        mappedConfigs[identifier] = cfg;
-      }
-    }
-  }
-
-  config.agentConfigs = mappedConfigs;
+  // Normalize per-agent config keys to agent identifiers (exact match or substring match)
+  config.agentConfigs = mapRawAgentConfigs(config.agentConfigs, agents);
 }

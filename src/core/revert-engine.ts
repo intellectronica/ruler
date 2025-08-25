@@ -4,7 +4,7 @@ import { IAgent } from '../agents/IAgent';
 import { IAgentConfig } from './ConfigLoader';
 import { getAgentOutputPaths } from '../agents/agent-utils';
 import { getNativeMcpPath } from '../paths/mcp';
-import { logVerbose } from '../constants';
+import { logVerbose, actionPrefix } from '../constants';
 import {
   readVSCodeSettings,
   writeVSCodeSettings,
@@ -56,16 +56,13 @@ async function restoreFromBackup(
     return false;
   }
 
-  const actionPrefix = dryRun ? '[ruler:dry-run]' : '[ruler]';
+  const prefix = actionPrefix(dryRun);
 
   if (dryRun) {
-    logVerbose(
-      `${actionPrefix} Would restore: ${filePath} from backup`,
-      verbose,
-    );
+    logVerbose(`${prefix} Would restore: ${filePath} from backup`, verbose);
   } else {
     await fs.copyFile(backupPath, filePath);
-    logVerbose(`${actionPrefix} Restored: ${filePath} from backup`, verbose);
+    logVerbose(`${prefix} Restored: ${filePath} from backup`, verbose);
   }
 
   return true;
@@ -92,16 +89,13 @@ async function removeGeneratedFile(
     return false;
   }
 
-  const actionPrefix = dryRun ? '[ruler:dry-run]' : '[ruler]';
+  const prefix = actionPrefix(dryRun);
 
   if (dryRun) {
-    logVerbose(
-      `${actionPrefix} Would remove generated file: ${filePath}`,
-      verbose,
-    );
+    logVerbose(`${prefix} Would remove generated file: ${filePath}`, verbose);
   } else {
     await fs.unlink(filePath);
-    logVerbose(`${actionPrefix} Removed generated file: ${filePath}`, verbose);
+    logVerbose(`${prefix} Removed generated file: ${filePath}`, verbose);
   }
 
   return true;
@@ -122,16 +116,13 @@ async function removeBackupFile(
     return false;
   }
 
-  const actionPrefix = dryRun ? '[ruler:dry-run]' : '[ruler]';
+  const prefix = actionPrefix(dryRun);
 
   if (dryRun) {
-    logVerbose(
-      `${actionPrefix} Would remove backup file: ${backupPath}`,
-      verbose,
-    );
+    logVerbose(`${prefix} Would remove backup file: ${backupPath}`, verbose);
   } else {
     await fs.unlink(backupPath);
-    logVerbose(`${actionPrefix} Removed backup file: ${backupPath}`, verbose);
+    logVerbose(`${prefix} Removed backup file: ${backupPath}`, verbose);
   }
 
   return true;
@@ -176,20 +167,17 @@ async function executeDirectoryAction(
   verbose: boolean,
   dryRun: boolean,
 ): Promise<boolean> {
-  const actionPrefix = dryRun ? '[ruler:dry-run]' : '[ruler]';
+  const prefix = actionPrefix(dryRun);
   const actionText = action === 'remove-tree' ? 'directory tree' : 'directory';
 
   if (dryRun) {
     logVerbose(
-      `${actionPrefix} Would remove empty ${actionText}: ${dirPath}`,
+      `${prefix} Would remove empty ${actionText}: ${dirPath}`,
       verbose,
     );
   } else {
     await fs.rm(dirPath, { recursive: true });
-    logVerbose(
-      `${actionPrefix} Removed empty ${actionText}: ${dirPath}`,
-      verbose,
-    );
+    logVerbose(`${prefix} Removed empty ${actionText}: ${dirPath}`, verbose);
   }
   return true;
 }
@@ -330,7 +318,7 @@ async function removeAdditionalAgentFiles(
   ];
 
   let filesRemoved = 0;
-  const actionPrefix = dryRun ? '[ruler:dry-run]' : '[ruler]';
+  const prefix = actionPrefix(dryRun);
 
   for (const filePath of additionalFiles) {
     const fullPath = path.join(projectRoot, filePath);
@@ -350,15 +338,12 @@ async function removeAdditionalAgentFiles(
       } else {
         if (dryRun) {
           logVerbose(
-            `${actionPrefix} Would remove additional file: ${fullPath}`,
+            `${prefix} Would remove additional file: ${fullPath}`,
             verbose,
           );
         } else {
           await fs.unlink(fullPath);
-          logVerbose(
-            `${actionPrefix} Removed additional file: ${fullPath}`,
-            verbose,
-          );
+          logVerbose(`${prefix} Removed additional file: ${fullPath}`, verbose);
         }
         filesRemoved++;
       }
