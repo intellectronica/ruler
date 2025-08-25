@@ -74,6 +74,7 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | Goose            | `.goosehints`                                    | -                                                   |
 | Qwen Code        | `AGENTS.md`                                      | `.qwen/settings.json`                               |
 | Zed              | `AGENTS.md`                                      | `settings.json` (project root)                      |
+| Warp             | `WARP.md`                                        | -                                                   |
 | Kiro             | `.kiro/steering/ruler_kiro_instructions.md`      | -                                                   |
 
 ## Getting Started
@@ -178,7 +179,7 @@ The `apply` command looks for `.ruler/` in the current directory tree, reading t
 | Option                         | Description                                                                                                                                                |
 | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `--project-root <path>`        | Path to your project's root (default: current directory)                                                                                                   |
-| `--agents <agent1,agent2,...>` | Comma-separated list of agent names to target (agentsmd, amp, copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, junie, augmentcode, kilocode) |
+| `--agents <agent1,agent2,...>` | Comma-separated list of agent names to target (agentsmd, amp, copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, junie, augmentcode, kilocode, warp) |
 | `--config <path>`              | Path to a custom `ruler.toml` configuration file                                                                                                           |
 | `--mcp` / `--with-mcp`         | Enable applying MCP server configurations (default: true)                                                                                                  |
 | `--no-mcp`                     | Disable applying MCP server configurations                                                                                                                 |
@@ -206,6 +207,12 @@ ruler apply --agents copilot,claude
 
 ```bash
 ruler apply --agents firebase
+```
+
+**Apply rules only to Warp:**
+
+```bash
+ruler apply --agents warp
 ```
 
 **Use a specific configuration file:**
@@ -250,7 +257,7 @@ ruler revert [options]
 | Option                         | Description                                                                                                                                             |
 | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `--project-root <path>`        | Path to your project's root (default: current directory)                                                                                                |
-| `--agents <agent1,agent2,...>` | Comma-separated list of agent names to revert (agentsmd, amp, copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, junie, kilocode, opencode) |
+| `--agents <agent1,agent2,...>` | Comma-separated list of agent names to revert (agentsmd, amp, copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, junie, kilocode, opencode, warp) |
 | `--config <path>`              | Path to a custom `ruler.toml` configuration file                                                                                                        |
 | `--keep-backups`               | Keep backup files (.bak) after restoration (default: false)                                                                                             |
 | `--dry-run`                    | Preview changes without actually reverting files                                                                                                        |
@@ -380,6 +387,10 @@ enabled = false
 [agents.kilocode]
 enabled = true
 output_path = ".kilocode/rules/ruler_kilocode_instructions.md"
+
+[agents.warp]
+enabled = true
+output_path = "WARP.md"
 ```
 
 ### Configuration Precedence
