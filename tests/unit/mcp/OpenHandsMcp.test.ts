@@ -247,7 +247,7 @@ stdio_servers = [
     const mcp: any = parsed.mcp;
     
     expect(mcp.shttp_servers).toHaveLength(1);
-    // Should be simple URL, not object with api_key
+    // Should be simple URL string (no api_key extraction due to extra headers)
     expect(mcp.shttp_servers[0]).toBe('https://complex.example.com/mcp');
   });
 
@@ -259,12 +259,16 @@ stdio_servers = [
     };
 
     const existingToml = `
-[mcp]
-shttp_servers = ["https://existing.example.com"]
-sse_servers = ["https://existing-sse.example.com/sse"]
-stdio_servers = [
-  { name = "fs", command = "npx", args = ["mcp-fs"] }
-]
+[[mcp.shttp_servers]]
+url = "https://existing.example.com"
+
+[[mcp.sse_servers]]
+url = "https://existing-sse.example.com/sse"
+
+[[mcp.stdio_servers]]
+name = "fs"
+command = "npx"
+args = ["mcp-fs"]
     `;
     await fs.writeFile(openHandsConfigPath, existingToml);
 
@@ -275,11 +279,11 @@ stdio_servers = [
     const mcp: any = parsed.mcp;
     
     expect(mcp.shttp_servers).toHaveLength(2);
-    expect(mcp.shttp_servers).toContain('https://existing.example.com');
-    expect(mcp.shttp_servers).toContain('https://new.example.com/mcp');
+    expect(mcp.shttp_servers).toContainEqual({ url: 'https://existing.example.com' });
+    expect(mcp.shttp_servers).toContainEqual({ url: 'https://new.example.com/mcp' });
     
     expect(mcp.sse_servers).toHaveLength(1);
-    expect(mcp.sse_servers).toContain('https://existing-sse.example.com/sse');
+    expect(mcp.sse_servers).toContainEqual({ url: 'https://existing-sse.example.com/sse' });
     
     expect(mcp.stdio_servers).toHaveLength(1);
     expect(mcp.stdio_servers[0].name).toBe('fs');
@@ -308,10 +312,10 @@ stdio_servers = [
     });
     
     expect(mcp.shttp_servers).toHaveLength(1);
-    expect(mcp.shttp_servers).toContain('https://api.example.com/mcp');
+    expect(mcp.shttp_servers[0]).toBe('https://api.example.com/mcp');
     
     expect(mcp.sse_servers).toHaveLength(1);
-    expect(mcp.sse_servers).toContain('https://realtime.example.com/sse');
+    expect(mcp.sse_servers[0]).toBe('https://realtime.example.com/sse');
   });
 
   it('should overwrite remote servers with same URL', async () => {
@@ -325,8 +329,8 @@ stdio_servers = [
     };
 
     const existingToml = `
-[mcp]
-shttp_servers = ["https://api.example.com/mcp"]
+[[mcp.shttp_servers]]
+url = "https://api.example.com/mcp"
     `;
     await fs.writeFile(openHandsConfigPath, existingToml);
 
@@ -337,7 +341,7 @@ shttp_servers = ["https://api.example.com/mcp"]
     const mcp: any = parsed.mcp;
     
     expect(mcp.shttp_servers).toHaveLength(1);
-    // Should be updated with api_key object, not simple string
+    // Should be updated with api_key object
     expect(mcp.shttp_servers[0]).toEqual({
       url: 'https://api.example.com/mcp',
       api_key: 'new-token'

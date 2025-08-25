@@ -63,6 +63,24 @@ function createRemoteServerEntry(url: string, headers?: Record<string, string>):
   return url;
 }
 
+function normalizeRemoteServerArray(entries: (string | RemoteServerEntry)[]): (string | RemoteServerEntry)[] {
+  // TOML doesn't support mixed types in arrays, so we need to be consistent
+  // If any entry is an object, convert all simple URLs to objects
+  const hasObjectEntries = entries.some(entry => typeof entry === 'object');
+  
+  if (hasObjectEntries) {
+    return entries.map(entry => {
+      if (typeof entry === 'string') {
+        return { url: entry };
+      }
+      return entry;
+    });
+  }
+  
+  // All entries are strings, keep as is
+  return entries;
+}
+
 export async function propagateMcpToOpenHands(
   rulerMcpData: Record<string, unknown> | null,
   openHandsConfigPath: string,
@@ -148,10 +166,10 @@ export async function propagateMcpToOpenHands(
     }
   }
 
-  // Convert maps back to arrays
+  // Convert maps back to arrays and normalize for TOML compatibility
   config.mcp.stdio_servers = Array.from(existingStdioServers.values());
-  config.mcp.sse_servers = Array.from(existingSseServers.values());
-  config.mcp.shttp_servers = Array.from(existingShttpServers.values());
+  config.mcp.sse_servers = normalizeRemoteServerArray(Array.from(existingSseServers.values()));
+  config.mcp.shttp_servers = normalizeRemoteServerArray(Array.from(existingShttpServers.values()));
 
   await ensureDirExists(path.dirname(openHandsConfigPath));
   await fs.writeFile(openHandsConfigPath, stringify(config));
