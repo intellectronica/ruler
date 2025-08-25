@@ -35,7 +35,7 @@ export async function applyAllAgentConfigs(
   verbose = false,
   dryRun = false,
   localOnly = false,
-  hierarchical = false,
+  nested = false,
 ): Promise<void> {
   // Load configuration and rules
   logVerbose(
@@ -50,7 +50,7 @@ export async function applyAllAgentConfigs(
   let generatedPaths: string[];
   let loadedConfig: LoadedConfig;
 
-  if (hierarchical) {
+  if (nested) {
     const hierarchicalConfigs = await loadHierarchicalConfigurations(
       projectRoot,
       configPath,
