@@ -39,6 +39,20 @@ describe('ConfigLoader', () => {
     expect(config.defaultAgents).toEqual(['A', 'B']);
   });
 
+  it('parses nested configuration option', async () => {
+    const content = `nested = true`;
+    await fs.writeFile(path.join(rulerDir, 'ruler.toml'), content);
+    const config = await loadConfig({ projectRoot: tmpDir });
+    expect(config.nested).toBe(true);
+  });
+
+  it('defaults nested to undefined when not specified', async () => {
+    const content = `default_agents = ["A"]`;
+    await fs.writeFile(path.join(rulerDir, 'ruler.toml'), content);
+    const config = await loadConfig({ projectRoot: tmpDir });
+    expect(config.nested).toBeUndefined();
+  });
+
   it('parses agent enabled overrides', async () => {
     const content = `
       [agents.A]
