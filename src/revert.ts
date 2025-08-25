@@ -12,7 +12,6 @@ import {
 import { resolveSelectedAgents } from './core/agent-selection';
 import { mapRawAgentConfigs } from './core/config-utils';
 
-
 const agents: IAgent[] = allAgents;
 
 export { allAgents };
