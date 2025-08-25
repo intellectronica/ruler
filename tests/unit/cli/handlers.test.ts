@@ -36,6 +36,7 @@ describe('CLI Handlers', () => {
         verbose: true,
         'dry-run': false,
         'local-only': false,
+        hierarchical: false,
       };
 
       await applyHandler(argv);
@@ -50,6 +51,7 @@ describe('CLI Handlers', () => {
         true,
         false,
         false,
+        false,
       );
     });
 
@@ -61,6 +63,7 @@ describe('CLI Handlers', () => {
         verbose: false,
         'dry-run': false,
         'local-only': false,
+        hierarchical: false,
       };
 
       await applyHandler(argv);
@@ -72,6 +75,7 @@ describe('CLI Handlers', () => {
         true,
         'overwrite',
         undefined,
+        false,
         false,
         false,
         false,
@@ -87,6 +91,7 @@ describe('CLI Handlers', () => {
         verbose: false,
         'dry-run': false,
         'local-only': false,
+        hierarchical: false,
       };
 
       await applyHandler(argv);
@@ -97,6 +102,7 @@ describe('CLI Handlers', () => {
         undefined,
         true,
         undefined,
+        false,
         false,
         false,
         false,
@@ -112,6 +118,7 @@ describe('CLI Handlers', () => {
         verbose: false,
         'dry-run': false,
         'local-only': false,
+        hierarchical: false,
       };
 
       await applyHandler(argv);
@@ -123,6 +130,7 @@ describe('CLI Handlers', () => {
         true,
         undefined,
         undefined,
+        false,
         false,
         false,
         false,
@@ -147,6 +155,7 @@ describe('CLI Handlers', () => {
         verbose: false,
         'dry-run': false,
         'local-only': false,
+        hierarchical: false,
       };
 
       await expect(applyHandler(argv)).rejects.toThrow('process.exit: 1');
@@ -161,9 +170,9 @@ describe('CLI Handlers', () => {
 
   describe('initHandler', () => {
     const mockRulerDir = path.join(mockProjectRoot, '.ruler');
-  const mockInstructionsPath = path.join(mockRulerDir, 'AGENTS.md');
+    const mockInstructionsPath = path.join(mockRulerDir, 'AGENTS.md');
     const mockTomlPath = path.join(mockRulerDir, 'ruler.toml');
-  const mockLegacyPath = path.join(mockRulerDir, 'instructions.md');
+    const mockLegacyPath = path.join(mockRulerDir, 'instructions.md');
 
     beforeEach(() => {
       (fs.access as jest.Mock).mockRejectedValue(new Error('File not found'));
@@ -215,12 +224,12 @@ describe('CLI Handlers', () => {
 
       // Find the call that writes to ruler.toml
       const tomlWriteCall = (fs.writeFile as jest.Mock).mock.calls.find(
-        call => call[0] === mockTomlPath
+        (call) => call[0] === mockTomlPath,
       );
-      
+
       expect(tomlWriteCall).toBeDefined();
       const tomlContent = tomlWriteCall[1];
-      
+
       // Verify MCP server sections are present
       expect(tomlContent).toContain('# --- MCP Servers ---');
       expect(tomlContent).toContain('[mcp_servers.example_stdio]');
@@ -279,7 +288,7 @@ describe('CLI Handlers', () => {
       expect(fs.writeFile).not.toHaveBeenCalled();
     });
 
-  it('should create AGENTS.md when legacy instructions.md exists (legacy preserved silently)', async () => {
+    it('should create AGENTS.md when legacy instructions.md exists (legacy preserved silently)', async () => {
       // access sequence: AGENTS.md (fail), legacy instructions.md (exists), ruler.toml (fail)
       (fs.access as jest.Mock)
         .mockRejectedValueOnce(new Error('AGENTS missing'))
@@ -295,8 +304,12 @@ describe('CLI Handlers', () => {
         expect.stringContaining('# AGENTS.md'),
       );
       // Expect a notice about legacy detection once implementation added
-  // No legacy notice expected anymore
-  expect(logSpy.mock.calls.some(c => /legacy instructions\.md detected/i.test(c[0]))).toBe(false);
+      // No legacy notice expected anymore
+      expect(
+        logSpy.mock.calls.some((c) =>
+          /legacy instructions\.md detected/i.test(c[0]),
+        ),
+      ).toBe(false);
       logSpy.mockRestore();
     });
   });
@@ -311,6 +324,7 @@ describe('CLI Handlers', () => {
         verbose: true,
         'dry-run': false,
         'local-only': false,
+        hierarchical: false,
       };
 
       await revertHandler(argv);
@@ -323,6 +337,7 @@ describe('CLI Handlers', () => {
         true,
         false,
         false,
+        false,
       );
     });
 
@@ -333,6 +348,7 @@ describe('CLI Handlers', () => {
         verbose: false,
         'dry-run': false,
         'local-only': false,
+        hierarchical: false,
       };
 
       await revertHandler(argv);
@@ -341,6 +357,7 @@ describe('CLI Handlers', () => {
         mockProjectRoot,
         undefined,
         undefined,
+        false,
         false,
         false,
         false,
@@ -365,6 +382,7 @@ describe('CLI Handlers', () => {
         verbose: false,
         'dry-run': false,
         'local-only': false,
+        hierarchical: false,
       };
 
       await expect(revertHandler(argv)).rejects.toThrow('process.exit: 1');
