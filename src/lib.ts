@@ -8,6 +8,7 @@ import {
   applyConfigurationsToAgents,
   updateGitignore,
 } from './core/apply-engine';
+import { mapRawAgentConfigs } from './core/config-utils';
 
 const agents: IAgent[] = allAgents;
 
@@ -61,22 +62,10 @@ export async function applyAllAgentConfigs(
   );
 
   // Normalize per-agent config keys to agent identifiers (exact match or substring match)
-  const rawConfigs = rulerConfiguration.config.agentConfigs;
-  const mappedConfigs: Record<string, (typeof rawConfigs)[string]> = {};
-  for (const [key, cfg] of Object.entries(rawConfigs)) {
-    const lowerKey = key.toLowerCase();
-    for (const agent of agents) {
-      const identifier = agent.getIdentifier();
-      // Exact match with identifier or substring match with display name for backwards compatibility
-      if (
-        identifier === lowerKey ||
-        agent.getName().toLowerCase().includes(lowerKey)
-      ) {
-        mappedConfigs[identifier] = cfg;
-      }
-    }
-  }
-  rulerConfiguration.config.agentConfigs = mappedConfigs;
+  rulerConfiguration.config.agentConfigs = mapRawAgentConfigs(
+    rulerConfiguration.config.agentConfigs,
+    agents,
+  );
 
   // Select agents to run
   const selectedAgents = selectAgentsToRun(agents, rulerConfiguration.config);

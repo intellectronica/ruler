@@ -9,6 +9,7 @@ import {
   revertAgentConfiguration,
   cleanUpAuxiliaryFiles,
 } from './core/revert-engine';
+import { mapRawAgentConfigs } from './core/config-utils';
 
 const agents: IAgent[] = allAgents;
 
@@ -47,21 +48,7 @@ export async function revertAllAgentConfigs(
   logVerbose(`Found .ruler directory at: ${rulerDir}`, verbose);
 
   // Normalize per-agent config keys to agent identifiers
-  const rawConfigs = config.agentConfigs;
-  const mappedConfigs: Record<string, (typeof rawConfigs)[string]> = {};
-  for (const [key, cfg] of Object.entries(rawConfigs)) {
-    const lowerKey = key.toLowerCase();
-    for (const agent of agents) {
-      const identifier = agent.getIdentifier();
-      if (
-        identifier === lowerKey ||
-        agent.getName().toLowerCase().includes(lowerKey)
-      ) {
-        mappedConfigs[identifier] = cfg;
-      }
-    }
-  }
-  config.agentConfigs = mappedConfigs;
+  config.agentConfigs = mapRawAgentConfigs(config.agentConfigs, agents);
 
   // Select agents to revert (same logic as apply)
   let selected = agents;
