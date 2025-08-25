@@ -43,8 +43,6 @@ export async function loadRulerConfiguration(
     );
   }
 
-
-
   // Load the ruler.toml configuration
   const config = await loadConfig({
     projectRoot,
