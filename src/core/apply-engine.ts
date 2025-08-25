@@ -43,7 +43,7 @@ export async function loadRulerConfiguration(
   nested?: boolean,
 ): Promise<RulerConfiguration | HierarchicalRulerConfiguration[]> {
   if (nested) {
-    return loadHierarchicalConfigurations(projectRoot, configPath, localOnly);
+    return loadNestedConfigurations(projectRoot, configPath, localOnly);
   } else {
     return loadSingleConfiguration(projectRoot, configPath, localOnly);
   }
@@ -57,7 +57,7 @@ export /**
  * @param localOnly Whether to search only locally for .ruler directories
  * @returns Promise resolving to array of hierarchical configurations
  */
-async function loadHierarchicalConfigurations(
+async function loadNestedConfigurations(
   projectRoot: string,
   configPath: string | undefined,
   localOnly: boolean,
