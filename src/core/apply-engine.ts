@@ -53,7 +53,15 @@ export async function loadRulerConfiguration(
   }
 }
 
-export async function loadHierarchicalConfigurations(
+export /**
+ * Loads configurations for all .ruler directories in hierarchical mode.
+ * Each .ruler directory gets its own independent configuration with separate rules.
+ * @param projectRoot Root directory of the project
+ * @param configPath Optional custom config path
+ * @param localOnly Whether to search only locally for .ruler directories
+ * @returns Promise resolving to array of hierarchical configurations
+ */
+async function loadHierarchicalConfigurations(
   projectRoot: string,
   configPath: string | undefined,
   localOnly: boolean,
@@ -178,7 +186,15 @@ async function warnAboutLegacyMcpJson(rulerDir: string): Promise<void> {
 /**
  * Loads configuration for single-directory mode (existing behavior).
  */
-export async function loadSingleConfiguration(
+export /**
+ * Loads configuration for a single .ruler directory.
+ * All rules from the directory are concatenated into a single configuration.
+ * @param projectRoot Root directory of the project
+ * @param configPath Optional custom config path
+ * @param localOnly Whether to search only locally for .ruler directory
+ * @returns Promise resolving to the loaded configuration
+ */
+async function loadSingleConfiguration(
   projectRoot: string,
   configPath: string | undefined,
   localOnly: boolean,
@@ -312,48 +328,17 @@ export function selectAgentsToRun(
 }
 
 /**
- * Applies configurations to agents, handling both single and hierarchical modes.
+ * Processes hierarchical configurations by applying rules to each .ruler directory independently.
+ * Each directory gets its own set of rules and generates its own agent files.
  * @param agents Array of agents to process
- * @param configuration Either a single RulerConfiguration or array of HierarchicalRulerConfiguration
- * @param projectRoot Root directory of the project
+ * @param configurations Array of hierarchical configurations for each .ruler directory
  * @param verbose Whether to enable verbose logging
  * @param dryRun Whether to perform a dry run
  * @param cliMcpEnabled Whether MCP is enabled via CLI
  * @param cliMcpStrategy MCP strategy from CLI
  * @returns Promise resolving to array of generated file paths
  */
-export async function applyConfigurations(
-  agents: IAgent[],
-  configuration: RulerConfiguration | HierarchicalRulerConfiguration[],
-  projectRoot: string,
-  verbose: boolean,
-  dryRun: boolean,
-  cliMcpEnabled = true,
-  cliMcpStrategy?: McpStrategy,
-): Promise<string[]> {
-  if (Array.isArray(configuration)) {
-    return await processHierarchicalConfigurations(
-      agents,
-      configuration,
-      verbose,
-      dryRun,
-      cliMcpEnabled,
-      cliMcpStrategy,
-    );
-  } else {
-    return await processSingleConfiguration(
-      agents,
-      configuration,
-      projectRoot,
-      verbose,
-      dryRun,
-      cliMcpEnabled,
-      cliMcpStrategy,
-    );
-  }
-}
-
-async function processHierarchicalConfigurations(
+export async function processHierarchicalConfigurations(
   agents: IAgent[],
   configurations: HierarchicalRulerConfiguration[],
   verbose: boolean,
@@ -383,7 +368,19 @@ async function processHierarchicalConfigurations(
   return allGeneratedPaths;
 }
 
-async function processSingleConfiguration(
+/**
+ * Processes a single configuration by applying rules to all selected agents.
+ * All rules are concatenated and applied to generate agent files in the project root.
+ * @param agents Array of agents to process
+ * @param configuration Single ruler configuration with concatenated rules
+ * @param projectRoot Root directory of the project
+ * @param verbose Whether to enable verbose logging
+ * @param dryRun Whether to perform a dry run
+ * @param cliMcpEnabled Whether MCP is enabled via CLI
+ * @param cliMcpStrategy MCP strategy from CLI
+ * @returns Promise resolving to array of generated file paths
+ */
+export async function processSingleConfiguration(
   agents: IAgent[],
   configuration: RulerConfiguration,
   projectRoot: string,
