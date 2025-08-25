@@ -29,26 +29,6 @@ export interface HierarchicalRulerConfiguration extends RulerConfiguration {
   rulerDir: string;
 }
 
-/**
- * Loads all necessary configurations for ruler operation.
- * @param projectRoot Root directory of the project
- * @param configPath Optional custom config path
- * @param localOnly Whether to search only locally for .ruler directory
- * @returns Promise resolving to the loaded configuration(s)
- */
-export async function loadRulerConfiguration(
-  projectRoot: string,
-  configPath: string | undefined,
-  localOnly: boolean,
-  nested?: boolean,
-): Promise<RulerConfiguration | HierarchicalRulerConfiguration[]> {
-  if (nested) {
-    return loadNestedConfigurations(projectRoot, configPath, localOnly);
-  } else {
-    return loadSingleConfiguration(projectRoot, configPath, localOnly);
-  }
-}
-
 export /**
  * Loads configurations for all .ruler directories in hierarchical mode.
  * Each .ruler directory gets its own independent configuration with separate rules.

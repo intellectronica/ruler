@@ -3,12 +3,12 @@ import { allAgents } from './agents';
 import { McpStrategy } from './types';
 import { logVerbose } from './constants';
 import {
-  loadHierarchicalConfigurations,
   loadSingleConfiguration,
   selectAgentsToRun,
   processHierarchicalConfigurations,
   processSingleConfiguration,
   updateGitignore,
+  loadNestedConfigurations,
 } from './core/apply-engine';
 import { type LoadedConfig } from './core/ConfigLoader';
 
@@ -51,7 +51,7 @@ export async function applyAllAgentConfigs(
   let loadedConfig: LoadedConfig;
 
   if (nested) {
-    const hierarchicalConfigs = await loadHierarchicalConfigurations(
+    const hierarchicalConfigs = await loadNestedConfigurations(
       projectRoot,
       configPath,
       localOnly,
