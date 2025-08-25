@@ -9,6 +9,7 @@ import {
   revertAgentConfiguration,
   cleanUpAuxiliaryFiles,
 } from './core/revert-engine';
+import { resolveSelectedAgents } from './core/agent-selection';
 
 const agents: IAgent[] = allAgents;
 
@@ -63,46 +64,55 @@ export async function revertAllAgentConfigs(
   }
   config.agentConfigs = mappedConfigs;
 
-  // Select agents to revert (same logic as apply)
-  let selected = agents;
-  if (config.cliAgents && config.cliAgents.length > 0) {
-    const filters = config.cliAgents.map((n) => n.toLowerCase());
-    selected = agents.filter((agent) =>
-      filters.some(
-        (f) =>
-          agent.getIdentifier() === f ||
-          agent.getName().toLowerCase().includes(f),
-      ),
-    );
-    logVerbose(
-      `Selected agents via CLI filter: ${selected.map((a) => a.getName()).join(', ')}`,
-      verbose,
-    );
-  } else if (config.defaultAgents && config.defaultAgents.length > 0) {
-    const defaults = config.defaultAgents.map((n) => n.toLowerCase());
-    selected = agents.filter((agent) => {
-      const identifier = agent.getIdentifier();
-      const override = config.agentConfigs[identifier]?.enabled;
-      if (override !== undefined) {
-        return override;
-      }
-      return defaults.some(
-        (d) => identifier === d || agent.getName().toLowerCase().includes(d),
+  // Select agents to revert (same logic as apply, but with backward compatibility for invalid agents)
+  let selected: IAgent[];
+  try {
+    selected = resolveSelectedAgents(config, agents);
+  } catch (error) {
+    // For backward compatibility, revert continues with available agents if some are invalid
+    // This preserves the original behavior where invalid agents were silently ignored
+    if (error instanceof Error && error.message.includes('Invalid agent specified')) {
+      logVerbose(
+        `Warning: ${error.message} - continuing with valid agents only`,
+        verbose,
       );
-    });
-    logVerbose(
-      `Selected agents via config default_agents: ${selected.map((a) => a.getName()).join(', ')}`,
-      verbose,
-    );
-  } else {
-    selected = agents.filter(
-      (agent) => config.agentConfigs[agent.getIdentifier()]?.enabled !== false,
-    );
-    logVerbose(
-      `Selected all enabled agents: ${selected.map((a) => a.getName()).join(', ')}`,
-      verbose,
-    );
+      
+      // Fall back to the old logic without validation
+      if (config.cliAgents && config.cliAgents.length > 0) {
+        const filters = config.cliAgents.map((n) => n.toLowerCase());
+        selected = agents.filter((agent) =>
+          filters.some(
+            (f) =>
+              agent.getIdentifier() === f ||
+              agent.getName().toLowerCase().includes(f),
+          ),
+        );
+      } else if (config.defaultAgents && config.defaultAgents.length > 0) {
+        const defaults = config.defaultAgents.map((n) => n.toLowerCase());
+        selected = agents.filter((agent) => {
+          const identifier = agent.getIdentifier();
+          const override = config.agentConfigs[identifier]?.enabled;
+          if (override !== undefined) {
+            return override;
+          }
+          return defaults.some(
+            (d) => identifier === d || agent.getName().toLowerCase().includes(d),
+          );
+        });
+      } else {
+        selected = agents.filter(
+          (agent) => config.agentConfigs[agent.getIdentifier()]?.enabled !== false,
+        );
+      }
+    } else {
+      throw error;
+    }
   }
+  
+  logVerbose(
+    `Selected agents: ${selected.map((a) => a.getName()).join(', ')}`,
+    verbose,
+  );
 
   // Revert configurations for each agent
   let totalFilesProcessed = 0;
