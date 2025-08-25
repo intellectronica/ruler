@@ -65,7 +65,7 @@ export function run(): void {
           .option('nested', {
             type: 'boolean',
             description:
-              'Enable nested rule loading from nested .ruler directories',
+              'Enable nested rule loading from nested .ruler directories (default: disabled)',
             default: false,
           });
       },
