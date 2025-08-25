@@ -413,7 +413,7 @@ export async function processSingleConfiguration(
  * @param dryRun Whether to perform a dry run
  * @returns Promise resolving to array of generated file paths
  */
-async function applyConfigurationsToAgents(
+export async function applyConfigurationsToAgents(
   agents: IAgent[],
   concatenatedRules: string,
   rulerMcpJson: Record<string, unknown> | null,

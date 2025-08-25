@@ -67,59 +67,84 @@ describe('apply-engine', () => {
       // Setup test files
       const configContent = `default_agents = ["claude", "copilot"]`;
       await fs.writeFile(path.join(rulerDir, 'ruler.toml'), configContent);
-      
+
       const rulesContent = '# Test rules\nUse TypeScript for all code.';
       await fs.writeFile(path.join(rulerDir, 'instructions.md'), rulesContent);
-      
+
       const mcpContent = JSON.stringify({
         mcpServers: {
           test: {
             command: 'test-command',
-            args: ['--test']
-          }
-        }
+            args: ['--test'],
+          },
+        },
       });
       await fs.writeFile(path.join(rulerDir, 'mcp.json'), mcpContent);
 
-      const result = await loadRulerConfiguration(tmpDir, undefined, false);
+      const result = await loadRulerConfiguration(
+        tmpDir,
+        undefined,
+        false,
+        false,
+      );
 
-      expect(result.config.defaultAgents).toEqual(['claude', 'copilot']);
-      expect(result.concatenatedRules).toContain('Use TypeScript for all code.');
-      expect(result.rulerMcpJson).toEqual({
+      // Since hierarchical=false, result should be RulerConfiguration
+      expect(result).toHaveProperty('config');
+      expect(result).toHaveProperty('concatenatedRules');
+      expect(result).toHaveProperty('rulerMcpJson');
+
+      const configResult = result as RulerConfiguration;
+      expect(configResult.config.defaultAgents).toEqual(['claude', 'copilot']);
+      expect(configResult.concatenatedRules).toContain(
+        'Use TypeScript for all code.',
+      );
+      expect(configResult.rulerMcpJson).toEqual({
         mcpServers: {
           test: {
             command: 'test-command',
             args: ['--test'],
-            type: 'stdio'
-          }
-        }
+            type: 'stdio',
+          },
+        },
       });
     });
 
     it('should handle missing MCP file gracefully', async () => {
       const configContent = `default_agents = ["claude"]`;
       await fs.writeFile(path.join(rulerDir, 'ruler.toml'), configContent);
-      
+
       const rulesContent = '# Test rules';
       await fs.writeFile(path.join(rulerDir, 'instructions.md'), rulesContent);
 
-      const result = await loadRulerConfiguration(tmpDir, undefined, false);
+      const result = await loadRulerConfiguration(
+        tmpDir,
+        undefined,
+        false,
+        false,
+      );
 
-      expect(result.config.defaultAgents).toEqual(['claude']);
-      expect(result.concatenatedRules).toContain('# Test rules');
-      expect(result.rulerMcpJson).toBeNull();
+      // Since hierarchical=false, result should be RulerConfiguration
+      expect(result).toHaveProperty('config');
+      expect(result).toHaveProperty('concatenatedRules');
+      expect(result).toHaveProperty('rulerMcpJson');
+
+      const configResult = result as RulerConfiguration;
+      expect(configResult.config.defaultAgents).toEqual(['claude']);
+      expect(configResult.concatenatedRules).toContain('# Test rules');
+      expect(configResult.rulerMcpJson).toBeNull();
     });
 
     it('should throw error when .ruler directory not found', async () => {
       const nonExistentDir = path.join(tmpDir, 'nonexistent');
-      
+
       // Mock the findRulerDir to return null to simulate directory not found
       const originalFindRulerDir = FileSystemUtils.findRulerDir;
       jest.spyOn(FileSystemUtils, 'findRulerDir').mockResolvedValue(null);
-      
+
       try {
-        await expect(loadRulerConfiguration(nonExistentDir, undefined, true))
-          .rejects.toThrow('.ruler directory not found');
+        await expect(
+          loadRulerConfiguration(nonExistentDir, undefined, true),
+        ).rejects.toThrow('.ruler directory not found');
       } finally {
         // Restore the original function
         (FileSystemUtils.findRulerDir as jest.Mock).mockRestore();
@@ -143,7 +168,10 @@ describe('apply-engine', () => {
       const result = selectAgentsToRun(mockAgents, config);
 
       expect(result).toHaveLength(2);
-      expect(result.map(a => a.getIdentifier())).toEqual(['claude', 'cursor']);
+      expect(result.map((a) => a.getIdentifier())).toEqual([
+        'claude',
+        'cursor',
+      ]);
     });
 
     it('should select agents based on default_agents when no CLI filters', () => {
@@ -183,7 +211,10 @@ describe('apply-engine', () => {
       const result = selectAgentsToRun(mockAgents, config);
 
       expect(result).toHaveLength(2);
-      expect(result.map(a => a.getIdentifier()).sort()).toEqual(['copilot', 'cursor']);
+      expect(result.map((a) => a.getIdentifier()).sort()).toEqual([
+        'copilot',
+        'cursor',
+      ]);
     });
   });
 
@@ -203,7 +234,7 @@ describe('apply-engine', () => {
         false,
         false,
         true,
-        undefined
+        undefined,
       );
 
       expect(result).toContain(`${tmpDir}/.claude/config.json`);
@@ -224,7 +255,7 @@ describe('apply-engine', () => {
         false,
         true, // dry run
         true,
-        undefined
+        undefined,
       );
 
       expect(result).toContain(`${tmpDir}/.claude/config.json`);
@@ -238,7 +269,10 @@ describe('apply-engine', () => {
 
       await updateGitignore(tmpDir, generatedPaths, config, true, false);
 
-      const gitignoreContent = await fs.readFile(path.join(tmpDir, '.gitignore'), 'utf8');
+      const gitignoreContent = await fs.readFile(
+        path.join(tmpDir, '.gitignore'),
+        'utf8',
+      );
       expect(gitignoreContent).toContain('.claude/config.json');
       expect(gitignoreContent).toContain('.copilot/settings.json');
     });
@@ -249,10 +283,11 @@ describe('apply-engine', () => {
 
       await updateGitignore(tmpDir, generatedPaths, config, false, false);
 
-      const gitignoreExists = await fs.access(path.join(tmpDir, '.gitignore'))
+      const gitignoreExists = await fs
+        .access(path.join(tmpDir, '.gitignore'))
         .then(() => true)
         .catch(() => false);
-      
+
       expect(gitignoreExists).toBe(false);
     });
 
@@ -262,10 +297,11 @@ describe('apply-engine', () => {
 
       await updateGitignore(tmpDir, generatedPaths, config, true, true);
 
-      const gitignoreExists = await fs.access(path.join(tmpDir, '.gitignore'))
+      const gitignoreExists = await fs
+        .access(path.join(tmpDir, '.gitignore'))
         .then(() => true)
         .catch(() => false);
-      
+
       expect(gitignoreExists).toBe(false);
     });
   });
