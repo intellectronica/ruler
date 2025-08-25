@@ -210,7 +210,7 @@ export async function loadConfig(
     gitignoreConfig.enabled = rawGitignoreSection.enabled;
   }
 
-  const nested = typeof raw.nested === 'boolean' ? raw.nested : undefined;
+  const nested = typeof raw.nested === 'boolean' ? raw.nested : false;
 
   return {
     defaultAgents,
