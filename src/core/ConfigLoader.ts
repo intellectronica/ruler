@@ -41,6 +41,7 @@ const rulerConfigSchema = z.object({
       enabled: z.boolean().optional(),
     })
     .optional(),
+  nested: z.boolean().optional(),
 });
 
 /**
@@ -69,6 +70,8 @@ export interface LoadedConfig {
   mcp?: GlobalMcpConfig;
   /** Gitignore configuration section. */
   gitignore?: GitignoreConfig;
+  /** Whether to enable nested rule loading from nested .ruler directories. */
+  nested?: boolean;
 }
 
 /**
@@ -207,11 +210,14 @@ export async function loadConfig(
     gitignoreConfig.enabled = rawGitignoreSection.enabled;
   }
 
+  const nested = typeof raw.nested === 'boolean' ? raw.nested : undefined;
+
   return {
     defaultAgents,
     agentConfigs,
     cliAgents,
     mcp: globalMcpConfig,
     gitignore: gitignoreConfig,
+    nested,
   };
 }
