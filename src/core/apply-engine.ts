@@ -342,7 +342,7 @@ async function handleMcpConfiguration(
         'merge';
 
       // Determine the correct server key for the agent
-      const serverKey = agent.getMcpServerKey?.() ?? 'mcpServers';
+      const serverKey = agent.getMcpServerKey?.() || 'mcpServers';
 
       logVerbose(
         `Applying filtered MCP config for ${agent.getName()} with strategy: ${strategy} and key: ${serverKey}`,

@@ -52,7 +52,7 @@ export abstract class AbstractAgent implements IAgent {
    * Returns the specific key to be used for the server object in MCP JSON.
    * Defaults to 'mcpServers' if not overridden.
    */
-  getMcpServerKey?(): string {
+  getMcpServerKey(): string {
     return 'mcpServers';
   }
 
