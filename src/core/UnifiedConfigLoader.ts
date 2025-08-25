@@ -72,11 +72,22 @@ export async function loadUnifiedConfig(
       (tomlRaw as Record<string, unknown>).default_agents as unknown[]
     ).map((a) => String(a));
   }
+
+  let nested: boolean | undefined;
+  if (
+    tomlRaw &&
+    typeof tomlRaw === 'object' &&
+    typeof (tomlRaw as Record<string, unknown>).nested === 'boolean'
+  ) {
+    nested = (tomlRaw as Record<string, unknown>).nested as boolean;
+  }
+
   const toml: TomlConfig = {
     raw: tomlRaw,
     schemaVersion: 1,
     agents: {},
     defaultAgents,
+    nested,
   };
 
   // Collect rule markdown files
