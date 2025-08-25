@@ -164,3 +164,65 @@ export async function backupFile(filePath: string): Promise<void> {
 export async function ensureDirExists(dirPath: string): Promise<void> {
   await fs.mkdir(dirPath, { recursive: true });
 }
+
+/**
+ * Finds the global ruler configuration directory at XDG_CONFIG_HOME/ruler.
+ * Returns the path if it exists, null otherwise.
+ */
+export async function findGlobalRulerDir(): Promise<string | null> {
+  const globalConfigDir = path.join(getXdgConfigDir(), 'ruler');
+  try {
+    const stat = await fs.stat(globalConfigDir);
+    if (stat.isDirectory()) {
+      return globalConfigDir;
+    }
+  } catch {
+    // ignore if global config doesn't exist
+  }
+  return null;
+}
+
+/**
+ * Searches the entire directory tree from startPath to find all .ruler directories.
+ * Returns an array of .ruler directory paths from most specific to least specific.
+ */
+export async function findAllRulerDirs(startPath: string): Promise<string[]> {
+  const rulerDirs: string[] = [];
+
+  // Search the entire directory tree downwards from startPath
+  async function findRulerDirs(dir: string) {
+    try {
+      const entries = await fs.readdir(dir, { withFileTypes: true });
+      for (const entry of entries) {
+        const fullPath = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          if (entry.name === '.ruler') {
+            rulerDirs.push(fullPath);
+          } else {
+            // Recursively search subdirectories (but skip hidden directories like .git)
+            if (!entry.name.startsWith('.')) {
+              await findRulerDirs(fullPath);
+            }
+          }
+        }
+      }
+    } catch {
+      // ignore errors when reading directories
+    }
+  }
+
+  // Start searching from the startPath
+  await findRulerDirs(startPath);
+
+  // Sort by depth (most specific first) - deeper paths come first
+  rulerDirs.sort((a, b) => {
+    const depthA = a.split(path.sep).length;
+    const depthB = b.split(path.sep).length;
+    if (depthA !== depthB) {
+      return depthB - depthA; // Deeper paths first
+    }
+    return a.localeCompare(b); // Alphabetical for same depth
+  });
+
+  return rulerDirs;
+}

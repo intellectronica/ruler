@@ -16,6 +16,7 @@ export interface ApplyArgs {
   verbose: boolean;
   'dry-run': boolean;
   'local-only': boolean;
+  nested: boolean;
 }
 
 export interface InitArgs {
@@ -49,6 +50,7 @@ export async function applyHandler(argv: ApplyArgs): Promise<void> {
   const verbose = argv.verbose;
   const dryRun = argv['dry-run'];
   const localOnly = argv['local-only'];
+  const nested = argv.nested;
 
   // Determine gitignore preference: CLI > TOML > Default (enabled)
   // yargs handles --no-gitignore by setting gitignore to false
@@ -70,6 +72,7 @@ export async function applyHandler(argv: ApplyArgs): Promise<void> {
       verbose,
       dryRun,
       localOnly,
+      nested,
     );
     console.log('Ruler apply completed successfully.');
   } catch (err: unknown) {
@@ -110,6 +113,10 @@ export async function initHandler(argv: InitArgs): Promise<void> {
 # To specify which agents are active by default when --agents is not used,
 # uncomment and populate the following line. If omitted, all agents are active.
 # default_agents = ["copilot", "claude"]
+
+# Enable nested rule loading from nested .ruler directories
+# When enabled, ruler will search for and process .ruler directories throughout the project hierarchy
+# nested = false
 
 # --- Agent Specific Configurations ---
 # You can enable/disable agents and override their default output paths here.

@@ -20,7 +20,30 @@ describe('UnifiedConfigLoader integration', () => {
       'extra.md',
     ]);
   });
+
+  test('loads nested configuration option', async () => {
+    const unified = await loadUnifiedConfig({ projectRoot });
+    expect(unified.toml.nested).toBe(false); // Default should be false
+
+    // Test with nested = true in TOML
+    const tomlPath = path.join(projectRoot, '.ruler', 'ruler.toml');
+    const originalToml = await fs.readFile(tomlPath, 'utf8');
+    const modifiedToml = `default_agents = ["copilot"]
+nested = true
+
+[agents.copilot]
+output_path = ".github/copilot-instructions.md"
+`;
+    await fs.writeFile(tomlPath, modifiedToml, 'utf8');
+
+    try {
+      const unifiedWithNested = await loadUnifiedConfig({ projectRoot });
+      expect(unifiedWithNested.toml.nested).toBe(true);
+    } finally {
+      // Restore original TOML
+      await fs.writeFile(tomlPath, originalToml, 'utf8');
+    }
+  });
 });
 
 // Separate test for MCP once implemented
-
