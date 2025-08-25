@@ -552,6 +552,7 @@ async function handleMcpConfiguration(
     dest,
     agentConfig,
     config,
+    projectRoot,
     cliMcpStrategy,
     dryRun,
     verbose,
@@ -576,6 +577,7 @@ async function applyMcpConfiguration(
   dest: string,
   agentConfig: IAgentConfig | undefined,
   config: LoadedConfig,
+  projectRoot: string,
   cliMcpStrategy: McpStrategy | undefined,
   dryRun: boolean,
   verbose: boolean,
@@ -648,37 +650,6 @@ async function applyOpenCodeMcpConfiguration(
     );
   } else {
     await propagateMcpToOpenCode(filteredMcpJson, dest);
-  }
-}
-
-async function applyStandardMcpConfiguration(
-  agent: IAgent,
-  filteredMcpJson: Record<string, unknown>,
-  dest: string,
-  agentConfig: IAgentConfig | undefined,
-  config: LoadedConfig,
-  cliMcpStrategy: McpStrategy | undefined,
-  dryRun: boolean,
-  verbose: boolean,
-): Promise<void> {
-  const strategy =
-    cliMcpStrategy ??
-    agentConfig?.mcp?.strategy ??
-    config.mcp?.strategy ??
-    'merge';
-  const serverKey = agent.getMcpServerKey?.() ?? 'mcpServers';
-
-  logVerbose(
-    `Applying filtered MCP config for ${agent.getName()} with strategy: ${strategy} and key: ${serverKey}`,
-    verbose,
-  );
-
-  if (dryRun) {
-    logVerbose(`DRY RUN: Would apply MCP config to: ${dest}`, verbose);
-  } else {
-    const existing = await readNativeMcp(dest);
-    const merged = mergeMcp(existing, filteredMcpJson, strategy, serverKey);
-    await writeNativeMcp(dest, merged);
   }
 }
 
