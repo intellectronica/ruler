@@ -4,7 +4,7 @@ import * as FileSystemUtils from './core/FileSystemUtils';
 import { loadConfig } from './core/ConfigLoader';
 import { IAgent } from './agents/IAgent';
 import { allAgents } from './agents';
-import { createRulerError, logVerbose } from './constants';
+import { createRulerError, logVerbose, actionPrefix } from './constants';
 import {
   revertAgentConfiguration,
   cleanUpAuxiliaryFiles,
@@ -111,8 +111,8 @@ export async function revertAllAgentConfigs(
   let totalBackupsRemoved = 0;
 
   for (const agent of selected) {
-    const actionPrefix = dryRun ? '[ruler:dry-run]' : '[ruler]';
-    console.log(`${actionPrefix} Reverting ${agent.getName()}...`);
+    const prefix = actionPrefix(dryRun);
+    console.log(`${prefix} Reverting ${agent.getName()}...`);
 
     const agentConfig = config.agentConfigs[agent.getIdentifier()];
     const result = await revertAgentConfiguration(
@@ -145,12 +145,12 @@ export async function revertAllAgentConfigs(
       : false;
 
   // Display summary
-  const actionPrefix = dryRun ? '[ruler:dry-run]' : '[ruler]';
+  const prefix = actionPrefix(dryRun);
 
   if (dryRun) {
-    console.log(`${actionPrefix} Revert summary (dry run):`);
+    console.log(`${prefix} Revert summary (dry run):`);
   } else {
-    console.log(`${actionPrefix} Revert completed successfully.`);
+    console.log(`${prefix} Revert completed successfully.`);
   }
 
   console.log(`  Files processed: ${totalFilesProcessed}`);
@@ -198,13 +198,10 @@ async function cleanGitignore(
     return false;
   }
 
-  const actionPrefix = dryRun ? '[ruler:dry-run]' : '[ruler]';
+  const prefix = actionPrefix(dryRun);
 
   if (dryRun) {
-    logVerbose(
-      `${actionPrefix} Would remove ruler block from .gitignore`,
-      verbose,
-    );
+    logVerbose(`${prefix} Would remove ruler block from .gitignore`, verbose);
   } else {
     const beforeBlock = content.substring(0, startIndex);
     const afterBlock = content.substring(endIndex + endMarker.length);
@@ -214,13 +211,10 @@ async function cleanGitignore(
 
     if (newContent.trim() === '') {
       await fs.unlink(gitignorePath);
-      logVerbose(`${actionPrefix} Removed empty .gitignore file`, verbose);
+      logVerbose(`${prefix} Removed empty .gitignore file`, verbose);
     } else {
       await fs.writeFile(gitignorePath, newContent);
-      logVerbose(
-        `${actionPrefix} Removed ruler block from .gitignore`,
-        verbose,
-      );
+      logVerbose(`${prefix} Removed ruler block from .gitignore`, verbose);
     }
   }
 

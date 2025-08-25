@@ -3,6 +3,10 @@ export const ERROR_PREFIX = '[ruler]';
 // Legacy '.ruler/instructions.md' is still supported as a fallback with a warning.
 export const DEFAULT_RULES_FILENAME = 'AGENTS.md';
 
+export function actionPrefix(dry: boolean): string {
+  return dry ? '[ruler:dry-run]' : '[ruler]';
+}
+
 export function createRulerError(message: string, context?: string): Error {
   const fullMessage = context
     ? `${ERROR_PREFIX} ${message} (Context: ${context})`

@@ -227,4 +227,46 @@ describe('revert-engine', () => {
       expect(result.directoriesRemoved).toBeGreaterThanOrEqual(0);
     });
   });
+
+  describe('dry-run logging patterns', () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('should use [ruler:dry-run] prefix when dryRun is true', async () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+      
+      // Create a test file to trigger removal in removeAdditionalAgentFiles
+      const mcpFile = path.join(tmpDir, '.mcp.json');
+      await fs.writeFile(mcpFile, '{}');
+
+      await cleanUpAuxiliaryFiles(tmpDir, true, true); // verbose=true, dryRun=true
+      
+      const errorCalls = consoleErrorSpy.mock.calls.flat();
+      const hasRulerDryRunPrefix = errorCalls.some(call => 
+        typeof call === 'string' && call.includes('[ruler:dry-run]')
+      );
+      
+      expect(hasRulerDryRunPrefix).toBe(true);
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('should use [ruler] prefix when dryRun is false', async () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+      
+      // Create a test file to trigger removal in removeAdditionalAgentFiles
+      const mcpFile = path.join(tmpDir, '.mcp.json');
+      await fs.writeFile(mcpFile, '{}');
+
+      await cleanUpAuxiliaryFiles(tmpDir, true, false); // verbose=true, dryRun=false
+      
+      const errorCalls = consoleErrorSpy.mock.calls.flat();
+      const hasRulerPrefix = errorCalls.some(call => 
+        typeof call === 'string' && call.includes('[ruler]') && !call.includes('[ruler:dry-run]')
+      );
+      
+      expect(hasRulerPrefix).toBe(true);
+      consoleErrorSpy.mockRestore();
+    });
+  });
 });
