@@ -50,7 +50,7 @@ env = { API_TOKEN = "real-token-12345" }
     );
 
     // Verify OpenHands config exists and contains ONLY the user-defined servers
-    const openHandsConfigPath = path.join(tmpDir, '.openhands/config.toml');
+    const openHandsConfigPath = path.join(tmpDir, 'config.toml');
     const configExists = await fs.access(openHandsConfigPath).then(() => true).catch(() => false);
     expect(configExists).toBe(true);
 
@@ -111,7 +111,7 @@ args = ["toml-mcp-tool"]
       true   // local only
     );
 
-    const openHandsConfigPath = path.join(tmpDir, '.openhands/config.toml');
+    const openHandsConfigPath = path.join(tmpDir, 'config.toml');
     const configContent = await fs.readFile(openHandsConfigPath, 'utf8');
     
     // Should contain BOTH user-defined servers from merged sources
@@ -154,7 +154,7 @@ default_agents = ["openhands"]
     );
 
     // Should NOT create OpenHands config file when no servers are defined
-    const openHandsConfigPath = path.join(tmpDir, '.openhands/config.toml');
+    const openHandsConfigPath = path.join(tmpDir, 'config.toml');
     const configExists = await fs.access(openHandsConfigPath).then(() => true).catch(() => false);
     expect(configExists).toBe(false);
   });

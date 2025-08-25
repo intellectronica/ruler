@@ -235,7 +235,7 @@ File: extra-rules.md
       '.mcp.json', // Aider MCP config
       
       // OpenHands
-      '.openhands/config.toml',
+      'config.toml',
       '.openhands/microagents/repo.md',
       
       // Kilo Code
@@ -357,7 +357,7 @@ File: extra-rules.md
     // Verify TOML configuration files
     const tomlConfigFiles = [
       { path: '.codex/config.toml', mcpKey: 'mcp_servers' },
-      { path: '.openhands/config.toml', sectionKey: 'microagent' },
+      { path: 'config.toml', sectionKey: 'microagent' },
     ];
 
     for (const { path, mcpKey, sectionKey } of tomlConfigFiles) {
@@ -526,13 +526,13 @@ File: extra-rules.md
     }
 
     // Special verification for OpenHands TOML config
-    const openhandsConfigPath = path.join(projectRoot, '.openhands/config.toml');
+    const openhandsConfigPath = path.join(projectRoot, 'config.toml');
     try {
       const stat = await fs.stat(openhandsConfigPath);
       if (stat.isFile()) {
         const content = await fs.readFile(openhandsConfigPath, 'utf8');
         console.log('✓ OpenHands TOML configuration generated');
-        console.log('\n📄 OPENHANDS CONFIG (.openhands/config.toml):');
+        console.log('\n📄 OPENHANDS CONFIG (config.toml):');
         console.log('─'.repeat(50));
         console.log(content);
         console.log('─'.repeat(50));
