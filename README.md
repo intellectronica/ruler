@@ -52,9 +52,9 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 
 ## Supported AI Agents
 
-| Agent            | Rules File(s)                                    | MCP Configuration                                   |
+| Agent            | Rules File(s)                                    | MCP Configuration / Notes                           |
 | ---------------- | ------------------------------------------------ | --------------------------------------------------- |
-| AGENTS.md    | `AGENTS.md`                                      | -                                                   |
+| AGENTS.md        | `AGENTS.md`                                      | - (pseudo-agent ensuring root `AGENTS.md` exists)   |
 | GitHub Copilot   | `.github/copilot-instructions.md`                | `.vscode/mcp.json`                                  |
 | Claude Code      | `CLAUDE.md`                                      | `.mcp.json`                                         |
 | OpenAI Codex CLI | `AGENTS.md`                                      | `.codex/config.toml`, `~/.codex/config.json`        |
@@ -63,9 +63,9 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | Windsurf         | `.windsurf/rules/ruler_windsurf_instructions.md` | `~/.codeium/windsurf/mcp_config.json`               |
 | Cline            | `.clinerules`                                    | -                                                   |
 | Amp              | `AGENTS.md`                                      | -                                                   |
-| Aider            | `AGENTS.md`, `.aider.conf.yml` | `.mcp.json`                                         |
+| Aider            | `AGENTS.md`, `.aider.conf.yml`                   | `.mcp.json`                                         |
 | Firebase Studio  | `.idx/airules.md`                                | -                                                   |
-| Open Hands       | `.openhands/microagents/repo.md`                 | `.openhands/config.toml`                            |
+| Open Hands       | `.openhands/microagents/repo.md`                 | `.openhands/config.toml` (stdio + remote supported) |
 | Gemini CLI       | `AGENTS.md`                                      | `.gemini/settings.json`                             |
 | Junie            | `.junie/guidelines.md`                           | -                                                   |
 | AugmentCode      | `.augment/rules/ruler_augment_instructions.md`   | `.vscode/settings.json`                             |
@@ -73,7 +73,8 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | OpenCode         | `AGENTS.md`                                      | `opencode.json`, `~/.config/opencode/opencode.json` |
 | Goose            | `.goosehints`                                    | -                                                   |
 | Qwen Code        | `AGENTS.md`                                      | `.qwen/settings.json`                               |
-| Zed              | `AGENTS.md`                                      | `~/.zed/settings.json`                              |
+| Zed              | `AGENTS.md`                                      | `settings.json` (project root)                      |
+| Kiro             | `.kiro/steering/ruler_kiro_instructions.md`      | -                                                   |
 
 ## Getting Started
 
@@ -101,10 +102,9 @@ npx @intellectronica/ruler apply
 2. Run `ruler init`
 3. This creates:
   - `.ruler/` directory
-  - `.ruler/AGENTS.md`: The primary (new) starter Markdown file for your rules
-  - `.ruler/ruler.toml`: The main configuration file for Ruler
-  - `.ruler/mcp.json`: An example MCP server configuration
-  - (Optional legacy fallback) If you previously used `.ruler/instructions.md`, it is still respected when `AGENTS.md` is absent, with a one-time deprecation warning per process.
+  - `.ruler/AGENTS.md`: The primary starter Markdown file for your rules
+  - `.ruler/ruler.toml`: The main configuration file for Ruler (now contains sample MCP server sections; legacy `.ruler/mcp.json` no longer scaffolded)
+  - (Optional legacy fallback) If you previously used `.ruler/instructions.md`, it is still respected when `AGENTS.md` is absent. (The prior runtime warning was removed.)
 
 Additionally, you can create a global configuration to use when no local `.ruler/` directory is found:
 
@@ -123,7 +123,7 @@ This is your central hub for all AI agent instructions:
 - **Primary File Order & Precedence**:
   1. A repository root `AGENTS.md` (outside `.ruler/`) if present (highest precedence, prepended)
   2. `.ruler/AGENTS.md` (new default starter file)
-  3. Legacy `.ruler/instructions.md` (only if `.ruler/AGENTS.md` absent; emits a single deprecation warning per process)
+  3. Legacy `.ruler/instructions.md` (only if `.ruler/AGENTS.md` absent; no longer emits a deprecation warning)
   4. Remaining discovered `.md` files under `.ruler/` (and subdirectories) in sorted order
 - **Rule Files (`*.md`)**: Discovered recursively from `.ruler/` or `$XDG_CONFIG_HOME/ruler` and concatenated in the order above
 - **Concatenation Marker**: Each file's content is prepended with `--- Source: <relative_path_to_md_file> ---` for traceability
@@ -421,7 +421,7 @@ Authorization = "Bearer your-token"
 
 ### Legacy `.ruler/mcp.json` (Deprecated)
 
-For backward compatibility, you can still use the JSON format, but you'll receive a warning encouraging migration to TOML:
+For backward compatibility, you can still use the JSON format; a warning is issued encouraging migration to TOML. The file is no longer created during `ruler init`.
 
 ```json
 {
@@ -447,7 +447,7 @@ For backward compatibility, you can still use the JSON format, but you'll receiv
 When both TOML and JSON configurations are present:
 1. **TOML servers take precedence** over JSON servers with the same name
 2. **Servers are merged** from both sources (unless using overwrite strategy)
-3. **Deprecation warning** is shown encouraging migration to TOML
+3. **Deprecation warning** is shown encouraging migration to TOML (warning shown once per run)
 
 ### Server Types
 
@@ -461,7 +461,7 @@ args = ["server.js"]
 DEBUG = "1"
 ```
 
-**Remote servers** require a `url` field:
+**Remote servers** require a `url` field (headers optional; bearer Authorization token auto-extracted for OpenHands when possible):
 ```toml
 [mcp_servers.remote_server]  
 url = "https://api.example.com"
@@ -488,7 +488,7 @@ Ruler automatically manages your `.gitignore` file to keep generated agent confi
 - Preserves existing content outside this block
 - Sorts paths alphabetically and uses relative POSIX-style paths
 
-### Example `.gitignore` Section
+### Example `.gitignore` Section (sample - actual list depends on enabled agents)
 
 ```gitignore
 # Your existing rules
@@ -644,7 +644,19 @@ A: Ruler creates backups with `.bak` extension before overwriting any existing f
 A: Yes! Use `ruler apply --no-gitignore` in CI to avoid modifying `.gitignore`. See the GitHub Actions example above.
 
 **Q: How do I migrate from older versions using `instructions.md`?**
-A: Simply rename `.ruler/instructions.md` to `.ruler/AGENTS.md` (recommended). If you keep the legacy file and omit `AGENTS.md`, Ruler will still use it but will emit a one-time deprecation warning. Having both causes `AGENTS.md` to take precedence; the legacy file is still concatenated afterward.
+A: Simply rename `.ruler/instructions.md` to `.ruler/AGENTS.md` (recommended). If you keep the legacy file and omit `AGENTS.md`, Ruler will still use it (without emitting the old deprecation warning). Having both causes `AGENTS.md` to take precedence; the legacy file is still concatenated afterward.
+
+**Q: How does OpenHands MCP propagation classify servers?**
+A: Local stdio servers become `stdio_servers`. Remote URLs containing `/sse` are classified as `sse_servers`; others become `shttp_servers`. Bearer tokens in an `Authorization` header are extracted into `api_key` where possible.
+
+**Q: Where is Zed configuration written now?**
+A: Ruler writes a `settings.json` in the project root (not the user home dir) and transforms MCP server definitions to Zed's `context_servers` format including `source: "custom"`.
+
+**Q: What changed about MCP initialization?**
+A: `ruler init` now only adds example MCP server sections to `ruler.toml` instead of creating `.ruler/mcp.json`. The JSON file is still consumed if present, but TOML servers win on name conflicts.
+
+**Q: Is Kiro supported?**
+A: Yes. Kiro receives concatenated rules at `.kiro/steering/ruler_kiro_instructions.md`.
 
 ## Development
 
