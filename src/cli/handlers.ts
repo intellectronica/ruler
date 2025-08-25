@@ -201,7 +201,6 @@ export async function revertHandler(argv: RevertArgs): Promise<void> {
   const verbose = argv.verbose;
   const dryRun = argv['dry-run'];
   const localOnly = argv['local-only'];
-  const hierarchical = argv.hierarchical;
 
   try {
     await revertAllAgentConfigs(
@@ -212,7 +211,6 @@ export async function revertHandler(argv: RevertArgs): Promise<void> {
       verbose,
       dryRun,
       localOnly,
-      hierarchical,
     );
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
