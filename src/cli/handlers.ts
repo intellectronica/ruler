@@ -119,53 +119,25 @@ export async function initHandler(argv: InitArgs): Promise<void> {
 # enabled = true
 # output_path = ".github/copilot-instructions.md"
 
-# [agents.claude]
-# enabled = true
-# output_path = "CLAUDE.md"
-
-# [agents.codex]
-# enabled = true
-# output_path = "AGENTS.md"
-
-# [agents.cursor]
-# enabled = true
-# output_path = ".cursor/rules/ruler_cursor_instructions.mdc"
-
-# [agents.windsurf]
-# enabled = true
-# output_path = ".windsurf/rules/ruler_windsurf_instructions.md"
-
-# [agents.cline]
-# enabled = true
-# output_path = ".clinerules"
-
 # [agents.aider]
 # enabled = true
 # output_path_instructions = "AGENTS.md"
 # output_path_config = ".aider.conf.yml"
 
-# [agents.firebase]
-# enabled = true
-# output_path = ".idx/airules.md"
-
 # [agents.gemini-cli]
 # enabled = true
-
-# [agents.kilocode]
-# enabled = true
-# output_path = ".kilocode/rules/ruler_kilocode_instructions.md"
 
 # --- MCP Servers ---
 # Define Model Context Protocol servers here. Two examples:
 # 1. A stdio server (local executable)
 # 2. A remote server (HTTP-based)
 
-[mcp_servers.example_stdio]
+# [mcp_servers.example_stdio]
 # command = "node"
 # args = ["scripts/your-mcp-server.js"]
 # env = { API_KEY = "replace_me" }
 
-[mcp_servers.example_remote]
+# [mcp_servers.example_remote]
 # url = "https://api.example.com/mcp"
 # headers = { Authorization = "Bearer REPLACE_ME" }
 `;
