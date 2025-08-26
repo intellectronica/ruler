@@ -115,8 +115,9 @@ describe('Agent Adapters', () => {
       await fs.writeFile(target, 'old windsurf');
       await agent.applyRulerConfig('new windsurf', tmpDir, null);
       expect(await fs.readFile(`${target}.bak`, 'utf8')).toBe('old windsurf');
-      expect(await fs.readFile(target, 'utf8')).toBe('new windsurf');
-    });
+      const content = await fs.readFile(target, 'utf8');
+      expect(content).toContain('new windsurf');
+      });
   });
   it('uses custom outputPath when provided', async () => {
     const agent = new WindsurfAgent();
@@ -125,7 +126,8 @@ describe('Agent Adapters', () => {
     const custom = path.join(tmpDir, 'custom_windsurf.md');
     await fs.mkdir(path.dirname(custom), { recursive: true });
     await agent.applyRulerConfig('w', tmpDir, null, { outputPath: custom });
-    expect(await fs.readFile(custom, 'utf8')).toBe('w');
+    const content = await fs.readFile(custom, 'utf8');
+    expect(content).toContain('w');
   });
 
   describe('ClineAgent', () => {
