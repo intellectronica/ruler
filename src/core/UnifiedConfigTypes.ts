@@ -27,6 +27,7 @@ export interface TomlConfig {
   mcp?: McpToggleConfig;
   mcpServers?: Record<string, McpServerDef>;
   gitignore?: GitignoreConfig;
+  nested?: boolean;
 }
 
 export type McpToggleConfig = McpConfig;

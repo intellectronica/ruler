@@ -38,12 +38,14 @@ Managing instructions across multiple AI coding tools becomes complex as your te
 - **Duplicated effort** maintaining multiple config files
 - **Context drift** as project requirements evolve
 - **Onboarding friction** for new AI tools
+- **Complex project structures** requiring context-specific instructions for different components
 
-Ruler solves this by providing a **single source of truth** for all your AI agent instructions, automatically distributing them to the right configuration files.
+Ruler solves this by providing a **single source of truth** for all your AI agent instructions, automatically distributing them to the right configuration files. With support for **nested rule loading**, Ruler can handle complex project structures with context-specific instructions for different components.
 
 ## Core Features
 
 - **Centralised Rule Management**: Store all AI instructions in a dedicated `.ruler/` directory using Markdown files
+- **Nested Rule Loading**: Support complex project structures with multiple `.ruler/` directories for context-specific instructions
 - **Automatic Distribution**: Ruler applies these rules to configuration files of supported AI agents
 - **Targeted Agent Configuration**: Fine-tune which agents are affected and their specific output paths via `ruler.toml`
 - **MCP Server Propagation**: Manage and distribute Model Context Protocol (MCP) server settings
@@ -52,30 +54,30 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 
 ## Supported AI Agents
 
-| Agent            | Rules File(s)                                    | MCP Configuration / Notes                           |
-| ---------------- | ------------------------------------------------ | --------------------------------------------------- |
-| AGENTS.md        | `AGENTS.md`                                      | (pseudo-agent ensuring root `AGENTS.md` exists)   |
-| GitHub Copilot   | `.github/copilot-instructions.md`                | `.vscode/mcp.json`                                  |
-| Claude Code      | `CLAUDE.md`                                      | `.mcp.json`                                         |
-| OpenAI Codex CLI | `AGENTS.md`                                      | `.codex/config.toml`                                |
-| Jules            | `AGENTS.md`                                      | -                                                   |
-| Cursor           | `.cursor/rules/ruler_cursor_instructions.mdc`    | `.cursor/mcp.json`                                  |
-| Windsurf         | `.windsurf/rules/ruler_windsurf_instructions.md` | -                                                   |
-| Cline            | `.clinerules`                                    | -                                                   |
-| Amp              | `AGENTS.md`                                      | -                                                   |
-| Aider            | `AGENTS.md`, `.aider.conf.yml`                   | `.mcp.json`                                         |
-| Firebase Studio  | `.idx/airules.md`                                | -                                                   |
-| Open Hands       | `.openhands/microagents/repo.md`                 | `.openhands/config.toml`  |
-| Gemini CLI       | `AGENTS.md`                                      | `.gemini/settings.json`                             |
-| Junie            | `.junie/guidelines.md`                           | -                                                   |
-| AugmentCode      | `.augment/rules/ruler_augment_instructions.md`   | `.vscode/settings.json`                             |
-| Kilo Code        | `.kilocode/rules/ruler_kilocode_instructions.md` | `.kilocode/mcp.json`                                |
-| opencode         | `AGENTS.md`                                      | `opencode.json`  |
-| Goose            | `.goosehints`                                    | -                                                   |
-| Qwen Code        | `AGENTS.md`                                      | `.qwen/settings.json`                               |
-| Zed              | `AGENTS.md`                                      | `.zed/settings.json` (project root, never $HOME)    |
-| Warp             | `WARP.md`                                        | -                                                   |
-| Kiro             | `.kiro/steering/ruler_kiro_instructions.md`      | -                                                   |
+| Agent            | Rules File(s)                                    | MCP Configuration / Notes                        |
+| ---------------- | ------------------------------------------------ | ------------------------------------------------ |
+| AGENTS.md        | `AGENTS.md`                                      | (pseudo-agent ensuring root `AGENTS.md` exists)  |
+| GitHub Copilot   | `.github/copilot-instructions.md`                | `.vscode/mcp.json`                               |
+| Claude Code      | `CLAUDE.md`                                      | `.mcp.json`                                      |
+| OpenAI Codex CLI | `AGENTS.md`                                      | `.codex/config.toml`                             |
+| Jules            | `AGENTS.md`                                      | -                                                |
+| Cursor           | `.cursor/rules/ruler_cursor_instructions.mdc`    | `.cursor/mcp.json`                               |
+| Windsurf         | `.windsurf/rules/ruler_windsurf_instructions.md` | -                                                |
+| Cline            | `.clinerules`                                    | -                                                |
+| Amp              | `AGENTS.md`                                      | -                                                |
+| Aider            | `AGENTS.md`, `.aider.conf.yml`                   | `.mcp.json`                                      |
+| Firebase Studio  | `.idx/airules.md`                                | -                                                |
+| Open Hands       | `.openhands/microagents/repo.md`                 | `.openhands/config.toml`                         |
+| Gemini CLI       | `AGENTS.md`                                      | `.gemini/settings.json`                          |
+| Junie            | `.junie/guidelines.md`                           | -                                                |
+| AugmentCode      | `.augment/rules/ruler_augment_instructions.md`   | `.vscode/settings.json`                          |
+| Kilo Code        | `.kilocode/rules/ruler_kilocode_instructions.md` | `.kilocode/mcp.json`                             |
+| opencode         | `AGENTS.md`                                      | `opencode.json`                                  |
+| Goose            | `.goosehints`                                    | -                                                |
+| Qwen Code        | `AGENTS.md`                                      | `.qwen/settings.json`                            |
+| Zed              | `AGENTS.md`                                      | `.zed/settings.json` (project root, never $HOME) |
+| Warp             | `WARP.md`                                        | -                                                |
+| Kiro             | `.kiro/steering/ruler_kiro_instructions.md`      | -                                                |
 
 ## Getting Started
 
@@ -133,6 +135,39 @@ This is your central hub for all AI agent instructions:
 
 This ordering lets you keep a short, high-impact root `AGENTS.md` (e.g. executive project summary) while housing detailed guidance inside `.ruler/`.
 
+### Nested Rule Loading
+
+Ruler now supports **nested rule loading** with the `--nested` flag, enabling context-specific instructions for different parts of your project:
+
+```
+project/
+├── .ruler/           # Global project rules
+│   ├── AGENTS.md
+│   └── coding_style.md
+├── src/
+│   └── .ruler/       # Component-specific rules
+│       └── api_guidelines.md
+├── tests/
+│   └── .ruler/       # Test-specific rules
+│       └── testing_conventions.md
+└── docs/
+    └── .ruler/       # Documentation rules
+        └── writing_style.md
+```
+
+**How it works:**
+
+- Discover all `.ruler/` directories in the project hierarchy
+- Load and concatenate rules from each directory in order
+- Enable with: `ruler apply --nested`
+
+**Perfect for:**
+
+- Monorepos with multiple services
+- Projects with distinct components (frontend/backend)
+- Teams needing different instructions for different areas
+- Complex codebases with varying standards
+
 ### Best Practices for Rule Files
 
 **Granularity**: Break down complex instructions into focused `.md` files:
@@ -176,18 +211,18 @@ The `apply` command looks for `.ruler/` in the current directory tree, reading t
 
 ### Options
 
-| Option                         | Description                                                                                                                                                |
-| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--project-root <path>`        | Path to your project's root (default: current directory)                                                                                                   |
+| Option                         | Description                                                                                                                                                                     |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--project-root <path>`        | Path to your project's root (default: current directory)                                                                                                                        |
 | `--agents <agent1,agent2,...>` | Comma-separated list of agent names to target (agentsmd, amp, copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, junie, augmentcode, kilocode, warp) |
-| `--config <path>`              | Path to a custom `ruler.toml` configuration file                                                                                                           |
-| `--mcp` / `--with-mcp`         | Enable applying MCP server configurations (default: true)                                                                                                  |
-| `--no-mcp`                     | Disable applying MCP server configurations                                                                                                                 |
-| `--mcp-overwrite`              | Overwrite native MCP config entirely instead of merging                                                                                                    |
-| `--gitignore`                  | Enable automatic .gitignore updates (default: true)                                                                                                        |
-| `--no-gitignore`               | Disable automatic .gitignore updates                                                                                                                       |
-| `--local-only`                 | Do not look for configuration in `$XDG_CONFIG_HOME`                                                                                                        |
-| `--verbose` / `-v`             | Display detailed output during execution                                                                                                                   |
+| `--config <path>`              | Path to a custom `ruler.toml` configuration file                                                                                                                                |
+| `--mcp` / `--with-mcp`         | Enable applying MCP server configurations (default: true)                                                                                                                       |
+| `--no-mcp`                     | Disable applying MCP server configurations                                                                                                                                      |
+| `--mcp-overwrite`              | Overwrite native MCP config entirely instead of merging                                                                                                                         |
+| `--gitignore`                  | Enable automatic .gitignore updates (default: true)                                                                                                                             |
+| `--no-gitignore`               | Disable automatic .gitignore updates                                                                                                                                            |
+| `--local-only`                 | Do not look for configuration in `$XDG_CONFIG_HOME`                                                                                                                             |
+| `--verbose` / `-v`             | Display detailed output during execution                                                                                                                                        |
 
 ### Common Examples
 
@@ -254,15 +289,15 @@ ruler revert [options]
 
 ### Options
 
-| Option                         | Description                                                                                                                                             |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--project-root <path>`        | Path to your project's root (default: current directory)                                                                                                |
+| Option                         | Description                                                                                                                                                                  |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--project-root <path>`        | Path to your project's root (default: current directory)                                                                                                                     |
 | `--agents <agent1,agent2,...>` | Comma-separated list of agent names to revert (agentsmd, amp, copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, junie, kilocode, opencode, warp) |
-| `--config <path>`              | Path to a custom `ruler.toml` configuration file                                                                                                        |
-| `--keep-backups`               | Keep backup files (.bak) after restoration (default: false)                                                                                             |
-| `--dry-run`                    | Preview changes without actually reverting files                                                                                                        |
-| `--verbose` / `-v`             | Display detailed output during execution                                                                                                                |
-| `--local-only`                 | Only search for local .ruler directories, ignore global config                                                                                          |
+| `--config <path>`              | Path to a custom `ruler.toml` configuration file                                                                                                                             |
+| `--keep-backups`               | Keep backup files (.bak) after restoration (default: false)                                                                                                                  |
+| `--dry-run`                    | Preview changes without actually reverting files                                                                                                                             |
+| `--verbose` / `-v`             | Display detailed output during execution                                                                                                                                     |
+| `--local-only`                 | Only search for local .ruler directories, ignore global config                                                                                                               |
 
 ### Common Examples
 
@@ -322,7 +357,7 @@ command = "npx"
 args = ["-y", "@modelcontextprotocol/server-filesystem", "/path/to/project"]
 
 [mcp_servers.git]
-command = "npx" 
+command = "npx"
 args = ["-y", "@modelcontextprotocol/server-git", "--repository", "."]
 
 [mcp_servers.remote_api]
@@ -456,6 +491,7 @@ For backward compatibility, you can still use the JSON format; a warning is issu
 ### Configuration Precedence
 
 When both TOML and JSON configurations are present:
+
 1. **TOML servers take precedence** over JSON servers with the same name
 2. **Servers are merged** from both sources (unless using overwrite strategy)
 3. **Deprecation warning** is shown encouraging migration to TOML (warning shown once per run)
@@ -463,6 +499,7 @@ When both TOML and JSON configurations are present:
 ### Server Types
 
 **Local/stdio servers** require a `command` field:
+
 ```toml
 [mcp_servers.local_server]
 command = "node"
@@ -474,7 +511,7 @@ DEBUG = "1"
 
 **Remote servers** require a `url` field (headers optional; bearer Authorization token auto-extracted for OpenHands when possible):
 ```toml
-[mcp_servers.remote_server]  
+[mcp_servers.remote_server]
 url = "https://api.example.com"
 
 [mcp_servers.remote_server.headers]
@@ -486,6 +523,7 @@ Ruler uses this configuration with the `merge` (default) or `overwrite` strategy
 **Home Directory Safety:** Ruler never writes MCP configuration files outside your project root. Any historical references to user home directories (e.g. `~/.codeium/windsurf/mcp_config.json` or `~/.zed/settings.json`) have been removed; only project-local paths are targeted.
 
 **Note for OpenAI Codex CLI:** To apply the local Codex CLI MCP configuration, set the `CODEX_HOME` environment variable to your project’s `.codex` directory:
+
 ```bash
 export CODEX_HOME="$(pwd)/.codex"
 ```
@@ -545,7 +583,26 @@ ruler init
 ruler apply
 ```
 
-### Scenario 2: Team Standardization
+### Scenario 2: Complex Projects with Nested Rules
+
+For large projects with multiple components or services, use nested rule loading:
+
+```bash
+# Set up nested .ruler directories
+mkdir -p src/.ruler tests/.ruler docs/.ruler
+
+# Add component-specific instructions
+echo "# API Design Guidelines" > src/.ruler/api_rules.md
+echo "# Testing Best Practices" > tests/.ruler/test_rules.md
+echo "# Documentation Standards" > docs/.ruler/docs_rules.md
+
+# Apply with nested loading
+ruler apply --nested --verbose
+```
+
+This creates context-specific instructions for different parts of your project while maintaining global rules in the root `.ruler/` directory.
+
+### Scenario 3: Team Standardization
 
 1. Create `.ruler/coding_standards.md`, `.ruler/api_usage.md`
 2. Commit the `.ruler` directory to your repository
@@ -646,6 +703,9 @@ This shows:
 
 **Q: Can I use different rules for different agents?**
 A: Currently, all agents receive the same concatenated rules. For agent-specific instructions, include sections in your rule files like "## GitHub Copilot Specific" or "## Aider Configuration".
+
+**Q: How do I set up different instructions for different parts of my project?**
+A: Use the `--nested` flag with `ruler apply --nested`. This enables Ruler to discover and load rules from multiple `.ruler/` directories throughout your project hierarchy. Place component-specific instructions in `src/.ruler/`, test-specific rules in `tests/.ruler/`, etc., while keeping global rules in the root `.ruler/` directory.
 
 **Q: How do I temporarily disable Ruler for an agent?**
 A: Set `enabled = false` in `ruler.toml` under `[agents.agentname]`, or use `--agents` flag to specify only the agents you want.

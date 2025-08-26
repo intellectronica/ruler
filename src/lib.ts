@@ -1,13 +1,16 @@
-import { IAgent } from './agents/IAgent';
+import { IAgent, IAgentConfig } from './agents/IAgent';
 import { allAgents } from './agents';
 import { McpStrategy } from './types';
 import { logVerbose } from './constants';
 import {
-  loadRulerConfiguration,
+  loadSingleConfiguration,
   selectAgentsToRun,
-  applyConfigurationsToAgents,
+  processHierarchicalConfigurations,
+  processSingleConfiguration,
   updateGitignore,
+  loadNestedConfigurations,
 } from './core/apply-engine';
+import { type LoadedConfig } from './core/ConfigLoader';
 import { mapRawAgentConfigs } from './core/config-utils';
 
 const agents: IAgent[] = allAgents;
@@ -33,6 +36,7 @@ export async function applyAllAgentConfigs(
   verbose = false,
   dryRun = false,
   localOnly = false,
+  nested = false,
 ): Promise<void> {
   // Load configuration and rules
   logVerbose(
@@ -43,56 +47,108 @@ export async function applyAllAgentConfigs(
     logVerbose(`Using custom config path: ${configPath}`, verbose);
   }
 
-  const rulerConfiguration = await loadRulerConfiguration(
-    projectRoot,
-    configPath,
-    localOnly,
-  );
+  let selectedAgents: IAgent[];
+  let generatedPaths: string[];
+  let loadedConfig: LoadedConfig;
 
-  // Add CLI agents to the configuration
-  rulerConfiguration.config.cliAgents = includedAgents;
+  if (nested) {
+    const hierarchicalConfigs = await loadNestedConfigurations(
+      projectRoot,
+      configPath,
+      localOnly,
+    );
 
-  logVerbose(
-    `Loaded configuration with ${Object.keys(rulerConfiguration.config.agentConfigs).length} agent configs`,
-    verbose,
-  );
-  logVerbose(
-    `Found .ruler directory with ${rulerConfiguration.concatenatedRules.length} characters of rules`,
-    verbose,
-  );
+    if (hierarchicalConfigs.length === 0) {
+      throw new Error('No .ruler directories found');
+    }
 
-  // Normalize per-agent config keys to agent identifiers (exact match or substring match)
-  rulerConfiguration.config.agentConfigs = mapRawAgentConfigs(
-    rulerConfiguration.config.agentConfigs,
-    agents,
-  );
+    // Use the root config for agent selection (all levels share the same agent settings)
+    const rootConfig = hierarchicalConfigs[0].config;
+    loadedConfig = rootConfig;
+    rootConfig.cliAgents = includedAgents;
 
-  // Select agents to run
-  const selectedAgents = selectAgentsToRun(agents, rulerConfiguration.config);
-  logVerbose(
-    `Selected ${selectedAgents.length} agents: ${selectedAgents.map((a) => a.getName()).join(', ')}`,
-    verbose,
-  );
+    logVerbose(
+      `Loaded ${hierarchicalConfigs.length} .ruler directory configurations`,
+      verbose,
+    );
+    logVerbose(
+      `Root configuration has ${Object.keys(rootConfig.agentConfigs).length} agent configs`,
+      verbose,
+    );
 
-  // Apply configurations to agents
-  const generatedPaths = await applyConfigurationsToAgents(
-    selectedAgents,
-    rulerConfiguration.concatenatedRules,
-    rulerConfiguration.rulerMcpJson,
-    rulerConfiguration.config,
-    projectRoot,
-    verbose,
-    dryRun,
-    cliMcpEnabled,
-    cliMcpStrategy,
-  );
+    normalizeAgentConfigs(rootConfig, agents);
 
-  // Update .gitignore
+    selectedAgents = selectAgentsToRun(agents, rootConfig);
+    logVerbose(
+      `Selected ${selectedAgents.length} agents: ${selectedAgents.map((a) => a.getName()).join(', ')}`,
+      verbose,
+    );
+
+    generatedPaths = await processHierarchicalConfigurations(
+      selectedAgents,
+      hierarchicalConfigs,
+      verbose,
+      dryRun,
+      cliMcpEnabled,
+      cliMcpStrategy,
+    );
+  } else {
+    const singleConfig = await loadSingleConfiguration(
+      projectRoot,
+      configPath,
+      localOnly,
+    );
+
+    loadedConfig = singleConfig.config;
+    singleConfig.config.cliAgents = includedAgents;
+
+    logVerbose(
+      `Loaded configuration with ${Object.keys(singleConfig.config.agentConfigs).length} agent configs`,
+      verbose,
+    );
+    logVerbose(
+      `Found .ruler directory with ${singleConfig.concatenatedRules.length} characters of rules`,
+      verbose,
+    );
+
+    normalizeAgentConfigs(singleConfig.config, agents);
+
+    selectedAgents = selectAgentsToRun(agents, singleConfig.config);
+    logVerbose(
+      `Selected ${selectedAgents.length} agents: ${selectedAgents.map((a) => a.getName()).join(', ')}`,
+      verbose,
+    );
+
+    generatedPaths = await processSingleConfiguration(
+      selectedAgents,
+      singleConfig,
+      projectRoot,
+      verbose,
+      dryRun,
+      cliMcpEnabled,
+      cliMcpStrategy,
+    );
+  }
+
   await updateGitignore(
     projectRoot,
     generatedPaths,
-    rulerConfiguration.config,
+    loadedConfig,
     cliGitignoreEnabled,
     dryRun,
   );
+}
+
+/**
+ * Normalizes per-agent config keys to agent identifiers for consistent lookup.
+ * Maps both exact identifier matches and substring matches with agent names.
+ * @param config The configuration object to normalize
+ * @param agents Array of available agents
+ */
+function normalizeAgentConfigs(
+  config: { agentConfigs: Record<string, IAgentConfig> },
+  agents: IAgent[],
+): void {
+  // Normalize per-agent config keys to agent identifiers (exact match or substring match)
+  config.agentConfigs = mapRawAgentConfigs(config.agentConfigs, agents);
 }

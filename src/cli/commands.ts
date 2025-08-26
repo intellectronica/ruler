@@ -61,6 +61,12 @@ export function run(): void {
             description:
               'Only search for local .ruler directories, ignore global config',
             default: false,
+          })
+          .option('nested', {
+            type: 'boolean',
+            description:
+              'Enable nested rule loading from nested .ruler directories (default: disabled)',
+            default: false,
           });
       },
       applyHandler,
