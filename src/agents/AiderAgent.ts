@@ -23,6 +23,7 @@ export class AiderAgent implements IAgent {
     projectRoot: string,
     rulerMcpJson: Record<string, unknown> | null,
     agentConfig?: IAgentConfig,
+    backup = true,
   ): Promise<void> {
     // First perform idempotent AGENTS.md write via composed AgentsMdAgent
     await this.agentsMdAgent.applyRulerConfig(
@@ -36,6 +37,7 @@ export class AiderAgent implements IAgent {
           agentConfig?.outputPathInstructions ||
           undefined,
       },
+      backup,
     );
 
     // Now handle .aider.conf.yml configuration
@@ -50,7 +52,9 @@ export class AiderAgent implements IAgent {
     let doc: AiderConfig = {} as AiderConfig;
     try {
       await fs.access(cfgPath);
-      await backupFile(cfgPath);
+      if (backup) {
+        await backupFile(cfgPath);
+      }
       const raw = await fs.readFile(cfgPath, 'utf8');
       doc = (yaml.load(raw) || {}) as AiderConfig;
     } catch {

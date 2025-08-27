@@ -321,6 +321,7 @@ export async function processHierarchicalConfigurations(
   dryRun: boolean,
   cliMcpEnabled: boolean,
   cliMcpStrategy?: McpStrategy,
+  backup = true,
 ): Promise<string[]> {
   const allGeneratedPaths: string[] = [];
 
@@ -337,6 +338,7 @@ export async function processHierarchicalConfigurations(
       dryRun,
       cliMcpEnabled,
       cliMcpStrategy,
+      backup,
     );
     allGeneratedPaths.push(...paths);
   }
@@ -364,6 +366,7 @@ export async function processSingleConfiguration(
   dryRun: boolean,
   cliMcpEnabled: boolean,
   cliMcpStrategy?: McpStrategy,
+  backup = true,
 ): Promise<string[]> {
   return await applyConfigurationsToAgents(
     agents,
@@ -375,6 +378,7 @@ export async function processSingleConfiguration(
     dryRun,
     cliMcpEnabled,
     cliMcpStrategy,
+    backup,
   );
 }
 
@@ -399,6 +403,7 @@ export async function applyConfigurationsToAgents(
   dryRun: boolean,
   cliMcpEnabled = true,
   cliMcpStrategy?: McpStrategy,
+  backup = true,
 ): Promise<string[]> {
   const generatedPaths: string[] = [];
   let agentsMdWritten = false;
@@ -417,9 +422,11 @@ export async function applyConfigurationsToAgents(
     );
     generatedPaths.push(...outputPaths);
 
-    // Also add the backup file paths to the gitignore list
-    const backupPaths = outputPaths.map((p) => `${p}.bak`);
-    generatedPaths.push(...backupPaths);
+    // Only add the backup file paths to the gitignore list if backups are enabled
+    if (backup) {
+      const backupPaths = outputPaths.map((p) => `${p}.bak`);
+      generatedPaths.push(...backupPaths);
+    }
 
     if (dryRun) {
       logVerbose(
@@ -462,6 +469,7 @@ export async function applyConfigurationsToAgents(
           projectRoot,
           rulerMcpJson,
           finalAgentConfig,
+          backup,
         );
       }
     }
@@ -478,6 +486,7 @@ export async function applyConfigurationsToAgents(
       dryRun,
       cliMcpEnabled,
       cliMcpStrategy,
+      backup,
     );
   }
 
@@ -495,6 +504,7 @@ async function handleMcpConfiguration(
   dryRun: boolean,
   cliMcpEnabled = true,
   cliMcpStrategy?: McpStrategy,
+  backup = true,
 ): Promise<void> {
   if (!agentSupportsMcp(agent)) {
     logVerbose(
@@ -521,7 +531,7 @@ async function handleMcpConfiguration(
     return;
   }
 
-  await updateGitignoreForMcpFile(dest, projectRoot, generatedPaths);
+  await updateGitignoreForMcpFile(dest, projectRoot, generatedPaths, backup);
   await applyMcpConfiguration(
     agent,
     filteredMcpJson,
@@ -532,6 +542,7 @@ async function handleMcpConfiguration(
     cliMcpStrategy,
     dryRun,
     verbose,
+    backup,
   );
 }
 
@@ -539,11 +550,14 @@ async function updateGitignoreForMcpFile(
   dest: string,
   projectRoot: string,
   generatedPaths: string[],
+  backup = true,
 ): Promise<void> {
   if (dest.startsWith(projectRoot)) {
     const relativeDest = path.relative(projectRoot, dest);
     generatedPaths.push(relativeDest);
-    generatedPaths.push(`${relativeDest}.bak`);
+    if (backup) {
+      generatedPaths.push(`${relativeDest}.bak`);
+    }
   }
 }
 
@@ -557,6 +571,7 @@ async function applyMcpConfiguration(
   cliMcpStrategy: McpStrategy | undefined,
   dryRun: boolean,
   verbose: boolean,
+  backup = true,
 ): Promise<void> {
   // Prevent writing MCP configs outside the project root (e.g., legacy home-directory targets)
   if (!dest.startsWith(projectRoot)) {
@@ -573,6 +588,7 @@ async function applyMcpConfiguration(
       dest,
       dryRun,
       verbose,
+      backup,
     );
   }
 
@@ -582,6 +598,7 @@ async function applyMcpConfiguration(
       dest,
       dryRun,
       verbose,
+      backup,
     );
   }
 
@@ -594,6 +611,7 @@ async function applyMcpConfiguration(
     cliMcpStrategy,
     dryRun,
     verbose,
+    backup,
   );
 }
 
@@ -602,6 +620,7 @@ async function applyOpenHandsMcpConfiguration(
   dest: string,
   dryRun: boolean,
   verbose: boolean,
+  backup = true,
 ): Promise<void> {
   if (dryRun) {
     logVerbose(
@@ -609,7 +628,7 @@ async function applyOpenHandsMcpConfiguration(
       verbose,
     );
   } else {
-    await propagateMcpToOpenHands(filteredMcpJson, dest);
+    await propagateMcpToOpenHands(filteredMcpJson, dest, backup);
   }
 }
 
@@ -618,6 +637,7 @@ async function applyOpenCodeMcpConfiguration(
   dest: string,
   dryRun: boolean,
   verbose: boolean,
+  backup = true,
 ): Promise<void> {
   if (dryRun) {
     logVerbose(
@@ -625,7 +645,7 @@ async function applyOpenCodeMcpConfiguration(
       verbose,
     );
   } else {
-    await propagateMcpToOpenCode(filteredMcpJson, dest);
+    await propagateMcpToOpenCode(filteredMcpJson, dest, backup);
   }
 }
 
@@ -638,6 +658,7 @@ async function applyStandardMcpConfiguration(
   cliMcpStrategy: McpStrategy | undefined,
   dryRun: boolean,
   verbose: boolean,
+  backup = true,
 ): Promise<void> {
   const strategy =
     cliMcpStrategy ??
@@ -654,6 +675,10 @@ async function applyStandardMcpConfiguration(
   if (dryRun) {
     logVerbose(`DRY RUN: Would apply MCP config to: ${dest}`, verbose);
   } else {
+    if (backup) {
+      const { backupFile } = await import('../core/FileSystemUtils');
+      await backupFile(dest);
+    }
     const existing = await readNativeMcp(dest);
     const merged = mergeMcp(existing, filteredMcpJson, strategy, serverKey);
     await writeNativeMcp(dest, merged);
@@ -674,6 +699,7 @@ export async function updateGitignore(
   config: LoadedConfig,
   cliGitignoreEnabled: boolean | undefined,
   dryRun: boolean,
+  backup = true,
 ): Promise<void> {
   // Configuration precedence: CLI > TOML > Default (enabled)
   let gitignoreEnabled: boolean;
@@ -688,8 +714,10 @@ export async function updateGitignore(
   if (gitignoreEnabled && generatedPaths.length > 0) {
     const uniquePaths = [...new Set(generatedPaths)];
 
-    // Add wildcard pattern for backup files
-    uniquePaths.push('*.bak');
+    // Add wildcard pattern for backup files only if backup is enabled
+    if (backup) {
+      uniquePaths.push('*.bak');
+    }
 
     if (uniquePaths.length > 0) {
       const prefix = actionPrefix(dryRun);

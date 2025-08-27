@@ -37,6 +37,7 @@ describe('CLI Handlers', () => {
         'dry-run': false,
         'local-only': false,
         nested: false,
+        backup: true,
       };
 
       await applyHandler(argv);
@@ -52,6 +53,7 @@ describe('CLI Handlers', () => {
         false,
         false,
         false,
+        true,
       );
     });
 
@@ -64,6 +66,7 @@ describe('CLI Handlers', () => {
         'dry-run': false,
         'local-only': false,
         nested: false,
+        backup: true,
       };
 
       await applyHandler(argv);
@@ -79,6 +82,7 @@ describe('CLI Handlers', () => {
         false,
         false,
         false,
+        true,
       );
     });
 
@@ -92,6 +96,7 @@ describe('CLI Handlers', () => {
         'dry-run': false,
         'local-only': false,
         nested: false,
+        backup: true,
       };
 
       await applyHandler(argv);
@@ -107,6 +112,7 @@ describe('CLI Handlers', () => {
         false,
         false,
         false,
+        true,
       );
     });
 
@@ -119,6 +125,7 @@ describe('CLI Handlers', () => {
         'dry-run': false,
         'local-only': false,
         nested: false,
+        backup: true,
       };
 
       await applyHandler(argv);
@@ -134,6 +141,7 @@ describe('CLI Handlers', () => {
         false,
         false,
         false,
+        true,
       );
     });
 
@@ -156,6 +164,7 @@ describe('CLI Handlers', () => {
         'dry-run': false,
         'local-only': false,
         nested: false,
+        backup: true,
       };
 
       await expect(applyHandler(argv)).rejects.toThrow('process.exit: 1');

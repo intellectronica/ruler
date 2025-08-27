@@ -1,0 +1,296 @@
+import * as fs from 'fs/promises';
+import * as path from 'path';
+import { setupTestProject, teardownTestProject, runRuler } from './harness';
+
+describe('backup option', () => {
+  let testProject: { projectRoot: string };
+
+  beforeEach(async () => {
+    testProject = await setupTestProject({
+      '.ruler/AGENTS.md': '# Test Rules\n\nSome test rules here.',
+      '.ruler/ruler.toml': '# Test config\ndefault_agents = ["copilot"]\n',
+      '.github/copilot-instructions.md': '# Existing file\nThis should be backed up.',
+    });
+  });
+
+  afterEach(async () => {
+    await teardownTestProject(testProject.projectRoot);
+  });
+
+  it('creates .bak files by default', async () => {
+    const { projectRoot } = testProject;
+    const targetFile = path.join(projectRoot, '.github', 'copilot-instructions.md');
+    const backupFile = path.join(projectRoot, '.github', 'copilot-instructions.md.bak');
+    
+    runRuler('apply', projectRoot);
+    
+    // Check that backup file was created
+    const backupExists = await fs.access(backupFile).then(() => true).catch(() => false);
+    expect(backupExists).toBe(true);
+    
+    // Check backup file content matches original
+    const backupContent = await fs.readFile(backupFile, 'utf8');
+    expect(backupContent).toBe('# Existing file\nThis should be backed up.');
+  });
+
+  it('creates .bak files with --backup flag', async () => {
+    const { projectRoot } = testProject;
+    const targetFile = path.join(projectRoot, '.github', 'copilot-instructions.md');
+    const backupFile = path.join(projectRoot, '.github', 'copilot-instructions.md.bak');
+    
+    runRuler('apply --backup', projectRoot);
+    
+    // Check that backup file was created
+    const backupExists = await fs.access(backupFile).then(() => true).catch(() => false);
+    expect(backupExists).toBe(true);
+    
+    // Check backup file content matches original
+    const backupContent = await fs.readFile(backupFile, 'utf8');
+    expect(backupContent).toBe('# Existing file\nThis should be backed up.');
+  });
+
+  it('does not create .bak files with --no-backup flag', async () => {
+    const { projectRoot } = testProject;
+    const targetFile = path.join(projectRoot, '.github', 'copilot-instructions.md');
+    const backupFile = path.join(projectRoot, '.github', 'copilot-instructions.md.bak');
+    
+    runRuler('apply --no-backup', projectRoot);
+    
+    // Check that backup file was NOT created
+    const backupExists = await fs.access(backupFile).then(() => true).catch(() => false);
+    expect(backupExists).toBe(false);
+    
+    // Check that the target file was still updated
+    const targetContent = await fs.readFile(targetFile, 'utf8');
+    expect(targetContent).toContain('# Test Rules');
+    expect(targetContent).toContain('Some test rules here.');
+  });
+
+  it('does not add .bak paths to .gitignore with --no-backup', async () => {
+    const { projectRoot } = testProject;
+    const gitignoreFile = path.join(projectRoot, '.gitignore');
+    
+    runRuler('apply --no-backup', projectRoot);
+    
+    // Check .gitignore content
+    const gitignoreContent = await fs.readFile(gitignoreFile, 'utf8');
+    
+    // Should not contain *.bak pattern
+    expect(gitignoreContent).not.toContain('*.bak');
+    
+    // Should still contain the main generated file path
+    expect(gitignoreContent).toContain('.github/copilot-instructions.md');
+  });
+
+  it('adds .bak paths to .gitignore with --backup (default)', async () => {
+    const { projectRoot } = testProject;
+    const gitignoreFile = path.join(projectRoot, '.gitignore');
+    
+    runRuler('apply --backup', projectRoot);
+    
+    // Check .gitignore content
+    const gitignoreContent = await fs.readFile(gitignoreFile, 'utf8');
+    
+    // Should contain *.bak pattern
+    expect(gitignoreContent).toContain('*.bak');
+    
+    // Should also contain specific backup paths
+    expect(gitignoreContent).toContain('.github/copilot-instructions.md.bak');
+  });
+
+  describe('agents with custom applyRulerConfig implementations', () => {
+    it('AgentsMdAgent respects --no-backup flag', async () => {
+      const testProject = await setupTestProject({
+        '.ruler/AGENTS.md': '# Test Rules for AgentsMd\nCustom rules for AGENTS.md',
+        '.ruler/ruler.toml': 'default_agents = ["agentsmd"]\n',
+        'AGENTS.md': '# Existing AGENTS.md\nThis should not be backed up.',
+      });
+      
+      try {
+        const { projectRoot } = testProject;
+        const backupFile = path.join(projectRoot, 'AGENTS.md.bak');
+        
+        runRuler('apply --no-backup', projectRoot);
+        
+        // Check that backup file was NOT created
+        const backupExists = await fs.access(backupFile).then(() => true).catch(() => false);
+        expect(backupExists).toBe(false);
+        
+        // Check that the target file was still updated
+        const targetContent = await fs.readFile(path.join(projectRoot, 'AGENTS.md'), 'utf8');
+        expect(targetContent).toContain('<!-- Generated by Ruler -->');
+        expect(targetContent).toContain('Test Rules for AgentsMd');
+      } finally {
+        await teardownTestProject(testProject.projectRoot);
+      }
+    });
+
+    it('WindsurfAgent respects --no-backup flag', async () => {
+      const testProject = await setupTestProject({
+        '.ruler/AGENTS.md': '# Test Rules for Windsurf\nCustom windsurf rules',
+        '.ruler/ruler.toml': 'default_agents = ["windsurf"]\n',
+      });
+      
+      try {
+        const { projectRoot } = testProject;
+        const targetFile = path.join(projectRoot, '.windsurf', 'rules', 'ruler_windsurf_instructions.md');
+        const backupFile = path.join(projectRoot, '.windsurf', 'rules', 'ruler_windsurf_instructions.md.bak');
+        
+        // Create existing file to be potentially backed up
+        await fs.mkdir(path.dirname(targetFile), { recursive: true });
+        await fs.writeFile(targetFile, '# Existing Windsurf Rules\nShould not be backed up.');
+        
+        runRuler('apply --no-backup', projectRoot);
+        
+        // Check that backup file was NOT created
+        const backupExists = await fs.access(backupFile).then(() => true).catch(() => false);
+        expect(backupExists).toBe(false);
+        
+        // Check that the target file was still updated
+        const targetContent = await fs.readFile(targetFile, 'utf8');
+        expect(targetContent).toContain('trigger: always_on');
+        expect(targetContent).toContain('Test Rules for Windsurf');
+      } finally {
+        await teardownTestProject(testProject.projectRoot);
+      }
+    });
+
+    it('CursorAgent respects --no-backup flag', async () => {
+      const testProject = await setupTestProject({
+        '.ruler/AGENTS.md': '# Test Rules for Cursor\nCustom cursor rules',
+        '.ruler/ruler.toml': 'default_agents = ["cursor"]\n',
+      });
+      
+      try {
+        const { projectRoot } = testProject;
+        const targetFile = path.join(projectRoot, '.cursor', 'rules', 'ruler_cursor_instructions.mdc');
+        const backupFile = path.join(projectRoot, '.cursor', 'rules', 'ruler_cursor_instructions.mdc.bak');
+        
+        // Create existing file to be potentially backed up
+        await fs.mkdir(path.dirname(targetFile), { recursive: true });
+        await fs.writeFile(targetFile, '# Existing Cursor Rules\nShould not be backed up.');
+        
+        runRuler('apply --no-backup', projectRoot);
+        
+        // Check that backup file was NOT created
+        const backupExists = await fs.access(backupFile).then(() => true).catch(() => false);
+        expect(backupExists).toBe(false);
+        
+        // Check that the target file was still updated
+        const targetContent = await fs.readFile(targetFile, 'utf8');
+        expect(targetContent).toContain('alwaysApply: true');
+        expect(targetContent).toContain('Test Rules for Cursor');
+      } finally {
+        await teardownTestProject(testProject.projectRoot);
+      }
+    });
+
+    it('AugmentCodeAgent respects --no-backup flag', async () => {
+      const testProject = await setupTestProject({
+        '.ruler/AGENTS.md': '# Test Rules for AugmentCode\nCustom augmentcode rules',
+        '.ruler/ruler.toml': 'default_agents = ["augmentcode"]\n',
+      });
+      
+      try {
+        const { projectRoot } = testProject;
+        const targetFile = path.join(projectRoot, '.augment', 'rules', 'ruler_augment_instructions.md');
+        const backupFile = path.join(projectRoot, '.augment', 'rules', 'ruler_augment_instructions.md.bak');
+        
+        // Create existing file to be potentially backed up
+        await fs.mkdir(path.dirname(targetFile), { recursive: true });
+        await fs.writeFile(targetFile, '# Existing AugmentCode Rules\nShould not be backed up.');
+        
+        runRuler('apply --no-backup', projectRoot);
+        
+        // Check that backup file was NOT created
+        const backupExists = await fs.access(backupFile).then(() => true).catch(() => false);
+        expect(backupExists).toBe(false);
+        
+        // Check that the target file was still updated
+        const targetContent = await fs.readFile(targetFile, 'utf8');
+        expect(targetContent).toContain('Test Rules for AugmentCode');
+      } finally {
+        await teardownTestProject(testProject.projectRoot);
+      }
+    });
+
+    it('AiderAgent respects --no-backup flag for both AGENTS.md and .aider.conf.yml', async () => {
+      const testProject = await setupTestProject({
+        '.ruler/AGENTS.md': '# Test Rules for Aider\nCustom aider rules',
+        '.ruler/ruler.toml': 'default_agents = ["aider"]\n',
+        'AGENTS.md': '# Existing AGENTS.md\nShould not be backed up.',
+        '.aider.conf.yml': 'read:\n  - "existing_file.md"\n',
+      });
+      
+      try {
+        const { projectRoot } = testProject;
+        const agentsMdBackupFile = path.join(projectRoot, 'AGENTS.md.bak');
+        const aiderConfBackupFile = path.join(projectRoot, '.aider.conf.yml.bak');
+        
+        runRuler('apply --no-backup', projectRoot);
+        
+        // Check that neither backup file was created
+        const agentsMdBackupExists = await fs.access(agentsMdBackupFile).then(() => true).catch(() => false);
+        const aiderConfBackupExists = await fs.access(aiderConfBackupFile).then(() => true).catch(() => false);
+        expect(agentsMdBackupExists).toBe(false);
+        expect(aiderConfBackupExists).toBe(false);
+        
+        // Check that files were still updated
+        const agentsMdContent = await fs.readFile(path.join(projectRoot, 'AGENTS.md'), 'utf8');
+        expect(agentsMdContent).toContain('<!-- Generated by Ruler -->');
+        expect(agentsMdContent).toContain('Test Rules for Aider');
+        
+        const aiderConfContent = await fs.readFile(path.join(projectRoot, '.aider.conf.yml'), 'utf8');
+        expect(aiderConfContent).toContain('AGENTS.md');
+        expect(aiderConfContent).toContain('existing_file.md'); // Preserved existing config
+      } finally {
+        await teardownTestProject(testProject.projectRoot);
+      }
+    });
+
+    it('all agents create backups by default', async () => {
+      const testProject = await setupTestProject({
+        '.ruler/AGENTS.md': '# Test Rules\nGeneric test rules',
+        '.ruler/ruler.toml': 'default_agents = ["agentsmd", "windsurf", "cursor", "augmentcode", "aider"]\n',
+        'AGENTS.md': '# Existing AGENTS.md\nShould be backed up.',
+      });
+      
+      try {
+        const { projectRoot } = testProject;
+        
+        // Create existing files for agents that need them
+        const windsurfFile = path.join(projectRoot, '.windsurf', 'rules', 'ruler_windsurf_instructions.md');
+        const cursorFile = path.join(projectRoot, '.cursor', 'rules', 'ruler_cursor_instructions.mdc');
+        const augmentFile = path.join(projectRoot, '.augment', 'rules', 'ruler_augment_instructions.md');
+        const aiderConfFile = path.join(projectRoot, '.aider.conf.yml');
+        
+        await fs.mkdir(path.dirname(windsurfFile), { recursive: true });
+        await fs.writeFile(windsurfFile, 'Existing windsurf content');
+        await fs.mkdir(path.dirname(cursorFile), { recursive: true });
+        await fs.writeFile(cursorFile, 'Existing cursor content');
+        await fs.mkdir(path.dirname(augmentFile), { recursive: true });
+        await fs.writeFile(augmentFile, 'Existing augment content');
+        await fs.writeFile(aiderConfFile, 'read: ["old.md"]');
+        
+        runRuler('apply', projectRoot); // Default behavior should create backups
+        
+        // Check that all backup files were created
+        const expectedBackups = [
+          'AGENTS.md.bak',
+          '.windsurf/rules/ruler_windsurf_instructions.md.bak',
+          '.cursor/rules/ruler_cursor_instructions.mdc.bak',
+          '.augment/rules/ruler_augment_instructions.md.bak',
+          '.aider.conf.yml.bak',
+        ];
+        
+        for (const backupPath of expectedBackups) {
+          const fullPath = path.join(projectRoot, backupPath);
+          const exists = await fs.access(fullPath).then(() => true).catch(() => false);
+          expect(exists).toBe(true);
+        }
+      } finally {
+        await teardownTestProject(testProject.projectRoot);
+      }
+    });
+  });
+});

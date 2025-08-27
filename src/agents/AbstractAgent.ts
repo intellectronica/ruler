@@ -39,12 +39,15 @@ export abstract class AbstractAgent implements IAgent {
     projectRoot: string,
     rulerMcpJson: Record<string, unknown> | null, // eslint-disable-line @typescript-eslint/no-unused-vars
     agentConfig?: IAgentConfig,
+    backup = true,
   ): Promise<void> {
     const output =
       agentConfig?.outputPath ?? this.getDefaultOutputPath(projectRoot);
     const absolutePath = path.resolve(projectRoot, output);
     await ensureDirExists(path.dirname(absolutePath));
-    await backupFile(absolutePath);
+    if (backup) {
+      await backupFile(absolutePath);
+    }
     await writeGeneratedFile(absolutePath, concatenatedRules);
   }
 

@@ -90,6 +90,7 @@ function transformToOpenCodeFormat(rulerMcp: RulerMcp): OpenCodeConfig {
 export async function propagateMcpToOpenCode(
   rulerMcpData: Record<string, unknown> | null,
   openCodeConfigPath: string,
+  backup = true,
 ): Promise<void> {
   const rulerMcp: RulerMcp = rulerMcpData || {};
 
@@ -116,6 +117,10 @@ export async function propagateMcpToOpenCode(
   };
 
   await ensureDirExists(path.dirname(openCodeConfigPath));
+  if (backup) {
+    const { backupFile } = await import('../core/FileSystemUtils');
+    await backupFile(openCodeConfigPath);
+  }
   await fs.writeFile(
     openCodeConfigPath,
     JSON.stringify(finalConfig, null, 2) + '\n',

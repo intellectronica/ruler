@@ -24,6 +24,7 @@ export class WindsurfAgent extends AbstractAgent {
     projectRoot: string,
     rulerMcpJson: Record<string, unknown> | null, // eslint-disable-line @typescript-eslint/no-unused-vars
     agentConfig?: IAgentConfig,
+    backup = true,
   ): Promise<void> {
     const output =
       agentConfig?.outputPath ?? this.getDefaultOutputPath(projectRoot);
@@ -34,7 +35,9 @@ export class WindsurfAgent extends AbstractAgent {
     const content = `${frontMatter}${concatenatedRules.trimStart()}`;
 
     await ensureDirExists(path.dirname(absolutePath));
-    await backupFile(absolutePath);
+    if (backup) {
+      await backupFile(absolutePath);
+    }
     await writeGeneratedFile(absolutePath, content);
   }
 
