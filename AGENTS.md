@@ -28,3 +28,4 @@
   - `npm run lint`
   - `npm test`
   - `npm run build`
+- When committing yourself with `git commit`, always pass `--author="AI <ruler+ai@okigu.com>"` so that your commits can be easily identified.
