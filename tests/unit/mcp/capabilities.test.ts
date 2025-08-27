@@ -101,9 +101,13 @@ describe('MCP Capabilities', () => {
       
       expect(filtered).not.toBeNull();
       expect(filtered!.mcpServers).toEqual({
-        stdio_server: testMcpConfig.mcpServers.stdio_server
-        // remote_server should be excluded
-        // mixed_server should be excluded
+        stdio_server: testMcpConfig.mcpServers.stdio_server,
+        // remote_server should be transformed to stdio server using mcp-remote
+        remote_server: {
+          command: 'npx',
+          args: ['-y', 'mcp-remote@latest', 'https://api.example.com/mcp']
+        }
+        // mixed_server should still be excluded as it has both command and url
       });
     });
 
@@ -113,6 +117,79 @@ describe('MCP Capabilities', () => {
       const filtered = filterMcpConfigForAgent(invalidConfig, agent);
       
       expect(filtered).toBeNull();
+    });
+
+    it('transforms remote servers to stdio servers for stdio-only agents', () => {
+      const agent = new CodexCliAgent();
+      const configWithRemoteServers = {
+        mcpServers: {
+          simple_remote: {
+            url: 'https://example.com/mcp'
+          },
+          remote_with_headers: {
+            url: 'https://api.example.com/mcp',
+            headers: {
+              'Authorization': 'Bearer token123',
+              'Content-Type': 'application/json'
+            }
+          },
+          stdio_server: {
+            command: 'node',
+            args: ['server.js']
+          }
+        }
+      };
+
+      const filtered = filterMcpConfigForAgent(configWithRemoteServers, agent);
+      
+      expect(filtered).not.toBeNull();
+      expect(filtered!.mcpServers).toEqual({
+        simple_remote: {
+          command: 'npx',
+          args: ['-y', 'mcp-remote@latest', 'https://example.com/mcp']
+        },
+        remote_with_headers: {
+          command: 'npx',
+          args: ['-y', 'mcp-remote@latest', 'https://api.example.com/mcp'],
+          // Note: headers should be preserved as env variables or similar mechanism
+          headers: {
+            'Authorization': 'Bearer token123',
+            'Content-Type': 'application/json'
+          }
+        },
+        stdio_server: {
+          command: 'node',
+          args: ['server.js']
+        }
+      });
+    });
+
+    it('does not transform remote servers for agents that support both stdio and remote', () => {
+      const agent = new OpenHandsAgent();  // Supports both stdio and remote
+      const configWithRemoteServers = {
+        mcpServers: {
+          remote_server: {
+            url: 'https://example.com/mcp'
+          },
+          stdio_server: {
+            command: 'node',
+            args: ['server.js']
+          }
+        }
+      };
+
+      const filtered = filterMcpConfigForAgent(configWithRemoteServers, agent);
+      
+      expect(filtered).not.toBeNull();
+      expect(filtered!.mcpServers).toEqual({
+        remote_server: {
+          url: 'https://example.com/mcp'
+        },
+        stdio_server: {
+          command: 'node',
+          args: ['server.js']
+        }
+      });
     });
   });
 });
