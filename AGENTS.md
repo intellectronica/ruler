@@ -24,7 +24,7 @@
 - Unless specifically instructed otherwise, all changes should be made in a feature branch and submitted as a pull request for review.
 - Pull requests should be descriptive and clearly explain the changes being made, including the rationale behind the change, the functional changes, the specific files and modules affected.
 - Before declaring a pull request ready for review, you must ensure that all the CI tests pass. These include:
-      - npm ci
-      - npm run lint
-      - npm test
-      - npm run build
+  - `npm ci`
+  - `npm run lint`
+  - `npm test`
+  - `npm run build`
