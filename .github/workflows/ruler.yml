@@ -30,6 +30,9 @@ jobs:
       - name: Commit and push changes
         run: |
           if [ -n "$(git status --porcelain)" ]; then
+            # Configure committer identity (author is set explicitly via --author)
+            git config user.name "Ruler"
+            git config user.email "eleanor+ruler@intellectronica.net"
             git add .
             git commit -m "Ruler: updating AI agent rules" --author="Ruler <eleanor+ruler@intellectronica.net>" || echo "No changes to commit"
             git push
