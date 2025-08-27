@@ -31,6 +31,7 @@ export class AgentsMdAgent extends AbstractAgent {
     projectRoot: string,
     rulerMcpJson: Record<string, unknown> | null, // eslint-disable-line @typescript-eslint/no-unused-vars
     agentConfig?: IAgentConfig,
+    backup = true,
   ): Promise<void> {
     const output =
       agentConfig?.outputPath ?? this.getDefaultOutputPath(projectRoot);
@@ -53,8 +54,10 @@ export class AgentsMdAgent extends AbstractAgent {
       return;
     }
 
-    // Backup (only if file existed) then write new content
-    await backupFile(absolutePath);
+    // Backup (only if file existed and backup is enabled) then write new content
+    if (backup) {
+      await backupFile(absolutePath);
+    }
     await writeGeneratedFile(absolutePath, contentWithMarker);
   }
 
