@@ -11,6 +11,9 @@ interface McpServer {
   command: string;
   args?: string[];
   env?: Record<string, string>;
+  headers?: Record<string, string>; // Support headers from transformed remote servers
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any; // Allow additional properties from transformation
 }
 
 interface CodexCliConfig {
@@ -54,6 +57,21 @@ export class CodexCliAgent extends AgentsMdAgent {
     };
     const mcpEnabled = agentConfig?.mcp?.enabled ?? true;
     if (mcpEnabled && rulerMcpJson) {
+      // Apply MCP server filtering and transformation
+      const { filterMcpConfigForAgent } = await import('../mcp/capabilities');
+      const filteredMcpConfig = filterMcpConfigForAgent(
+        rulerMcpJson as Record<string, unknown>,
+        this,
+      );
+
+      if (!filteredMcpConfig) {
+        return; // No compatible servers found
+      }
+
+      const filteredRulerMcpJson = filteredMcpConfig as {
+        mcpServers: Record<string, McpServer>;
+      };
+
       // Determine the config file path
       const configPath = agentConfig?.outputPathConfig ?? defaults.config;
 
@@ -63,8 +81,8 @@ export class CodexCliAgent extends AgentsMdAgent {
       // Get the merge strategy
       const strategy = agentConfig?.mcp?.strategy ?? 'merge';
 
-      // Extract MCP servers from ruler config
-      const rulerServers = rulerMcpJson.mcpServers || {};
+      // Extract MCP servers from filtered ruler config
+      const rulerServers = filteredRulerMcpJson.mcpServers || {};
 
       // Read existing TOML config if it exists
       let existingConfig: CodexCliConfig = {};
@@ -100,6 +118,10 @@ export class CodexCliAgent extends AgentsMdAgent {
         // Format env as an inline table
         if (serverConfig.env) {
           mcpServer.env = serverConfig.env;
+        }
+        // Handle additional properties from remote server transformation
+        if (serverConfig.headers) {
+          mcpServer.headers = serverConfig.headers;
         }
 
         if (updatedConfig.mcp_servers) {
@@ -148,6 +170,23 @@ export class CodexCliAgent extends AgentsMdAgent {
             for (let i = 0; i < entries.length; i++) {
               const [key, value] = entries[i];
               tomlContent += `${key} = "${value}"`;
+              if (i < entries.length - 1) {
+                tomlContent += ', ';
+              }
+            }
+            tomlContent += ` }\n`;
+          }
+
+          // Add headers as inline table if present (from transformed remote servers)
+          if (
+            serverConfig.headers &&
+            Object.keys(serverConfig.headers).length > 0
+          ) {
+            tomlContent += `headers = { `;
+            const entries = Object.entries(serverConfig.headers);
+            for (let i = 0; i < entries.length; i++) {
+              const [key, value] = entries[i];
+              tomlContent += `${JSON.stringify(key)} = "${value}"`;
               if (i < entries.length - 1) {
                 tomlContent += ', ';
               }

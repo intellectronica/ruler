@@ -57,12 +57,26 @@ export function filterMcpConfigForAgent(
     const isRemote = hasUrl && !hasCommand;
 
     // Include server if agent supports its type
-    if (
-      (isStdio && capabilities.supportsStdio) ||
-      (isRemote && capabilities.supportsRemote)
-    ) {
+    if (isStdio && capabilities.supportsStdio) {
       filteredServers[serverName] = serverConfig;
+    } else if (isRemote && capabilities.supportsRemote) {
+      filteredServers[serverName] = serverConfig;
+    } else if (
+      isRemote &&
+      !capabilities.supportsRemote &&
+      capabilities.supportsStdio
+    ) {
+      // Transform remote server to stdio server using mcp-remote
+      const transformedConfig = {
+        command: 'npx',
+        args: ['-y', 'mcp-remote@latest', config.url as string],
+        ...Object.fromEntries(
+          Object.entries(config).filter(([key]) => key !== 'url'),
+        ),
+      };
+      filteredServers[serverName] = transformedConfig;
     }
+    // Note: Mixed servers (both command and url) are excluded
   }
 
   return Object.keys(filteredServers).length > 0
