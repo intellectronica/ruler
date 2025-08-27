@@ -37,6 +37,7 @@ export async function applyAllAgentConfigs(
   dryRun = false,
   localOnly = false,
   nested = false,
+  backup = true,
 ): Promise<void> {
   // Load configuration and rules
   logVerbose(
@@ -91,6 +92,7 @@ export async function applyAllAgentConfigs(
       dryRun,
       cliMcpEnabled,
       cliMcpStrategy,
+      backup,
     );
   } else {
     const singleConfig = await loadSingleConfiguration(
@@ -127,6 +129,7 @@ export async function applyAllAgentConfigs(
       dryRun,
       cliMcpEnabled,
       cliMcpStrategy,
+      backup,
     );
   }
 
@@ -136,6 +139,7 @@ export async function applyAllAgentConfigs(
     loadedConfig,
     cliGitignoreEnabled,
     dryRun,
+    backup,
   );
 }
 

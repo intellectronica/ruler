@@ -97,6 +97,7 @@ function normalizeRemoteServerArray(
 export async function propagateMcpToOpenHands(
   rulerMcpData: Record<string, unknown> | null,
   openHandsConfigPath: string,
+  backup = true,
 ): Promise<void> {
   const rulerMcp: Record<string, unknown> = rulerMcpData || {};
 
@@ -189,5 +190,9 @@ export async function propagateMcpToOpenHands(
   );
 
   await ensureDirExists(path.dirname(openHandsConfigPath));
+  if (backup) {
+    const { backupFile } = await import('../core/FileSystemUtils');
+    await backupFile(openHandsConfigPath);
+  }
   await fs.writeFile(openHandsConfigPath, stringify(config));
 }

@@ -17,6 +17,7 @@ export interface ApplyArgs {
   'dry-run': boolean;
   'local-only': boolean;
   nested: boolean;
+  backup: boolean;
 }
 
 export interface InitArgs {
@@ -51,6 +52,7 @@ export async function applyHandler(argv: ApplyArgs): Promise<void> {
   const dryRun = argv['dry-run'];
   const localOnly = argv['local-only'];
   const nested = argv.nested;
+  const backup = argv.backup;
 
   // Determine gitignore preference: CLI > TOML > Default (enabled)
   // yargs handles --no-gitignore by setting gitignore to false
@@ -73,6 +75,7 @@ export async function applyHandler(argv: ApplyArgs): Promise<void> {
       dryRun,
       localOnly,
       nested,
+      backup,
     );
     console.log('Ruler apply completed successfully.');
   } catch (err: unknown) {

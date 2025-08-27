@@ -39,6 +39,7 @@ export interface IAgent {
     projectRoot: string,
     rulerMcpJson: Record<string, unknown> | null,
     agentConfig?: IAgentConfig,
+    backup?: boolean,
   ): Promise<void>;
 
   /**

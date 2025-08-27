@@ -67,6 +67,12 @@ export function run(): void {
             description:
               'Enable nested rule loading from nested .ruler directories (default: disabled)',
             default: false,
+          })
+          .option('backup', {
+            type: 'boolean',
+            description:
+              'Enable/disable creation of .bak backup files (default: enabled)',
+            default: true,
           });
       },
       applyHandler,
