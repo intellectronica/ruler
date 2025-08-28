@@ -76,13 +76,13 @@ describe('WindsurfAgent', () => {
     });
   });
 
-  describe('File Splitting for 12K Character Limit', () => {
-    it('does not split files under 12K characters', async () => {
+  describe('File Splitting for 10K Character Limit', () => {
+    it('does not split files under 10K characters', async () => {
       const agent = new WindsurfAgent();
       const rulesDir = path.join(tmpDir, '.windsurf', 'rules');
       const target = path.join(rulesDir, 'ruler_windsurf_instructions.md');
 
-      // Create content under 12K characters (12,288 bytes)
+      // Create content under 10K characters (10,000 bytes)
       const sampleRules = 'A'.repeat(8000); // 8K characters, well under limit
 
       await agent.applyRulerConfig(sampleRules, tmpDir, null);
@@ -99,14 +99,14 @@ describe('WindsurfAgent', () => {
       await expect(fs.access(target1)).rejects.toThrow();
     });
 
-    it('splits files when content exceeds 12K characters', async () => {
+    it('splits files when content exceeds 10K characters', async () => {
       const agent = new WindsurfAgent();
       const rulesDir = path.join(tmpDir, '.windsurf', 'rules');
 
-      // Create content that exceeds 12K characters
-      // Each line is about 50 characters, so 300 lines ≈ 15K characters
+      // Create content that exceeds 10K characters
+      // Each line is about 50 characters, so 250 lines ≈ 12.5K characters
       const longRule = 'This is a very long rule that contains lots of text.\n';
-      const sampleRules = longRule.repeat(300);
+      const sampleRules = longRule.repeat(250);
       
       // Capture console warnings
       const originalWarn = console.warn;
@@ -156,7 +156,7 @@ describe('WindsurfAgent', () => {
 
       // Create content with specific newline pattern to test splitting behavior
       const frontMatter = ['---', 'trigger: always_on', '---', ''].join('\n');
-      const availableSpace = 12288 - frontMatter.length; // 12K - front matter
+      const availableSpace = 10000 - frontMatter.length; // 10K - front matter
       
       // Create content that will need splitting at a specific newline
       const shortLine = 'Short line.\n';
@@ -176,27 +176,27 @@ describe('WindsurfAgent', () => {
 
       // First file should not exceed the limit
       const content0 = await fs.readFile(target0, 'utf8');
-      expect(content0.length).toBeLessThanOrEqual(12288);
+      expect(content0.length).toBeLessThanOrEqual(10000);
 
       // Should split at a newline (content should end with newline before the split)
       const rules0 = content0.substring(frontMatter.length);
       expect(rules0.endsWith('\n')).toBe(true);
     });
 
-    it('handles content exactly at 12K character limit', async () => {
+    it('handles content exactly at 10K character limit', async () => {
       const agent = new WindsurfAgent();
       const rulesDir = path.join(tmpDir, '.windsurf', 'rules');
       const target = path.join(rulesDir, 'ruler_windsurf_instructions.md');
 
       const frontMatter = ['---', 'trigger: always_on', '---', ''].join('\n');
-      const exactLimit = 12288 - frontMatter.length;
+      const exactLimit = 10000 - frontMatter.length;
       const sampleRules = 'A'.repeat(exactLimit);
 
       await agent.applyRulerConfig(sampleRules, tmpDir, null);
 
       // Should create single file (exactly at limit, not over)
       const written = await fs.readFile(target, 'utf8');
-      expect(written.length).toBe(12288);
+      expect(written.length).toBe(10000);
       expect(written.startsWith(expectedFrontMatter)).toBe(true);
 
       // Should not create numbered files

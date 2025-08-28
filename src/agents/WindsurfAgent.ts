@@ -34,14 +34,14 @@ export class WindsurfAgent extends AbstractAgent {
     const frontMatter = ['---', 'trigger: always_on', '---', ''].join('\n');
     const content = `${frontMatter}${concatenatedRules.trimStart()}`;
 
-    const maxFileSize = 12288; // 12K characters
+    const maxFileSize = 10000; // 10K characters
 
     await ensureDirExists(path.dirname(absolutePath));
     if (backup) {
       await backupFile(absolutePath);
     }
 
-    // Check if content exceeds the 12K limit
+    // Check if content exceeds the 10K limit
     if (content.length <= maxFileSize) {
       // Content fits in single file - use original behavior
       await writeGeneratedFile(absolutePath, content);
