@@ -75,4 +75,207 @@ describe('WindsurfAgent', () => {
       expect(backupContent).toBe('old windsurf rules');
     });
   });
+
+  describe('File Splitting for 10K Character Limit', () => {
+    it('does not split files under 10K characters', async () => {
+      const agent = new WindsurfAgent();
+      const rulesDir = path.join(tmpDir, '.windsurf', 'rules');
+      const target = path.join(rulesDir, 'ruler_windsurf_instructions.md');
+
+      // Create content under 10K characters (10,000 bytes)
+      const sampleRules = 'A'.repeat(8000); // 8K characters, well under limit
+
+      await agent.applyRulerConfig(sampleRules, tmpDir, null);
+
+      // Should create single file
+      const written = await fs.readFile(target, 'utf8');
+      expect(written.startsWith(expectedFrontMatter)).toBe(true);
+      expect(written.endsWith(sampleRules)).toBe(true);
+
+      // Should not create numbered files
+      const target0 = path.join(rulesDir, 'ruler_windsurf_instructions_00.md');
+      const target1 = path.join(rulesDir, 'ruler_windsurf_instructions_01.md');
+      await expect(fs.access(target0)).rejects.toThrow();
+      await expect(fs.access(target1)).rejects.toThrow();
+    });
+
+    it('splits files when content exceeds 10K characters', async () => {
+      const agent = new WindsurfAgent();
+      const rulesDir = path.join(tmpDir, '.windsurf', 'rules');
+
+      // Create content that exceeds 10K characters
+      // Each line is about 50 characters, so 250 lines ≈ 12.5K characters
+      const longRule = 'This is a very long rule that contains lots of text.\n';
+      const sampleRules = longRule.repeat(250);
+      
+      // Capture console warnings
+      const originalWarn = console.warn;
+      const warnings: string[] = [];
+      console.warn = (...args: any[]) => {
+        warnings.push(args.join(' '));
+        return originalWarn.apply(console, args as any);
+      };
+
+      try {
+        await agent.applyRulerConfig(sampleRules, tmpDir, null);
+
+        // Should issue a warning
+        expect(warnings.some(w => w.includes('Windsurf rule content exceeds'))).toBe(true);
+
+        // Should create numbered files
+        const target0 = path.join(rulesDir, 'ruler_windsurf_instructions_00.md');
+        const target1 = path.join(rulesDir, 'ruler_windsurf_instructions_01.md');
+        
+        await expect(fs.access(target0)).resolves.toBeUndefined();
+        await expect(fs.access(target1)).resolves.toBeUndefined();
+
+        // Each file should have front-matter
+        const content0 = await fs.readFile(target0, 'utf8');
+        const content1 = await fs.readFile(target1, 'utf8');
+        
+        expect(content0.startsWith(expectedFrontMatter)).toBe(true);
+        expect(content1.startsWith(expectedFrontMatter)).toBe(true);
+
+        // Combined content should match original (minus front-matter duplication)
+        const combinedRules = content0.substring(expectedFrontMatter.length) + 
+                             content1.substring(expectedFrontMatter.length);
+        expect(combinedRules.trim()).toBe(sampleRules.trim());
+
+        // Original single file should not exist
+        const originalTarget = path.join(rulesDir, 'ruler_windsurf_instructions.md');
+        await expect(fs.access(originalTarget)).rejects.toThrow();
+
+      } finally {
+        console.warn = originalWarn;
+      }
+    });
+
+    it('splits at nearest newline within limit', async () => {
+      const agent = new WindsurfAgent();
+      const rulesDir = path.join(tmpDir, '.windsurf', 'rules');
+
+      // Create content with specific newline pattern to test splitting behavior
+      const frontMatter = ['---', 'trigger: always_on', '---', ''].join('\n');
+      const availableSpace = 10000 - frontMatter.length; // 10K - front matter
+      
+      // Create content that will need splitting at a specific newline
+      const shortLine = 'Short line.\n';
+      const longPart = 'A'.repeat(availableSpace - 100); // Just under limit
+      const nextPart = 'This should be in the next file.\n';
+      
+      const sampleRules = shortLine.repeat(10) + longPart + '\n' + nextPart + shortLine.repeat(10);
+
+      await agent.applyRulerConfig(sampleRules, tmpDir, null);
+
+      // Should create numbered files
+      const target0 = path.join(rulesDir, 'ruler_windsurf_instructions_00.md');
+      const target1 = path.join(rulesDir, 'ruler_windsurf_instructions_01.md');
+      
+      await expect(fs.access(target0)).resolves.toBeUndefined();
+      await expect(fs.access(target1)).resolves.toBeUndefined();
+
+      // First file should not exceed the limit
+      const content0 = await fs.readFile(target0, 'utf8');
+      expect(content0.length).toBeLessThanOrEqual(10000);
+
+      // Should split at a newline (content should end with newline before the split)
+      const rules0 = content0.substring(frontMatter.length);
+      expect(rules0.endsWith('\n')).toBe(true);
+    });
+
+    it('handles content exactly at 10K character limit', async () => {
+      const agent = new WindsurfAgent();
+      const rulesDir = path.join(tmpDir, '.windsurf', 'rules');
+      const target = path.join(rulesDir, 'ruler_windsurf_instructions.md');
+
+      const frontMatter = ['---', 'trigger: always_on', '---', ''].join('\n');
+      const exactLimit = 10000 - frontMatter.length;
+      const sampleRules = 'A'.repeat(exactLimit);
+
+      await agent.applyRulerConfig(sampleRules, tmpDir, null);
+
+      // Should create single file (exactly at limit, not over)
+      const written = await fs.readFile(target, 'utf8');
+      expect(written.length).toBe(10000);
+      expect(written.startsWith(expectedFrontMatter)).toBe(true);
+
+      // Should not create numbered files
+      const target0 = path.join(rulesDir, 'ruler_windsurf_instructions_00.md');
+      await expect(fs.access(target0)).rejects.toThrow();
+    });
+
+    it('handles empty content without splitting', async () => {
+      const agent = new WindsurfAgent();
+      const rulesDir = path.join(tmpDir, '.windsurf', 'rules');
+      const target = path.join(rulesDir, 'ruler_windsurf_instructions.md');
+
+      await agent.applyRulerConfig('', tmpDir, null);
+
+      // Should create single file with just front-matter
+      const written = await fs.readFile(target, 'utf8');
+      expect(written).toBe(expectedFrontMatter);
+
+      // Should not create numbered files
+      const target0 = path.join(rulesDir, 'ruler_windsurf_instructions_00.md');
+      await expect(fs.access(target0)).rejects.toThrow();
+    });
+  });
+
+  describe('GitIgnore Path Prediction', () => {
+    it('returns single path for content under 10K characters', () => {
+      const agent = new WindsurfAgent();
+      const sampleRules = 'A'.repeat(8000); // 8K characters, well under limit
+
+      const paths = (agent as any).getActualOutputPaths(sampleRules, tmpDir, null);
+      
+      expect(paths).toHaveLength(1);
+      expect(paths[0]).toBe(path.join(tmpDir, '.windsurf', 'rules', 'ruler_windsurf_instructions.md'));
+    });
+
+    it('returns multiple paths when content exceeds 10K characters', () => {
+      const agent = new WindsurfAgent();
+      
+      // Create content that exceeds 10K characters
+      const longRule = 'This is a very long rule that contains lots of text.\n';
+      const sampleRules = longRule.repeat(250); // Should create 2+ split files
+
+      const paths = (agent as any).getActualOutputPaths(sampleRules, tmpDir, null);
+      
+      expect(paths.length).toBeGreaterThan(1);
+      
+      // Check that paths use leading zero numbering format
+      expect(paths[0]).toBe(path.join(tmpDir, '.windsurf', 'rules', 'ruler_windsurf_instructions_00.md'));
+      expect(paths[1]).toBe(path.join(tmpDir, '.windsurf', 'rules', 'ruler_windsurf_instructions_01.md'));
+    });
+
+    it('predicts correct number of split files', () => {
+      const agent = new WindsurfAgent();
+      
+      // Create content that will require exactly 2 files
+      const frontMatter = ['---', 'trigger: always_on', '---', ''].join('\n');
+      const availableSpace = 10000 - frontMatter.length;
+      
+      // Create content slightly over one file worth
+      const sampleRules = 'A'.repeat(availableSpace + 1000); // Just over one file
+
+      const paths = (agent as any).getActualOutputPaths(sampleRules, tmpDir, null);
+      
+      expect(paths).toHaveLength(2);
+      expect(paths[0]).toContain('ruler_windsurf_instructions_00.md');
+      expect(paths[1]).toContain('ruler_windsurf_instructions_01.md');
+    });
+
+    it('handles custom output path correctly', () => {
+      const agent = new WindsurfAgent();
+      const customPath = '.custom/path/my_instructions.md';
+      const agentConfig = { outputPath: customPath };
+      const sampleRules = 'A'.repeat(12000); // Force splitting
+
+      const paths = (agent as any).getActualOutputPaths(sampleRules, tmpDir, agentConfig);
+      
+      expect(paths.length).toBeGreaterThan(1);
+      expect(paths[0]).toBe(path.join(tmpDir, '.custom', 'path', 'my_instructions_00.md'));
+      expect(paths[1]).toBe(path.join(tmpDir, '.custom', 'path', 'my_instructions_01.md'));
+    });
+  });
 });
