@@ -65,6 +65,7 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | Windsurf         | `.windsurf/rules/ruler_windsurf_instructions.md` | -                                                |
 | Cline            | `.clinerules`                                    | -                                                |
 | Amp              | `AGENTS.md`                                      | -                                                |
+| Amazon Q CLI     | `.amazonq/rules/ruler_q_rules.md`                | `.amazonq/mcp.json`                              |
 | Aider            | `AGENTS.md`, `.aider.conf.yml`                   | `.mcp.json`                                      |
 | Firebase Studio  | `.idx/airules.md`                                | -                                                |
 | Open Hands       | `.openhands/microagents/repo.md`                 | `.openhands/config.toml`                         |

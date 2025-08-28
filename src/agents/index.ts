@@ -25,6 +25,7 @@ import { KiroAgent } from './KiroAgent';
 import { WarpAgent } from './WarpAgent';
 import { RooCodeAgent } from './RooCodeAgent';
 import { TraeAgent } from './TraeAgent';
+import { AmazonQCliAgent } from './AmazonQCliAgent';
 
 export { AbstractAgent };
 
@@ -54,4 +55,5 @@ export const allAgents: IAgent[] = [
   new WarpAgent(),
   new RooCodeAgent(),
   new TraeAgent(),
+  new AmazonQCliAgent(),
 ];
