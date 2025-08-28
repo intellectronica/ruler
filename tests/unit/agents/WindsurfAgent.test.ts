@@ -220,4 +220,62 @@ describe('WindsurfAgent', () => {
       await expect(fs.access(target0)).rejects.toThrow();
     });
   });
+
+  describe('GitIgnore Path Prediction', () => {
+    it('returns single path for content under 10K characters', () => {
+      const agent = new WindsurfAgent();
+      const sampleRules = 'A'.repeat(8000); // 8K characters, well under limit
+
+      const paths = (agent as any).getActualOutputPaths(sampleRules, tmpDir, null);
+      
+      expect(paths).toHaveLength(1);
+      expect(paths[0]).toBe(path.join(tmpDir, '.windsurf', 'rules', 'ruler_windsurf_instructions.md'));
+    });
+
+    it('returns multiple paths when content exceeds 10K characters', () => {
+      const agent = new WindsurfAgent();
+      
+      // Create content that exceeds 10K characters
+      const longRule = 'This is a very long rule that contains lots of text.\n';
+      const sampleRules = longRule.repeat(250); // Should create 2+ split files
+
+      const paths = (agent as any).getActualOutputPaths(sampleRules, tmpDir, null);
+      
+      expect(paths.length).toBeGreaterThan(1);
+      
+      // Check that paths use leading zero numbering format
+      expect(paths[0]).toBe(path.join(tmpDir, '.windsurf', 'rules', 'ruler_windsurf_instructions_00.md'));
+      expect(paths[1]).toBe(path.join(tmpDir, '.windsurf', 'rules', 'ruler_windsurf_instructions_01.md'));
+    });
+
+    it('predicts correct number of split files', () => {
+      const agent = new WindsurfAgent();
+      
+      // Create content that will require exactly 2 files
+      const frontMatter = ['---', 'trigger: always_on', '---', ''].join('\n');
+      const availableSpace = 10000 - frontMatter.length;
+      
+      // Create content slightly over one file worth
+      const sampleRules = 'A'.repeat(availableSpace + 1000); // Just over one file
+
+      const paths = (agent as any).getActualOutputPaths(sampleRules, tmpDir, null);
+      
+      expect(paths).toHaveLength(2);
+      expect(paths[0]).toContain('ruler_windsurf_instructions_00.md');
+      expect(paths[1]).toContain('ruler_windsurf_instructions_01.md');
+    });
+
+    it('handles custom output path correctly', () => {
+      const agent = new WindsurfAgent();
+      const customPath = '.custom/path/my_instructions.md';
+      const agentConfig = { outputPath: customPath };
+      const sampleRules = 'A'.repeat(12000); // Force splitting
+
+      const paths = (agent as any).getActualOutputPaths(sampleRules, tmpDir, agentConfig);
+      
+      expect(paths.length).toBeGreaterThan(1);
+      expect(paths[0]).toBe(path.join(tmpDir, '.custom', 'path', 'my_instructions_00.md'));
+      expect(paths[1]).toBe(path.join(tmpDir, '.custom', 'path', 'my_instructions_01.md'));
+    });
+  });
 });

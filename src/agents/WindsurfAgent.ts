@@ -91,6 +91,51 @@ export class WindsurfAgent extends AbstractAgent {
   }
 
   /**
+   * Gets all actual output paths that will be created, including split files.
+   * This allows the gitignore system to know about split files before they're created.
+   */
+  getActualOutputPaths(
+    concatenatedRules: string,
+    projectRoot: string,
+    agentConfig?: IAgentConfig,
+  ): string[] {
+    const output =
+      agentConfig?.outputPath ?? this.getDefaultOutputPath(projectRoot);
+    const absolutePath = path.resolve(projectRoot, output);
+
+    // Windsurf expects a YAML front-matter block with a `trigger` flag.
+    const frontMatter = ['---', 'trigger: always_on', '---', ''].join('\n');
+    const content = `${frontMatter}${concatenatedRules.trimStart()}`;
+
+    const maxFileSize = 10000; // 10K characters
+
+    // Check if content will be split
+    if (content.length <= maxFileSize) {
+      // Content fits in single file
+      return [absolutePath];
+    } else {
+      // Content will be split - calculate how many files will be created
+      const files = this.splitContentIntoFiles(
+        concatenatedRules.trimStart(),
+        frontMatter,
+        maxFileSize,
+      );
+
+      const rulesDir = path.dirname(absolutePath);
+      const baseName = path.basename(absolutePath, '.md');
+      const splitPaths: string[] = [];
+
+      for (let i = 0; i < files.length; i++) {
+        const fileName = `${baseName}_${i.toString().padStart(2, '0')}.md`;
+        const filePath = path.join(rulesDir, fileName);
+        splitPaths.push(filePath);
+      }
+
+      return splitPaths;
+    }
+  }
+
+  /**
    * Splits content into multiple files, each under the specified size limit.
    * Splits at the closest newline within the limit.
    * Each file gets its own front-matter.
