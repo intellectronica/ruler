@@ -63,7 +63,7 @@ export abstract class AbstractAgent implements IAgent {
    * Returns whether this agent supports MCP STDIO servers.
    * Defaults to false if not overridden.
    */
-  supportsMcpStdio?(): boolean {
+  supportsMcpStdio(): boolean {
     return false;
   }
 
@@ -71,7 +71,7 @@ export abstract class AbstractAgent implements IAgent {
    * Returns whether this agent supports MCP remote servers.
    * Defaults to false if not overridden.
    */
-  supportsMcpRemote?(): boolean {
+  supportsMcpRemote(): boolean {
     return false;
   }
 }

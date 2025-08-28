@@ -24,6 +24,7 @@ import { QwenCodeAgent } from './QwenCodeAgent';
 import { KiroAgent } from './KiroAgent';
 import { WarpAgent } from './WarpAgent';
 import { RooCodeAgent } from './RooCodeAgent';
+import { TraeAgent } from './TraeAgent';
 
 export { AbstractAgent };
 
@@ -52,4 +53,5 @@ export const allAgents: IAgent[] = [
   new KiroAgent(),
   new WarpAgent(),
   new RooCodeAgent(),
+  new TraeAgent(),
 ];
