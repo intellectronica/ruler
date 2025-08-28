@@ -23,6 +23,7 @@ import { AgentsMdAgent } from './AgentsMdAgent';
 import { QwenCodeAgent } from './QwenCodeAgent';
 import { KiroAgent } from './KiroAgent';
 import { WarpAgent } from './WarpAgent';
+import { RooCodeAgent } from './RooCodeAgent';
 
 export { AbstractAgent };
 
@@ -50,4 +51,5 @@ export const allAgents: IAgent[] = [
   new AgentsMdAgent(),
   new KiroAgent(),
   new WarpAgent(),
+  new RooCodeAgent(),
 ];
