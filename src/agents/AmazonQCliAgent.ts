@@ -30,9 +30,9 @@ export class AmazonQCliAgent implements IAgent {
     const outputPaths = this.getDefaultOutputPath(projectRoot);
     const rulesPath = path.resolve(
       projectRoot,
-      agentConfig?.outputPath || 
-      agentConfig?.outputPathInstructions || 
-      outputPaths['instructions']
+      agentConfig?.outputPath ||
+        agentConfig?.outputPathInstructions ||
+        outputPaths['instructions'],
     );
 
     // Write rules file to .amazonq/rules/
@@ -81,7 +81,12 @@ export class AmazonQCliAgent implements IAgent {
 
   getDefaultOutputPath(projectRoot: string): Record<string, string> {
     return {
-      instructions: path.join(projectRoot, '.amazonq', 'rules', 'ruler_q_rules.md'),
+      instructions: path.join(
+        projectRoot,
+        '.amazonq',
+        'rules',
+        'ruler_q_rules.md',
+      ),
       mcp: path.join(projectRoot, '.amazonq', 'mcp.json'),
     };
   }
