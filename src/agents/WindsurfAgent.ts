@@ -62,7 +62,7 @@ export class WindsurfAgent extends AbstractAgent {
       const baseName = path.basename(absolutePath, '.md');
 
       for (let i = 0; i < files.length; i++) {
-        const fileName = `${baseName}_${i}.md`;
+        const fileName = `${baseName}_${i.toString().padStart(2, '0')}.md`;
         const filePath = path.join(rulesDir, fileName);
 
         if (backup) {

@@ -93,8 +93,8 @@ describe('WindsurfAgent', () => {
       expect(written.endsWith(sampleRules)).toBe(true);
 
       // Should not create numbered files
-      const target0 = path.join(rulesDir, 'ruler_windsurf_instructions_0.md');
-      const target1 = path.join(rulesDir, 'ruler_windsurf_instructions_1.md');
+      const target0 = path.join(rulesDir, 'ruler_windsurf_instructions_00.md');
+      const target1 = path.join(rulesDir, 'ruler_windsurf_instructions_01.md');
       await expect(fs.access(target0)).rejects.toThrow();
       await expect(fs.access(target1)).rejects.toThrow();
     });
@@ -123,8 +123,8 @@ describe('WindsurfAgent', () => {
         expect(warnings.some(w => w.includes('Windsurf rule content exceeds'))).toBe(true);
 
         // Should create numbered files
-        const target0 = path.join(rulesDir, 'ruler_windsurf_instructions_0.md');
-        const target1 = path.join(rulesDir, 'ruler_windsurf_instructions_1.md');
+        const target0 = path.join(rulesDir, 'ruler_windsurf_instructions_00.md');
+        const target1 = path.join(rulesDir, 'ruler_windsurf_instructions_01.md');
         
         await expect(fs.access(target0)).resolves.toBeUndefined();
         await expect(fs.access(target1)).resolves.toBeUndefined();
@@ -168,8 +168,8 @@ describe('WindsurfAgent', () => {
       await agent.applyRulerConfig(sampleRules, tmpDir, null);
 
       // Should create numbered files
-      const target0 = path.join(rulesDir, 'ruler_windsurf_instructions_0.md');
-      const target1 = path.join(rulesDir, 'ruler_windsurf_instructions_1.md');
+      const target0 = path.join(rulesDir, 'ruler_windsurf_instructions_00.md');
+      const target1 = path.join(rulesDir, 'ruler_windsurf_instructions_01.md');
       
       await expect(fs.access(target0)).resolves.toBeUndefined();
       await expect(fs.access(target1)).resolves.toBeUndefined();
@@ -200,7 +200,7 @@ describe('WindsurfAgent', () => {
       expect(written.startsWith(expectedFrontMatter)).toBe(true);
 
       // Should not create numbered files
-      const target0 = path.join(rulesDir, 'ruler_windsurf_instructions_0.md');
+      const target0 = path.join(rulesDir, 'ruler_windsurf_instructions_00.md');
       await expect(fs.access(target0)).rejects.toThrow();
     });
 
@@ -216,7 +216,7 @@ describe('WindsurfAgent', () => {
       expect(written).toBe(expectedFrontMatter);
 
       // Should not create numbered files
-      const target0 = path.join(rulesDir, 'ruler_windsurf_instructions_0.md');
+      const target0 = path.join(rulesDir, 'ruler_windsurf_instructions_00.md');
       await expect(fs.access(target0)).rejects.toThrow();
     });
   });
