@@ -75,6 +75,7 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | opencode         | `AGENTS.md`                                      | `opencode.json`                                  |
 | Goose            | `.goosehints`                                    | -                                                |
 | Qwen Code        | `AGENTS.md`                                      | `.qwen/settings.json`                            |
+| RooCode          | `AGENTS.md`                                      | `.roo/mcp.json`                                  |
 | Zed              | `AGENTS.md`                                      | `.zed/settings.json` (project root, never $HOME) |
 | Warp             | `WARP.md`                                        | -                                                |
 | Kiro             | `.kiro/steering/ruler_kiro_instructions.md`      | -                                                |
@@ -214,7 +215,7 @@ The `apply` command looks for `.ruler/` in the current directory tree, reading t
 | Option                         | Description                                                                                                                                                                     |
 | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `--project-root <path>`        | Path to your project's root (default: current directory)                                                                                                                        |
-| `--agents <agent1,agent2,...>` | Comma-separated list of agent names to target (agentsmd, amp, copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, junie, augmentcode, kilocode, warp) |
+| `--agents <agent1,agent2,...>` | Comma-separated list of agent names to target (agentsmd, amp, copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, junie, augmentcode, kilocode, warp, roo) |
 | `--config <path>`              | Path to a custom `ruler.toml` configuration file                                                                                                                                |
 | `--mcp` / `--with-mcp`         | Enable applying MCP server configurations (default: true)                                                                                                                       |
 | `--no-mcp`                     | Disable applying MCP server configurations                                                                                                                                      |
@@ -248,6 +249,12 @@ ruler apply --agents firebase
 
 ```bash
 ruler apply --agents warp
+```
+
+**Apply rules only to RooCode:**
+
+```bash
+ruler apply --agents roo
 ```
 
 **Use a specific configuration file:**
