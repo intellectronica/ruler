@@ -66,28 +66,27 @@ describe('Revert Agent Integration', () => {
 
   describe('Directory Cleanup', () => {
     it('should remove empty agent directories', async () => {
-      await fs.mkdir(path.join(tmpDir, '.github'), { recursive: true });
-      await fs.writeFile(path.join(tmpDir, '.github', 'copilot-instructions.md'), 'Copilot content');
+      await fs.writeFile(path.join(tmpDir, 'AGENTS.md'), 'Copilot content');
       
       await fs.mkdir(path.join(tmpDir, '.cursor', 'rules'), { recursive: true });
       await fs.writeFile(path.join(tmpDir, '.cursor', 'rules', 'ruler_cursor_instructions.mdc'), 'Cursor content');
       
       await revertAllAgentConfigs(tmpDir, undefined, undefined, false, false, false);
       
-      await expect(fs.access(path.join(tmpDir, '.github'))).rejects.toThrow();
+      await expect(fs.access(path.join(tmpDir, 'AGENTS.md'))).rejects.toThrow();
       await expect(fs.access(path.join(tmpDir, '.cursor'))).rejects.toThrow();
     });
 
     it('should preserve directories with non-ruler content', async () => {
       await fs.mkdir(path.join(tmpDir, '.github', 'workflows'), { recursive: true });
-      await fs.writeFile(path.join(tmpDir, '.github', 'copilot-instructions.md'), 'Copilot content');
+      await fs.writeFile(path.join(tmpDir, 'AGENTS.md'), 'Copilot content');
       await fs.writeFile(path.join(tmpDir, '.github', 'workflows', 'ci.yml'), 'Existing workflow');
 
       await revertAllAgentConfigs(tmpDir, undefined, undefined, false, false, false);
 
       await expect(fs.access(path.join(tmpDir, '.github'))).resolves.toBeUndefined();
       await expect(fs.access(path.join(tmpDir, '.github', 'workflows', 'ci.yml'))).resolves.toBeUndefined();
-      await expect(fs.access(path.join(tmpDir, '.github', 'copilot-instructions.md'))).rejects.toThrow();
+      await expect(fs.access(path.join(tmpDir, 'AGENTS.md'))).rejects.toThrow();
     });
   });
 

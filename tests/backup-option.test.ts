@@ -9,7 +9,7 @@ describe('backup option', () => {
     testProject = await setupTestProject({
       '.ruler/AGENTS.md': '# Test Rules\n\nSome test rules here.',
       '.ruler/ruler.toml': '# Test config\ndefault_agents = ["copilot"]\n',
-      '.github/copilot-instructions.md': '# Existing file\nThis should be backed up.',
+      'AGENTS.md': '# Existing file\nThis should be backed up.',
     });
   });
 
@@ -19,8 +19,8 @@ describe('backup option', () => {
 
   it('creates .bak files by default', async () => {
     const { projectRoot } = testProject;
-    const targetFile = path.join(projectRoot, '.github', 'copilot-instructions.md');
-    const backupFile = path.join(projectRoot, '.github', 'copilot-instructions.md.bak');
+    const targetFile = path.join(projectRoot, 'AGENTS.md');
+    const backupFile = path.join(projectRoot, 'AGENTS.md.bak');
     
     runRuler('apply', projectRoot);
     
@@ -35,8 +35,8 @@ describe('backup option', () => {
 
   it('creates .bak files with --backup flag', async () => {
     const { projectRoot } = testProject;
-    const targetFile = path.join(projectRoot, '.github', 'copilot-instructions.md');
-    const backupFile = path.join(projectRoot, '.github', 'copilot-instructions.md.bak');
+    const targetFile = path.join(projectRoot, 'AGENTS.md');
+    const backupFile = path.join(projectRoot, 'AGENTS.md.bak');
     
     runRuler('apply --backup', projectRoot);
     
@@ -51,8 +51,8 @@ describe('backup option', () => {
 
   it('does not create .bak files with --no-backup flag', async () => {
     const { projectRoot } = testProject;
-    const targetFile = path.join(projectRoot, '.github', 'copilot-instructions.md');
-    const backupFile = path.join(projectRoot, '.github', 'copilot-instructions.md.bak');
+    const targetFile = path.join(projectRoot, 'AGENTS.md');
+    const backupFile = path.join(projectRoot, 'AGENTS.md.bak');
     
     runRuler('apply --no-backup', projectRoot);
     
@@ -79,7 +79,7 @@ describe('backup option', () => {
     expect(gitignoreContent).not.toContain('*.bak');
     
     // Should still contain the main generated file path
-    expect(gitignoreContent).toContain('.github/copilot-instructions.md');
+    expect(gitignoreContent).toContain('AGENTS.md');
   });
 
   it('adds .bak paths to .gitignore with --backup (default)', async () => {
@@ -95,7 +95,7 @@ describe('backup option', () => {
     expect(gitignoreContent).toContain('*.bak');
     
     // Should also contain specific backup paths
-    expect(gitignoreContent).toContain('.github/copilot-instructions.md.bak');
+    expect(gitignoreContent).toContain('AGENTS.md.bak');
   });
 
   describe('agents with custom applyRulerConfig implementations', () => {
