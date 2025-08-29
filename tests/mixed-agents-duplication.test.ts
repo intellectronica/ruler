@@ -152,7 +152,7 @@ Some more content here.
       } else if (agent === 'codex') {
         // Codex might not create a separate file
       } else if (agent === 'copilot') {
-        agentSpecificPath = path.join(tempDir, '.github', 'copilot-instructions.md');
+        // Copilot now writes to AGENTS.md, no separate file
       } else if (agent === 'cursor') {
         agentSpecificPath = path.join(tempDir, '.cursor', 'rules', 'ruler_cursor_instructions.mdc');
       } else if (agent === 'gemini') {

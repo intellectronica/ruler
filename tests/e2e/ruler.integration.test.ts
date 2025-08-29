@@ -203,8 +203,7 @@ File: extra-rules.md
       'CLAUDE.md', // Claude-specific file
       'CRUSH.md', // Crush-specific file
       
-      // GitHub Copilot
-      '.github/copilot-instructions.md',
+      // GitHub Copilot (now writes to AGENTS.md)
       '.vscode/mcp.json', // Copilot MCP config
       
       // Cursor
@@ -288,12 +287,6 @@ File: extra-rules.md
         expect(fileContents[file]).toContain('Extra Rules for Integration Testing');
         console.log(`✓ ${file} contains expected concatenated content`);
       }
-    }
-
-    // Verify GitHub Copilot instructions
-    if (fileContents['.github/copilot-instructions.md']) {
-      expect(fileContents['.github/copilot-instructions.md']).toContain('Integration Test Sample Instructions');
-      console.log('✓ GitHub Copilot instructions contain expected content');
     }
 
     // Verify Cursor instructions

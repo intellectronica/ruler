@@ -32,7 +32,7 @@ describe('UnifiedConfigLoader integration', () => {
 nested = true
 
 [agents.copilot]
-output_path = ".github/copilot-instructions.md"
+output_path = "AGENTS.md"
 `;
     await fs.writeFile(tomlPath, modifiedToml, 'utf8');
 

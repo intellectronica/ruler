@@ -52,7 +52,6 @@ describe('End-to-End Ruler CLI', () => {
     runRulerWithInheritedStdio('apply', projectRoot);
 
     // Check some generated files contain concatenated rules
-    const copilotPath = path.join(projectRoot, '.github', 'copilot-instructions.md');
     const claudePath = path.join(projectRoot, 'CLAUDE.md');
     const codexPath = path.join(projectRoot, 'AGENTS.md');
     const cursorPath = path.join(projectRoot, '.cursor', 'rules', 'ruler_cursor_instructions.mdc');
@@ -80,7 +79,6 @@ describe('End-to-End Ruler CLI', () => {
     );
 
     return Promise.all([
-      expect(fs.readFile(copilotPath, 'utf8')).resolves.toContain('Rule A'),
       expect(fs.readFile(claudePath, 'utf8')).resolves.toContain('Rule B'),
       expect(fs.readFile(codexPath, 'utf8')).resolves.toContain('Rule A'),
       expect(fs.readFile(cursorPath, 'utf8')).resolves.toContain('Rule B'),
@@ -107,14 +105,11 @@ describe('End-to-End Ruler CLI', () => {
     await fs.writeFile(path.join(testProject.projectRoot, '.ruler', 'ruler.toml'), toml);
     runRulerWithInheritedStdio('apply', testProject.projectRoot);
     await expect(
-      fs.readFile(path.join(testProject.projectRoot, '.github', 'copilot-instructions.md'), 'utf8'),
+      fs.readFile(path.join(testProject.projectRoot, 'AGENTS.md'), 'utf8'),
     ).resolves.toContain('Rule A');
     await expect(
       fs.readFile(path.join(testProject.projectRoot, 'CLAUDE.md'), 'utf8'),
     ).resolves.toContain('Rule B');
-    await expect(
-      fs.stat(path.join(testProject.projectRoot, 'AGENTS.md')),
-    ).rejects.toThrow();
   });
 
   it('CLI --agents overrides default_agents', async () => {
@@ -125,7 +120,7 @@ describe('End-to-End Ruler CLI', () => {
       fs.readFile(path.join(testProject.projectRoot, 'AGENTS.md'), 'utf8'),
     ).resolves.toContain('Rule A');
     await expect(
-      fs.stat(path.join(testProject.projectRoot, '.github', 'copilot-instructions.md')),
+      fs.stat(path.join(testProject.projectRoot, 'CLAUDE.md')),
     ).rejects.toThrow();
   });
 
@@ -140,7 +135,7 @@ describe('End-to-End Ruler CLI', () => {
     ).resolves.toContain('Rule B');
     // Ensure no other agent files were created
     await expect(
-      fs.stat(path.join(testProject.projectRoot, '.github', 'copilot-instructions.md')),
+      fs.stat(path.join(testProject.projectRoot, 'AGENTS.md')),
     ).rejects.toThrow();
     await expect(
       fs.stat(path.join(testProject.projectRoot, 'CLAUDE.md')),
@@ -203,7 +198,6 @@ output_path = "awesome.md"
       expect(gitignoreContent).toContain('# START Ruler Generated Files');
       expect(gitignoreContent).toContain('# END Ruler Generated Files');
       expect(gitignoreContent).toContain('CLAUDE.md');
-      expect(gitignoreContent).toContain('.github/copilot-instructions.md');
       expect(gitignoreContent).toContain('AGENTS.md');
       expect(gitignoreContent).toContain('.cursor/rules/ruler_cursor_instructions.mdc');
       expect(gitignoreContent).toContain('.windsurf/rules/ruler_windsurf_instructions.md');

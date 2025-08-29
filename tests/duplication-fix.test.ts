@@ -77,7 +77,7 @@ These are the default instructions for the agent.
       } else if (agentName === 'codex') {
         agentOutputPath = path.join(tempDir, '.codex', 'instructions.md');
       } else if (agentName === 'copilot') {
-        agentOutputPath = path.join(tempDir, '.github', 'copilot-instructions.md');
+        agentOutputPath = path.join(tempDir, 'AGENTS.md');
       } else if (agentName === 'cursor') {
         agentOutputPath = path.join(tempDir, '.cursorrules');
       } else if (agentName === 'gemini') {
