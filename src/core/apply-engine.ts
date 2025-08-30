@@ -714,7 +714,6 @@ export async function updateGitignore(
   config: LoadedConfig,
   cliGitignoreEnabled: boolean | undefined,
   dryRun: boolean,
-  backup = true,
 ): Promise<void> {
   // Configuration precedence: CLI > TOML > Default (enabled)
   let gitignoreEnabled: boolean;

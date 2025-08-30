@@ -50,7 +50,7 @@ enabled = true
       false, // dry run
       true,  // cli mcp enabled
       undefined, // cli mcp strategy
-      true,  // backup
+      
     );
 
     // Update gitignore
@@ -60,7 +60,7 @@ enabled = true
       configuration.config,
       true, // cli gitignore enabled
       false, // dry run
-      true,  // backup
+      
     );
 
     // Read the generated .gitignore
@@ -70,9 +70,9 @@ enabled = true
     expect(gitignoreContent).toContain('.windsurf/rules/ruler_windsurf_instructions_00.md');
     expect(gitignoreContent).toContain('.windsurf/rules/ruler_windsurf_instructions_01.md');
     
-    // Check that backup files are included
-    expect(gitignoreContent).toContain('.windsurf/rules/ruler_windsurf_instructions_00.md.bak');
-    expect(gitignoreContent).toContain('*.bak');
+    // Check that backup files are included but NOT the broad *.bak pattern
+    expect(gitignoreContent).toContain('/.windsurf/rules/ruler_windsurf_instructions_00.md.bak');
+    expect(gitignoreContent).not.toContain('*.bak');
 
     // Verify that split files were actually created
     const rulesDir = path.join(tmpDir, '.windsurf', 'rules');
@@ -117,7 +117,7 @@ enabled = true
       false, // dry run
       true,  // cli mcp enabled
       undefined, // cli mcp strategy
-      true,  // backup
+      
     );
 
     // Update gitignore
@@ -127,7 +127,7 @@ enabled = true
       configuration.config,
       true, // cli gitignore enabled
       false, // dry run
-      true,  // backup
+      
     );
 
     // Read the generated .gitignore
@@ -177,7 +177,7 @@ enabled = false
       false, // dry run
       true,  // cli mcp enabled
       undefined, // cli mcp strategy
-      true,  // backup
+      
     );
 
     // Update gitignore with gitignore disabled
@@ -187,7 +187,6 @@ enabled = false
       configuration.config,
       false, // cli gitignore disabled
       false, // dry run
-      true,  // backup
     );
 
     // Verify that .gitignore was not created or is empty of ruler content

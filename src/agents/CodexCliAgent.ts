@@ -29,7 +29,7 @@ interface RulerMcp {
  */
 export class CodexCliAgent implements IAgent {
   private agentsMdAgent = new AgentsMdAgent();
-  
+
   getIdentifier(): string {
     return 'codex';
   }

@@ -91,11 +91,9 @@ describe('backup option', () => {
     // Check .gitignore content
     const gitignoreContent = await fs.readFile(gitignoreFile, 'utf8');
     
-    // Should contain *.bak pattern
-    expect(gitignoreContent).toContain('*.bak');
-    
-    // Should also contain specific backup paths
-    expect(gitignoreContent).toContain('AGENTS.md.bak');
+    // Should contain specific backup paths but NOT the broad *.bak pattern
+    expect(gitignoreContent).toContain('/AGENTS.md.bak');
+    expect(gitignoreContent).not.toContain('*.bak');
   });
 
   describe('agents with custom applyRulerConfig implementations', () => {
