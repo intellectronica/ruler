@@ -124,4 +124,35 @@ describe('GitignoreUtils - Root Anchored Paths', () => {
     // Should be sorted and deduplicated
     expect(rulerLines).toEqual(['/a-file.md', '/b-file.md', '/z-file.md']);
   });
+
+  it('should migrate legacy unanchored patterns to root-anchored ones', async () => {
+    const paths = ['AGENTS.md', '.codex/config.toml'];
+    
+    // Create an existing .gitignore with legacy unanchored patterns
+    const gitignorePath = path.join(tmpDir, '.gitignore');
+    const legacyContent = `node_modules/
+# START Ruler Generated Files
+AGENTS.md
+.codex/config.toml
+# END Ruler Generated Files
+*.log`;
+    await fs.writeFile(gitignorePath, legacyContent);
+    
+    // Update with the same paths
+    await updateGitignore(tmpDir, paths);
+    
+    const content = await fs.readFile(gitignorePath, 'utf8');
+    
+    // Should now contain root-anchored versions
+    expect(content).toContain('/AGENTS.md');
+    expect(content).toContain('/.codex/config.toml');
+    
+    // Should preserve non-Ruler content
+    expect(content).toContain('node_modules/');
+    expect(content).toContain('*.log');
+    
+    // Should still only have one Ruler block
+    const rulerBlockCount = (content.match(/# START Ruler Generated Files/g) || []).length;
+    expect(rulerBlockCount).toBe(1);
+  });
 });
