@@ -27,28 +27,37 @@ export async function updateGitignore(
     }
   }
 
-  // Convert paths to relative POSIX format
-  const relativePaths = paths.map((p) => {
-    let relative: string;
-    if (path.isAbsolute(p)) {
-      relative = path.relative(projectRoot, p);
-    } else {
-      // Handle relative paths that might include the project root prefix
-      const normalizedProjectRoot = path.normalize(projectRoot);
-      const normalizedPath = path.normalize(p);
-
-      // Get the basename of the project root to match against path prefixes
-      const projectBasename = path.basename(normalizedProjectRoot);
-
-      // If the path starts with the project basename, remove it
-      if (normalizedPath.startsWith(projectBasename + path.sep)) {
-        relative = normalizedPath.substring(projectBasename.length + 1);
+  // Convert paths to repo-relative POSIX format with leading /
+  const relativePaths = paths
+    .map((p) => {
+      let relative: string;
+      if (path.isAbsolute(p)) {
+        relative = path.relative(projectRoot, p);
       } else {
-        relative = normalizedPath;
+        // Handle relative paths that might include the project root prefix
+        const normalizedProjectRoot = path.normalize(projectRoot);
+        const normalizedPath = path.normalize(p);
+
+        // Get the basename of the project root to match against path prefixes
+        const projectBasename = path.basename(normalizedProjectRoot);
+
+        // If the path starts with the project basename, remove it
+        if (normalizedPath.startsWith(projectBasename + path.sep)) {
+          relative = normalizedPath.substring(projectBasename.length + 1);
+        } else {
+          relative = normalizedPath;
+        }
       }
-    }
-    return relative.replace(/\\/g, '/'); // Convert to POSIX format
-  });
+      return relative.replace(/\\/g, '/'); // Convert to POSIX format
+    })
+    .filter((p) => {
+      // Never include any path that resides inside a .ruler directory (inputs, not outputs)
+      return !p.includes('/.ruler/') && !p.startsWith('.ruler/');
+    })
+    .map((p) => {
+      // Always write full repository-relative paths (prefix with leading /)
+      return p.startsWith('/') ? p : `/${p}`;
+    });
 
   // Get all existing paths from .gitignore (excluding Ruler block)
   const existingPaths = getExistingPathsExcludingRulerBlock(existingContent);

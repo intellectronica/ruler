@@ -139,7 +139,6 @@ export async function applyAllAgentConfigs(
     loadedConfig,
     cliGitignoreEnabled,
     dryRun,
-    backup,
   );
 }
 

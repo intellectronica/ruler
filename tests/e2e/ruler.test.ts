@@ -305,14 +305,22 @@ output_path = "custom-claude.md"`;
       const gitignoreContent = await fs.readFile(gitignorePath, 'utf8');
 
       const expectedPatterns = [
-        '*.bak',
-        '.vscode/mcp.json',
-        '.gemini/settings.json',
-        '.cursor/mcp.json',
-        '.mcp.json',
-        'AGENTS.md', // Example of an existing rule
-        'CLAUDE.md'  // Example of an existing rule
+        // MCP config files (root-anchored)
+        '/.vscode/mcp.json',
+        '/.gemini/settings.json', 
+        '/.cursor/mcp.json',
+        '/.mcp.json',
+        // Generated agent files (root-anchored)
+        '/AGENTS.md',
+        '/CLAUDE.md',
+        // Specific backup patterns instead of *.bak
+        '/.vscode/mcp.json.bak',
+        '/AGENTS.md.bak',
+        '/CLAUDE.md.bak'
       ];
+
+      // Should NOT contain broad wildcards
+      expect(gitignoreContent).not.toContain('*.bak');
 
       for (const pattern of expectedPatterns) {
         expect(gitignoreContent).toContain(pattern);

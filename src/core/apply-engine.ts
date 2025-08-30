@@ -714,7 +714,6 @@ export async function updateGitignore(
   config: LoadedConfig,
   cliGitignoreEnabled: boolean | undefined,
   dryRun: boolean,
-  backup = true,
 ): Promise<void> {
   // Configuration precedence: CLI > TOML > Default (enabled)
   let gitignoreEnabled: boolean;
@@ -729,10 +728,8 @@ export async function updateGitignore(
   if (gitignoreEnabled && generatedPaths.length > 0) {
     const uniquePaths = [...new Set(generatedPaths)];
 
-    // Add wildcard pattern for backup files only if backup is enabled
-    if (backup) {
-      uniquePaths.push('*.bak');
-    }
+    // Note: Individual backup patterns are added per-file in the collection phase
+    // No need to add a broad *.bak pattern here
 
     if (uniquePaths.length > 0) {
       const prefix = actionPrefix(dryRun);
