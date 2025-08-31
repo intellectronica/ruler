@@ -26,10 +26,10 @@ env_key = "GITHUB_TOKEN"
 # Use Chat Completions API for GitHub Models to avoid unsupported Responses API
 wire_api = "chat"
 
-# Optional: network tuning (sane defaults already present in Codex)
-# request_max_retries = 4
-# stream_max_retries = 10
-# stream_idle_timeout_ms = 300000
+# Network tuning: tolerate rate limits and transient drops
+request_max_retries = 6
+stream_max_retries = 20
+stream_idle_timeout_ms = 600000
 
 # File scanning preferences
 [paths]
@@ -50,6 +50,11 @@ exclude = [
   ".next/**",
   ".turbo/**",
   ".yarn/**",
+  "tests/**",
+  "img/**",
+  "**/*.gif",
+  "**/*.png",
+  "**/*.jpg",
   "yarn.lock",
   "package-lock.json",
   "pnpm-lock.yaml",
