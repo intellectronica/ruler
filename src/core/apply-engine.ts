@@ -603,13 +603,25 @@ async function applyStandardMcpConfiguration(
   if (dryRun) {
     logVerbose(`DRY RUN: Would apply MCP config to: ${dest}`, verbose);
   } else {
-    if (backup) {
-      const { backupFile } = await import('../core/FileSystemUtils');
-      await backupFile(dest);
-    }
     const existing = await readNativeMcp(dest);
     const merged = mergeMcp(existing, filteredMcpJson, strategy, serverKey);
-    await writeNativeMcp(dest, merged);
+    
+    // Only backup and write if content would actually change (idempotent)
+    const currentContent = JSON.stringify(existing, null, 2);
+    const newContent = JSON.stringify(merged, null, 2);
+    
+    if (currentContent !== newContent) {
+      if (backup) {
+        const { backupFile } = await import('../core/FileSystemUtils');
+        await backupFile(dest);
+      }
+      await writeNativeMcp(dest, merged);
+    } else {
+      logVerbose(
+        `MCP config for ${agent.getName()} is already up to date - skipping backup and write`,
+        verbose,
+      );
+    }
   }
 }
 
