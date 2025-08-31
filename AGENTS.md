@@ -28,4 +28,5 @@
   - `npm run lint`
   - `npm test`
   - `npm run build`
-- When committing yourself with `git commit`, always pass `--author="AI <ruler+ai@okigu.com>"` so that your commits can be easily identified.
+- IMPORTANT: Before committing, always use Prettier to ensure that the code is formatted correctly.
+- IMPORTANT: When committing yourself with `git commit`, always pass `--author="AI <ruler+ai@okigu.com>"` so that your commits can be easily identified.
