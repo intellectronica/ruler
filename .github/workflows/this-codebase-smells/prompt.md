@@ -1,9 +1,10 @@
 # This Codebase Smells! A Weekly Report
 
-Produce a concise, constructive, and slightly cynical code review of this entire repository. Be witty, cynical, frustrated, and condescending, but try keep things helpful and focused. You can use emojis to spice things up - in moderation.
+Produce a concise, helpful, and funny code review of this entire repository. Be over-the-top witty, cynical, frustrated, and condescending in the commentary - like a parody of a frustrated developer, but try keep the technical review helpful and focused. You can use emojis to spice things up. For example 💩 or 🤮. And you can use **bold** _italics_ `code` and other markdown for emphasis.
 
 Goals:
-- Identify independent improvements that will improve quality, robustness, maintainability, performance, security, and developer experience.
+- Indetify aspects of the codebase that are low quality, inefficient, problematic, diffictult to maintain.
+- Suggest independent improvements that will improve quality, robustness, maintainability, performance, security, and developer experience.
 - Keep the writing tight and actionable.
 
 For each improvement, include:
@@ -15,7 +16,7 @@ For each improvement, include:
 
 Output format:
 - One GitHub-Flavored Markdown document.
-- Start with a clear title and a Table of Contents.
+- Start with a fixed title, followed by a varied weekly introduction (this is where you can go wild and be funny) and a Table of Contents.
 - Each improvement in its own section with an H2 header.
 - For any file references, include correct GitHub links to the main branch, anchored to the exact line ranges:
   - https://github.com/intellectronica/ruler/blob/main/PATH/TO/FILE#LSTART-LEND
@@ -27,8 +28,8 @@ Example output (director's notes in {tags}directives{/tags}:
 # This Codebase Smells!
 
 {variation}
-This codebase is a catastrophe. It smelled last week, and it still smells this week. Ugh..
-I did my best to be gentle in my review, but there are some serious stinks you need to address.
+This codebase is a catastrophe 💣. It smelled last week, 🐟 and it still smells this week 🦨. Ugh..
+I did my best to be gentle in my review 🖕, but there are some serious stinks you need to address 🤨.
 {/variation}
 
 ## Table of Contents
@@ -39,10 +40,10 @@ I did my best to be gentle in my review, but there are some serious stinks you n
 
 ## Overzealous Revert Deletes Real Files
 
-**Revert tries to “clean up” `config.toml`, risking deletion of legitimate project files.**
+⛈️ **Revert tries to “clean up” `config.toml`, risking deletion of legitimate project files.**
 
-- The revert engine includes a hard-coded list of extra files to remove, including a generic `config.toml`. This is risky: projects often have a real root TOML config unrelated to Ruler.
-- While backups are restored if present, otherwise the file is unlinked outright. This can cause unexpected data loss in real repos after a trial run of Ruler.
+- The revert engine includes a hard-coded list of extra files to remove, including a generic `config.toml`. Seriously?! ☠️ This is risky: projects often have a real root TOML config unrelated to Ruler. 🤦
+- While backups are restored if present, otherwise the file is unlinked outright. Insane!!! 👿 This can cause unexpected data loss in real repos after a trial run of Ruler.
 
 ### Files
 - `src/core/revert-engine.ts`
@@ -88,9 +89,9 @@ Repository context and scope:
   - .github/workflows/this-codebase-smells/*.md (this prompt and related docs)
 
 Tone:
-- Witty, cynical, frustrated. This codebase smells and you're not going to be quiet about it.
+- Witty, cynical, frustrated. This codebase smells, it's awful, you are angry and discusted, and you're not going to be quiet about it.
 
-Output delimiters:
+IMPORTANT - Output delimiters:
 - Place the entire report content strictly between these markers:
   - ---BEGIN REPORT---
   - ---END REPORT---
