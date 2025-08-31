@@ -1,0 +1,54 @@
+# Codex configuration for weekly repo review via GitHub Models
+
+# Select model and provider
+model = "gpt-5"
+model_provider = "github-models"
+
+# Reasoning settings for GPT-5 family (Responses API)
+model_reasoning_effort = "medium"   # minimal | low | medium | high
+model_verbosity = "medium"          # low | medium | high
+
+# Keep the CLI quiet and avoid storing history in CI
+hide_agent_reasoning = true
+
+[history]
+persistence = "none"
+
+# Custom provider for GitHub Models (OpenAI-compatible endpoint)
+[model_providers."github-models"]
+name = "GitHub Models"
+base_url = "https://models.inference.ai.azure.com"
+# Codex will read the token from this environment variable
+env_key = "GITHUB_TOKEN"
+# GPT‑5 on GitHub Models uses the Responses API
+wire_api = "responses"
+
+# Optional: network tuning (sane defaults already present in Codex)
+# request_max_retries = 4
+# stream_max_retries = 10
+# stream_idle_timeout_ms = 300000
+
+# File scanning preferences
+[paths]
+root = "."
+include = ["**/*"]
+exclude = [
+  ".git/**",
+  "node_modules/**",
+  "dist/**",
+  "build/**",
+  "coverage/**",
+  "target/**",
+  "vendor/**",
+  ".venv/**",
+  ".env",
+  ".cache/**",
+  "out/**",
+  ".next/**",
+  ".turbo/**",
+  ".yarn/**",
+  "yarn.lock",
+  "package-lock.json",
+  "pnpm-lock.yaml",
+  ".github/workflows/this-code-smells/*.md"
+]
