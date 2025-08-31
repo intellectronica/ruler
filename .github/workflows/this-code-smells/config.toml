@@ -11,6 +11,9 @@ model_verbosity = "medium"          # low | medium | high
 # Keep the CLI quiet and avoid storing history in CI
 hide_agent_reasoning = true
 
+# Non-interactive approval policy for CI
+approval_policy = "never"
+
 [history]
 persistence = "none"
 
