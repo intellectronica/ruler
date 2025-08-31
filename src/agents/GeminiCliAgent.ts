@@ -15,7 +15,7 @@ export class GeminiCliAgent extends AgentsMdAgent {
   async applyRulerConfig(
     concatenatedRules: string,
     projectRoot: string,
-    rulerMcpJson: Record<string, unknown> | null, // eslint-disable-line @typescript-eslint/no-unused-vars
+    rulerMcpJson: Record<string, unknown> | null,
     agentConfig?: IAgentConfig,
   ): Promise<void> {
     // First, perform idempotent write of AGENTS.md via base class
@@ -23,7 +23,7 @@ export class GeminiCliAgent extends AgentsMdAgent {
       outputPath: agentConfig?.outputPath,
     });
 
-    // Ensure .gemini/settings.json has contextFileName set to AGENTS.md
+    // Prepare .gemini/settings.json with contextFileName and MCP configuration
     const settingsPath = path.join(projectRoot, '.gemini', 'settings.json');
     let existingSettings: Record<string, unknown> = {};
     try {
@@ -39,6 +39,30 @@ export class GeminiCliAgent extends AgentsMdAgent {
       ...existingSettings,
       contextFileName: 'AGENTS.md',
     } as Record<string, unknown>;
+
+    // Handle MCP server configuration if provided
+    const mcpEnabled = agentConfig?.mcp?.enabled ?? true;
+    if (mcpEnabled && rulerMcpJson) {
+      const strategy = agentConfig?.mcp?.strategy ?? 'merge';
+
+      if (strategy === 'overwrite') {
+        // For overwrite, preserve existing settings except MCP servers
+        const incomingServers =
+          (rulerMcpJson.mcpServers as Record<string, unknown>) || {};
+        updated[this.getMcpServerKey()] = incomingServers;
+      } else {
+        // For merge strategy, merge with existing MCP servers
+        const baseServers =
+          (existingSettings[this.getMcpServerKey()] as Record<
+            string,
+            unknown
+          >) || {};
+        const incomingServers =
+          (rulerMcpJson.mcpServers as Record<string, unknown>) || {};
+        const mergedServers = { ...baseServers, ...incomingServers };
+        updated[this.getMcpServerKey()] = mergedServers;
+      }
+    }
 
     await fs.mkdir(path.dirname(settingsPath), { recursive: true });
     await fs.writeFile(settingsPath, JSON.stringify(updated, null, 2));

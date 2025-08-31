@@ -4,7 +4,6 @@ import { McpStrategy } from './types';
 import { logVerbose } from './constants';
 import {
   loadSingleConfiguration,
-  selectAgentsToRun,
   processHierarchicalConfigurations,
   processSingleConfiguration,
   updateGitignore,
@@ -12,6 +11,7 @@ import {
 } from './core/apply-engine';
 import { type LoadedConfig } from './core/ConfigLoader';
 import { mapRawAgentConfigs } from './core/config-utils';
+import { resolveSelectedAgents } from './core/agent-selection';
 
 const agents: IAgent[] = allAgents;
 
@@ -79,7 +79,7 @@ export async function applyAllAgentConfigs(
 
     normalizeAgentConfigs(rootConfig, agents);
 
-    selectedAgents = selectAgentsToRun(agents, rootConfig);
+    selectedAgents = resolveSelectedAgents(rootConfig, agents);
     logVerbose(
       `Selected ${selectedAgents.length} agents: ${selectedAgents.map((a) => a.getName()).join(', ')}`,
       verbose,
@@ -115,7 +115,7 @@ export async function applyAllAgentConfigs(
 
     normalizeAgentConfigs(singleConfig.config, agents);
 
-    selectedAgents = selectAgentsToRun(agents, singleConfig.config);
+    selectedAgents = resolveSelectedAgents(singleConfig.config, agents);
     logVerbose(
       `Selected ${selectedAgents.length} agents: ${selectedAgents.map((a) => a.getName()).join(', ')}`,
       verbose,
