@@ -9,6 +9,7 @@ on:
 permissions:
   contents: read
   discussions: write
+  models: read
 
 env:
   CODEX_HOME: ./.github/workflows/this-code-smells
@@ -40,16 +41,6 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
-      - name: Verify GH_MODELS_TOKEN presence
-        if: ${{ steps.gate.outputs.run != 'false' }}
-        env:
-          GH_MODELS_TOKEN: ${{ secrets.GH_MODELS_TOKEN }}
-        run: |
-          if [ -z "$GH_MODELS_TOKEN" ]; then
-            echo "GH_MODELS_TOKEN is not set. Add a repo secret with scopes: models:read and models:generate."
-            exit 1
-          fi
-
       - name: Install Codex CLI
         if: ${{ steps.gate.outputs.run != 'false' }}
         run: |
@@ -59,8 +50,7 @@ jobs:
       - name: Run Codex analysis
         if: ${{ steps.gate.outputs.run != 'false' }}
         env:
-          # Map our secret for the configured provider's env_key
-          GH_MODELS_TOKEN: ${{ secrets.GH_MODELS_TOKEN }}
+          # GITHUB_TOKEN is granted models: read above and used as API key for GitHub Models
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mkdir -p "$RUNNER_TEMP"
