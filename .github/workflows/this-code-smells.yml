@@ -52,21 +52,42 @@ jobs:
         env:
           # GITHUB_TOKEN is granted models: read above and used as API key for GitHub Models
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Enable verbose internal logs from the CLI
-          RUST_LOG: debug
+          # Codex reads OPENAI_API_KEY / OPENAI_BASE_URL for OpenAI-compatible providers
+          OPENAI_API_KEY: ${{ secrets.GITHUB_TOKEN }}
+          OPENAI_BASE_URL: https://models.inference.ai.azure.com/openai
+          # Enable maximum verbosity from the CLI
+          RUST_LOG: trace
         run: |
           set -o pipefail
           mkdir -p "$RUNNER_TEMP"
-          # Run codex non-interactively with our prompt; read-only sandbox; stream full logs to Actions while capturing to file
-          codex exec --sandbox read-only < "$CODEX_HOME/prompt.md" 2>&1 | tee "$RUNNER_TEMP/raw_report.md"
+          # Run codex in non-interactive, full-auto mode; stream full logs to Actions while capturing to file
+          codex exec \
+            --model "openai/gpt-5" \
+            --approval-mode full-access \
+            --sandbox read-only \
+            < "$CODEX_HOME/prompt.md" 2>&1 | tee "$RUNNER_TEMP/raw_report.md"
 
-          # Extract only the content between our markers
+          # Extract only the content between our markers for the Discussion body
           awk '/^---BEGIN REPORT---$/ {flag=1; next} /^---END REPORT---$/ {flag=0} flag' "$RUNNER_TEMP/raw_report.md" > "$RUNNER_TEMP/report.md"
 
           if [ ! -s "$RUNNER_TEMP/report.md" ]; then
             echo "Report markers not found or empty report produced"
             echo "First 200 lines of raw output for debugging:"
             head -n 200 "$RUNNER_TEMP/raw_report.md" || true
+            # Try to locate the latest session JSONL and show a short excerpt for diagnostics
+            latest_jsonl=""
+            if compgen -G "$HOME/.codex/sessions/*/*/*/rollout-*.jsonl" > /dev/null; then
+              latest_jsonl=$(ls -t $HOME/.codex/sessions/*/*/*/rollout-*.jsonl | head -n1)
+            elif compgen -G "$CODEX_HOME/sessions/*/*/*/rollout-*.jsonl" > /dev/null; then
+              latest_jsonl=$(ls -t $CODEX_HOME/sessions/*/*/*/rollout-*.jsonl | head -n1)
+            fi
+            if [ -n "$latest_jsonl" ]; then
+              echo "Latest session JSONL: $latest_jsonl"
+              echo "Showing last 200 lines of session JSONL:"
+              tail -n 200 "$latest_jsonl" || true
+            else
+              echo "No session JSONL found."
+            fi
             exit 1
           fi
 
