@@ -1,7 +1,7 @@
 # Codex configuration for weekly repo review via GitHub Models
 
 # Select model and provider
-model = "gpt-5"
+model = "openai/gpt-5"
 model_provider = "github-models"
 
 # Reasoning settings for GPT-5 family (Responses API)
@@ -25,7 +25,7 @@ persistence = "none"
 # Custom provider for GitHub Models (OpenAI-compatible endpoint)
 [model_providers."github-models"]
 name = "GitHub Models"
-base_url = "https://models.inference.ai.azure.com"
+base_url = "https://models.github.ai/inference"
 # Codex will read the token from this environment variable
 env_key = "GITHUB_TOKEN"
 # Use Chat Completions API for GitHub Models to avoid unsupported Responses API
