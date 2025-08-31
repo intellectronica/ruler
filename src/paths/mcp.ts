@@ -1,4 +1,3 @@
-import * as os from 'os';
 import * as path from 'path';
 import { promises as fs } from 'fs';
 
@@ -7,7 +6,6 @@ export async function getNativeMcpPath(
   adapterName: string,
   projectRoot: string,
 ): Promise<string | null> {
-  const home = os.homedir();
   const candidates: string[] = [];
   switch (adapterName) {
     case 'GitHub Copilot':
@@ -19,18 +17,15 @@ export async function getNativeMcpPath(
       break;
     case 'Cursor':
       candidates.push(path.join(projectRoot, '.cursor', 'mcp.json'));
-      candidates.push(path.join(home, '.cursor', 'mcp.json'));
       break;
     case 'Windsurf':
-      candidates.push(
-        path.join(home, '.codeium', 'windsurf', 'mcp_config.json'),
-      );
+      candidates.push(path.join(projectRoot, '.windsurf', 'mcp_config.json'));
       break;
     case 'Claude Code':
       candidates.push(path.join(projectRoot, '.mcp.json'));
       break;
     case 'OpenAI Codex CLI':
-      candidates.push(path.join(home, '.codex', 'config.json'));
+      candidates.push(path.join(projectRoot, '.codex', 'config.json'));
       break;
     case 'Aider':
       candidates.push(path.join(projectRoot, '.mcp.json'));
@@ -50,7 +45,6 @@ export async function getNativeMcpPath(
       break;
     case 'OpenCode':
       candidates.push(path.join(projectRoot, 'opencode.json'));
-      candidates.push(path.join(home, '.config', 'opencode', 'opencode.json'));
       break;
     case 'Zed':
       // Only consider project-local Zed settings (avoid writing to user home directory)
