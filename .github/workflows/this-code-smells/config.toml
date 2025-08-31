@@ -1,7 +1,7 @@
 # Codex configuration for weekly repo review via GitHub Models
 
 # Select model and provider
-model = "gpt-5"
+model = "openai/gpt-5"
 model_provider = "github-models"
 
 # Reasoning settings for GPT-5 family (Responses API)
