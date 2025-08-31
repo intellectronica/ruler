@@ -249,11 +249,21 @@ export async function loadUnifiedConfig(
   try {
     await fs.access(mcpFile);
     mcpJsonExists = true;
-    console.warn(
-      '[ruler] Warning: Using legacy .ruler/mcp.json. Please migrate to ruler.toml. This fallback will be removed in a future release.',
-    );
+    // Warning is handled by apply-engine to avoid duplication
   } catch {
     // file not present
+  }
+
+  // Add deprecation warning if mcp.json exists (regardless of validity)
+  if (mcpJsonExists) {
+    meta.mcpFile = mcpFile;
+    diagnostics.push({
+      severity: 'warning',
+      code: 'MCP_JSON_DEPRECATED',
+      message:
+        'mcp.json detected: please migrate MCP servers to ruler.toml [mcp_servers.*] sections',
+      file: mcpFile,
+    });
   }
 
   try {
@@ -277,16 +287,6 @@ export async function loadUnifiedConfig(
           throw e; // rethrow original error for diagnostics
         }
       }
-      meta.mcpFile = mcpFile;
-
-      // Add deprecation warning if mcp.json exists (structured diagnostic)
-      diagnostics.push({
-        severity: 'warning',
-        code: 'MCP_JSON_DEPRECATED',
-        message:
-          'mcp.json detected: please migrate MCP servers to ruler.toml [mcp_servers.*] sections',
-        file: mcpFile,
-      });
 
       const parsedObj = parsed as Record<string, unknown>;
       const serversRaw =
