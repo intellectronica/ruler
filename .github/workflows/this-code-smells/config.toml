@@ -23,8 +23,8 @@ name = "GitHub Models"
 base_url = "https://models.inference.ai.azure.com"
 # Codex will read the token from this environment variable
 env_key = "GITHUB_TOKEN"
-# GPT‑5 on GitHub Models uses the Responses API
-wire_api = "responses"
+# Use Chat Completions API for GitHub Models to avoid unsupported Responses API
+wire_api = "chat"
 
 # Optional: network tuning (sane defaults already present in Codex)
 # request_max_retries = 4
