@@ -55,8 +55,17 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP"
           # Run codex non-interactively with our prompt; read-only sandbox
-          codex exec --sandbox read-only < "$CODEX_HOME/prompt.md" > "$RUNNER_TEMP/report.md"
-          test -s "$RUNNER_TEMP/report.md" || (echo "Report not generated" && exit 1)
+          codex exec --sandbox read-only < "$CODEX_HOME/prompt.md" > "$RUNNER_TEMP/raw_report.md"
+
+          # Extract only the content between our markers
+          awk '/^---BEGIN REPORT---$/ {flag=1; next} /^---END REPORT---$/ {flag=0} flag' "$RUNNER_TEMP/raw_report.md" > "$RUNNER_TEMP/report.md"
+
+          if [ ! -s "$RUNNER_TEMP/report.md" ]; then
+            echo "Report markers not found or empty report produced"
+            echo "First 200 lines of raw output for debugging:"
+            head -n 200 "$RUNNER_TEMP/raw_report.md" || true
+            exit 1
+          fi
 
       - name: Resolve Discussion category ID
         if: ${{ steps.gate.outputs.run != 'false' }}

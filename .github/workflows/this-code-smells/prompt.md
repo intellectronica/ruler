@@ -31,3 +31,9 @@ Repository context and scope:
 
 Tone:
 - Witty, slightly frustrated, but constructive and respectful. Aim for helpful, not snarky.
+
+Output delimiters:
+- Place the entire report content strictly between these markers:
+  - ---BEGIN REPORT---
+  - ---END REPORT---
+- Do not include any other content (no preface, no echo of the prompt) outside the markers.
