@@ -1,7 +1,7 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import os from 'os';
-import * as TOML from 'toml';
+import { parse as parseTOML } from '@iarna/toml';
 import { execSync } from 'child_process';
 import { setupTestProject, teardownTestProject, runRulerWithInheritedStdio } from '../harness';
 
@@ -95,7 +95,7 @@ describe('End-to-End Ruler CLI', () => {
     ])
       .then(async () => {
         const ohToml = await fs.readFile(openHandsConfigPath, 'utf8');
-        const ohParsed: any = TOML.parse(ohToml);
+        const ohParsed: any = parseTOML(ohToml);
         expect(ohParsed.mcp.stdio_servers[0].name).toBe('example');
       });
   }, 30000);

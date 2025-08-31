@@ -41,8 +41,8 @@ describe('MCP Propagation with Merged Config', () => {
 
     // Verify that the config contains merged data, NOT the legacy data
     const content = await fs.readFile(openHandsConfigPath, 'utf8');
-    const TOML = require('toml');
-    const parsed = TOML.parse(content);
+    const { parse } = require('@iarna/toml');
+    const parsed = parse(content);
 
     expect(parsed.mcp.stdio_servers).toHaveLength(2);
     expect(parsed.mcp.stdio_servers).toContainEqual({

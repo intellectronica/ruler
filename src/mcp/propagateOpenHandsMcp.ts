@@ -1,6 +1,5 @@
 import * as fs from 'fs/promises';
-import * as TOML from 'toml';
-import { stringify } from '@iarna/toml';
+import { parse as parseTOML, stringify } from '@iarna/toml';
 import { ensureDirExists } from '../core/FileSystemUtils';
 import * as path from 'path';
 
@@ -122,7 +121,7 @@ export async function propagateMcpToOpenHands(
   } = {};
   try {
     const tomlContent = await fs.readFile(openHandsConfigPath, 'utf8');
-    config = TOML.parse(tomlContent);
+    config = parseTOML(tomlContent);
   } catch {
     // File doesn't exist, we'll create it.
   }

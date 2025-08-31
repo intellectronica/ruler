@@ -1,7 +1,7 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import os from 'os';
-import toml from 'toml';
+import { parse as parseTOML } from '@iarna/toml';
 
 import { CodexCliAgent } from '../../../src/agents/CodexCliAgent';
 
@@ -42,7 +42,7 @@ describe('CodexCliAgent MCP Handling', () => {
     await agent.applyRulerConfig('', tmpDir, mcpJson, { mcp: { enabled: true, strategy: 'merge' } });
     
     const resultStr = await fs.readFile(configPath, 'utf8');
-    const result = toml.parse(resultStr) as Record<string, any>;
+    const result = parseTOML(resultStr) as Record<string, any>;
     
     // Check native server is preserved
     expect(result.mcp_servers.native_server.command).toBe('npx');
@@ -68,9 +68,9 @@ describe('CodexCliAgent MCP Handling', () => {
     await fs.writeFile(configPath, initialToml.join('\n') + '\n');
 
     await agent.applyRulerConfig('', tmpDir, mcpJson, { mcp: { enabled: true, strategy: 'overwrite' } });
-    
+
     const resultStr = await fs.readFile(configPath, 'utf8');
-    const result = toml.parse(resultStr) as Record<string, any>;
+    const result = parseTOML(resultStr) as Record<string, any>;
     
     expect(result.mcp_servers).not.toHaveProperty('native_server');
     expect(result.mcp_servers.ruler_server.command).toBe('npx');
@@ -97,7 +97,7 @@ describe('CodexCliAgent MCP Handling', () => {
     
     // Verify the content
     const content = await fs.readFile(custom, 'utf8');
-    const parsed = toml.parse(content);
+    const parsed = parseTOML(content);
     expect(parsed.mcp_servers).toHaveProperty('ruler_server');
     expect(parsed.mcp_servers.ruler_server.command).toBe('npx');
     expect(parsed.mcp_servers.ruler_server.args).toEqual(['-y', 'ruler-mcp']);

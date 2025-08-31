@@ -1,7 +1,7 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import os from 'os';
-import * as TOML from 'toml';
+import { parse as parseTOML } from '@iarna/toml';
 import { propagateMcpToOpenHands } from '../../../src/mcp/propagateOpenHandsMcp';
 
 describe('propagateMcpToOpenHands', () => {
@@ -26,7 +26,7 @@ describe('propagateMcpToOpenHands', () => {
     await propagateMcpToOpenHands(rulerMcp, openHandsConfigPath);
 
     const content = await fs.readFile(openHandsConfigPath, 'utf8');
-    const parsed = TOML.parse(content);
+    const parsed = parseTOML(content);
     expect(parsed.mcp).toBeDefined();
     const mcp: any = parsed.mcp;
     expect(mcp.stdio_servers).toHaveLength(1);
@@ -53,7 +53,7 @@ stdio_servers = [
     await propagateMcpToOpenHands(rulerMcp, openHandsConfigPath);
 
     const content = await fs.readFile(openHandsConfigPath, 'utf8');
-    const parsed = TOML.parse(content);
+    const parsed = parseTOML(content);
     const mcp: any = parsed.mcp;
     expect(mcp.stdio_servers).toHaveLength(2);
     expect(mcp.stdio_servers).toContainEqual({
@@ -84,7 +84,7 @@ stdio_servers = [
     await propagateMcpToOpenHands(rulerMcp, openHandsConfigPath);
 
     const content = await fs.readFile(openHandsConfigPath, 'utf8');
-    const parsed = TOML.parse(content);
+    const parsed = parseTOML(content);
     const mcp: any = parsed.mcp;
     expect(mcp.stdio_servers).toHaveLength(1);
     // The existing server should be overwritten by the new one from ruler
@@ -106,7 +106,7 @@ stdio_servers = [
     await propagateMcpToOpenHands(rulerMcp, openHandsConfigPath);
 
     const contentWithEnv = await fs.readFile(openHandsConfigPath, 'utf8');
-    const parsedWithEnv: any = TOML.parse(contentWithEnv);
+    const parsedWithEnv: any = parseTOML(contentWithEnv);
     expect(parsedWithEnv.mcp.stdio_servers).toHaveLength(1);
     expect(parsedWithEnv.mcp.stdio_servers[0]).toEqual(
       expect.objectContaining({ env: serverEnv }),
@@ -128,7 +128,7 @@ stdio_servers = [
     await propagateMcpToOpenHands(rulerMcp, openHandsConfigPath);
 
     const content = await fs.readFile(openHandsConfigPath, 'utf8');
-    const parsed = TOML.parse(content);
+    const parsed = parseTOML(content);
     expect(parsed.mcp).toBeDefined();
     const mcp: any = parsed.mcp;
     // No servers should have been added
@@ -174,7 +174,7 @@ stdio_servers = [
     await propagateMcpToOpenHands(rulerMcp, openHandsConfigPath);
 
     const content = await fs.readFile(openHandsConfigPath, 'utf8');
-    const parsed = TOML.parse(content);
+    const parsed = parseTOML(content);
     const mcp: any = parsed.mcp;
     
     expect(mcp.shttp_servers).toHaveLength(2);
@@ -194,7 +194,7 @@ stdio_servers = [
     await propagateMcpToOpenHands(rulerMcp, openHandsConfigPath);
 
     const content = await fs.readFile(openHandsConfigPath, 'utf8');
-    const parsed = TOML.parse(content);
+    const parsed = parseTOML(content);
     const mcp: any = parsed.mcp;
     
     expect(mcp.sse_servers).toHaveLength(2);
@@ -216,7 +216,7 @@ stdio_servers = [
     await propagateMcpToOpenHands(rulerMcp, openHandsConfigPath);
 
     const content = await fs.readFile(openHandsConfigPath, 'utf8');
-    const parsed = TOML.parse(content);
+    const parsed = parseTOML(content);
     const mcp: any = parsed.mcp;
     
     expect(mcp.shttp_servers).toHaveLength(1);
@@ -243,7 +243,7 @@ stdio_servers = [
     await propagateMcpToOpenHands(rulerMcp, openHandsConfigPath);
 
     const content = await fs.readFile(openHandsConfigPath, 'utf8');
-    const parsed = TOML.parse(content);
+    const parsed = parseTOML(content);
     const mcp: any = parsed.mcp;
     
     expect(mcp.shttp_servers).toHaveLength(1);
@@ -275,7 +275,7 @@ args = ["mcp-fs"]
     await propagateMcpToOpenHands(rulerMcp, openHandsConfigPath);
 
     const content = await fs.readFile(openHandsConfigPath, 'utf8');
-    const parsed = TOML.parse(content);
+    const parsed = parseTOML(content);
     const mcp: any = parsed.mcp;
     
     expect(mcp.shttp_servers).toHaveLength(2);
@@ -301,7 +301,7 @@ args = ["mcp-fs"]
     await propagateMcpToOpenHands(rulerMcp, openHandsConfigPath);
 
     const content = await fs.readFile(openHandsConfigPath, 'utf8');
-    const parsed = TOML.parse(content);
+    const parsed = parseTOML(content);
     const mcp: any = parsed.mcp;
     
     expect(mcp.stdio_servers).toHaveLength(1);
@@ -337,7 +337,7 @@ url = "https://api.example.com/mcp"
     await propagateMcpToOpenHands(rulerMcp, openHandsConfigPath);
 
     const content = await fs.readFile(openHandsConfigPath, 'utf8');
-    const parsed = TOML.parse(content);
+    const parsed = parseTOML(content);
     const mcp: any = parsed.mcp;
     
     expect(mcp.shttp_servers).toHaveLength(1);
