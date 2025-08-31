@@ -63,7 +63,6 @@ jobs:
           # Run codex in non-interactive, full-auto mode; stream full logs to Actions while capturing to file
           codex exec \
             --model "openai/gpt-5" \
-            --approval-mode full-access \
             --sandbox read-only \
             < "$CODEX_HOME/prompt.md" 2>&1 | tee "$RUNNER_TEMP/raw_report.md"
 
