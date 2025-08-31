@@ -1,7 +1,8 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
-import { loadSingleConfiguration, processSingleConfiguration, selectAgentsToRun } from '../../../src/core/apply-engine';
+import { loadSingleConfiguration, processSingleConfiguration } from '../../../src/core/apply-engine';
+import { resolveSelectedAgents } from '../../../src/core/agent-selection';
 import { allAgents } from '../../../src/agents';
 import { getAgentOutputPaths } from '../../../src/agents/agent-utils';
 
@@ -38,7 +39,7 @@ describe('Real-world duplication bug reproduction', () => {
     console.log('First apply concatenated rules length:', config.concatenatedRules.length);
     console.log('First apply concatenated rules:', JSON.stringify(config.concatenatedRules));
     
-    const agents = selectAgentsToRun(allAgents, config.config);
+    const agents = resolveSelectedAgents(config.config, allAgents);
     const windsurfAgent = agents.find(a => a.getIdentifier() === 'windsurf');
     const agentsMdAgent = agents.find(a => a.getIdentifier() === 'agentsmd');
     

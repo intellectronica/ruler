@@ -4,7 +4,6 @@ import os from 'os';
 
 import {
   loadSingleConfiguration,
-  selectAgentsToRun,
   applyConfigurationsToAgents,
   updateGitignore,
   RulerConfiguration,
@@ -136,72 +135,6 @@ describe('apply-engine', () => {
       } finally {
         (FileSystemUtils.findRulerDir as jest.Mock).mockRestore();
       }
-    });
-  });
-
-  describe('selectAgentsToRun', () => {
-    const mockAgents = [
-      new MockAgent('Claude Code', 'claude'),
-      new MockAgent('GitHub Copilot', 'copilot'),
-      new MockAgent('Cursor', 'cursor'),
-    ];
-
-    it('should select agents based on CLI filters', () => {
-      const config: LoadedConfig = {
-        cliAgents: ['claude', 'cursor'],
-        agentConfigs: {},
-      };
-
-      const result = selectAgentsToRun(mockAgents, config);
-
-      expect(result).toHaveLength(2);
-      expect(result.map((a) => a.getIdentifier())).toEqual([
-        'claude',
-        'cursor',
-      ]);
-    });
-
-    it('should select agents based on default_agents when no CLI filters', () => {
-      const config: LoadedConfig = {
-        defaultAgents: ['copilot'],
-        agentConfigs: {},
-      };
-
-      const result = selectAgentsToRun(mockAgents, config);
-
-      expect(result).toHaveLength(1);
-      expect(result[0].getIdentifier()).toBe('copilot');
-    });
-
-    it('should respect enabled flag in agent configs', () => {
-      const config: LoadedConfig = {
-        defaultAgents: ['claude', 'copilot'],
-        agentConfigs: {
-          claude: { enabled: false },
-          copilot: { enabled: true },
-        },
-      };
-
-      const result = selectAgentsToRun(mockAgents, config);
-
-      expect(result).toHaveLength(1);
-      expect(result[0].getIdentifier()).toBe('copilot');
-    });
-
-    it('should select all enabled agents when no filters or defaults', () => {
-      const config: LoadedConfig = {
-        agentConfigs: {
-          claude: { enabled: false },
-        },
-      };
-
-      const result = selectAgentsToRun(mockAgents, config);
-
-      expect(result).toHaveLength(2);
-      expect(result.map((a) => a.getIdentifier()).sort()).toEqual([
-        'copilot',
-        'cursor',
-      ]);
     });
   });
 
