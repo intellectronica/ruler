@@ -11,6 +11,10 @@ model_verbosity = "high"            # low | medium | high
 # Keep the CLI quiet and avoid storing history in CI
 hide_agent_reasoning = false
 
+# Constrain generation to leave room for input within model limits
+model_max_output_tokens = 2000
+model_context_window = 16000
+
 # Non-interactive approval policy for CI
 approval_policy = "never"
 

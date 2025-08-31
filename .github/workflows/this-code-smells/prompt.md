@@ -37,3 +37,13 @@ Output delimiters:
   - ---BEGIN REPORT---
   - ---END REPORT---
 - Do not include any other content (no preface, no echo of the prompt) outside the markers.
+
+Token budget and batching:
+- You MUST keep each model request under 12,000 input tokens. Do not attempt to load the entire repository context in one call.
+- Operate in batches:
+  1) First, list and prioritize files/directories to inspect (no file contents yet).
+  2) Then iterate through small batches (e.g., 10–20 files or fewer) so the total prompt stays well under 12k tokens.
+  3) For each batch, only open files needed, and only quote the minimal, relevant snippets (≤ 20 lines per quote).
+  4) Aggregate findings as you go; do NOT re-send all prior context—summarize briefly if needed between steps.
+- Avoid pasting large blocks. Prefer short, surgical quotes with line ranges.
+- Keep the final report terse; total output should be concise and focused.
