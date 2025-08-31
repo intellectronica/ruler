@@ -1,7 +1,6 @@
 import * as path from 'path';
 import { promises as fs } from 'fs';
-import * as toml from 'toml';
-import { stringify } from '@iarna/toml';
+import { parse as parseTOML, stringify } from '@iarna/toml';
 import { IAgent, IAgentConfig } from './IAgent';
 import { AgentsMdAgent } from './AgentsMdAgent';
 import { writeGeneratedFile } from '../core/FileSystemUtils';
@@ -94,7 +93,7 @@ export class CodexCliAgent implements IAgent {
       let existingConfig: CodexCliConfig = {};
       try {
         const existingContent = await fs.readFile(configPath, 'utf8');
-        existingConfig = toml.parse(existingContent);
+        existingConfig = parseTOML(existingContent);
       } catch {
         // File doesn't exist or can't be parsed, use empty config
       }
@@ -135,72 +134,11 @@ export class CodexCliAgent implements IAgent {
         }
       }
 
-      // Convert to TOML with special handling for env to ensure it's an inline table
-      let tomlContent = '';
+      // Convert to TOML using structured objects
+      const finalConfig = { ...updatedConfig };
 
-      // Handle non-mcp_servers sections first
-      const configWithoutMcpServers: Omit<CodexCliConfig, 'mcp_servers'> &
-        Record<string, unknown> = { ...updatedConfig };
-      delete configWithoutMcpServers.mcp_servers;
-      if (Object.keys(configWithoutMcpServers).length > 0) {
-        tomlContent += stringify(configWithoutMcpServers);
-      }
-
-      // Now handle mcp_servers with special formatting for env
-      if (
-        updatedConfig.mcp_servers &&
-        Object.keys(updatedConfig.mcp_servers).length > 0
-      ) {
-        for (const [serverName, serverConfig] of Object.entries(
-          updatedConfig.mcp_servers,
-        )) {
-          tomlContent += `\n[mcp_servers.${serverName}]\n`;
-
-          // Add command
-          if (serverConfig.command) {
-            tomlContent += `command = "${serverConfig.command}"\n`;
-          }
-
-          // Add args if present
-          if (serverConfig.args && Array.isArray(serverConfig.args)) {
-            const argsStr = JSON.stringify(serverConfig.args)
-              .replace(/"/g, '"')
-              .replace(/,/g, ', ');
-            tomlContent += `args = ${argsStr}\n`;
-          }
-
-          // Add env as inline table if present
-          if (serverConfig.env && Object.keys(serverConfig.env).length > 0) {
-            tomlContent += `env = { `;
-            const entries = Object.entries(serverConfig.env);
-            for (let i = 0; i < entries.length; i++) {
-              const [key, value] = entries[i];
-              tomlContent += `${key} = "${value}"`;
-              if (i < entries.length - 1) {
-                tomlContent += ', ';
-              }
-            }
-            tomlContent += ` }\n`;
-          }
-
-          // Add headers as inline table if present (from transformed remote servers)
-          if (
-            serverConfig.headers &&
-            Object.keys(serverConfig.headers).length > 0
-          ) {
-            tomlContent += `headers = { `;
-            const entries = Object.entries(serverConfig.headers);
-            for (let i = 0; i < entries.length; i++) {
-              const [key, value] = entries[i];
-              tomlContent += `${JSON.stringify(key)} = "${value}"`;
-              if (i < entries.length - 1) {
-                tomlContent += ', ';
-              }
-            }
-            tomlContent += ` }\n`;
-          }
-        }
-      }
+      // @iarna/toml should handle the formatting properly
+      const tomlContent = stringify(finalConfig);
 
       await writeGeneratedFile(configPath, tomlContent);
     }

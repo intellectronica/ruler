@@ -1,6 +1,6 @@
 import { promises as fs } from 'fs';
 import * as path from 'path';
-import * as TOML from 'toml';
+import { parse as parseTOML } from '@iarna/toml';
 import { sha256, stableJson } from './hash';
 import { concatenateRules } from './RuleProcessor';
 import * as FileSystemUtils from './FileSystemUtils';
@@ -47,7 +47,7 @@ export async function loadUnifiedConfig(
     : path.join(meta.rulerDir, 'ruler.toml');
   try {
     const text = await fs.readFile(tomlFile, 'utf8');
-    tomlRaw = text.trim() ? TOML.parse(text) : {};
+    tomlRaw = text.trim() ? parseTOML(text) : {};
     meta.configFile = tomlFile;
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {

@@ -62,7 +62,6 @@
   "dependencies": {
     "@iarna/toml": "^2.2.5",
     "js-yaml": "^4.1.0",
-    "toml": "^3.0.0",
     "yargs": "^17.7.2",
     "zod": "^3.25.28"
   }

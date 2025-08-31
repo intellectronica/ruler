@@ -1,7 +1,7 @@
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import * as TOML from 'toml';
+import { parse as parseTOML } from '@iarna/toml';
 import { z } from 'zod';
 import { McpConfig, GlobalMcpConfig, GitignoreConfig } from '../types';
 import { createRulerError } from '../constants';
@@ -113,7 +113,7 @@ export async function loadConfig(
   let raw: Record<string, unknown> = {};
   try {
     const text = await fs.readFile(configFile, 'utf8');
-    raw = text.trim() ? TOML.parse(text) : {};
+    raw = text.trim() ? parseTOML(text) : {};
 
     // Validate the configuration with zod
     const validationResult = rulerConfigSchema.safeParse(raw);
