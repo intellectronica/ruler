@@ -44,17 +44,20 @@ export class GeminiCliAgent extends AgentsMdAgent {
     const mcpEnabled = agentConfig?.mcp?.enabled ?? true;
     if (mcpEnabled && rulerMcpJson) {
       const strategy = agentConfig?.mcp?.strategy ?? 'merge';
-      
+
       if (strategy === 'overwrite') {
         // For overwrite, preserve existing settings except MCP servers
-        const incomingServers = 
+        const incomingServers =
           (rulerMcpJson.mcpServers as Record<string, unknown>) || {};
         updated[this.getMcpServerKey()] = incomingServers;
       } else {
         // For merge strategy, merge with existing MCP servers
-        const baseServers = 
-          (existingSettings[this.getMcpServerKey()] as Record<string, unknown>) || {};
-        const incomingServers = 
+        const baseServers =
+          (existingSettings[this.getMcpServerKey()] as Record<
+            string,
+            unknown
+          >) || {};
+        const incomingServers =
           (rulerMcpJson.mcpServers as Record<string, unknown>) || {};
         const mergedServers = { ...baseServers, ...incomingServers };
         updated[this.getMcpServerKey()] = mergedServers;

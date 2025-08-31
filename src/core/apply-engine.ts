@@ -605,11 +605,11 @@ async function applyStandardMcpConfiguration(
   } else {
     const existing = await readNativeMcp(dest);
     const merged = mergeMcp(existing, filteredMcpJson, strategy, serverKey);
-    
+
     // Only backup and write if content would actually change (idempotent)
     const currentContent = JSON.stringify(existing, null, 2);
     const newContent = JSON.stringify(merged, null, 2);
-    
+
     if (currentContent !== newContent) {
       if (backup) {
         const { backupFile } = await import('../core/FileSystemUtils');
