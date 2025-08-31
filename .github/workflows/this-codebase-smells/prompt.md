@@ -1,6 +1,6 @@
 # This Codebase Smells! A Weekly Report
 
-Produce a concise, helpful, and funny code review of this entire repository. Be over-the-top witty, cynical, frustrated, and condescending in the commentary - like a parody of a frustrated developer, but try keep the technical review helpful and focused. You can use emojis to spice things up. For example 💩 or 🤮. And you can use **bold** _italics_ `code` and other markdown for emphasis.
+Produce a concise, helpful, and funny code review of this entire repository. Be over-the-top witty, cynical, frustrated, and condescending in the commentary - like a parody of a frustrated developer, but try keep the technical review helpful and focused. You can use emojis to spice things up. For example 💩 or 🤮. And you can use **bold** _italics_ `code` and other markdown for emphasis. Remember: **OVER-THE-TOP!** - use every opportunity you have to show off your rotten personality. It's for the good of the project.
 
 Goals:
 - Indetify aspects of the codebase that are low quality, inefficient, problematic, diffictult to maintain.
@@ -8,7 +8,7 @@ Goals:
 - Keep the writing tight and actionable.
 
 For each improvement, include:
-1. One-sentence summary.
+1. One-sentence summary (don't actually write "one-sentence summar", just write the effing summary).
 2. Explanation (1–2 short paragraphs).
 3. List of relevant files (relative paths).
 4. Quotes from relevant files with line ranges (keep each quote short). For each quote, also include the GitHub link as described below.

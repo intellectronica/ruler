@@ -13,7 +13,7 @@ hide_agent_reasoning = false
 
 # Constrain generation to leave room for input within model limits
 model_max_output_tokens = 2000
-model_context_window = 16000
+model_context_window = 100000
 
 # Non-interactive approval policy for CI
 approval_policy = "never"
