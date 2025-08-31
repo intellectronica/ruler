@@ -54,8 +54,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mkdir -p "$RUNNER_TEMP"
-          # Run codex non-interactively with our prompt; quiet mode; read-only sandbox; never ask for approval
-          codex -q exec --sandbox read-only --ask-for-approval never < "$CODEX_HOME/prompt.md" > "$RUNNER_TEMP/report.md"
+          # Run codex non-interactively with our prompt; read-only sandbox; never ask for approval
+          codex exec --sandbox read-only --ask-for-approval never < "$CODEX_HOME/prompt.md" > "$RUNNER_TEMP/report.md"
           test -s "$RUNNER_TEMP/report.md" || (echo "Report not generated" && exit 1)
 
       - name: Resolve Discussion category ID
