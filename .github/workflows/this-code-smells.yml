@@ -9,7 +9,6 @@ on:
 permissions:
   contents: read
   discussions: write
-  models: read
 
 env:
   CODEX_HOME: ./.github/workflows/this-code-smells
@@ -50,19 +49,16 @@ jobs:
       - name: Run Codex analysis
         if: ${{ steps.gate.outputs.run != 'false' }}
         env:
-          # GITHUB_TOKEN is granted models: read above and used as API key for GitHub Models
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Codex reads OPENAI_API_KEY / OPENAI_BASE_URL for OpenAI-compatible providers
-          OPENAI_API_KEY: ${{ secrets.GITHUB_TOKEN }}
-          OPENAI_BASE_URL: https://models.github.ai/inference
+          # OpenAI API key (repo secret)
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           # Enable maximum verbosity from the CLI
           RUST_LOG: trace
         run: |
           set -o pipefail
           mkdir -p "$RUNNER_TEMP"
-          # Run codex in non-interactive, full-auto mode; stream full logs to Actions while capturing to file
+          # Run codex against OpenAI via Responses API; stream full logs to Actions while capturing to file
           codex exec \
-            --model "openai/gpt-5" \
+            --model "gpt-5" \
             --sandbox read-only \
             < "$CODEX_HOME/prompt.md" 2>&1 | tee "$RUNNER_TEMP/raw_report.md"
 
