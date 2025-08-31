@@ -6,13 +6,18 @@ model_provider = "github-models"
 
 # Reasoning settings for GPT-5 family (Responses API)
 model_reasoning_effort = "medium"   # minimal | low | medium | high
-model_verbosity = "medium"          # low | medium | high
+model_verbosity = "high"            # low | medium | high
 
 # Keep the CLI quiet and avoid storing history in CI
-hide_agent_reasoning = true
+hide_agent_reasoning = false
 
 # Non-interactive approval policy for CI
 approval_policy = "never"
+
+# Surface detailed reasoning traces and summaries in output (if supported by the model/provider)
+show_raw_agent_reasoning = true
+model_reasoning_summary = "detailed"   # auto | concise | detailed | none
+model_supports_reasoning_summaries = true
 
 [history]
 persistence = "none"

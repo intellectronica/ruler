@@ -52,10 +52,13 @@ jobs:
         env:
           # GITHUB_TOKEN is granted models: read above and used as API key for GitHub Models
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Enable verbose internal logs from the CLI
+          RUST_LOG: debug
         run: |
+          set -o pipefail
           mkdir -p "$RUNNER_TEMP"
-          # Run codex non-interactively with our prompt; read-only sandbox
-          codex exec --sandbox read-only < "$CODEX_HOME/prompt.md" > "$RUNNER_TEMP/raw_report.md"
+          # Run codex non-interactively with our prompt; read-only sandbox; stream full logs to Actions while capturing to file
+          codex exec --sandbox read-only < "$CODEX_HOME/prompt.md" 2>&1 | tee "$RUNNER_TEMP/raw_report.md"
 
           # Extract only the content between our markers
           awk '/^---BEGIN REPORT---$/ {flag=1; next} /^---END REPORT---$/ {flag=0} flag' "$RUNNER_TEMP/raw_report.md" > "$RUNNER_TEMP/report.md"
