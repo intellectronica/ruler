@@ -1,0 +1,72 @@
+# Codex configuration for weekly repo review via OpenAI
+
+# Select model and provider
+model = "gpt-5"
+model_provider = "openai"
+
+# Reasoning settings for GPT-5 family (Responses API)
+model_reasoning_effort = "medium"   # minimal | low | medium | high
+model_verbosity = "high"            # low | medium | high
+
+# Keep the CLI quiet and avoid storing history in CI
+hide_agent_reasoning = false
+
+# Constrain generation to leave room for input within model limits
+model_max_output_tokens = 2000
+model_context_window = 16000
+
+# Non-interactive approval policy for CI
+approval_policy = "never"
+
+# Surface detailed reasoning traces and summaries in output (if supported by the model/provider)
+show_raw_agent_reasoning = true
+model_reasoning_summary = "detailed"   # auto | concise | detailed | none
+model_supports_reasoning_summaries = true
+
+[history]
+persistence = "none"
+
+# OpenAI provider via standard OpenAI API
+[model_providers.openai]
+name = "OpenAI"
+base_url = "https://api.openai.com/v1"
+# Codex will read the token from this environment variable
+env_key = "OPENAI_API_KEY"
+# Use the Responses API
+wire_api = "responses"
+
+# Network tuning: tolerate rate limits and transient drops
+request_max_retries = 6
+stream_max_retries = 20
+stream_idle_timeout_ms = 600000
+
+# File scanning preferences
+[paths]
+root = "."
+include = ["**/*"]
+exclude = [
+  ".git/**",
+  "node_modules/**",
+  "dist/**",
+  "build/**",
+  "coverage/**",
+  "target/**",
+  "vendor/**",
+  ".venv/**",
+  ".env",
+  ".cache/**",
+  "out/**",
+  ".next/**",
+  ".turbo/**",
+  ".yarn/**",
+  "tests/**",
+  "img/**",
+  "**/*.gif",
+  "**/*.png",
+  "**/*.jpg",
+  "yarn.lock",
+  "package-lock.json",
+  "pnpm-lock.yaml",
+  ".github/workflows/this-codebase-smells/*.md"
+]
+
