@@ -11,7 +11,13 @@ import { propagateMcpToOpenHands } from '../mcp/propagateOpenHandsMcp';
 import { propagateMcpToOpenCode } from '../mcp/propagateOpenCodeMcp';
 import { getAgentOutputPaths } from '../agents/agent-utils';
 import { agentSupportsMcp, filterMcpConfigForAgent } from '../mcp/capabilities';
-import { createRulerError, logVerbose, actionPrefix } from '../constants';
+import {
+  createRulerError,
+  logVerbose,
+  logVerboseInfo,
+  logInfo,
+  logWarn,
+} from '../constants';
 import { McpStrategy } from '../types';
 
 /**
@@ -152,8 +158,8 @@ async function warnAboutLegacyMcpJson(rulerDir: string): Promise<void> {
   try {
     const legacyMcpPath = path.join(rulerDir, 'mcp.json');
     await (await import('fs/promises')).access(legacyMcpPath);
-    console.warn(
-      '[ruler] Warning: Using legacy .ruler/mcp.json. Please migrate to ruler.toml. This fallback will be removed in a future release.',
+    logWarn(
+      'Warning: Using legacy .ruler/mcp.json. Please migrate to ruler.toml. This fallback will be removed in a future release.',
     );
   } catch {
     // ignore
@@ -240,7 +246,11 @@ export async function processHierarchicalConfigurations(
   const allGeneratedPaths: string[] = [];
 
   for (const config of configurations) {
-    console.log(`[ruler] Processing .ruler directory: ${config.rulerDir}`);
+    logVerboseInfo(
+      `Processing .ruler directory: ${config.rulerDir}`,
+      verbose,
+      dryRun,
+    );
     const rulerRoot = path.dirname(config.rulerDir);
     const paths = await applyConfigurationsToAgents(
       agents,
@@ -323,8 +333,7 @@ export async function applyConfigurationsToAgents(
   let agentsMdWritten = false;
 
   for (const agent of agents) {
-    const prefix = actionPrefix(dryRun);
-    console.log(`${prefix} Applying rules for ${agent.getName()}...`);
+    logInfo(`Applying rules for ${agent.getName()}...`, dryRun);
     logVerbose(`Processing agent: ${agent.getName()}`, verbose);
     const agentConfig = config.agentConfigs[agent.getIdentifier()];
 
@@ -657,15 +666,16 @@ export async function updateGitignore(
     // No need to add a broad *.bak pattern here
 
     if (uniquePaths.length > 0) {
-      const prefix = actionPrefix(dryRun);
       if (dryRun) {
-        console.log(
-          `${prefix} Would update .gitignore with ${uniquePaths.length} unique path(s): ${uniquePaths.join(', ')}`,
+        logInfo(
+          `Would update .gitignore with ${uniquePaths.length} unique path(s): ${uniquePaths.join(', ')}`,
+          dryRun,
         );
       } else {
         await updateGitignoreUtil(projectRoot, uniquePaths);
-        console.log(
-          `${prefix} Updated .gitignore with ${uniquePaths.length} unique path(s) in the Ruler block.`,
+        logInfo(
+          `Updated .gitignore with ${uniquePaths.length} unique path(s) in the Ruler block.`,
+          dryRun,
         );
       }
     }

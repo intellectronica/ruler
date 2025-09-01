@@ -19,3 +19,35 @@ export function logVerbose(message: string, isVerbose: boolean): void {
     console.error(`[ruler:verbose] ${message}`);
   }
 }
+
+/**
+ * Centralized logging functions with consistent output streams and prefixing.
+ * - info/verbose go to stdout (user-visible progress)
+ * - warn/error go to stderr (problems)
+ */
+
+export function logInfo(message: string, dryRun = false): void {
+  const prefix = actionPrefix(dryRun);
+  console.log(`${prefix} ${message}`);
+}
+
+export function logWarn(message: string, dryRun = false): void {
+  const prefix = actionPrefix(dryRun);
+  console.warn(`${prefix} ${message}`);
+}
+
+export function logError(message: string, dryRun = false): void {
+  const prefix = actionPrefix(dryRun);
+  console.error(`${prefix} ${message}`);
+}
+
+export function logVerboseInfo(
+  message: string,
+  isVerbose: boolean,
+  dryRun = false,
+): void {
+  if (isVerbose) {
+    const prefix = actionPrefix(dryRun);
+    console.log(`${prefix} ${message}`);
+  }
+}
