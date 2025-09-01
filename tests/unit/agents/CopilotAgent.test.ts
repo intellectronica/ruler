@@ -1,7 +1,7 @@
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import { CopilotAgent } from '../../../src/agents/CopilotAgent';
-import { AgentsMdAgent } from '../../../src/agents/AgentsMdAgent';
+import { IAgent } from '../../../src/agents/IAgent';
 import { setupTestProject, teardownTestProject } from '../../harness';
 
 describe('CopilotAgent', () => {
@@ -9,9 +9,13 @@ describe('CopilotAgent', () => {
     expect(new CopilotAgent()).toBeDefined();
   });
 
-  it('should extend AgentsMdAgent', () => {
+  it('should implement IAgent interface', () => {
     const agent = new CopilotAgent();
-    expect(agent instanceof AgentsMdAgent).toBe(true);
+    // Check that it implements the IAgent interface methods
+    expect(typeof agent.getIdentifier).toBe('function');
+    expect(typeof agent.getName).toBe('function');
+    expect(typeof agent.getDefaultOutputPath).toBe('function');
+    expect(typeof agent.applyRulerConfig).toBe('function');
   });
 
   it('should have the correct identifier', () => {
