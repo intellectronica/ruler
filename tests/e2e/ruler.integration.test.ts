@@ -203,7 +203,8 @@ File: extra-rules.md
       'CLAUDE.md', // Claude-specific file
       'CRUSH.md', // Crush-specific file
       
-      // GitHub Copilot (now writes to AGENTS.md)
+      // GitHub Copilot (writes to both AGENTS.md and legacy location)
+      '.github/copilot-instructions.md', // Copilot legacy instructions for VS Code extension
       '.vscode/mcp.json', // Copilot MCP config
       
       // Cursor
@@ -399,6 +400,14 @@ File: extra-rules.md
         expect(fileContents[file]).toContain('Integration Test Sample Instructions');
         console.log(`✓ ${file} contains expected content`);
       }
+    }
+
+    // Verify GitHub Copilot dual-file support
+    if (fileContents['AGENTS.md'] && fileContents['.github/copilot-instructions.md']) {
+      expect(fileContents['AGENTS.md']).toBe(fileContents['.github/copilot-instructions.md']);
+      console.log('✓ GitHub Copilot: AGENTS.md and .github/copilot-instructions.md have identical content');
+      expect(fileContents['.github/copilot-instructions.md']).toContain('Integration Test Sample Instructions');
+      console.log('✓ GitHub Copilot legacy file contains expected content');
     }
 
     // Verify .gitignore contains ruler entries
