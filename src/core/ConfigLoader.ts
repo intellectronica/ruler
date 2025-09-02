@@ -180,6 +180,18 @@ export async function loadConfig(
         }
         cfg.mcp = mcpCfg;
       }
+      // Handle Cursor-specific configuration
+      if (name === 'cursor') {
+        if (typeof sectionObj.always_apply === 'boolean') {
+          (cfg as any).alwaysApply = sectionObj.always_apply;
+        }
+        if (typeof sectionObj.description === 'string') {
+          (cfg as any).description = sectionObj.description;
+        }
+        if (Array.isArray(sectionObj.globs)) {
+          (cfg as any).globs = sectionObj.globs.filter(g => typeof g === 'string');
+        }
+      }
       agentConfigs[name] = cfg;
     }
   }
