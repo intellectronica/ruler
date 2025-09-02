@@ -64,6 +64,7 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | Cursor           | `.cursor/rules/ruler_cursor_instructions.mdc`    | `.cursor/mcp.json`                               |
 | Windsurf         | `.windsurf/rules/ruler_windsurf_instructions.md` | -                                                |
 | Cline            | `.clinerules`                                    | -                                                |
+| Crush            | `CRUSH.md`                                       | `.crush.json`                                    |
 | Amp              | `AGENTS.md`                                      | -                                                |
 | Amazon Q CLI     | `.amazonq/rules/ruler_q_rules.md`                | `.amazonq/mcp.json`                              |
 | Aider            | `AGENTS.md`, `.aider.conf.yml`                   | `.mcp.json`                                      |
