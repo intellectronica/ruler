@@ -37,9 +37,8 @@ export class CursorAgent extends AbstractAgent {
       agentConfig?.outputPath ?? this.getDefaultOutputPath(projectRoot);
     const absolutePath = path.resolve(projectRoot, output);
 
-    // Extract Cursor-specific config
     const cursorConfig = agentConfig as CursorAgentConfig | undefined;
-    const alwaysApply = cursorConfig?.alwaysApply ?? true; // Default to true
+    const alwaysApply = cursorConfig?.alwaysApply ?? true;
     const description = cursorConfig?.description ?? '';
     const globs = cursorConfig?.globs ?? [];
 
@@ -47,12 +46,10 @@ export class CursorAgent extends AbstractAgent {
     // See: https://docs.cursor.com/context/rules#rule-anatomy
     const frontMatterLines = ['---'];
     
-    // Add description if provided
     if (description) {
       frontMatterLines.push(`description: ${description}`);
     }
     
-    // Add globs if provided
     if (globs.length > 0) {
       frontMatterLines.push('globs:');
     }
