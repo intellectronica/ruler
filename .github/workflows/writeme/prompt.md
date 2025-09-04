@@ -6,7 +6,7 @@ Review the entire codebase and the existing `README.md` to ensure the README acc
 
 ## Hard Constraints (Do NOT violate these)
 
-1. You may modify ONLY `README.md`. Do not create, delete, or edit any other files.
+1. IMPORTANT: You may modify ONLY `README.md`. Do not create, delete, or edit any other files. YOU ARE NOT ALLOWED TO CHANGE ANY FILE OTHER THAN `README.md`.
 2. Preserve the current overall structure, section ordering, and intent of the README.
 3. Make the smallest set of textual/formatting changes needed for accuracy and clarity.
 4. Do NOT introduce speculative or undocumented features.
@@ -62,8 +62,9 @@ Process You Must Follow (Sequential)
 3. For each section, mark: accurate / outdated / missing detail / formatting issue.
 4. Prepare minimal edits; reject any that are not strictly necessary.
 5. Ensure internal links, code fences, and inline code consistency.
-6. Stop.
-5. Create pull request with a detailed list of everything changed and why.
+6. Ensure that you have not made any changes to any file other than `README.md`. If you have, revert those changes.
+7. Stop.
+8. Create pull request with a detailed list of everything changed and why.
 
 Quality Checklist Before Emitting
 - No other files touched.
