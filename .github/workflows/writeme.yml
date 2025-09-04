@@ -1,0 +1,102 @@
+name: Scheduled Copilot README Review
+
+on:
+  schedule:
+    # Runs at 00:00 UTC every Monday (1) and Thursday (4)
+    - cron: '0 0 * * 1,4'
+  # Optional manual trigger if you ever want to run it on-demand
+  workflow_dispatch: {}
+
+permissions:
+  contents: write        # Allow Copilot agent to create a branch/PR
+  pull-requests: write   # Allow PR operations
+
+jobs:
+  create-copilot-job:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Read prompt file
+        id: prompt
+        run: |
+          set -euo pipefail
+          FILE=".github/workflows/writeme/prompt.md"
+          if [ ! -f "$FILE" ]; then
+            echo "Prompt file not found: $FILE" >&2
+            exit 1
+          fi
+          # Convert entire file to a JSON string (properly escaped)
+          PROMPT_JSON=$(jq -Rs . < "$FILE")
+          echo "prompt=$PROMPT_JSON" >> "$GITHUB_OUTPUT"
+
+      - name: Submit Copilot agent job
+        id: submit
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RAW_PROMPT: ${{ steps.prompt.outputs.prompt }}
+        run: |
+          set -euo pipefail
+          # Derive base branch (fallback to main if not present in event payload)
+          BASE_BRANCH="${{ github.event.repository.default_branch }}"
+          if [ -z "$BASE_BRANCH" ]; then
+            BASE_BRANCH="main"
+          fi
+
+          # RAW_PROMPT is already a quoted JSON string; unwrap safely via jq later
+          BODY=$(jq -n --arg prompt "$RAW_PROMPT" --arg base "$BASE_BRANCH" ' {
+              prompt: ($prompt | fromjson),
+              base_branch: $base,
+              source: "scheduled-workflow",
+              metadata: {
+                client: "scheduled-workflow",
+                repository: env.GITHUB_REPOSITORY,
+                workflow: env.GITHUB_WORKFLOW,
+                run_id: env.GITHUB_RUN_ID,
+                run_attempt: env.GITHUB_RUN_ATTEMPT
+              }
+            }')
+
+          echo "Request body:" >&2
+          echo "$BODY" | jq . >&2 || echo "$BODY" >&2
+
+          RESP=$(curl -sS -X POST \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            -H "User-Agent: scheduled-copilot-workflow" \
+            https://api.github.com/repos/${{ github.repository }}/copilot/agents/jobs \
+            -d "$BODY")
+
+          echo "Response:" >&2
+          echo "$RESP" | jq . >&2 || echo "$RESP" >&2
+
+          JOB_ID=$(echo "$RESP" | jq -r '.id // empty')
+          STATE=$(echo "$RESP" | jq -r '.state // empty')
+          SESSION_URL=$(echo "$RESP" | jq -r '.session_url // empty')
+          PR_URL=$(echo "$RESP" | jq -r '.pull_request_url // empty')
+
+          if [ -z "$JOB_ID" ]; then
+            echo "Failed to create Copilot agent job" >&2
+            exit 1
+          fi
+
+          echo "job_id=$JOB_ID" >> "$GITHUB_OUTPUT"
+          echo "job_state=$STATE" >> "$GITHUB_OUTPUT"
+          echo "session_url=$SESSION_URL" >> "$GITHUB_OUTPUT"
+          echo "pr_url=$PR_URL" >> "$GITHUB_OUTPUT"
+
+      - name: Job summary
+        run: |
+          {
+            echo "### Copilot Agent Job Created";
+            echo "* Job ID: ${{ steps.submit.outputs.job_id }}";
+            echo "* State: ${{ steps.submit.outputs.job_state }}";
+            if [ -n "${{ steps.submit.outputs.session_url }}" ]; then
+              echo "* Session: ${{ steps.submit.outputs.session_url }}";
+            fi
+            if [ -n "${{ steps.submit.outputs.pr_url }}" ] && [ "${{ steps.submit.outputs.pr_url }}" != "null" ]; then
+              echo "* PR (if opened yet): ${{ steps.submit.outputs.pr_url }}";
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
