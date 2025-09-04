@@ -34,7 +34,7 @@ jobs:
       - name: Submit Copilot agent job
         id: submit
         env:
-          TOKEN: ${{ secrets.COPILOT_PAT }}
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RAW_PROMPT: ${{ steps.prompt.outputs.prompt }}
         run: |
           set -euo pipefail
