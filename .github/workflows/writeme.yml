@@ -1,4 +1,4 @@
-name: Scheduled Copilot README Review
+name: WRITEME - Scheduled Copilot README Review
 
 on:
   schedule:
