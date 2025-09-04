@@ -73,10 +73,10 @@ jobs:
             exit 1
           fi
 
-          JOB_ID=$(echo "$RESPONSE_BODY" | jq -r '.id // empty')
-          STATE=$(echo "$RESPONSE_BODY" | jq -r '.state // empty')
-          SESSION_URL=$(echo "$RESPONSE_BODY" | jq -r '.session_url // empty')
-          PR_URL=$(echo "$RESPONSE_BODY" | jq -r '.pull_request_url // empty')
+          JOB_ID=$(echo "$RESPONSE_BODY" | jq -r '.job_id // empty')
+          STATE=$(echo "$RESPONSE_BODY" | jq -r '.status // empty')
+          SESSION_URL=$(echo "$RESPONSE_BODY" | jq -r '.session_id // empty')
+          PR_URL=$(echo "$RESPONSE_BODY" | jq -r '.pull_request.html_url // empty')
 
           if [ -z "$JOB_ID" ]; then
             echo "Failed to create Copilot agent job" >&2
