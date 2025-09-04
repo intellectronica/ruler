@@ -45,16 +45,13 @@ jobs:
           fi
 
           # RAW_PROMPT is already a quoted JSON string; unwrap safely via jq later
-          BODY=$(jq -n --arg prompt "$RAW_PROMPT" --arg base "$BASE_BRANCH" ' {
-              prompt: ($prompt | fromjson),
-              base_branch: $base,
-              source: "scheduled-workflow",
-              metadata: {
-                client: "scheduled-workflow",
-                repository: env.GITHUB_REPOSITORY,
-                workflow: env.GITHUB_WORKFLOW,
-                run_id: env.GITHUB_RUN_ID,
-                run_attempt: env.GITHUB_RUN_ATTEMPT
+          BODY=$(jq -n --arg prompt "$RAW_PROMPT" --arg base "$BASE_BRANCH" --arg repo "$GITHUB_REPOSITORY" ' {
+              problem_statement: ($prompt | fromjson),
+              event_type: "scheduled-workflow",
+              pull_request: {
+                title: "README Accuracy Review & Minimal Update",
+                base_ref: $base,
+                head_ref: null
               }
             }')
 
@@ -63,10 +60,9 @@ jobs:
 
           RESP=$(curl -sS -X POST \
             -H "Authorization: Bearer $TOKEN" \
-            -H "Accept: application/vnd.github+json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
+            -H "Content-Type: application/json" \
             -H "User-Agent: scheduled-copilot-workflow" \
-            https://api.github.com/repos/${{ github.repository }}/copilot/agents/jobs \
+            https://api.githubcopilot.com/agents/swe/jobs/$repo \
             -d "$BODY")
 
           echo "Response:" >&2
