@@ -61,12 +61,20 @@ jobs:
           RESP=$(curl -sS -X POST \
             -H "Authorization: Bearer $TOKEN" \
             -H "Content-Type: application/json" \
+            -H "Copilot-Integration-Id: copilot-github-actions" \
             -H "User-Agent: scheduled-copilot-workflow" \
-            https://api.githubcopilot.com/agents/swe/jobs/${{ github.repository }} \
+            -H "Accept: application/json" \
+            https://api.githubcopilot.com/agents/swe/jobs/intellectronica/ruler \
             -d "$BODY")
 
           echo "Response:" >&2
-          echo "$RESP" | jq . >&2 || echo "$RESP" >&2
+          echo "$RESP" | jq . >&2 || echo "Raw response: $RESP" >&2
+          
+          # Check if response is just "Unauthorized"
+          if [ "$RESP" = "Unauthorized" ]; then
+            echo "Authentication failed: Token may be invalid or missing required scopes" >&2
+            exit 1
+          fi
 
           JOB_ID=$(echo "$RESP" | jq -r '.id // empty')
           STATE=$(echo "$RESP" | jq -r '.state // empty')
