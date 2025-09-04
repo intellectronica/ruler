@@ -57,3 +57,21 @@ export const allAgents: IAgent[] = [
   new TraeAgent(),
   new AmazonQCliAgent(),
 ];
+
+/**
+ * Generates a comma-separated list of agent identifiers for CLI help text.
+ * Returns identifiers in alphabetical order, with 'agentsmd' always first.
+ */
+export function getAgentIdentifiersForCliHelp(): string {
+  const identifiers = allAgents.map((agent) => agent.getIdentifier());
+  const sorted = identifiers.sort();
+
+  // Ensure agentsmd is first (it should already be first alphabetically, but let's be explicit)
+  const agentsMdIndex = sorted.indexOf('agentsmd');
+  if (agentsMdIndex > 0) {
+    const agentsmd = sorted.splice(agentsMdIndex, 1)[0];
+    sorted.unshift(agentsmd);
+  }
+
+  return sorted.join(', ');
+}

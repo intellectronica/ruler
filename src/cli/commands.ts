@@ -2,6 +2,7 @@ import yargs, { Argv } from 'yargs';
 import { hideBin } from 'yargs/helpers';
 import { applyHandler, initHandler, revertHandler } from './handlers';
 import { ApplyArgs, InitArgs, RevertArgs } from './handlers';
+import { getAgentIdentifiersForCliHelp } from '../agents/index';
 
 /**
  * Sets up and parses CLI commands.
@@ -22,8 +23,7 @@ export function run(): void {
           })
           .option('agents', {
             type: 'string',
-            description:
-              'Comma-separated list of agent identifiers: amp, copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, junie, kilocode, opencode, crush, zed, qwen, trae',
+            description: `Comma-separated list of agent identifiers: ${getAgentIdentifiersForCliHelp()}`,
           })
           .option('config', {
             type: 'string',
@@ -108,8 +108,7 @@ export function run(): void {
           })
           .option('agents', {
             type: 'string',
-            description:
-              'Comma-separated list of agent identifiers: amp, copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, junie, kilocode, opencode, crush, zed, qwen, trae',
+            description: `Comma-separated list of agent identifiers: ${getAgentIdentifiersForCliHelp()}`,
           })
           .option('config', {
             type: 'string',
