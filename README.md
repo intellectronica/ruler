@@ -218,7 +218,7 @@ The `apply` command looks for `.ruler/` in the current directory tree, reading t
 | Option                         | Description                                                                                                                                                                     |
 | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `--project-root <path>`        | Path to your project's root (default: current directory)                                                                                                                        |
-| `--agents <agent1,agent2,...>` | Comma-separated list of agent names to target (agentsmd, amp, copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, junie, augmentcode, kilocode, warp, roo, trae) |
+| `--agents <agent1,agent2,...>` | Comma-separated list of agent names to target (amp, copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, junie, kilocode, opencode, crush, zed, qwen, trae) |
 | `--config <path>`              | Path to a custom `ruler.toml` configuration file                                                                                                                                |
 | `--mcp` / `--with-mcp`         | Enable applying MCP server configurations (default: true)                                                                                                                       |
 | `--no-mcp`                     | Disable applying MCP server configurations                                                                                                                                      |
@@ -226,6 +226,9 @@ The `apply` command looks for `.ruler/` in the current directory tree, reading t
 | `--gitignore`                  | Enable automatic .gitignore updates (default: true)                                                                                                                             |
 | `--no-gitignore`               | Disable automatic .gitignore updates                                                                                                                                            |
 | `--local-only`                 | Do not look for configuration in `$XDG_CONFIG_HOME`                                                                                                                             |
+| `--nested`                     | Enable nested rule loading from nested .ruler directories (default: disabled)                                                                                                  |
+| `--dry-run`                    | Preview changes without writing files (default: false)                                                                                                                          |
+| `--backup`                     | Enable/disable creation of .bak backup files (default: enabled)                                                                                                                |
 | `--verbose` / `-v`             | Display detailed output during execution                                                                                                                                        |
 
 ### Common Examples
@@ -308,7 +311,7 @@ ruler revert [options]
 | Option                         | Description                                                                                                                                                                  |
 | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `--project-root <path>`        | Path to your project's root (default: current directory)                                                                                                                     |
-| `--agents <agent1,agent2,...>` | Comma-separated list of agent names to revert (agentsmd, amp, copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, junie, kilocode, opencode, warp, trae) |
+| `--agents <agent1,agent2,...>` | Comma-separated list of agent names to revert (amp, copilot, claude, codex, cursor, windsurf, cline, aider, firebase, gemini-cli, junie, kilocode, opencode, crush, zed, qwen, trae) |
 | `--config <path>`              | Path to a custom `ruler.toml` configuration file                                                                                                                             |
 | `--keep-backups`               | Keep backup files (.bak) after restoration (default: false)                                                                                                                  |
 | `--dry-run`                    | Preview changes without actually reverting files                                                                                                                             |
