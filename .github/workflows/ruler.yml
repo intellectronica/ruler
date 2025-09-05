@@ -2,6 +2,7 @@ name: Ruler Apply
 
 on:
   push:
+  workflow_dispatch: {}
 
 permissions:
   contents: write
