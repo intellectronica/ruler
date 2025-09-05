@@ -85,8 +85,6 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 
 ## Getting Started
 
-### Prerequisites
-
 ### Installation
 
 **Global Installation (Recommended for CLI use):**
@@ -225,6 +223,7 @@ The `apply` command looks for `.ruler/` in the current directory tree, reading t
 | `--no-gitignore`               | Disable automatic .gitignore updates                                                                                                                                            |
 | `--nested`                     | Enable nested rule loading from nested .ruler directories (default: disabled)                                                                                                  |
 | `--backup`                     | Enable/disable creation of .bak backup files (default: enabled)                                                                                                                |
+| `--dry-run`                    | Preview changes without writing files                                                                                                                                           |
 | `--local-only`                 | Do not look for configuration in `$XDG_CONFIG_HOME`                                                                                                                             |
 | `--verbose` / `-v`             | Display detailed output during execution                                                                                                                                        |
 
