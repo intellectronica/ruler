@@ -2,8 +2,8 @@ name: WRITEME - Scheduled Copilot README Review
 
 on:
   schedule:
-    # Runs at 00:00 UTC every Monday (1) and Thursday (4)
-    - cron: '0 0 * * 1,4'
+    # Runs at 17:00 UTC every Monday (1) and Thursday (4)
+    - cron: '0 17 * * 1,4'
   # Optional manual trigger if you ever want to run it on-demand
   workflow_dispatch: {}
 
