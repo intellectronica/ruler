@@ -78,4 +78,31 @@ url = "https://mcp.linear.app/sse"
     expect(claudeResult.mcpServers.linear.type).toBe('sse');
     expect(claudeResult.mcpServers.linear.url).toBe('https://mcp.linear.app/sse');
   });
+
+  it('should maintain correct structure and transformations when running for all agents', async () => {
+    const { projectRoot } = testProject;
+    
+    // Run for ALL agents (not just Claude)
+    runRulerWithInheritedStdio('apply', projectRoot);
+
+    // Verify Claude MCP config has correct structure and transformations
+    const claudeResultText = await fs.readFile(
+      path.join(projectRoot, '.mcp.json'),
+      'utf8',
+    );
+    const claudeResult = JSON.parse(claudeResultText);
+    
+    // Should have 'mcpServers' key, not empty string ""
+    expect(claudeResult.mcpServers).toBeDefined();
+    expect(claudeResult['']).toBeUndefined();
+    
+    // URL-based server should have transformed type 'http', not 'remote'
+    expect(claudeResult.mcpServers.grep).toBeDefined();
+    expect(claudeResult.mcpServers.grep.type).toBe('http');
+    expect(claudeResult.mcpServers.grep.url).toBe('https://mcp.grep.app');
+    
+    // Command-based server should still have type 'stdio'
+    expect(claudeResult.mcpServers.local_server).toBeDefined();
+    expect(claudeResult.mcpServers.local_server.type).toBe('stdio');
+  });
 });
