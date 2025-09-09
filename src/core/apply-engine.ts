@@ -539,6 +539,19 @@ async function applyMcpConfiguration(
     );
   }
 
+  // Agents that handle MCP configuration internally should not have external MCP handling
+  if (
+    agent.getIdentifier() === 'zed' ||
+    agent.getIdentifier() === 'gemini-cli' ||
+    agent.getIdentifier() === 'amazon-q-cli'
+  ) {
+    logVerbose(
+      `Skipping external MCP config for ${agent.getName()} - handled internally by agent`,
+      verbose,
+    );
+    return;
+  }
+
   return await applyStandardMcpConfiguration(
     agent,
     filteredMcpJson,
