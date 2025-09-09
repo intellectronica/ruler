@@ -247,4 +247,56 @@ describe('ZedAgent', () => {
     // Ensure "type" field is removed
     expect(transformed.type).toBeUndefined();
   });
+
+  it('applies MCP configuration via full apply flow without external interference', async () => {
+    const { projectRoot } = await setupTestProject({
+      '.ruler/AGENTS.md': 'Test rules for apply flow',
+      '.ruler/ruler.toml': `
+[mcp_servers.test_server]
+type = "stdio"
+command = "test-cmd"
+args = ["arg1", "arg2"]
+env = { TEST_VAR = "test_value" }
+      `,
+    });
+
+    try {
+      // Import applyAllAgentConfigs to test the full flow
+      const { applyAllAgentConfigs } = await import('../../../src/lib');
+      
+      // Apply configuration only to Zed agent through the full flow
+      await applyAllAgentConfigs(
+        projectRoot,
+        ['zed'], // Only apply to Zed
+        undefined, // Use default config path
+        true, // MCP enabled
+        undefined, // Default strategy
+        undefined, // Default gitignore
+        false, // Not verbose
+        false, // Not dry run
+        false, // Not local only
+        false, // Not nested
+        true, // Backup enabled
+      );
+
+      // Check the generated .zed/settings.json
+      const zedSettingsPath = path.join(projectRoot, '.zed', 'settings.json');
+      const settingsContent = await fs.readFile(zedSettingsPath, 'utf8');
+      const settings = JSON.parse(settingsContent);
+
+      // Verify the transformation was applied correctly
+      expect(settings.context_servers).toBeDefined();
+      expect(settings.context_servers.test_server).toBeDefined();
+      
+      const serverConfig = settings.context_servers.test_server;
+      // Should have transformed format: no "type", has "source": "custom"
+      expect(serverConfig.type).toBeUndefined();
+      expect(serverConfig.source).toBe('custom');
+      expect(serverConfig.command).toBe('test-cmd');
+      expect(serverConfig.args).toEqual(['arg1', 'arg2']);
+      expect(serverConfig.env).toEqual({ TEST_VAR: 'test_value' });
+    } finally {
+      await teardownTestProject(projectRoot);
+    }
+  });
 });
