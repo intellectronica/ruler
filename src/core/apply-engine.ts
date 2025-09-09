@@ -599,6 +599,53 @@ async function applyOpenCodeMcpConfiguration(
   }
 }
 
+/**
+ * Transform MCP server types for Claude Code compatibility.
+ * Claude expects "http" for HTTP servers and "sse" for SSE servers, not "remote".
+ */
+function transformMcpForClaude(
+  mcpJson: Record<string, unknown>,
+): Record<string, unknown> {
+  if (!mcpJson.mcpServers || typeof mcpJson.mcpServers !== 'object') {
+    return mcpJson;
+  }
+
+  const transformedMcp = { ...mcpJson };
+  const transformedServers: Record<string, unknown> = {};
+
+  for (const [name, serverDef] of Object.entries(
+    mcpJson.mcpServers as Record<string, unknown>,
+  )) {
+    if (serverDef && typeof serverDef === 'object') {
+      const server = serverDef as Record<string, unknown>;
+      const transformedServer = { ...server };
+
+      // Transform type: "remote" to appropriate Claude types
+      if (
+        server.type === 'remote' &&
+        server.url &&
+        typeof server.url === 'string'
+      ) {
+        const url = server.url as string;
+
+        // Check if URL suggests SSE (contains /sse path segment)
+        if (/\/sse(\/|$)/i.test(url)) {
+          transformedServer.type = 'sse';
+        } else {
+          transformedServer.type = 'http';
+        }
+      }
+
+      transformedServers[name] = transformedServer;
+    } else {
+      transformedServers[name] = serverDef;
+    }
+  }
+
+  transformedMcp.mcpServers = transformedServers;
+  return transformedMcp;
+}
+
 async function applyStandardMcpConfiguration(
   agent: IAgent,
   filteredMcpJson: Record<string, unknown>,
@@ -617,6 +664,15 @@ async function applyStandardMcpConfiguration(
     'merge';
   const serverKey = agent.getMcpServerKey?.() ?? 'mcpServers';
 
+  // Skip agents with empty server keys (e.g., AgentsMdAgent, GooseAgent)
+  if (serverKey === '') {
+    logVerbose(
+      `Skipping MCP config for ${agent.getName()} - agent has empty server key`,
+      verbose,
+    );
+    return;
+  }
+
   logVerbose(
     `Applying filtered MCP config for ${agent.getName()} with strategy: ${strategy} and key: ${serverKey}`,
     verbose,
@@ -625,8 +681,14 @@ async function applyStandardMcpConfiguration(
   if (dryRun) {
     logVerbose(`DRY RUN: Would apply MCP config to: ${dest}`, verbose);
   } else {
+    // Transform MCP config for Claude Code compatibility
+    let mcpToMerge = filteredMcpJson;
+    if (agent.getIdentifier() === 'claude') {
+      mcpToMerge = transformMcpForClaude(filteredMcpJson);
+    }
+
     const existing = await readNativeMcp(dest);
-    const merged = mergeMcp(existing, filteredMcpJson, strategy, serverKey);
+    const merged = mergeMcp(existing, mcpToMerge, strategy, serverKey);
 
     // Only backup and write if content would actually change (idempotent)
     const currentContent = JSON.stringify(existing, null, 2);
