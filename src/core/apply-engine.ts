@@ -664,6 +664,15 @@ async function applyStandardMcpConfiguration(
     'merge';
   const serverKey = agent.getMcpServerKey?.() ?? 'mcpServers';
 
+  // Skip agents with empty server keys (e.g., AgentsMdAgent, GooseAgent)
+  if (serverKey === '') {
+    logVerbose(
+      `Skipping MCP config for ${agent.getName()} - agent has empty server key`,
+      verbose,
+    );
+    return;
+  }
+
   logVerbose(
     `Applying filtered MCP config for ${agent.getName()} with strategy: ${strategy} and key: ${serverKey}`,
     verbose,
