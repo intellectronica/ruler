@@ -72,7 +72,7 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | Open Hands       | `.openhands/microagents/repo.md`                 | `config.toml`                                    |
 | Gemini CLI       | `AGENTS.md`                                      | `.gemini/settings.json`                          |
 | Junie            | `.junie/guidelines.md`                           | -                                                |
-| AugmentCode      | `.augment/rules/ruler_augment_instructions.md`   | `.vscode/settings.json`                          |
+| AugmentCode      | `.augment/rules/ruler_augment_instructions.md`   | -                                                |
 | Kilo Code        | `.kilocode/rules/ruler_kilocode_instructions.md` | `.kilocode/mcp.json`                             |
 | opencode         | `AGENTS.md`                                      | `opencode.json`                                  |
 | Goose            | `.goosehints`                                    | -                                                |
@@ -214,7 +214,7 @@ The `apply` command looks for `.ruler/` in the current directory tree, reading t
 | Option                         | Description                                                                                                                                                                     |
 | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `--project-root <path>`        | Path to your project's root (default: current directory)                                                                                                                        |
-| `--agents <agent1,agent2,...>` | Comma-separated list of agent names to target (agentsmd, amazonqcli, amp, copilot, claude, codex, cursor, windsurf, cline, aider, firebase, openhands, gemini-cli, jules, junie, augmentcode, kilocode, opencode, goose, crush, zed, qwen, kiro, warp, roo, trae) |
+| `--agents <agent1,agent2,...>` | Comma-separated list of agent names to target (agentsmd, aider, amazonqcli, amp, augmentcode, claude, cline, codex, copilot, crush, cursor, firebase, gemini-cli, goose, jules, junie, kilocode, kiro, opencode, openhands, qwen, roo, trae, warp, windsurf, zed) |
 | `--config <path>`              | Path to a custom `ruler.toml` configuration file                                                                                                                                |
 | `--mcp` / `--with-mcp`         | Enable applying MCP server configurations (default: true)                                                                                                                       |
 | `--no-mcp`                     | Disable applying MCP server configurations                                                                                                                                      |
@@ -307,7 +307,7 @@ ruler revert [options]
 | Option                         | Description                                                                                                                                                                  |
 | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `--project-root <path>`        | Path to your project's root (default: current directory)                                                                                                                     |
-| `--agents <agent1,agent2,...>` | Comma-separated list of agent names to revert (agentsmd, amazonqcli, amp, copilot, claude, codex, cursor, windsurf, cline, aider, firebase, openhands, gemini-cli, jules, junie, augmentcode, kilocode, opencode, goose, crush, zed, qwen, kiro, warp, roo, trae) |
+| `--agents <agent1,agent2,...>` | Comma-separated list of agent names to revert (agentsmd, aider, amazonqcli, amp, augmentcode, claude, cline, codex, copilot, crush, cursor, firebase, gemini-cli, goose, jules, junie, kilocode, kiro, opencode, openhands, qwen, roo, trae, warp, windsurf, zed) |
 | `--config <path>`              | Path to a custom `ruler.toml` configuration file                                                                                                                             |
 | `--keep-backups`               | Keep backup files (.bak) after restoration (default: false)                                                                                                                  |
 | `--dry-run`                    | Preview changes without actually reverting files                                                                                                                             |
