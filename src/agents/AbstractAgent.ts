@@ -51,13 +51,17 @@ export abstract class AbstractAgent implements IAgent {
     if (customCommands && Object.keys(customCommands).length > 0) {
       if (this.supportsCustomCommands?.()) {
         // Agent supports native commands - generate them separately if needed
-        const nativeCommands = await this.generateCustomCommands?.(customCommands, projectRoot);
+        const nativeCommands = await this.generateCustomCommands?.(
+          customCommands,
+          projectRoot,
+        );
         if (nativeCommands) {
           finalContent += nativeCommands;
         }
       } else {
         // Agent doesn't support native commands - add fallback instructions
-        const fallbackInstructions = CommandProcessor.generateFallbackInstructions(customCommands);
+        const fallbackInstructions =
+          CommandProcessor.generateFallbackInstructions(customCommands);
         finalContent += fallbackInstructions;
       }
     }

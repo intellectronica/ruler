@@ -33,7 +33,8 @@ export class WindsurfAgent extends AbstractAgent {
 
     // Add custom commands support
     if (customCommands && Object.keys(customCommands).length > 0) {
-      const windsurfWorkflows = CommandProcessor.generateWindsurfWorkflows(customCommands);
+      const windsurfWorkflows =
+        CommandProcessor.generateWindsurfWorkflows(customCommands);
       finalContent += windsurfWorkflows;
     }
 

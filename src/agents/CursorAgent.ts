@@ -33,7 +33,8 @@ export class CursorAgent extends AbstractAgent {
 
     // Add custom commands support
     if (customCommands && Object.keys(customCommands).length > 0) {
-      const cursorCommands = CommandProcessor.generateCursorCommands(customCommands);
+      const cursorCommands =
+        CommandProcessor.generateCursorCommands(customCommands);
       finalContent += cursorCommands;
     }
 

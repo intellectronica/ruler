@@ -3,7 +3,12 @@ import * as path from 'path';
 import * as os from 'os';
 import { parse as parseTOML } from '@iarna/toml';
 import { z } from 'zod';
-import { McpConfig, GlobalMcpConfig, GitignoreConfig, CustomCommandsConfig } from '../types';
+import {
+  McpConfig,
+  GlobalMcpConfig,
+  GitignoreConfig,
+  CustomCommandsConfig,
+} from '../types';
 import { createRulerError } from '../constants';
 
 interface ErrnoException extends Error {
@@ -243,13 +248,21 @@ export async function loadConfig(
           name: cmd.name,
           description: cmd.description,
           prompt: cmd.prompt,
-          type: typeof cmd.type === 'string' && 
-                ['slash', 'workflow', 'prompt-file', 'instruction'].includes(cmd.type)
-            ? cmd.type as 'slash' | 'workflow' | 'prompt-file' | 'instruction'
-            : 'instruction',
-          metadata: cmd.metadata && typeof cmd.metadata === 'object' 
-            ? cmd.metadata as Record<string, any>
-            : undefined,
+          type:
+            typeof cmd.type === 'string' &&
+            ['slash', 'workflow', 'prompt-file', 'instruction'].includes(
+              cmd.type,
+            )
+              ? (cmd.type as
+                  | 'slash'
+                  | 'workflow'
+                  | 'prompt-file'
+                  | 'instruction')
+              : 'instruction',
+          metadata:
+            cmd.metadata && typeof cmd.metadata === 'object'
+              ? (cmd.metadata as Record<string, unknown>)
+              : undefined,
         };
       }
     }
@@ -262,6 +275,7 @@ export async function loadConfig(
     mcp: globalMcpConfig,
     gitignore: gitignoreConfig,
     nested,
-    commands: Object.keys(customCommands).length > 0 ? customCommands : undefined,
+    commands:
+      Object.keys(customCommands).length > 0 ? customCommands : undefined,
   };
 }

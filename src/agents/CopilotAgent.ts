@@ -2,7 +2,11 @@ import { IAgent, IAgentConfig } from './IAgent';
 import { CustomCommandsConfig } from '../types';
 import { AgentsMdAgent } from './AgentsMdAgent';
 import { CommandProcessor } from '../core/CommandProcessor';
-import { writeGeneratedFile, ensureDirExists, backupFile } from '../core/FileSystemUtils';
+import {
+  writeGeneratedFile,
+  ensureDirExists,
+  backupFile,
+} from '../core/FileSystemUtils';
 import * as path from 'path';
 
 /**
@@ -51,8 +55,9 @@ export class CopilotAgent implements IAgent {
 
     // Generate native prompt files for VS Code Copilot if custom commands are defined
     if (customCommands && Object.keys(customCommands).length > 0) {
-      const promptFiles = CommandProcessor.generateCopilotPromptFiles(customCommands);
-      
+      const promptFiles =
+        CommandProcessor.generateCopilotPromptFiles(customCommands);
+
       for (const [filePath, content] of Object.entries(promptFiles)) {
         const absolutePath = path.resolve(projectRoot, filePath);
         await ensureDirExists(path.dirname(absolutePath));
@@ -85,7 +90,7 @@ export class CopilotAgent implements IAgent {
   }
 
   async generateCustomCommands(
-    commands: CustomCommandsConfig,
+    commands: CustomCommandsConfig, // eslint-disable-line @typescript-eslint/no-unused-vars
     projectRoot: string, // eslint-disable-line @typescript-eslint/no-unused-vars
   ): Promise<string | null> {
     // For Copilot, we generate prompt files separately in applyRulerConfig

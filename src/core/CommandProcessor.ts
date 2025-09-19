@@ -60,7 +60,12 @@ export class CommandProcessor {
       errors.push(`Command '${commandId}' is missing a prompt`);
     }
 
-    if (command.type && !['slash', 'workflow', 'prompt-file', 'instruction'].includes(command.type)) {
+    if (
+      command.type &&
+      !['slash', 'workflow', 'prompt-file', 'instruction'].includes(
+        command.type,
+      )
+    ) {
       errors.push(`Command '${commandId}' has invalid type '${command.type}'`);
     }
 
@@ -80,7 +85,9 @@ export class CommandProcessor {
       }
 
       if (!/^[a-zA-Z0-9_-]+$/.test(commandId)) {
-        errors.push(`Command ID '${commandId}' contains invalid characters. Use only letters, numbers, hyphens, and underscores.`);
+        errors.push(
+          `Command ID '${commandId}' contains invalid characters. Use only letters, numbers, hyphens, and underscores.`,
+        );
       }
 
       errors.push(...this.validateCommand(commandId, command));
@@ -93,7 +100,9 @@ export class CommandProcessor {
    * Generates VS Code prompt file content for Copilot.
    * See: https://code.visualstudio.com/docs/copilot/customization/prompt-files
    */
-  static generateCopilotPromptFiles(commands: CustomCommandsConfig): Record<string, string> {
+  static generateCopilotPromptFiles(
+    commands: CustomCommandsConfig,
+  ): Record<string, string> {
     const files: Record<string, string> = {};
 
     for (const [commandId, command] of Object.entries(commands)) {
@@ -106,7 +115,7 @@ export class CommandProcessor {
         '',
         command.prompt,
       ].join('\n');
-      
+
       files[fileName] = content;
     }
 
@@ -153,8 +162,8 @@ export class CommandProcessor {
    * See: https://docs.cursor.com/en/agent/chat/commands
    */
   static generateCursorCommands(commands: CustomCommandsConfig): string {
-    const cursorCommands = Object.entries(commands)
-      .map(([commandId, command]) => {
+    const cursorCommands = Object.entries(commands).map(
+      ([commandId, command]) => {
         return [
           `## @${commandId} - ${command.name}`,
           '',
@@ -164,7 +173,8 @@ export class CommandProcessor {
           command.prompt,
           '',
         ].join('\n');
-      });
+      },
+    );
 
     if (cursorCommands.length === 0) {
       return '';
