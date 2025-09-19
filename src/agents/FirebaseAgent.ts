@@ -16,4 +16,14 @@ export class FirebaseAgent extends AbstractAgent {
   getDefaultOutputPath(projectRoot: string): string {
     return path.join(projectRoot, '.idx', 'airules.md');
   }
+
+  // Firebase Studio (IDX) supports stdio MCP servers via .idx/mcp.json
+  supportsMcpStdio(): boolean {
+    return true;
+  }
+
+  // Remote MCP over HTTP/SSE is not documented for Firebase Studio yet
+  supportsMcpRemote(): boolean {
+    return false;
+  }
 }

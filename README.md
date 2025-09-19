@@ -68,7 +68,7 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | Amp              | `AGENTS.md`                                      | -                                                |
 | Amazon Q CLI     | `.amazonq/rules/ruler_q_rules.md`                | `.amazonq/mcp.json`                              |
 | Aider            | `AGENTS.md`, `.aider.conf.yml`                   | `.mcp.json`                                      |
-| Firebase Studio  | `.idx/airules.md`                                | -                                                |
+| Firebase Studio  | `.idx/airules.md`                                | `.idx/mcp.json`                                  |
 | Open Hands       | `.openhands/microagents/repo.md`                 | `config.toml`                                    |
 | Gemini CLI       | `AGENTS.md`                                      | `.gemini/settings.json`                          |
 | Junie            | `.junie/guidelines.md`                           | -                                                |
