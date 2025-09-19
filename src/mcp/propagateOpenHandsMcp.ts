@@ -193,5 +193,5 @@ export async function propagateMcpToOpenHands(
     const { backupFile } = await import('../core/FileSystemUtils');
     await backupFile(openHandsConfigPath);
   }
-  await fs.writeFile(openHandsConfigPath, stringify(config));
+  await fs.writeFile(openHandsConfigPath, stringify(config as any));
 }
