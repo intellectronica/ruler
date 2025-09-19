@@ -1,4 +1,3 @@
-import * as path from 'path';
 import { IAgent, IAgentConfig } from './IAgent';
 import { AgentsMdAgent } from './AgentsMdAgent';
 
@@ -21,7 +20,7 @@ export class CopilotAgent implements IAgent {
    * Returns the default output path for AGENTS.md.
    */
   getDefaultOutputPath(projectRoot: string): string {
-    return path.join(projectRoot, 'AGENTS.md');
+    return this.agentsMdAgent.getDefaultOutputPath(projectRoot);
   }
 
   async applyRulerConfig(
