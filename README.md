@@ -57,7 +57,7 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | Agent            | Rules File(s)                                    | MCP Configuration / Notes                        |
 | ---------------- | ------------------------------------------------ | ------------------------------------------------ |
 | AGENTS.md        | `AGENTS.md`                                      | (pseudo-agent ensuring root `AGENTS.md` exists)  |
-| GitHub Copilot   | `AGENTS.md`, `.github/copilot-instructions.md`   | `.vscode/mcp.json`                               |
+| GitHub Copilot   | `AGENTS.md`                                      | `.vscode/mcp.json`                               |
 | Claude Code      | `CLAUDE.md`                                      | `.mcp.json`                                      |
 | OpenAI Codex CLI | `AGENTS.md`                                      | `.codex/config.toml`                             |
 | Jules            | `AGENTS.md`                                      | -                                                |
@@ -389,7 +389,7 @@ enabled = true
 # --- Agent-Specific Configurations ---
 [agents.copilot]
 enabled = true
-output_path = ".github/copilot-instructions.md"
+output_path = "AGENTS.md"
 
 [agents.claude]
 enabled = true
@@ -565,7 +565,6 @@ node_modules/
 .aider.conf.yml
 .clinerules
 .cursor/rules/ruler_cursor_instructions.mdc
-.github/copilot-instructions.md
 .windsurf/rules/ruler_windsurf_instructions.md
 AGENTS.md
 CLAUDE.md
