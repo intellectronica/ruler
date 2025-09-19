@@ -389,7 +389,6 @@ enabled = true
 # --- Agent-Specific Configurations ---
 [agents.copilot]
 enabled = true
-output_path = "AGENTS.md"
 
 [agents.claude]
 enabled = true
