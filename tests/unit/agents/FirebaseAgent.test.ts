@@ -29,6 +29,14 @@ describe('FirebaseAgent', () => {
       const expected = path.join(tmpDir, '.idx', 'airules.md');
       expect(agent.getDefaultOutputPath(tmpDir)).toBe(expected);
     });
+
+    it('supports MCP stdio servers', () => {
+      expect(agent.supportsMcpStdio()).toBe(true);
+    });
+
+    it('does not support MCP remote servers (for now)', () => {
+      expect(agent.supportsMcpRemote()).toBe(false);
+    });
   });
 
   describe('applyRulerConfig', () => {

@@ -41,7 +41,8 @@ describe('MCP Path Resolution', () => {
         'Qwen Code',
         'Kilo Code',
         'OpenCode',
-        'Zed'
+        'Zed',
+        'Firebase Studio'
       ];
 
       for (const agent of supportedAgents) {
@@ -91,6 +92,11 @@ describe('MCP Path Resolution', () => {
       it('Zed should use project-local path', async () => {
         const mcpPath = await getNativeMcpPath('Zed', projectRoot);
         expect(mcpPath).toBe(path.join(projectRoot, '.zed', 'settings.json'));
+      });
+
+      it('Firebase Studio should use project-local path', async () => {
+        const mcpPath = await getNativeMcpPath('Firebase Studio', projectRoot);
+        expect(mcpPath).toBe(path.join(projectRoot, '.idx', 'mcp.json'));
       });
     });
   });
