@@ -19,3 +19,23 @@ export interface GitignoreConfig {
   /** Enable or disable automatic .gitignore updates. */
   enabled?: boolean;
 }
+
+/** Custom command configuration. */
+export interface CustomCommand {
+  /** Display name for the command. */
+  name: string;
+  /** Description of what the command does. */
+  description: string;
+  /** The prompt/instruction text for the command. */
+  prompt: string;
+  /** Command type - determines how it's implemented by different agents. */
+  type?: 'slash' | 'workflow' | 'prompt-file' | 'instruction';
+  /** Additional metadata for agent-specific command generation. */
+  metadata?: Record<string, unknown>;
+}
+
+/** Custom commands configuration section. */
+export interface CustomCommandsConfig {
+  /** Map of command identifiers to command definitions. */
+  [commandId: string]: CustomCommand;
+}

@@ -2,6 +2,7 @@ import * as path from 'path';
 import { promises as fs } from 'fs';
 import { AbstractAgent } from './AbstractAgent';
 import { IAgentConfig } from './IAgent';
+import { CustomCommandsConfig } from '../types';
 import {
   backupFile,
   ensureDirExists,
@@ -32,6 +33,7 @@ export class AgentsMdAgent extends AbstractAgent {
     rulerMcpJson: Record<string, unknown> | null, // eslint-disable-line @typescript-eslint/no-unused-vars
     agentConfig?: IAgentConfig,
     backup = true,
+    customCommands?: CustomCommandsConfig, // eslint-disable-line @typescript-eslint/no-unused-vars
   ): Promise<void> {
     const output =
       agentConfig?.outputPath ?? this.getDefaultOutputPath(projectRoot);

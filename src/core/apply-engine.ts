@@ -407,6 +407,7 @@ export async function applyConfigurationsToAgents(
           rulerMcpJson,
           finalAgentConfig,
           backup,
+          config.commands,
         );
       }
     }

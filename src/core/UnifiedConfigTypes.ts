@@ -1,4 +1,4 @@
-import { McpConfig, GitignoreConfig, McpStrategy } from '../types';
+import { McpConfig, GitignoreConfig, McpStrategy, CustomCommandsConfig } from '../types';
 
 export interface RulerUnifiedConfig {
   meta: ConfigMeta;
@@ -27,6 +27,7 @@ export interface TomlConfig {
   mcp?: McpToggleConfig;
   mcpServers?: Record<string, McpServerDef>;
   gitignore?: GitignoreConfig;
+  commands?: CustomCommandsConfig;
   nested?: boolean;
 }
 

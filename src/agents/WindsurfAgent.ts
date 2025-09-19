@@ -1,5 +1,7 @@
 import * as path from 'path';
 import { AbstractAgent } from './AbstractAgent';
+import { CustomCommandsConfig } from '../types';
+import { CommandProcessor } from '../core/CommandProcessor';
 import { IAgentConfig } from './IAgent';
 import {
   backupFile,
@@ -25,14 +27,23 @@ export class WindsurfAgent extends AbstractAgent {
     rulerMcpJson: Record<string, unknown> | null, // eslint-disable-line @typescript-eslint/no-unused-vars
     agentConfig?: IAgentConfig,
     backup = true,
+    customCommands?: CustomCommandsConfig,
   ): Promise<void> {
+    let finalContent = concatenatedRules;
+
+    // Add custom commands support
+    if (customCommands && Object.keys(customCommands).length > 0) {
+      const windsurfWorkflows = CommandProcessor.generateWindsurfWorkflows(customCommands);
+      finalContent += windsurfWorkflows;
+    }
+
     const output =
       agentConfig?.outputPath ?? this.getDefaultOutputPath(projectRoot);
     const absolutePath = path.resolve(projectRoot, output);
 
     // Windsurf expects a YAML front-matter block with a `trigger` flag.
     const frontMatter = ['---', 'trigger: always_on', '---', ''].join('\n');
-    const content = `${frontMatter}${concatenatedRules.trimStart()}`;
+    const content = `${frontMatter}${finalContent.trimStart()}`;
 
     const maxFileSize = 10000; // 10K characters
 
@@ -52,7 +63,7 @@ export class WindsurfAgent extends AbstractAgent {
       );
 
       const files = this.splitContentIntoFiles(
-        concatenatedRules.trimStart(),
+        finalContent.trimStart(),
         frontMatter,
         maxFileSize,
       );
@@ -178,5 +189,20 @@ export class WindsurfAgent extends AbstractAgent {
     }
 
     return files;
+  }
+
+  supportsCustomCommands(): boolean {
+    return true;
+  }
+
+  getSupportedCommandTypes(): string[] {
+    return ['workflow', 'instruction'];
+  }
+
+  async generateCustomCommands(
+    commands: CustomCommandsConfig,
+    projectRoot: string, // eslint-disable-line @typescript-eslint/no-unused-vars
+  ): Promise<string | null> {
+    return CommandProcessor.generateWindsurfWorkflows(commands);
   }
 }

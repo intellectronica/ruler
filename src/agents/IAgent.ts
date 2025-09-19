@@ -1,7 +1,7 @@
 /**
  * Interface defining an AI agent configuration adapter.
  */
-import { McpConfig } from '../types';
+import { McpConfig, CustomCommandsConfig } from '../types';
 /**
  * Configuration overrides for a specific agent.
  */
@@ -33,6 +33,10 @@ export interface IAgent {
    * Applies the concatenated ruler rules to the agent's configuration.
    * @param concatenatedRules The combined rules text
    * @param projectRoot The root directory of the project
+   * @param rulerMcpJson MCP configuration
+   * @param agentConfig Agent-specific configuration
+   * @param backup Whether to backup existing files
+   * @param customCommands Custom commands configuration
    */
   applyRulerConfig(
     concatenatedRules: string,
@@ -40,6 +44,7 @@ export interface IAgent {
     rulerMcpJson: Record<string, unknown> | null,
     agentConfig?: IAgentConfig,
     backup?: boolean,
+    customCommands?: CustomCommandsConfig,
   ): Promise<void>;
 
   /**
@@ -64,4 +69,28 @@ export interface IAgent {
    * Defaults to false if not implemented.
    */
   supportsMcpRemote?(): boolean;
+
+  /**
+   * Returns whether this agent supports native custom commands.
+   * Defaults to false if not implemented.
+   */
+  supportsCustomCommands?(): boolean;
+
+  /**
+   * Returns the supported command types for this agent.
+   * Defaults to ['instruction'] if not implemented.
+   */
+  getSupportedCommandTypes?(): string[];
+
+  /**
+   * Generates native command configuration for this agent.
+   * Only called if supportsCustomCommands() returns true.
+   * @param commands The custom commands configuration
+   * @param projectRoot The root directory of the project
+   * @returns The native command configuration content or null if not supported
+   */
+  generateCustomCommands?(
+    commands: CustomCommandsConfig,
+    projectRoot: string,
+  ): Promise<string | null>;
 }

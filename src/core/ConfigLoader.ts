@@ -3,7 +3,7 @@ import * as path from 'path';
 import * as os from 'os';
 import { parse as parseTOML } from '@iarna/toml';
 import { z } from 'zod';
-import { McpConfig, GlobalMcpConfig, GitignoreConfig } from '../types';
+import { McpConfig, GlobalMcpConfig, GitignoreConfig, CustomCommandsConfig } from '../types';
 import { createRulerError } from '../constants';
 
 interface ErrnoException extends Error {
@@ -27,6 +27,14 @@ const agentConfigSchema = z
   })
   .optional();
 
+const customCommandSchema = z.object({
+  name: z.string(),
+  description: z.string(),
+  prompt: z.string(),
+  type: z.enum(['slash', 'workflow', 'prompt-file', 'instruction']).optional(),
+  metadata: z.record(z.string(), z.any()).optional(),
+});
+
 const rulerConfigSchema = z.object({
   default_agents: z.array(z.string()).optional(),
   agents: z.record(z.string(), agentConfigSchema).optional(),
@@ -42,6 +50,7 @@ const rulerConfigSchema = z.object({
     })
     .optional(),
   nested: z.boolean().optional(),
+  commands: z.record(z.string(), customCommandSchema).optional(),
 });
 
 /**
@@ -72,6 +81,8 @@ export interface LoadedConfig {
   gitignore?: GitignoreConfig;
   /** Whether to enable nested rule loading from nested .ruler directories. */
   nested?: boolean;
+  /** Custom commands configuration. */
+  commands?: CustomCommandsConfig;
 }
 
 /**
@@ -212,6 +223,38 @@ export async function loadConfig(
 
   const nested = typeof raw.nested === 'boolean' ? raw.nested : false;
 
+  // Parse custom commands
+  const rawCommandsSection =
+    raw.commands &&
+    typeof raw.commands === 'object' &&
+    !Array.isArray(raw.commands)
+      ? (raw.commands as Record<string, unknown>)
+      : {};
+  const customCommands: CustomCommandsConfig = {};
+  for (const [name, commandData] of Object.entries(rawCommandsSection)) {
+    if (commandData && typeof commandData === 'object') {
+      const cmd = commandData as Record<string, unknown>;
+      if (
+        typeof cmd.name === 'string' &&
+        typeof cmd.description === 'string' &&
+        typeof cmd.prompt === 'string'
+      ) {
+        customCommands[name] = {
+          name: cmd.name,
+          description: cmd.description,
+          prompt: cmd.prompt,
+          type: typeof cmd.type === 'string' && 
+                ['slash', 'workflow', 'prompt-file', 'instruction'].includes(cmd.type)
+            ? cmd.type as 'slash' | 'workflow' | 'prompt-file' | 'instruction'
+            : 'instruction',
+          metadata: cmd.metadata && typeof cmd.metadata === 'object' 
+            ? cmd.metadata as Record<string, any>
+            : undefined,
+        };
+      }
+    }
+  }
+
   return {
     defaultAgents,
     agentConfigs,
@@ -219,5 +262,6 @@ export async function loadConfig(
     mcp: globalMcpConfig,
     gitignore: gitignoreConfig,
     nested,
+    commands: Object.keys(customCommands).length > 0 ? customCommands : undefined,
   };
 }
