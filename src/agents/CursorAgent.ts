@@ -1,6 +1,13 @@
 import * as path from 'path';
 import { AbstractAgent } from './AbstractAgent';
 import { IAgentConfig } from './IAgent';
+
+// Cursor-specific configuration extending the base config
+interface CursorAgentConfig extends IAgentConfig {
+  description?: string;
+  globs?: string[];
+  alwaysApply?: boolean;
+}
 import {
   backupFile,
   writeGeneratedFile,
@@ -30,9 +37,26 @@ export class CursorAgent extends AbstractAgent {
       agentConfig?.outputPath ?? this.getDefaultOutputPath(projectRoot);
     const absolutePath = path.resolve(projectRoot, output);
 
+    const cursorConfig = agentConfig as CursorAgentConfig | undefined;
+    const alwaysApply = cursorConfig?.alwaysApply ?? true;
+    const description = cursorConfig?.description ?? '';
+    const globs = cursorConfig?.globs ?? [];
+
     // Cursor expects a YAML front-matter block with an `alwaysApply` flag.
     // See: https://docs.cursor.com/context/rules#rule-anatomy
-    const frontMatter = ['---', 'alwaysApply: true', '---', ''].join('\n');
+    const frontMatterLines = ['---'];
+    
+    if (description) {
+      frontMatterLines.push(`description: ${description}`);
+    }
+    
+    if (globs.length > 0) {
+      frontMatterLines.push('globs:');
+    }
+    
+    frontMatterLines.push(`alwaysApply: ${alwaysApply}`);
+    frontMatterLines.push('---', '');
+    const frontMatter = frontMatterLines.join('\n');
     const content = `${frontMatter}${concatenatedRules.trimStart()}`;
 
     await ensureDirExists(path.dirname(absolutePath));
