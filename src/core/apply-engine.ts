@@ -690,16 +690,40 @@ async function applyStandardMcpConfiguration(
     const existing = await readNativeMcp(dest);
     const merged = mergeMcp(existing, mcpToMerge, strategy, serverKey);
 
+    // Firebase Studio (IDX) expects no "type" fields in .idx/mcp.json server entries.
+    // Sanitize merged config by stripping 'type' from each server when targeting Firebase.
+    const sanitizeForFirebase = (
+      obj: Record<string, unknown>,
+    ): Record<string, unknown> => {
+      if (agent.getIdentifier() !== 'firebase') return obj;
+      const out: Record<string, unknown> = { ...obj };
+      const servers = (out[serverKey] as Record<string, unknown>) || {};
+      const cleanedServers: Record<string, unknown> = {};
+      for (const [name, def] of Object.entries(servers)) {
+        if (def && typeof def === 'object') {
+          const copy = { ...(def as Record<string, unknown>) };
+          delete (copy as Record<string, unknown>).type;
+          cleanedServers[name] = copy;
+        } else {
+          cleanedServers[name] = def;
+        }
+      }
+      out[serverKey] = cleanedServers;
+      return out;
+    };
+
+    const toWrite = sanitizeForFirebase(merged);
+
     // Only backup and write if content would actually change (idempotent)
     const currentContent = JSON.stringify(existing, null, 2);
-    const newContent = JSON.stringify(merged, null, 2);
+    const newContent = JSON.stringify(toWrite, null, 2);
 
     if (currentContent !== newContent) {
       if (backup) {
         const { backupFile } = await import('../core/FileSystemUtils');
         await backupFile(dest);
       }
-      await writeNativeMcp(dest, merged);
+      await writeNativeMcp(dest, toWrite);
     } else {
       logVerbose(
         `MCP config for ${agent.getName()} is already up to date - skipping backup and write`,
