@@ -8,6 +8,22 @@ import {
 } from '../core/FileSystemUtils';
 
 /**
+ * Firebender rule configuration object.
+ */
+interface FirebenderRule {
+  filePathMatches: string;
+  rulesPaths: string;
+}
+
+/**
+ * Firebender configuration structure.
+ */
+interface FirebenderConfig {
+  rules: (FirebenderRule | string)[];
+  mcpServers?: Record<string, unknown>;
+}
+
+/**
  * Firebender agent adapter.
  */
 export class FirebenderAgent implements IAgent {
@@ -30,20 +46,30 @@ export class FirebenderAgent implements IAgent {
     await ensureDirExists(path.dirname(rulesPath));
 
     const firebenderConfig = await this.loadExistingConfig(rulesPath);
-    const newRules = this.createRulesFromConcatenatedRules(concatenatedRules, projectRoot);
+    const newRules = this.createRulesFromConcatenatedRules(
+      concatenatedRules,
+      projectRoot,
+    );
 
     firebenderConfig.rules.push(...newRules);
     this.removeDuplicateRules(firebenderConfig);
 
     const mcpEnabled = agentConfig?.mcp?.enabled ?? true;
     if (mcpEnabled && rulerMcpJson) {
-      await this.handleMcpConfiguration(firebenderConfig, rulerMcpJson, agentConfig);
+      await this.handleMcpConfiguration(
+        firebenderConfig,
+        rulerMcpJson,
+        agentConfig,
+      );
     }
 
     await this.saveConfig(rulesPath, firebenderConfig, backup);
   }
 
-  private resolveOutputPath(projectRoot: string, agentConfig?: IAgentConfig): string {
+  private resolveOutputPath(
+    projectRoot: string,
+    agentConfig?: IAgentConfig,
+  ): string {
     const outputPaths = this.getDefaultOutputPath(projectRoot);
     const output =
       agentConfig?.outputPath ??
@@ -52,7 +78,9 @@ export class FirebenderAgent implements IAgent {
     return path.resolve(projectRoot, output);
   }
 
-  private async loadExistingConfig(rulesPath: string): Promise<any> {
+  private async loadExistingConfig(
+    rulesPath: string,
+  ): Promise<FirebenderConfig> {
     if (!fs.existsSync(rulesPath)) {
       return { rules: [] };
     }
@@ -72,8 +100,14 @@ export class FirebenderAgent implements IAgent {
     }
   }
 
-  private createRulesFromConcatenatedRules(concatenatedRules: string, projectRoot: string): any[] {
-    const filePaths = this.extractFilePathsFromRules(concatenatedRules, projectRoot);
+  private createRulesFromConcatenatedRules(
+    concatenatedRules: string,
+    projectRoot: string,
+  ): (FirebenderRule | string)[] {
+    const filePaths = this.extractFilePathsFromRules(
+      concatenatedRules,
+      projectRoot,
+    );
 
     if (filePaths.length > 0) {
       return this.createRuleObjectsFromFilePaths(filePaths);
@@ -82,30 +116,39 @@ export class FirebenderAgent implements IAgent {
     }
   }
 
-  private createRuleObjectsFromFilePaths(filePaths: string[]): any[] {
-    return filePaths.map(filePath => ({
-      filePathMatches: "**/*",
-      rulesPaths: filePath
+  private createRuleObjectsFromFilePaths(
+    filePaths: string[],
+  ): FirebenderRule[] {
+    return filePaths.map((filePath) => ({
+      filePathMatches: '**/*',
+      rulesPaths: filePath,
     }));
   }
 
   private createRulesFromPlainText(concatenatedRules: string): string[] {
-    return concatenatedRules.split('\n').filter(rule => rule.trim());
+    return concatenatedRules.split('\n').filter((rule) => rule.trim());
   }
 
-  private removeDuplicateRules(firebenderConfig: any): void {
+  private removeDuplicateRules(firebenderConfig: FirebenderConfig): void {
     const seen = new Set();
-    firebenderConfig.rules = firebenderConfig.rules.filter((rule: any) => {
-      const key = typeof rule === 'object' && rule.rulesPaths ? rule.rulesPaths : rule;
-      if (seen.has(key)) {
-        return false;
-      }
-      seen.add(key);
-      return true;
-    });
+    firebenderConfig.rules = firebenderConfig.rules.filter(
+      (rule: FirebenderRule | string) => {
+        const key =
+          typeof rule === 'object' && rule.rulesPaths ? rule.rulesPaths : rule;
+        if (seen.has(key)) {
+          return false;
+        }
+        seen.add(key);
+        return true;
+      },
+    );
   }
 
-  private async saveConfig(rulesPath: string, config: any, backup: boolean): Promise<void> {
+  private async saveConfig(
+    rulesPath: string,
+    config: FirebenderConfig,
+    backup: boolean,
+  ): Promise<void> {
     const updatedContent = JSON.stringify(config, null, 2);
 
     if (backup) {
@@ -120,13 +163,14 @@ export class FirebenderAgent implements IAgent {
    * Merges or overwrites MCP servers in the firebender.json configuration based on strategy.
    */
   private async handleMcpConfiguration(
-    firebenderConfig: any,
+    firebenderConfig: FirebenderConfig,
     rulerMcpJson: Record<string, unknown>,
     agentConfig?: IAgentConfig,
   ): Promise<void> {
     const strategy = agentConfig?.mcp?.strategy ?? 'merge';
 
-    const incomingServers = (rulerMcpJson.mcpServers as Record<string, unknown>) || {};
+    const incomingServers =
+      (rulerMcpJson.mcpServers as Record<string, unknown>) || {};
 
     if (!firebenderConfig.mcpServers) {
       firebenderConfig.mcpServers = {};
@@ -142,10 +186,7 @@ export class FirebenderAgent implements IAgent {
 
   getDefaultOutputPath(projectRoot: string): Record<string, string> {
     return {
-      instructions: path.join(
-        projectRoot,
-        'firebender.json'
-      ),
+      instructions: path.join(projectRoot, 'firebender.json'),
       mcp: path.join(projectRoot, 'firebender.json'),
     };
   }
@@ -168,7 +209,10 @@ export class FirebenderAgent implements IAgent {
    * @param projectRoot The project root directory
    * @returns Array of file paths relative to project root
    */
-  private extractFilePathsFromRules(concatenatedRules: string, projectRoot: string): string[] {
+  private extractFilePathsFromRules(
+    concatenatedRules: string,
+    projectRoot: string,
+  ): string[] {
     const sourceCommentRegex = /<!-- Source: (.+?) -->/g;
     const filePaths: string[] = [];
     let match;
