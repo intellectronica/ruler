@@ -232,8 +232,17 @@ export class FirebenderAgent implements IAgent {
     while ((match = sourceCommentRegex.exec(concatenatedRules)) !== null) {
       const relativePath = match[1];
       const absolutePath = path.resolve(projectRoot, relativePath);
-      const projectRelativePath = path.relative(projectRoot, absolutePath);
-      filePaths.push(projectRelativePath);
+
+      const normalizedProjectRoot = path.resolve(projectRoot);
+      // Ensure the absolutePath is within the project root (cross-platform compatible)
+      // This prevents path traversal attacks while handling Windows/Unix path differences
+      const isWithinProject = absolutePath.startsWith(normalizedProjectRoot) &&
+                              (absolutePath.length === normalizedProjectRoot.length ||
+                               absolutePath[normalizedProjectRoot.length] === path.sep);
+      if (isWithinProject) {
+        const projectRelativePath = path.relative(projectRoot, absolutePath);
+        filePaths.push(projectRelativePath);
+      }
     }
 
     return filePaths;
