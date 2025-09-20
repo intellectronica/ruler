@@ -82,6 +82,7 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | Trae AI          | `.trae/rules/project_rules.md`                   | -                                                |
 | Warp             | `WARP.md`                                        | -                                                |
 | Kiro             | `.kiro/steering/ruler_kiro_instructions.md`      | -                                                |
+| Firebender       | `firebender.json`                                | -                                                |
 
 ## Getting Started
 
@@ -214,7 +215,7 @@ The `apply` command looks for `.ruler/` in the current directory tree, reading t
 | Option                         | Description                                                                                                                                                                     |
 | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `--project-root <path>`        | Path to your project's root (default: current directory)                                                                                                                        |
-| `--agents <agent1,agent2,...>` | Comma-separated list of agent names to target (agentsmd, aider, amazonqcli, amp, augmentcode, claude, cline, codex, copilot, crush, cursor, firebase, gemini-cli, goose, jules, junie, kilocode, kiro, opencode, openhands, qwen, roo, trae, warp, windsurf, zed) |
+| `--agents <agent1,agent2,...>` | Comma-separated list of agent names to target (agentsmd, aider, amazonqcli, amp, augmentcode, claude, cline, codex, copilot, crush, cursor, firebase, firebender, gemini-cli, goose, jules, junie, kilocode, kiro, opencode, openhands, qwen, roo, trae, warp, windsurf, zed) |
 | `--config <path>`              | Path to a custom `ruler.toml` configuration file                                                                                                                                |
 | `--mcp` / `--with-mcp`         | Enable applying MCP server configurations (default: true)                                                                                                                       |
 | `--no-mcp`                     | Disable applying MCP server configurations                                                                                                                                      |
@@ -307,7 +308,7 @@ ruler revert [options]
 | Option                         | Description                                                                                                                                                                  |
 | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `--project-root <path>`        | Path to your project's root (default: current directory)                                                                                                                     |
-| `--agents <agent1,agent2,...>` | Comma-separated list of agent names to revert (agentsmd, aider, amazonqcli, amp, augmentcode, claude, cline, codex, copilot, crush, cursor, firebase, gemini-cli, goose, jules, junie, kilocode, kiro, opencode, openhands, qwen, roo, trae, warp, windsurf, zed) |
+| `--agents <agent1,agent2,...>` | Comma-separated list of agent names to revert (agentsmd, aider, amazonqcli, amp, augmentcode, claude, cline, codex, copilot, crush, cursor, firebase, firebender, gemini-cli, goose, jules, junie, kilocode, kiro, opencode, openhands, qwen, roo, trae, warp, windsurf, zed) |
 | `--config <path>`              | Path to a custom `ruler.toml` configuration file                                                                                                                             |
 | `--keep-backups`               | Keep backup files (.bak) after restoration (default: false)                                                                                                                  |
 | `--dry-run`                    | Preview changes without actually reverting files                                                                                                                             |
