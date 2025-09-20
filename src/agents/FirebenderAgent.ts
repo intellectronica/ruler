@@ -153,8 +153,8 @@ export class FirebenderAgent implements IAgent {
       (rule: FirebenderRule | string) => {
         let key: string;
         if (this.isFirebenderRule(rule)) {
-          const filePathMatchesPart = rule.filePathMatches ?? '**/*';
-          const rulesPathsPart = rule.rulesPaths ?? '';
+          const filePathMatchesPart = rule.filePathMatches;
+          const rulesPathsPart = rule.rulesPaths;
           key = `${filePathMatchesPart}::${rulesPathsPart}`;
         } else {
           key = String(rule);
