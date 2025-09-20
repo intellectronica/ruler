@@ -82,7 +82,7 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | Trae AI          | `.trae/rules/project_rules.md`                   | -                                                |
 | Warp             | `WARP.md`                                        | -                                                |
 | Kiro             | `.kiro/steering/ruler_kiro_instructions.md`      | -                                                |
-| Firebender       | `firebender.json`                               | -                                                |
+| Firebender       | `firebender.json`                                | -                                                |
 
 ## Getting Started
 

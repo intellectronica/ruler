@@ -27,6 +27,20 @@ interface FirebenderConfig {
  * Firebender agent adapter.
  */
 export class FirebenderAgent implements IAgent {
+  /**
+   * Type guard function to safely check if an object is a FirebenderRule.
+   */
+  private isFirebenderRule(rule: unknown): rule is FirebenderRule {
+    return (
+      typeof rule === 'object' &&
+      rule !== null &&
+      'filePathMatches' in rule &&
+      'rulesPaths' in rule &&
+      typeof (rule as Record<string, unknown>).filePathMatches === 'string' &&
+      typeof (rule as Record<string, unknown>).rulesPaths === 'string'
+    );
+  }
+
   getIdentifier(): string {
     return 'firebender';
   }
@@ -138,10 +152,9 @@ export class FirebenderAgent implements IAgent {
     firebenderConfig.rules = firebenderConfig.rules.filter(
       (rule: FirebenderRule | string) => {
         let key: string;
-        if (typeof rule === 'object' && rule !== null) {
-          const filePathMatchesPart =
-            (rule as FirebenderRule).filePathMatches ?? '**/*';
-          const rulesPathsPart = (rule as FirebenderRule).rulesPaths ?? '';
+        if (this.isFirebenderRule(rule)) {
+          const filePathMatchesPart = rule.filePathMatches ?? '**/*';
+          const rulesPathsPart = rule.rulesPaths ?? '';
           key = `${filePathMatchesPart}::${rulesPathsPart}`;
         } else {
           key = String(rule);
@@ -236,9 +249,10 @@ export class FirebenderAgent implements IAgent {
       const normalizedProjectRoot = path.resolve(projectRoot);
       // Ensure the absolutePath is within the project root (cross-platform compatible)
       // This prevents path traversal attacks while handling Windows/Unix path differences
-      const isWithinProject = absolutePath.startsWith(normalizedProjectRoot) &&
-                              (absolutePath.length === normalizedProjectRoot.length ||
-                               absolutePath[normalizedProjectRoot.length] === path.sep);
+      const isWithinProject =
+        absolutePath.startsWith(normalizedProjectRoot) &&
+        (absolutePath.length === normalizedProjectRoot.length ||
+          absolutePath[normalizedProjectRoot.length] === path.sep);
       if (isWithinProject) {
         const projectRelativePath = path.relative(projectRoot, absolutePath);
         filePaths.push(projectRelativePath);
