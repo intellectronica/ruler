@@ -81,12 +81,8 @@ export class FirebenderAgent implements IAgent {
   private async loadExistingConfig(
     rulesPath: string,
   ): Promise<FirebenderConfig> {
-    if (!fs.existsSync(rulesPath)) {
-      return { rules: [] };
-    }
-
     try {
-      const existingContent = fs.readFileSync(rulesPath, 'utf8');
+      const existingContent = await fs.promises.readFile(rulesPath, 'utf8');
       const config = JSON.parse(existingContent);
 
       if (!config.rules) {
@@ -94,8 +90,16 @@ export class FirebenderAgent implements IAgent {
       }
 
       return config;
-    } catch (error) {
-      console.warn(`Failed to parse existing firebender.json: ${error}`);
+    } catch (error: unknown) {
+      if (
+        error &&
+        typeof error === 'object' &&
+        'code' in error &&
+        (error as { code?: string }).code === 'ENOENT'
+      ) {
+        return { rules: [] };
+      }
+      console.warn(`Failed to read/parse existing firebender.json: ${error}`);
       return { rules: [] };
     }
   }
