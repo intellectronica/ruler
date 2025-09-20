@@ -23,15 +23,6 @@ interface RulerMcpServer {
   headers?: Record<string, string>;
 }
 
-interface OpenHandsConfig {
-  mcp?: {
-    stdio_servers?: StdioServer[];
-    sse_servers?: (string | RemoteServerEntry)[];
-    shttp_servers?: (string | RemoteServerEntry)[];
-  };
-  [key: string]: unknown;
-}
-
 function isRulerMcpServer(value: unknown): value is RulerMcpServer {
   const server = value as RulerMcpServer;
   return (
@@ -121,7 +112,13 @@ export async function propagateMcpToOpenHands(
     return;
   }
 
-  let config: OpenHandsConfig = {};
+  let config: {
+    mcp?: {
+      stdio_servers?: StdioServer[];
+      sse_servers?: (string | RemoteServerEntry)[];
+      shttp_servers?: (string | RemoteServerEntry)[];
+    };
+  } = {};
   try {
     const tomlContent = await fs.readFile(openHandsConfigPath, 'utf8');
     config = parseTOML(tomlContent);
