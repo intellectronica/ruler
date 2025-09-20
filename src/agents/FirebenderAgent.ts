@@ -28,13 +28,18 @@ export class FirebenderAgent implements IAgent {
   ): Promise<void> {
     const rulesPath = this.resolveOutputPath(projectRoot, agentConfig);
     await ensureDirExists(path.dirname(rulesPath));
-    
+
     const firebenderConfig = await this.loadExistingConfig(rulesPath);
     const newRules = this.createRulesFromConcatenatedRules(concatenatedRules, projectRoot);
-    
+
     firebenderConfig.rules.push(...newRules);
     this.removeDuplicateRules(firebenderConfig);
-    
+
+    const mcpEnabled = agentConfig?.mcp?.enabled ?? true;
+    if (mcpEnabled && rulerMcpJson) {
+      await this.handleMcpConfiguration(firebenderConfig, rulerMcpJson, agentConfig);
+    }
+
     await this.saveConfig(rulesPath, firebenderConfig, backup);
   }
 
@@ -55,12 +60,11 @@ export class FirebenderAgent implements IAgent {
     try {
       const existingContent = fs.readFileSync(rulesPath, 'utf8');
       const config = JSON.parse(existingContent);
-      
-      // Ensure rules array exists
+
       if (!config.rules) {
         config.rules = [];
       }
-      
+
       return config;
     } catch (error) {
       console.warn(`Failed to parse existing firebender.json: ${error}`);
@@ -111,6 +115,31 @@ export class FirebenderAgent implements IAgent {
     await writeGeneratedFile(rulesPath, updatedContent);
   }
 
+  /**
+   * Handle MCP server configuration for Firebender.
+   * Merges or overwrites MCP servers in the firebender.json configuration based on strategy.
+   */
+  private async handleMcpConfiguration(
+    firebenderConfig: any,
+    rulerMcpJson: Record<string, unknown>,
+    agentConfig?: IAgentConfig,
+  ): Promise<void> {
+    const strategy = agentConfig?.mcp?.strategy ?? 'merge';
+
+    const incomingServers = (rulerMcpJson.mcpServers as Record<string, unknown>) || {};
+
+    if (!firebenderConfig.mcpServers) {
+      firebenderConfig.mcpServers = {};
+    }
+
+    if (strategy === 'overwrite') {
+      firebenderConfig.mcpServers = { ...incomingServers };
+    } else if (strategy === 'merge') {
+      const existingServers = firebenderConfig.mcpServers || {};
+      firebenderConfig.mcpServers = { ...existingServers, ...incomingServers };
+    }
+  }
+
   getDefaultOutputPath(projectRoot: string): Record<string, string> {
     return {
       instructions: path.join(
@@ -121,12 +150,16 @@ export class FirebenderAgent implements IAgent {
     };
   }
 
+  getMcpServerKey(): string {
+    return 'mcpServers';
+  }
+
   supportsMcpStdio(): boolean {
-    return false;
+    return true;
   }
 
   supportsMcpRemote(): boolean {
-    return false;
+    return true;
   }
 
   /**
@@ -142,7 +175,6 @@ export class FirebenderAgent implements IAgent {
 
     while ((match = sourceCommentRegex.exec(concatenatedRules)) !== null) {
       const relativePath = match[1];
-      // Convert relative path to absolute path, then back to relative from project root
       const absolutePath = path.resolve(projectRoot, relativePath);
       const projectRelativePath = path.relative(projectRoot, absolutePath);
       filePaths.push(projectRelativePath);

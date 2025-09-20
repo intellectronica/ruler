@@ -31,10 +31,11 @@ describe('FirebenderAgent', () => {
       expect(agent.getDefaultOutputPath(tmpDir)).toEqual(expected);
     });
 
-    it('does not support MCP', () => {
+    it('supports MCP', () => {
       const agent = new FirebenderAgent();
-      expect(agent.supportsMcpStdio()).toBe(false);
-      expect(agent.supportsMcpRemote()).toBe(false);
+      expect(agent.supportsMcpStdio()).toBe(true);
+      expect(agent.supportsMcpRemote()).toBe(true);
+      expect(agent.getMcpServerKey()).toBe('mcpServers');
     });
   });
 
@@ -104,6 +105,137 @@ Follow patterns`;
       const config = JSON.parse(written);
 
       expect(config.rules).toEqual(['Rule 1', 'Rule 2', 'Rule 3']);
+    });
+  });
+
+  describe('MCP Configuration', () => {
+    it('merges MCP servers with existing configuration', async () => {
+      const agent = new FirebenderAgent();
+      const target = path.join(tmpDir, 'firebender.json');
+
+      const existingConfig = {
+        rules: ['Existing rule'],
+        mcpServers: {
+          'existing-server': {
+            command: 'existing-command',
+            args: ['--existing']
+          }
+        }
+      };
+      await fs.writeFile(target, JSON.stringify(existingConfig));
+
+      const rulerMcpJson = {
+        mcpServers: {
+          'new-server': {
+            command: 'new-command',
+            args: ['--new']
+          }
+        }
+      };
+
+      await agent.applyRulerConfig('New rule', tmpDir, rulerMcpJson);
+
+      const written = await fs.readFile(target, 'utf8');
+      const config = JSON.parse(written);
+
+      expect(config.mcpServers).toEqual({
+        'existing-server': {
+          command: 'existing-command',
+          args: ['--existing']
+        },
+        'new-server': {
+          command: 'new-command',
+          args: ['--new']
+        }
+      });
+    });
+
+    it('overwrites MCP servers when strategy is overwrite', async () => {
+      const agent = new FirebenderAgent();
+      const target = path.join(tmpDir, 'firebender.json');
+
+      const existingConfig = {
+        rules: ['Existing rule'],
+        mcpServers: {
+          'existing-server': {
+            command: 'existing-command'
+          }
+        }
+      };
+      await fs.writeFile(target, JSON.stringify(existingConfig));
+
+      const rulerMcpJson = {
+        mcpServers: {
+          'new-server': {
+            command: 'new-command'
+          }
+        }
+      };
+
+      const agentConfig = {
+        mcp: { strategy: 'overwrite' as const }
+      };
+
+      await agent.applyRulerConfig('New rule', tmpDir, rulerMcpJson, agentConfig);
+
+      const written = await fs.readFile(target, 'utf8');
+      const config = JSON.parse(written);
+
+      expect(config.mcpServers).toEqual({
+        'new-server': {
+          command: 'new-command'
+        }
+      });
+    });
+
+    it('adds MCP servers to configuration without existing servers', async () => {
+      const agent = new FirebenderAgent();
+      const target = path.join(tmpDir, 'firebender.json');
+
+      const rulerMcpJson = {
+        mcpServers: {
+          'test-server': {
+            command: 'test-command',
+            args: ['--test']
+          }
+        }
+      };
+
+      await agent.applyRulerConfig('Test rule', tmpDir, rulerMcpJson);
+
+      const written = await fs.readFile(target, 'utf8');
+      const config = JSON.parse(written);
+
+      expect(config.mcpServers).toEqual({
+        'test-server': {
+          command: 'test-command',
+          args: ['--test']
+        }
+      });
+    });
+
+    it('skips MCP configuration when disabled', async () => {
+      const agent = new FirebenderAgent();
+      const target = path.join(tmpDir, 'firebender.json');
+
+      const rulerMcpJson = {
+        mcpServers: {
+          'test-server': {
+            command: 'test-command'
+          }
+        }
+      };
+
+      const agentConfig = {
+        mcp: { enabled: false }
+      };
+
+      await agent.applyRulerConfig('Test rule', tmpDir, rulerMcpJson, agentConfig);
+
+      const written = await fs.readFile(target, 'utf8');
+      const config = JSON.parse(written);
+
+      expect(config.mcpServers).toBeUndefined();
     });
   });
 
