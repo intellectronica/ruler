@@ -106,6 +106,31 @@ Follow patterns`;
 
       expect(config.rules).toEqual(['Rule 1', 'Rule 2', 'Rule 3']);
     });
+
+    it('keeps distinct object rules with same rulesPaths but different filePathMatches', async () => {
+      const agent = new FirebenderAgent();
+      const target = path.join(tmpDir, 'firebender.json');
+
+      const existingConfig = {
+        rules: [
+          { filePathMatches: "**/*.ts", rulesPaths: "docs/style.md" },
+          { filePathMatches: "packages/*", rulesPaths: "docs/style.md" }
+        ]
+      };
+      await fs.writeFile(target, JSON.stringify(existingConfig));
+
+      await agent.applyRulerConfig('Another rule', tmpDir, null);
+
+      const written = await fs.readFile(target, 'utf8');
+      const config = JSON.parse(written);
+
+      expect(config.rules).toEqual(
+        expect.arrayContaining([
+          { filePathMatches: "**/*.ts", rulesPaths: "docs/style.md" },
+          { filePathMatches: "packages/*", rulesPaths: "docs/style.md" }
+        ])
+      );
+    });
   });
 
   describe('MCP Configuration', () => {

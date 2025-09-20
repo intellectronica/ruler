@@ -130,11 +130,19 @@ export class FirebenderAgent implements IAgent {
   }
 
   private removeDuplicateRules(firebenderConfig: FirebenderConfig): void {
-    const seen = new Set();
+    const seen = new Set<string>();
     firebenderConfig.rules = firebenderConfig.rules.filter(
       (rule: FirebenderRule | string) => {
-        const key =
-          typeof rule === 'object' && rule.rulesPaths ? rule.rulesPaths : rule;
+        let key: string;
+        if (typeof rule === 'object' && rule !== null) {
+          const filePathMatchesPart =
+            (rule as FirebenderRule).filePathMatches ?? '**/*';
+          const rulesPathsPart = (rule as FirebenderRule).rulesPaths ?? '';
+          key = `${filePathMatchesPart}::${rulesPathsPart}`;
+        } else {
+          key = String(rule);
+        }
+
         if (seen.has(key)) {
           return false;
         }
