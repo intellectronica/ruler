@@ -30,3 +30,7 @@
   - `npm run build`
 - IMPORTANT: Before committing, always use Prettier to ensure that the code is formatted correctly.
 - IMPORTANT: When committing yourself with `git commit`, always pass `--author="AI <ruler+ai@okigu.com>"` so that your commits can be easily identified.
+
+## Agent Naming Conventions
+
+- In the README's supported agents table, "opencode" is intentionally spelled all lowercase, even though the source code's `OpenCodeAgent.getName()` method returns "OpenCode" (proper case). This lowercase convention should be maintained for consistency.
