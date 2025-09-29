@@ -57,32 +57,32 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | Agent            | Rules File(s)                                    | MCP Configuration / Notes                        |
 | ---------------- | ------------------------------------------------ | ------------------------------------------------ |
 | AGENTS.md        | `AGENTS.md`                                      | (pseudo-agent ensuring root `AGENTS.md` exists)  |
-| GitHub Copilot   | `AGENTS.md`                                      | `.vscode/mcp.json`                               |
-| Claude Code      | `CLAUDE.md`                                      | `.mcp.json`                                      |
-| OpenAI Codex CLI | `AGENTS.md`                                      | `.codex/config.toml`                             |
-| Jules            | `AGENTS.md`                                      | -                                                |
-| Cursor           | `.cursor/rules/ruler_cursor_instructions.mdc`    | `.cursor/mcp.json`                               |
-| Windsurf         | `.windsurf/rules/ruler_windsurf_instructions.md` | -                                                |
-| Cline            | `.clinerules`                                    | -                                                |
-| Crush            | `CRUSH.md`                                       | `.crush.json`                                    |
-| Amp              | `AGENTS.md`                                      | -                                                |
-| Amazon Q CLI     | `.amazonq/rules/ruler_q_rules.md`                | `.amazonq/mcp.json`                              |
 | Aider            | `AGENTS.md`, `.aider.conf.yml`                   | `.mcp.json`                                      |
-| Firebase Studio  | `.idx/airules.md`                                | `.idx/mcp.json`                                  |
-| Open Hands       | `.openhands/microagents/repo.md`                 | `config.toml`                                    |
-| Gemini CLI       | `AGENTS.md`                                      | `.gemini/settings.json`                          |
-| Junie            | `.junie/guidelines.md`                           | -                                                |
+| Amazon Q CLI     | `.amazonq/rules/ruler_q_rules.md`                | `.amazonq/mcp.json`                              |
+| Amp              | `AGENTS.md`                                      | -                                                |
 | AugmentCode      | `.augment/rules/ruler_augment_instructions.md`   | -                                                |
-| Kilo Code        | `.kilocode/rules/ruler_kilocode_instructions.md` | `.kilocode/mcp.json`                             |
-| opencode         | `AGENTS.md`                                      | `opencode.json`                                  |
+| Claude Code      | `CLAUDE.md`                                      | `.mcp.json`                                      |
+| Cline            | `.clinerules`                                    | -                                                |
+| GitHub Copilot   | `AGENTS.md`                                      | `.vscode/mcp.json`                               |
+| OpenAI Codex CLI | `AGENTS.md`, `.codex/config.toml`                | `.codex/config.json`                             |
+| Crush            | `CRUSH.md`                                       | `.crush.json`                                    |
+| Cursor           | `.cursor/rules/ruler_cursor_instructions.mdc`    | `.cursor/mcp.json`                               |
+| Firebase Studio  | `.idx/airules.md`                                | `.idx/mcp.json`                                  |
+| Firebender       | `firebender.json`                                | -                                                |
+| Gemini CLI       | `AGENTS.md`                                      | `.gemini/settings.json`                          |
 | Goose            | `.goosehints`                                    | -                                                |
+| Jules            | `AGENTS.md`                                      | -                                                |
+| Junie            | `.junie/guidelines.md`                           | -                                                |
+| Kilo Code        | `.kilocode/rules/ruler_kilocode_instructions.md` | `.kilocode/mcp.json`                             |
+| Kiro             | `.kiro/steering/ruler_kiro_instructions.md`      | -                                                |
+| OpenCode         | `AGENTS.md`                                      | `opencode.json`                                  |
+| Open Hands       | `.openhands/microagents/repo.md`                 | `config.toml`                                    |
 | Qwen Code        | `AGENTS.md`                                      | `.qwen/settings.json`                            |
 | RooCode          | `AGENTS.md`                                      | `.roo/mcp.json`                                  |
-| Zed              | `AGENTS.md`                                      | `.zed/settings.json` (project root, never $HOME) |
 | Trae AI          | `.trae/rules/project_rules.md`                   | -                                                |
 | Warp             | `WARP.md`                                        | -                                                |
-| Kiro             | `.kiro/steering/ruler_kiro_instructions.md`      | -                                                |
-| Firebender       | `firebender.json`                                | -                                                |
+| Windsurf         | `.windsurf/rules/ruler_windsurf_instructions.md` | `.windsurf/mcp_config.json`                      |
+| Zed              | `AGENTS.md`                                      | `.zed/settings.json` (project root, never $HOME) |
 
 ## Getting Started
 
