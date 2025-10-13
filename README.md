@@ -62,7 +62,7 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | OpenAI Codex CLI | `AGENTS.md`                                      | `.codex/config.toml`                             |
 | Jules            | `AGENTS.md`                                      | -                                                |
 | Cursor           | `.cursor/rules/ruler_cursor_instructions.mdc`    | `.cursor/mcp.json`                               |
-| Windsurf         | `.windsurf/rules/ruler_windsurf_instructions.md` | -                                                |
+| Windsurf         | `.windsurf/rules/ruler_windsurf_instructions.md` | `.windsurf/mcp_config.json`                      |
 | Cline            | `.clinerules`                                    | -                                                |
 | Crush            | `CRUSH.md`                                       | `.crush.json`                                    |
 | Amp              | `AGENTS.md`                                      | -                                                |
@@ -74,7 +74,7 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | Junie            | `.junie/guidelines.md`                           | -                                                |
 | AugmentCode      | `.augment/rules/ruler_augment_instructions.md`   | -                                                |
 | Kilo Code        | `.kilocode/rules/ruler_kilocode_instructions.md` | `.kilocode/mcp.json`                             |
-| opencode         | `AGENTS.md`                                      | `opencode.json`                                  |
+| OpenCode         | `AGENTS.md`                                      | `opencode.json`                                  |
 | Goose            | `.goosehints`                                    | -                                                |
 | Qwen Code        | `AGENTS.md`                                      | `.qwen/settings.json`                            |
 | RooCode          | `AGENTS.md`                                      | `.roo/mcp.json`                                  |
@@ -105,10 +105,11 @@ npx @intellectronica/ruler apply
 1. Navigate to your project's root directory
 2. Run `ruler init`
 3. This creates:
-  - `.ruler/` directory
-  - `.ruler/AGENTS.md`: The primary starter Markdown file for your rules
-  - `.ruler/ruler.toml`: The main configuration file for Ruler (now contains sample MCP server sections; legacy `.ruler/mcp.json` no longer scaffolded)
-  - (Optional legacy fallback) If you previously used `.ruler/instructions.md`, it is still respected when `AGENTS.md` is absent. (The prior runtime warning was removed.)
+
+- `.ruler/` directory
+- `.ruler/AGENTS.md`: The primary starter Markdown file for your rules
+- `.ruler/ruler.toml`: The main configuration file for Ruler (now contains sample MCP server sections; legacy `.ruler/mcp.json` no longer scaffolded)
+- (Optional legacy fallback) If you previously used `.ruler/instructions.md`, it is still respected when `AGENTS.md` is absent. (The prior runtime warning was removed.)
 
 Additionally, you can create a global configuration to use when no local `.ruler/` directory is found:
 
@@ -212,21 +213,21 @@ The `apply` command looks for `.ruler/` in the current directory tree, reading t
 
 ### Options
 
-| Option                         | Description                                                                                                                                                                     |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--project-root <path>`        | Path to your project's root (default: current directory)                                                                                                                        |
+| Option                         | Description                                                                                                                                                                                                                                                                   |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--project-root <path>`        | Path to your project's root (default: current directory)                                                                                                                                                                                                                      |
 | `--agents <agent1,agent2,...>` | Comma-separated list of agent names to target (agentsmd, aider, amazonqcli, amp, augmentcode, claude, cline, codex, copilot, crush, cursor, firebase, firebender, gemini-cli, goose, jules, junie, kilocode, kiro, opencode, openhands, qwen, roo, trae, warp, windsurf, zed) |
-| `--config <path>`              | Path to a custom `ruler.toml` configuration file                                                                                                                                |
-| `--mcp` / `--with-mcp`         | Enable applying MCP server configurations (default: true)                                                                                                                       |
-| `--no-mcp`                     | Disable applying MCP server configurations                                                                                                                                      |
-| `--mcp-overwrite`              | Overwrite native MCP config entirely instead of merging                                                                                                                         |
-| `--gitignore`                  | Enable automatic .gitignore updates (default: true)                                                                                                                             |
-| `--no-gitignore`               | Disable automatic .gitignore updates                                                                                                                                            |
-| `--nested`                     | Enable nested rule loading from nested .ruler directories (default: disabled)                                                                                                  |
-| `--backup`                     | Enable/disable creation of .bak backup files (default: enabled)                                                                                                                |
-| `--dry-run`                    | Preview changes without writing files                                                                                                                                           |
-| `--local-only`                 | Do not look for configuration in `$XDG_CONFIG_HOME`                                                                                                                             |
-| `--verbose` / `-v`             | Display detailed output during execution                                                                                                                                        |
+| `--config <path>`              | Path to a custom `ruler.toml` configuration file                                                                                                                                                                                                                              |
+| `--mcp` / `--with-mcp`         | Enable applying MCP server configurations (default: true)                                                                                                                                                                                                                     |
+| `--no-mcp`                     | Disable applying MCP server configurations                                                                                                                                                                                                                                    |
+| `--mcp-overwrite`              | Overwrite native MCP config entirely instead of merging                                                                                                                                                                                                                       |
+| `--gitignore`                  | Enable automatic .gitignore updates (default: true)                                                                                                                                                                                                                           |
+| `--no-gitignore`               | Disable automatic .gitignore updates                                                                                                                                                                                                                                          |
+| `--nested`                     | Enable nested rule loading from nested .ruler directories (default: disabled)                                                                                                                                                                                                 |
+| `--backup`                     | Enable/disable creation of .bak backup files (default: enabled)                                                                                                                                                                                                               |
+| `--dry-run`                    | Preview changes without writing files                                                                                                                                                                                                                                         |
+| `--local-only`                 | Do not look for configuration in `$XDG_CONFIG_HOME`                                                                                                                                                                                                                           |
+| `--verbose` / `-v`             | Display detailed output during execution                                                                                                                                                                                                                                      |
 
 ### Common Examples
 
@@ -305,15 +306,15 @@ ruler revert [options]
 
 ### Options
 
-| Option                         | Description                                                                                                                                                                  |
-| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--project-root <path>`        | Path to your project's root (default: current directory)                                                                                                                     |
+| Option                         | Description                                                                                                                                                                                                                                                                   |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--project-root <path>`        | Path to your project's root (default: current directory)                                                                                                                                                                                                                      |
 | `--agents <agent1,agent2,...>` | Comma-separated list of agent names to revert (agentsmd, aider, amazonqcli, amp, augmentcode, claude, cline, codex, copilot, crush, cursor, firebase, firebender, gemini-cli, goose, jules, junie, kilocode, kiro, opencode, openhands, qwen, roo, trae, warp, windsurf, zed) |
-| `--config <path>`              | Path to a custom `ruler.toml` configuration file                                                                                                                             |
-| `--keep-backups`               | Keep backup files (.bak) after restoration (default: false)                                                                                                                  |
-| `--dry-run`                    | Preview changes without actually reverting files                                                                                                                             |
-| `--verbose` / `-v`             | Display detailed output during execution                                                                                                                                     |
-| `--local-only`                 | Only search for local .ruler directories, ignore global config                                                                                                               |
+| `--config <path>`              | Path to a custom `ruler.toml` configuration file                                                                                                                                                                                                                              |
+| `--keep-backups`               | Keep backup files (.bak) after restoration (default: false)                                                                                                                                                                                                                   |
+| `--dry-run`                    | Preview changes without actually reverting files                                                                                                                                                                                                                              |
+| `--verbose` / `-v`             | Display detailed output during execution                                                                                                                                                                                                                                      |
+| `--local-only`                 | Only search for local .ruler directories, ignore global config                                                                                                                                                                                                                |
 
 ### Common Examples
 
@@ -525,6 +526,7 @@ DEBUG = "1"
 ```
 
 **Remote servers** require a `url` field (headers optional; bearer Authorization token auto-extracted for OpenHands when possible):
+
 ```toml
 [mcp_servers.remote_server]
 url = "https://api.example.com"
