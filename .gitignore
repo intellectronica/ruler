@@ -138,3 +138,4 @@ dist
 .yarn/install-state.gz
 .pnp.*
 issue-body.md
+.specstory/
