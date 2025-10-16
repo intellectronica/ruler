@@ -8,11 +8,13 @@ import { revertAllAgentConfigs } from '../../../src/revert';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
+import { loadConfig } from '../../../src/core/ConfigLoader';
 
 // Mock the external dependencies
 jest.mock('../../../src/lib');
 jest.mock('../../../src/revert');
 jest.mock('fs/promises');
+jest.mock('../../../src/core/ConfigLoader');
 
 describe('CLI Handlers', () => {
   const mockProjectRoot = '/mock/project/root';
@@ -22,6 +24,15 @@ describe('CLI Handlers', () => {
     jest.clearAllMocks();
     (applyAllAgentConfigs as jest.Mock).mockResolvedValue(undefined);
     (revertAllAgentConfigs as jest.Mock).mockResolvedValue(undefined);
+    // Mock loadConfig to return default config
+    (loadConfig as jest.Mock).mockResolvedValue({
+      defaultAgents: undefined,
+      agentConfigs: {},
+      cliAgents: undefined,
+      mcp: {},
+      gitignore: {},
+      nested: false,
+    });
   });
 
   describe('applyHandler', () => {
@@ -141,6 +152,157 @@ describe('CLI Handlers', () => {
         false,
         false,
         false,
+        true,
+      );
+    });
+
+    it('should use CLI nested value when explicitly provided', async () => {
+      const argv = {
+        'project-root': mockProjectRoot,
+        mcp: true,
+        'mcp-overwrite': false,
+        verbose: false,
+        'dry-run': false,
+        'local-only': false,
+        nested: true,
+        backup: true,
+      };
+
+      await applyHandler(argv);
+
+      expect(applyAllAgentConfigs).toHaveBeenCalledWith(
+        mockProjectRoot,
+        undefined,
+        undefined,
+        true,
+        undefined,
+        undefined,
+        false,
+        false,
+        false,
+        true, // nested should be true from CLI
+        true,
+      );
+      // loadConfig should not be called when CLI explicitly sets nested
+      expect(loadConfig).not.toHaveBeenCalled();
+    });
+
+    it('should use TOML nested value when CLI does not provide it', async () => {
+      (loadConfig as jest.Mock).mockResolvedValue({
+        defaultAgents: undefined,
+        agentConfigs: {},
+        cliAgents: undefined,
+        mcp: {},
+        gitignore: {},
+        nested: true, // nested = true in TOML
+      });
+
+      const argv = {
+        'project-root': mockProjectRoot,
+        mcp: true,
+        'mcp-overwrite': false,
+        verbose: false,
+        'dry-run': false,
+        'local-only': false,
+        // nested is undefined (not provided by CLI)
+        backup: true,
+      };
+
+      await applyHandler(argv);
+
+      expect(loadConfig).toHaveBeenCalledWith({
+        projectRoot: mockProjectRoot,
+        configPath: undefined,
+      });
+      expect(applyAllAgentConfigs).toHaveBeenCalledWith(
+        mockProjectRoot,
+        undefined,
+        undefined,
+        true,
+        undefined,
+        undefined,
+        false,
+        false,
+        false,
+        true, // nested should be true from TOML
+        true,
+      );
+    });
+
+    it('should default to false when CLI and TOML do not provide nested', async () => {
+      (loadConfig as jest.Mock).mockResolvedValue({
+        defaultAgents: undefined,
+        agentConfigs: {},
+        cliAgents: undefined,
+        mcp: {},
+        gitignore: {},
+        nested: undefined, // not in TOML either
+      });
+
+      const argv = {
+        'project-root': mockProjectRoot,
+        mcp: true,
+        'mcp-overwrite': false,
+        verbose: false,
+        'dry-run': false,
+        'local-only': false,
+        // nested is undefined (not provided by CLI)
+        backup: true,
+      };
+
+      await applyHandler(argv);
+
+      expect(applyAllAgentConfigs).toHaveBeenCalledWith(
+        mockProjectRoot,
+        undefined,
+        undefined,
+        true,
+        undefined,
+        undefined,
+        false,
+        false,
+        false,
+        false, // nested should default to false
+        true,
+      );
+    });
+
+    it('should prefer CLI --nested over TOML nested = false', async () => {
+      (loadConfig as jest.Mock).mockResolvedValue({
+        defaultAgents: undefined,
+        agentConfigs: {},
+        cliAgents: undefined,
+        mcp: {},
+        gitignore: {},
+        nested: false, // nested = false in TOML
+      });
+
+      const argv = {
+        'project-root': mockProjectRoot,
+        mcp: true,
+        'mcp-overwrite': false,
+        verbose: false,
+        'dry-run': false,
+        'local-only': false,
+        nested: true, // CLI overrides TOML
+        backup: true,
+      };
+
+      await applyHandler(argv);
+
+      // loadConfig should not be called when CLI explicitly sets nested
+      expect(loadConfig).not.toHaveBeenCalled();
+      expect(applyAllAgentConfigs).toHaveBeenCalledWith(
+        mockProjectRoot,
+        undefined,
+        undefined,
+        true,
+        undefined,
+        undefined,
+        false,
+        false,
+        false,
+        true, // nested should be true from CLI, ignoring TOML
         true,
       );
     });

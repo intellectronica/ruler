@@ -5,6 +5,7 @@ import * as os from 'os';
 import * as fs from 'fs/promises';
 import { ERROR_PREFIX, DEFAULT_RULES_FILENAME } from '../constants';
 import { McpStrategy } from '../types';
+import { loadConfig } from '../core/ConfigLoader';
 
 export interface ApplyArgs {
   'project-root': string;
@@ -16,7 +17,7 @@ export interface ApplyArgs {
   verbose: boolean;
   'dry-run': boolean;
   'local-only': boolean;
-  nested: boolean;
+  nested?: boolean;
   backup: boolean;
 }
 
@@ -51,7 +52,6 @@ export async function applyHandler(argv: ApplyArgs): Promise<void> {
   const verbose = argv.verbose;
   const dryRun = argv['dry-run'];
   const localOnly = argv['local-only'];
-  const nested = argv.nested;
   const backup = argv.backup;
 
   // Determine gitignore preference: CLI > TOML > Default (enabled)
@@ -61,6 +61,27 @@ export async function applyHandler(argv: ApplyArgs): Promise<void> {
     gitignorePreference = argv.gitignore;
   } else {
     gitignorePreference = undefined; // Let TOML/default decide
+  }
+
+  // Determine nested preference: CLI > TOML > Default (false)
+  let nested: boolean;
+
+  if (argv.nested !== undefined) {
+    // CLI explicitly set nested (either --nested or --no-nested)
+    nested = argv.nested;
+  } else {
+    // CLI didn't set nested, check TOML configuration
+    try {
+      const config = await loadConfig({
+        projectRoot,
+        configPath,
+      });
+      // Use TOML setting if available, otherwise default to false
+      nested = config.nested ?? false;
+    } catch {
+      // If config loading fails, use default (false)
+      nested = false;
+    }
   }
 
   try {
