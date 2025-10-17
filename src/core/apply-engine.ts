@@ -1,4 +1,5 @@
 import * as path from 'path';
+import { promises as fs } from 'fs';
 import * as FileSystemUtils from './FileSystemUtils';
 import { concatenateRules } from './RuleProcessor';
 import { loadConfig, LoadedConfig, IAgentConfig } from './ConfigLoader';
@@ -36,18 +37,137 @@ export interface HierarchicalRulerConfiguration extends RulerConfiguration {
   rulerDir: string;
 }
 
+/**
+ * Deep clones a LoadedConfig object to avoid shared references.
+ */
+function deepCloneConfig(config: LoadedConfig): LoadedConfig {
+  const cloned: LoadedConfig = {
+    defaultAgents: config.defaultAgents ? [...config.defaultAgents] : undefined,
+    agentConfigs: {},
+    cliAgents: config.cliAgents ? [...config.cliAgents] : undefined,
+    mcp: config.mcp
+      ? {
+          enabled: config.mcp.enabled,
+          strategy: config.mcp.strategy,
+        }
+      : undefined,
+    gitignore: config.gitignore
+      ? {
+          enabled: config.gitignore.enabled,
+        }
+      : undefined,
+    nested: config.nested,
+  };
+
+  // Deep clone agent configs
+  for (const [agentName, agentConfig] of Object.entries(config.agentConfigs)) {
+    cloned.agentConfigs[agentName] = {
+      enabled: agentConfig.enabled,
+      outputPath: agentConfig.outputPath,
+      outputPathInstructions: agentConfig.outputPathInstructions,
+      outputPathConfig: agentConfig.outputPathConfig,
+      mcp: agentConfig.mcp
+        ? {
+            enabled: agentConfig.mcp.enabled,
+            strategy: agentConfig.mcp.strategy,
+          }
+        : undefined,
+    };
+  }
+
+  return cloned;
+}
+
+/**
+ * Merges a child config with a parent config, preserving parent values for unspecified fields.
+ */
+function mergeConfigWithParent(
+  parentConfig: LoadedConfig,
+  childConfig: LoadedConfig,
+): LoadedConfig {
+  const merged = deepCloneConfig(parentConfig);
+
+  // Override fields that are explicitly set in child
+  if (childConfig.defaultAgents !== undefined) {
+    merged.defaultAgents = [...childConfig.defaultAgents];
+  }
+
+  // Merge agent configs - child overrides parent per-agent
+  for (const [agentName, childAgentConfig] of Object.entries(
+    childConfig.agentConfigs,
+  )) {
+    const parentAgentConfig = merged.agentConfigs[agentName] || {};
+    merged.agentConfigs[agentName] = {
+      ...parentAgentConfig,
+      ...childAgentConfig,
+    };
+
+    // Merge mcp config within agent config
+    if (childAgentConfig.mcp && parentAgentConfig.mcp) {
+      merged.agentConfigs[agentName].mcp = {
+        ...parentAgentConfig.mcp,
+        ...childAgentConfig.mcp,
+      };
+    }
+  }
+
+  // Merge global MCP config
+  if (childConfig.mcp) {
+    merged.mcp = {
+      enabled:
+        childConfig.mcp.enabled !== undefined
+          ? childConfig.mcp.enabled
+          : merged.mcp?.enabled,
+      strategy:
+        childConfig.mcp.strategy !== undefined
+          ? childConfig.mcp.strategy
+          : merged.mcp?.strategy,
+    };
+  }
+
+  // Merge gitignore config
+  if (childConfig.gitignore) {
+    merged.gitignore = {
+      enabled:
+        childConfig.gitignore.enabled !== undefined
+          ? childConfig.gitignore.enabled
+          : merged.gitignore?.enabled,
+    };
+  }
+
+  // Don't override nested here - it will be forced separately
+  if (childConfig.nested !== undefined) {
+    merged.nested = childConfig.nested;
+  }
+
+  return merged;
+}
+
+/**
+ * Sorts ruler directories so ancestors come before descendants.
+ */
+function sortRulerDirsAncestorFirst(rulerDirs: string[]): string[] {
+  return rulerDirs.sort((a, b) => {
+    const aDepth = a.split(path.sep).length;
+    const bDepth = b.split(path.sep).length;
+    return aDepth - bDepth;
+  });
+}
+
 export /**
  * Loads configurations for all .ruler directories in hierarchical mode.
  * Each .ruler directory gets its own independent configuration with separate rules.
  * @param projectRoot Root directory of the project
  * @param configPath Optional custom config path
  * @param localOnly Whether to search only locally for .ruler directories
+ * @param nested The resolved nested flag from CLI/config (parent decision)
  * @returns Promise resolving to array of hierarchical configurations
  */
 async function loadNestedConfigurations(
   projectRoot: string,
   configPath: string | undefined,
   localOnly: boolean,
+  nested: boolean,
 ): Promise<HierarchicalRulerConfiguration[]> {
   const { dirs: rulerDirs } = await findRulerDirectories(
     projectRoot,
@@ -55,61 +175,84 @@ async function loadNestedConfigurations(
     true,
   );
 
+  // Sort directories ancestor-first for proper inheritance
+  const sortedRulerDirs = sortRulerDirsAncestorFirst(rulerDirs);
+
+  // Load the initial root config
   const rootConfig = await loadConfig({
     projectRoot,
     configPath,
   });
 
+  // Track configs by directory for inheritance
+  const configsByDir = new Map<string, LoadedConfig>();
   const results: HierarchicalRulerConfiguration[] = [];
-  const rulerDirConfigs = await processIndependentRulerDirs(rulerDirs);
 
-  for (const { rulerDir, files } of rulerDirConfigs) {
-    results.push(
-      await createHierarchicalConfiguration(rulerDir, files, rootConfig),
-    );
-  }
+  for (const rulerDir of sortedRulerDirs) {
+    const dirRoot = path.dirname(rulerDir);
+    const localTomlPath = path.join(rulerDir, 'ruler.toml');
 
-  return results;
-}
+    // Determine parent config for inheritance
+    let parentConfig = rootConfig;
+    let parentDir: string | null = null;
 
-/**
- * Processes each .ruler directory independently, returning configuration for each.
- * Each .ruler directory gets its own rules (not merged with others).
- */
-async function processIndependentRulerDirs(
-  rulerDirs: string[],
-): Promise<
-  Array<{ rulerDir: string; files: { path: string; content: string }[] }>
-> {
-  const results: Array<{
-    rulerDir: string;
-    files: { path: string; content: string }[];
-  }> = [];
+    // Find nearest ancestor with a config
+    for (const [configDir, config] of configsByDir.entries()) {
+      if (dirRoot.startsWith(configDir) && dirRoot !== configDir) {
+        // This is an ancestor directory
+        if (parentDir === null || configDir.length > parentDir.length) {
+          parentDir = configDir;
+          parentConfig = config;
+        }
+      }
+    }
 
-  // Process each .ruler directory independently
-  for (const rulerDir of rulerDirs) {
+    // Check if this directory has a local ruler.toml
+    let mergedConfig: LoadedConfig;
+    try {
+      await fs.access(localTomlPath);
+
+      // Load the local config
+      const localConfig = await loadConfig({
+        projectRoot: dirRoot,
+        configPath: localTomlPath,
+      });
+
+      // Check if child is trying to disable nested when parent enabled it
+      if (nested && localConfig.nested === false) {
+        logWarn(
+          `Warning: Configuration at ${rulerDir} sets nested = false, but parent configuration has nested enabled. Ignoring child's nested setting.`,
+        );
+      }
+
+      // Merge with parent config
+      mergedConfig = mergeConfigWithParent(parentConfig, localConfig);
+    } catch {
+      // No local config, inherit from parent
+      mergedConfig = deepCloneConfig(parentConfig);
+    }
+
+    // Force nested flag to the parent decision
+    mergedConfig.nested = nested;
+
+    // Store the merged config for this directory
+    configsByDir.set(dirRoot, mergedConfig);
+
+    // Read markdown files for this directory
     const files = await FileSystemUtils.readMarkdownFiles(rulerDir);
-    results.push({ rulerDir, files });
+    await warnAboutLegacyMcpJson(rulerDir);
+
+    const concatenatedRules = concatenateRules(files, dirRoot);
+
+    results.push({
+      rulerDir,
+      config: mergedConfig,
+      concatenatedRules,
+      rulerMcpJson: null, // No nested MCP support - each level uses root config only
+    });
   }
 
   return results;
-}
-
-async function createHierarchicalConfiguration(
-  rulerDir: string,
-  files: { path: string; content: string }[],
-  rootConfig: LoadedConfig,
-): Promise<HierarchicalRulerConfiguration> {
-  await warnAboutLegacyMcpJson(rulerDir);
-
-  const concatenatedRules = concatenateRules(files, path.dirname(rulerDir));
-
-  return {
-    rulerDir,
-    config: rootConfig,
-    concatenatedRules,
-    rulerMcpJson: null, // No nested MCP support - each level uses root config only
-  };
 }
 
 /**

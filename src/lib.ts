@@ -57,6 +57,7 @@ export async function applyAllAgentConfigs(
       projectRoot,
       configPath,
       localOnly,
+      nested,
     );
 
     if (hierarchicalConfigs.length === 0) {

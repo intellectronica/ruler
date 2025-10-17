@@ -4,15 +4,18 @@ import os from 'os';
 
 import {
   loadSingleConfiguration,
+  loadNestedConfigurations,
   applyConfigurationsToAgents,
   updateGitignore,
   RulerConfiguration,
+  HierarchicalRulerConfiguration,
 } from '../../../src/core/apply-engine';
 import { IAgent } from '../../../src/agents/IAgent';
 import { ClaudeAgent } from '../../../src/agents/ClaudeAgent';
 import { CopilotAgent } from '../../../src/agents/CopilotAgent';
 import { LoadedConfig } from '../../../src/core/ConfigLoader';
 import * as FileSystemUtils from '../../../src/core/FileSystemUtils';
+import { logWarn } from '../../../src/constants';
 
 // Mock agents for testing
 class MockAgent implements IAgent {
@@ -288,6 +291,282 @@ describe('apply-engine', () => {
 
       expect(hasRulerPrefix).toBe(true);
       consoleLogSpy.mockRestore();
+    });
+  });
+
+  describe('loadNestedConfigurations', () => {
+    let projectRoot: string;
+
+    beforeEach(async () => {
+      projectRoot = await fs.mkdtemp(
+        path.join(os.tmpdir(), 'ruler-nested-config-'),
+      );
+    });
+
+    afterEach(async () => {
+      await fs.rm(projectRoot, { recursive: true, force: true });
+    });
+
+    it('should load configurations for nested .ruler directories', async () => {
+      // Create nested structure: root/.ruler, root/module/.ruler, root/module/submodule/.ruler
+      const rootRulerDir = path.join(projectRoot, '.ruler');
+      const moduleDir = path.join(projectRoot, 'module');
+      const moduleRulerDir = path.join(moduleDir, '.ruler');
+      const submoduleDir = path.join(moduleDir, 'submodule');
+      const submoduleRulerDir = path.join(submoduleDir, '.ruler');
+
+      await fs.mkdir(rootRulerDir, { recursive: true });
+      await fs.mkdir(moduleRulerDir, { recursive: true });
+      await fs.mkdir(submoduleRulerDir, { recursive: true });
+
+      // Create TOML configs
+      await fs.writeFile(
+        path.join(rootRulerDir, 'ruler.toml'),
+        'default_agents = ["claude"]\nnested = true',
+      );
+      await fs.writeFile(
+        path.join(moduleRulerDir, 'ruler.toml'),
+        '[agents.claude]\nenabled = false',
+      );
+      await fs.writeFile(
+        path.join(submoduleRulerDir, 'ruler.toml'),
+        'default_agents = ["copilot"]',
+      );
+
+      // Create markdown files
+      await fs.writeFile(
+        path.join(rootRulerDir, 'AGENTS.md'),
+        '# Root Rules',
+      );
+      await fs.writeFile(
+        path.join(moduleRulerDir, 'AGENTS.md'),
+        '# Module Rules',
+      );
+      await fs.writeFile(
+        path.join(submoduleRulerDir, 'AGENTS.md'),
+        '# Submodule Rules',
+      );
+
+      const configs = await loadNestedConfigurations(
+        projectRoot,
+        undefined,
+        false,
+        true, // nested=true
+      );
+
+      // Should return 3 configurations
+      expect(configs).toHaveLength(3);
+
+      // Verify each configuration has the correct directory
+      const rootConfig = configs.find((c) => c.rulerDir === rootRulerDir);
+      const moduleConfig = configs.find((c) => c.rulerDir === moduleRulerDir);
+      const submoduleConfig = configs.find(
+        (c) => c.rulerDir === submoduleRulerDir,
+      );
+
+      expect(rootConfig).toBeDefined();
+      expect(moduleConfig).toBeDefined();
+      expect(submoduleConfig).toBeDefined();
+
+      // Verify each has correct rules
+      expect(rootConfig!.concatenatedRules).toContain('Root Rules');
+      expect(moduleConfig!.concatenatedRules).toContain('Module Rules');
+      expect(submoduleConfig!.concatenatedRules).toContain('Submodule Rules');
+    });
+
+    it('should force nested=true for all descendant configs when parent enables it', async () => {
+      const rootRulerDir = path.join(projectRoot, '.ruler');
+      const moduleDir = path.join(projectRoot, 'module');
+      const moduleRulerDir = path.join(moduleDir, '.ruler');
+
+      await fs.mkdir(rootRulerDir, { recursive: true });
+      await fs.mkdir(moduleRulerDir, { recursive: true });
+
+      await fs.writeFile(
+        path.join(rootRulerDir, 'ruler.toml'),
+        'nested = true',
+      );
+      await fs.writeFile(
+        path.join(moduleRulerDir, 'ruler.toml'),
+        'nested = false',
+      );
+
+      await fs.writeFile(
+        path.join(rootRulerDir, 'AGENTS.md'),
+        '# Root Rules',
+      );
+      await fs.writeFile(
+        path.join(moduleRulerDir, 'AGENTS.md'),
+        '# Module Rules',
+      );
+
+      const configs = await loadNestedConfigurations(
+        projectRoot,
+        undefined,
+        false,
+        true, // parent decision: nested=true
+      );
+
+      // All configs should have nested=true forced
+      expect(configs).toHaveLength(2);
+      configs.forEach((config) => {
+        expect(config.config.nested).toBe(true);
+      });
+    });
+
+    it('should warn when child TOML sets nested=false but parent enabled it', async () => {
+      const rootRulerDir = path.join(projectRoot, '.ruler');
+      const moduleDir = path.join(projectRoot, 'module');
+      const moduleRulerDir = path.join(moduleDir, '.ruler');
+
+      await fs.mkdir(rootRulerDir, { recursive: true });
+      await fs.mkdir(moduleRulerDir, { recursive: true });
+
+      await fs.writeFile(
+        path.join(rootRulerDir, 'ruler.toml'),
+        'nested = true',
+      );
+      await fs.writeFile(
+        path.join(moduleRulerDir, 'ruler.toml'),
+        'nested = false',
+      );
+
+      await fs.writeFile(
+        path.join(rootRulerDir, 'AGENTS.md'),
+        '# Root Rules',
+      );
+      await fs.writeFile(
+        path.join(moduleRulerDir, 'AGENTS.md'),
+        '# Module Rules',
+      );
+
+      // Spy on console.warn to capture the warning
+      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
+
+      await loadNestedConfigurations(
+        projectRoot,
+        undefined,
+        false,
+        true, // parent decision: nested=true
+      );
+
+      // Should have called console.warn with a message about the module
+      const warnCalls = consoleWarnSpy.mock.calls.flat();
+      const hasNestedWarning = warnCalls.some(
+        (call) =>
+          typeof call === 'string' &&
+          call.includes('nested = false') &&
+          call.includes(moduleRulerDir),
+      );
+      expect(hasNestedWarning).toBe(true);
+
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('should inherit unspecified settings from ancestor configs', async () => {
+      const rootRulerDir = path.join(projectRoot, '.ruler');
+      const moduleDir = path.join(projectRoot, 'module');
+      const moduleRulerDir = path.join(moduleDir, '.ruler');
+
+      await fs.mkdir(rootRulerDir, { recursive: true });
+      await fs.mkdir(moduleRulerDir, { recursive: true });
+
+      // Root config sets default_agents and global MCP
+      await fs.writeFile(
+        path.join(rootRulerDir, 'ruler.toml'),
+        `default_agents = ["claude", "copilot"]
+nested = true
+[mcp]
+enabled = true
+merge_strategy = "merge"
+[agents.claude]
+enabled = true`,
+      );
+
+      // Module config only overrides one agent setting
+      await fs.writeFile(
+        path.join(moduleRulerDir, 'ruler.toml'),
+        `[agents.copilot]
+enabled = false`,
+      );
+
+      await fs.writeFile(
+        path.join(rootRulerDir, 'AGENTS.md'),
+        '# Root Rules',
+      );
+      await fs.writeFile(
+        path.join(moduleRulerDir, 'AGENTS.md'),
+        '# Module Rules',
+      );
+
+      const configs = await loadNestedConfigurations(
+        projectRoot,
+        undefined,
+        false,
+        true,
+      );
+
+      const rootConfig = configs.find((c) => c.rulerDir === rootRulerDir);
+      const moduleConfig = configs.find((c) => c.rulerDir === moduleRulerDir);
+
+      // Root config should have its own settings
+      expect(rootConfig!.config.defaultAgents).toEqual(['claude', 'copilot']);
+      expect(rootConfig!.config.mcp?.enabled).toBe(true);
+      expect(rootConfig!.config.mcp?.strategy).toBe('merge');
+      expect(rootConfig!.config.agentConfigs.claude?.enabled).toBe(true);
+
+      // Module config should inherit unspecified settings
+      expect(moduleConfig!.config.defaultAgents).toEqual(['claude', 'copilot']);
+      expect(moduleConfig!.config.mcp?.enabled).toBe(true);
+      expect(moduleConfig!.config.mcp?.strategy).toBe('merge');
+      expect(moduleConfig!.config.agentConfigs.claude?.enabled).toBe(true);
+      // But override the copilot setting
+      expect(moduleConfig!.config.agentConfigs.copilot?.enabled).toBe(false);
+    });
+
+    it('should deep clone configs to avoid shared references', async () => {
+      const rootRulerDir = path.join(projectRoot, '.ruler');
+      const moduleDir = path.join(projectRoot, 'module');
+      const moduleRulerDir = path.join(moduleDir, '.ruler');
+
+      await fs.mkdir(rootRulerDir, { recursive: true });
+      await fs.mkdir(moduleRulerDir, { recursive: true });
+
+      await fs.writeFile(
+        path.join(rootRulerDir, 'ruler.toml'),
+        `default_agents = ["claude"]
+[agents.claude]
+enabled = true`,
+      );
+
+      await fs.writeFile(
+        path.join(rootRulerDir, 'AGENTS.md'),
+        '# Root Rules',
+      );
+      await fs.writeFile(
+        path.join(moduleRulerDir, 'AGENTS.md'),
+        '# Module Rules',
+      );
+
+      const configs = await loadNestedConfigurations(
+        projectRoot,
+        undefined,
+        false,
+        true,
+      );
+
+      const rootConfig = configs.find((c) => c.rulerDir === rootRulerDir);
+      const moduleConfig = configs.find((c) => c.rulerDir === moduleRulerDir);
+
+      // Configs should not share the same object references
+      expect(rootConfig!.config).not.toBe(moduleConfig!.config);
+      expect(rootConfig!.config.agentConfigs).not.toBe(
+        moduleConfig!.config.agentConfigs,
+      );
+
+      // Modifying one should not affect the other
+      rootConfig!.config.nested = false;
+      expect(moduleConfig!.config.nested).toBe(true);
     });
   });
 });

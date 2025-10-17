@@ -132,4 +132,100 @@ describe('Nested Rules Integration', () => {
     // Should work without errors (testing that single-directory logic still works)
     expect(true).toBe(true); // If we get here, the test passed
   });
+
+  it('continues processing grandchildren even when intermediate config sets nested=false', async () => {
+    // Create three-level nested structure
+    const moduleDir = path.join(testProject.projectRoot, 'deep_module');
+    const submoduleDir = path.join(moduleDir, 'deep_submodule');
+
+    await fs.mkdir(path.join(testProject.projectRoot, '.ruler'), {
+      recursive: true,
+    });
+    await fs.mkdir(path.join(moduleDir, '.ruler'), { recursive: true });
+    await fs.mkdir(path.join(submoduleDir, '.ruler'), { recursive: true });
+
+    // Root level enables nested
+    await fs.writeFile(
+      path.join(testProject.projectRoot, '.ruler', 'AGENTS.md'),
+      '# Root Rules\n\nThese are root-level rules.',
+    );
+    await fs.writeFile(
+      path.join(testProject.projectRoot, '.ruler', 'ruler.toml'),
+      'nested = true',
+    );
+
+    // Module level tries to disable nested (should be overridden)
+    await fs.writeFile(
+      path.join(moduleDir, '.ruler', 'AGENTS.md'),
+      '# Module Rules\n\nThese are module-level rules.',
+    );
+    await fs.writeFile(
+      path.join(moduleDir, '.ruler', 'ruler.toml'),
+      'nested = false',
+    );
+
+    // Submodule level has no config (should still be processed)
+    await fs.writeFile(
+      path.join(submoduleDir, '.ruler', 'AGENTS.md'),
+      '# Submodule Rules\n\nThese are submodule-level rules.',
+    );
+
+    // Capture console output to verify warning
+    const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
+
+    // Apply with nested flag from project root
+    await applyAllAgentConfigs(
+      testProject.projectRoot,
+      ['claude'],
+      undefined,
+      true,
+      undefined,
+      undefined,
+      false,
+      false,
+      false,
+      true, // nested = true
+    );
+
+    // Check that all three levels have CLAUDE.md files
+    const rootClaudeFile = path.join(testProject.projectRoot, 'CLAUDE.md');
+    const moduleClaudeFile = path.join(moduleDir, 'CLAUDE.md');
+    const submoduleClaudeFile = path.join(submoduleDir, 'CLAUDE.md');
+
+    // Verify files exist
+    expect(
+      await fs
+        .access(rootClaudeFile)
+        .then(() => true)
+        .catch(() => false),
+    ).toBe(true);
+    expect(
+      await fs
+        .access(moduleClaudeFile)
+        .then(() => true)
+        .catch(() => false),
+    ).toBe(true);
+    expect(
+      await fs
+        .access(submoduleClaudeFile)
+        .then(() => true)
+        .catch(() => false),
+    ).toBe(true);
+
+    // Verify submodule content (proving nested stayed enabled through grandchildren)
+    const submoduleContent = await fs.readFile(submoduleClaudeFile, 'utf8');
+    expect(submoduleContent).toContain('Submodule Rules');
+
+    // Verify warning was emitted about module trying to disable nested
+    const warnCalls = consoleWarnSpy.mock.calls.flat();
+    const hasNestedWarning = warnCalls.some(
+      (call) =>
+        typeof call === 'string' &&
+        call.includes('nested = false') &&
+        call.includes(path.join(moduleDir, '.ruler')),
+    );
+    expect(hasNestedWarning).toBe(true);
+
+    consoleWarnSpy.mockRestore();
+  });
 });
