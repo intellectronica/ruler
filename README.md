@@ -105,10 +105,11 @@ npx @intellectronica/ruler apply
 1. Navigate to your project's root directory
 2. Run `ruler init`
 3. This creates:
-  - `.ruler/` directory
-  - `.ruler/AGENTS.md`: The primary starter Markdown file for your rules
-  - `.ruler/ruler.toml`: The main configuration file for Ruler (now contains sample MCP server sections; legacy `.ruler/mcp.json` no longer scaffolded)
-  - (Optional legacy fallback) If you previously used `.ruler/instructions.md`, it is still respected when `AGENTS.md` is absent. (The prior runtime warning was removed.)
+
+- `.ruler/` directory
+- `.ruler/AGENTS.md`: The primary starter Markdown file for your rules
+- `.ruler/ruler.toml`: The main configuration file for Ruler (now contains sample MCP server sections; legacy `.ruler/mcp.json` no longer scaffolded)
+- (Optional legacy fallback) If you previously used `.ruler/instructions.md`, it is still respected when `AGENTS.md` is absent. (The prior runtime warning was removed.)
 
 Additionally, you can create a global configuration to use when no local `.ruler/` directory is found:
 
@@ -160,7 +161,15 @@ project/
 
 - Discover all `.ruler/` directories in the project hierarchy
 - Load and concatenate rules from each directory in order
-- Enable with: `ruler apply --nested`
+- Decide whether nested mode is enabled using the following precedence:
+  1. `ruler apply --nested` (or `--no-nested`) takes top priority
+  2. `nested = true` in `ruler.toml`
+  3. Default to disabled when neither option is provided
+- When a run is nested, downstream configs are forced to keep `nested = true`. If a child config attempts to disable it, Ruler keeps nested processing active and emits a warning in the logs.
+- Nested processing carries forward each directory's own MCP bundle and configuration settings so that generated files remain scoped to their source directories while being normalized back to the project root.
+
+> [!CAUTION]
+> Nested mode is experimental and may change in future releases. The CLI logs this warning the first time a nested run is detected so you know the behavior may evolve.
 
 **Perfect for:**
 
@@ -212,21 +221,22 @@ The `apply` command looks for `.ruler/` in the current directory tree, reading t
 
 ### Options
 
-| Option                         | Description                                                                                                                                                                     |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--project-root <path>`        | Path to your project's root (default: current directory)                                                                                                                        |
-| `--agents <agent1,agent2,...>` | Comma-separated list of agent names to target (agentsmd, aider, amazonqcli, amp, augmentcode, claude, cline, codex, copilot, crush, cursor, firebase, firebender, gemini-cli, goose, jules, junie, kilocode, kiro, opencode, openhands, qwen, roo, trae, warp, windsurf, zed) |
-| `--config <path>`              | Path to a custom `ruler.toml` configuration file                                                                                                                                |
-| `--mcp` / `--with-mcp`         | Enable applying MCP server configurations (default: true)                                                                                                                       |
-| `--no-mcp`                     | Disable applying MCP server configurations                                                                                                                                      |
-| `--mcp-overwrite`              | Overwrite native MCP config entirely instead of merging                                                                                                                         |
-| `--gitignore`                  | Enable automatic .gitignore updates (default: true)                                                                                                                             |
-| `--no-gitignore`               | Disable automatic .gitignore updates                                                                                                                                            |
-| `--nested`                     | Enable nested rule loading from nested .ruler directories (default: disabled)                                                                                                  |
-| `--backup`                     | Enable/disable creation of .bak backup files (default: enabled)                                                                                                                |
-| `--dry-run`                    | Preview changes without writing files                                                                                                                                           |
-| `--local-only`                 | Do not look for configuration in `$XDG_CONFIG_HOME`                                                                                                                             |
-| `--verbose` / `-v`             | Display detailed output during execution                                                                                                                                        |
+| Option                         | Description                                                            |
+| ------------------------------ | ---------------------------------------------------------------------- |
+| `--project-root <path>`        | Project root path (default: current directory).                        |
+| `--agents <agent1,agent2,...>` | Comma-separated agent names to target (see supported list below).      |
+| `--config <path>`              | Custom `ruler.toml` path.                                              |
+| `--mcp` / `--with-mcp`         | Enable applying MCP server configurations (default: true).             |
+| `--no-mcp`                     | Disable applying MCP server configurations.                            |
+| `--mcp-overwrite`              | Overwrite native MCP config instead of merging.                        |
+| `--gitignore`                  | Enable automatic .gitignore updates (default: true).                   |
+| `--no-gitignore`               | Disable automatic .gitignore updates.                                  |
+| `--nested`                     | Enable nested rule loading (default: inherit from config or disabled). |
+| `--no-nested`                  | Disable nested rule loading even if `nested = true` in config.         |
+| `--backup`                     | Toggle creation of `.bak` backup files (default: enabled).             |
+| `--dry-run`                    | Preview changes without writing files.                                 |
+| `--local-only`                 | Skip `$XDG_CONFIG_HOME` when looking for configuration.                |
+| `--verbose` / `-v`             | Display detailed output during execution.                              |
 
 ### Common Examples
 
@@ -305,15 +315,15 @@ ruler revert [options]
 
 ### Options
 
-| Option                         | Description                                                                                                                                                                  |
-| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--project-root <path>`        | Path to your project's root (default: current directory)                                                                                                                     |
+| Option                         | Description                                                                                                                                                                                                                                                                   |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--project-root <path>`        | Path to your project's root (default: current directory)                                                                                                                                                                                                                      |
 | `--agents <agent1,agent2,...>` | Comma-separated list of agent names to revert (agentsmd, aider, amazonqcli, amp, augmentcode, claude, cline, codex, copilot, crush, cursor, firebase, firebender, gemini-cli, goose, jules, junie, kilocode, kiro, opencode, openhands, qwen, roo, trae, warp, windsurf, zed) |
-| `--config <path>`              | Path to a custom `ruler.toml` configuration file                                                                                                                             |
-| `--keep-backups`               | Keep backup files (.bak) after restoration (default: false)                                                                                                                  |
-| `--dry-run`                    | Preview changes without actually reverting files                                                                                                                             |
-| `--verbose` / `-v`             | Display detailed output during execution                                                                                                                                     |
-| `--local-only`                 | Only search for local .ruler directories, ignore global config                                                                                                               |
+| `--config <path>`              | Path to a custom `ruler.toml` configuration file                                                                                                                                                                                                                              |
+| `--keep-backups`               | Keep backup files (.bak) after restoration (default: false)                                                                                                                                                                                                                   |
+| `--dry-run`                    | Preview changes without actually reverting files                                                                                                                                                                                                                              |
+| `--verbose` / `-v`             | Display detailed output during execution                                                                                                                                                                                                                                      |
+| `--local-only`                 | Only search for local .ruler directories, ignore global config                                                                                                                                                                                                                |
 
 ### Common Examples
 
@@ -525,6 +535,7 @@ DEBUG = "1"
 ```
 
 **Remote servers** require a `url` field (headers optional; bearer Authorization token auto-extracted for OpenHands when possible):
+
 ```toml
 [mcp_servers.remote_server]
 url = "https://api.example.com"
@@ -599,7 +610,7 @@ ruler apply
 
 ### Scenario 2: Complex Projects with Nested Rules
 
-For large projects with multiple components or services, use nested rule loading:
+For large projects with multiple components or services, enable nested rule loading so each directory keeps its own rules and MCP bundle:
 
 ```bash
 # Set up nested .ruler directories
@@ -609,12 +620,25 @@ mkdir -p src/.ruler tests/.ruler docs/.ruler
 echo "# API Design Guidelines" > src/.ruler/api_rules.md
 echo "# Testing Best Practices" > tests/.ruler/test_rules.md
 echo "# Documentation Standards" > docs/.ruler/docs_rules.md
-
-# Apply with nested loading
-ruler apply --nested --verbose
 ```
 
-This creates context-specific instructions for different parts of your project while maintaining global rules in the root `.ruler/` directory.
+```toml
+# .ruler/ruler.toml
+nested = true
+```
+
+```bash
+# The CLI inherits nested mode from ruler.toml
+ruler apply --verbose
+
+# Override from the CLI at any time
+ruler apply --no-nested
+```
+
+This creates context-specific instructions for different parts of your project while maintaining global rules in the root `.ruler/` directory. Nested runs automatically keep every nested config enabled even if a child tries to disable it.
+
+> [!NOTE]
+> The CLI prints "Nested mode is experimental and may change in future releases." the first time nested processing runs. Expect refinements in future versions.
 
 ### Scenario 3: Team Standardization
 
@@ -719,7 +743,7 @@ This shows:
 A: Currently, all agents receive the same concatenated rules. For agent-specific instructions, include sections in your rule files like "## GitHub Copilot Specific" or "## Aider Configuration".
 
 **Q: How do I set up different instructions for different parts of my project?**
-A: Use the `--nested` flag with `ruler apply --nested`. This enables Ruler to discover and load rules from multiple `.ruler/` directories throughout your project hierarchy. Place component-specific instructions in `src/.ruler/`, test-specific rules in `tests/.ruler/`, etc., while keeping global rules in the root `.ruler/` directory.
+A: Enable nested mode either by setting `nested = true` in `ruler.toml` or by passing `ruler apply --nested`. The CLI inherits the config setting by default, but `--no-nested` always wins if you need to opt out for a run. Nested mode keeps loading rules (and MCP settings) from every `.ruler/` directory in the hierarchy, forces child configs to remain nested, and logs "Nested mode is experimental and may change in future releases." if any nested processing occurs.
 
 **Q: How do I temporarily disable Ruler for an agent?**
 A: Set `enabled = false` in `ruler.toml` under `[agents.agentname]`, or use `--agents` flag to specify only the agents you want.
