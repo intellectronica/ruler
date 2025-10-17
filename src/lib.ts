@@ -1,3 +1,4 @@
+import * as path from 'path';
 import { IAgent, IAgentConfig } from './agents/IAgent';
 import { allAgents } from './agents';
 import { McpStrategy } from './types';
@@ -8,6 +9,7 @@ import {
   processSingleConfiguration,
   updateGitignore,
   loadNestedConfigurations,
+  HierarchicalRulerConfiguration,
 } from './core/apply-engine';
 import { type LoadedConfig } from './core/ConfigLoader';
 import { mapRawAgentConfigs } from './core/config-utils';
@@ -57,6 +59,7 @@ export async function applyAllAgentConfigs(
       projectRoot,
       configPath,
       localOnly,
+      nested,
     );
 
     if (hierarchicalConfigs.length === 0) {
@@ -64,7 +67,11 @@ export async function applyAllAgentConfigs(
     }
 
     // Use the root config for agent selection (all levels share the same agent settings)
-    const rootConfig = hierarchicalConfigs[0].config;
+    const rootConfigEntry = selectRootConfiguration(
+      hierarchicalConfigs,
+      projectRoot,
+    );
+    const rootConfig = rootConfigEntry.config;
     loadedConfig = rootConfig;
     rootConfig.cliAgents = includedAgents;
 
@@ -77,7 +84,9 @@ export async function applyAllAgentConfigs(
       verbose,
     );
 
-    normalizeAgentConfigs(rootConfig, agents);
+    for (const configEntry of hierarchicalConfigs) {
+      normalizeAgentConfigs(configEntry.config, agents);
+    }
 
     selectedAgents = resolveSelectedAgents(rootConfig, agents);
     logVerbose(
@@ -154,4 +163,38 @@ function normalizeAgentConfigs(
 ): void {
   // Normalize per-agent config keys to agent identifiers (exact match or substring match)
   config.agentConfigs = mapRawAgentConfigs(config.agentConfigs, agents);
+}
+
+function selectRootConfiguration(
+  configurations: HierarchicalRulerConfiguration[],
+  projectRoot: string,
+): HierarchicalRulerConfiguration {
+  if (configurations.length === 0) {
+    throw new Error('No hierarchical configurations available');
+  }
+
+  const normalizedProjectRoot = path.resolve(projectRoot);
+  let bestIndex = -1;
+  let bestDepth = Number.POSITIVE_INFINITY;
+
+  for (let i = 0; i < configurations.length; i++) {
+    const entry = configurations[i];
+    const normalizedDir = path.resolve(entry.rulerDir);
+
+    if (!normalizedDir.startsWith(normalizedProjectRoot)) {
+      continue;
+    }
+
+    const depth = normalizedDir.split(path.sep).length;
+    if (depth < bestDepth) {
+      bestDepth = depth;
+      bestIndex = i;
+    }
+  }
+
+  if (bestIndex === -1) {
+    return configurations[0];
+  }
+
+  return configurations[bestIndex];
 }

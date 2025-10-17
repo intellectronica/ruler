@@ -1,6 +1,7 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { applyAllAgentConfigs } from '../../src/lib';
+import * as Constants from '../../src/constants';
 import { setupTestProject } from '../harness';
 
 describe('Nested Rules Integration', () => {
@@ -33,8 +34,29 @@ describe('Nested Rules Integration', () => {
     );
 
     await fs.writeFile(
+      path.join(testProject.projectRoot, '.ruler', 'ruler.toml'),
+      `default_agents = ["root-agent"]
+nested = true
+
+[agents]
+[agents.claude]
+enabled = true
+`,
+    );
+
+    await fs.writeFile(
       path.join(moduleDir, '.ruler', 'AGENTS.md'),
       '# Module Rules\n\nThese are module-level rules that should only appear in module-level files.',
+    );
+
+    await fs.writeFile(
+      path.join(moduleDir, '.ruler', 'ruler.toml'),
+      `default_agents = ["module-agent"]
+
+[agents]
+[agents.copilot]
+enabled = false
+`,
     );
 
     await fs.writeFile(
@@ -42,19 +64,47 @@ describe('Nested Rules Integration', () => {
       '# Submodule Rules\n\nThese are submodule-level rules that should only appear in submodule-level files.',
     );
 
-    // Apply with nested flag from project root
-    await applyAllAgentConfigs(
-      testProject.projectRoot, // Start from project root
-      ['claude'], // Only test with one agent for simplicity
-      undefined, // configPath
-      true, // cliMcpEnabled
-      undefined, // cliMcpStrategy
-      undefined, // cliGitignoreEnabled
-      false, // verbose
-      false, // dryRun
-      false, // localOnly
-      true, // nested
+    await fs.writeFile(
+      path.join(submoduleDir, '.ruler', 'ruler.toml'),
+      `default_agents = ["submodule-agent"]
+nested = false
+
+[agents]
+[agents.windsurf]
+enabled = true
+`,
     );
+
+    // Apply with nested flag from project root
+    const warnSpy = jest
+      .spyOn(Constants, 'logWarn')
+      .mockImplementation(() => {});
+
+    try {
+      await applyAllAgentConfigs(
+        testProject.projectRoot, // Start from project root
+        ['claude'], // Only test with one agent for simplicity
+        undefined, // configPath
+        true, // cliMcpEnabled
+        undefined, // cliMcpStrategy
+        undefined, // cliGitignoreEnabled
+        false, // verbose
+        false, // dryRun
+        false, // localOnly
+        true, // nested
+      );
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining(
+          path.join(submoduleDir, '.ruler', 'ruler.toml'),
+        ),
+      );
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('nested = false'),
+      );
+    } finally {
+      warnSpy.mockRestore();
+    }
 
     // Check that each level has its own CLAUDE.md file
     const rootClaudeFile = path.join(testProject.projectRoot, 'CLAUDE.md');

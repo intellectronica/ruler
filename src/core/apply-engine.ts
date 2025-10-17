@@ -1,4 +1,5 @@
 import * as path from 'path';
+import { promises as fs } from 'fs';
 import * as FileSystemUtils from './FileSystemUtils';
 import { concatenateRules } from './RuleProcessor';
 import { loadConfig, LoadedConfig, IAgentConfig } from './ConfigLoader';
@@ -48,6 +49,7 @@ async function loadNestedConfigurations(
   projectRoot: string,
   configPath: string | undefined,
   localOnly: boolean,
+  resolvedNested: boolean,
 ): Promise<HierarchicalRulerConfiguration[]> {
   const { dirs: rulerDirs } = await findRulerDirectories(
     projectRoot,
@@ -55,17 +57,17 @@ async function loadNestedConfigurations(
     true,
   );
 
-  const rootConfig = await loadConfig({
-    projectRoot,
-    configPath,
-  });
-
   const results: HierarchicalRulerConfiguration[] = [];
   const rulerDirConfigs = await processIndependentRulerDirs(rulerDirs);
 
   for (const { rulerDir, files } of rulerDirConfigs) {
+    const config = await loadConfigForRulerDir(
+      rulerDir,
+      configPath,
+      resolvedNested,
+    );
     results.push(
-      await createHierarchicalConfiguration(rulerDir, files, rootConfig),
+      await createHierarchicalConfiguration(rulerDir, files, config),
     );
   }
 
@@ -98,7 +100,7 @@ async function processIndependentRulerDirs(
 async function createHierarchicalConfiguration(
   rulerDir: string,
   files: { path: string; content: string }[],
-  rootConfig: LoadedConfig,
+  config: LoadedConfig,
 ): Promise<HierarchicalRulerConfiguration> {
   await warnAboutLegacyMcpJson(rulerDir);
 
@@ -106,9 +108,65 @@ async function createHierarchicalConfiguration(
 
   return {
     rulerDir,
-    config: rootConfig,
+    config,
     concatenatedRules,
     rulerMcpJson: null, // No nested MCP support - each level uses root config only
+  };
+}
+
+async function loadConfigForRulerDir(
+  rulerDir: string,
+  cliConfigPath: string | undefined,
+  resolvedNested: boolean,
+): Promise<LoadedConfig> {
+  const directoryRoot = path.dirname(rulerDir);
+  const localConfigPath = path.join(rulerDir, 'ruler.toml');
+
+  let hasLocalConfig = false;
+  try {
+    await fs.access(localConfigPath);
+    hasLocalConfig = true;
+  } catch {
+    hasLocalConfig = false;
+  }
+
+  const loaded = await loadConfig({
+    projectRoot: directoryRoot,
+    configPath: hasLocalConfig ? localConfigPath : cliConfigPath,
+  });
+
+  const cloned = cloneLoadedConfig(loaded);
+
+  if (resolvedNested) {
+    if (hasLocalConfig && loaded.nestedDefined && loaded.nested === false) {
+      logWarn(
+        `Nested mode is enabled but ${localConfigPath} sets nested = false. Continuing with nested processing.`,
+      );
+    }
+    cloned.nested = true;
+    cloned.nestedDefined = true;
+  }
+
+  return cloned;
+}
+
+function cloneLoadedConfig(config: LoadedConfig): LoadedConfig {
+  const clonedAgentConfigs: Record<string, IAgentConfig> = {};
+  for (const [agent, agentConfig] of Object.entries(config.agentConfigs)) {
+    clonedAgentConfigs[agent] = {
+      ...agentConfig,
+      mcp: agentConfig.mcp ? { ...agentConfig.mcp } : undefined,
+    };
+  }
+
+  return {
+    defaultAgents: config.defaultAgents ? [...config.defaultAgents] : undefined,
+    agentConfigs: clonedAgentConfigs,
+    cliAgents: config.cliAgents ? [...config.cliAgents] : undefined,
+    mcp: config.mcp ? { ...config.mcp } : undefined,
+    gitignore: config.gitignore ? { ...config.gitignore } : undefined,
+    nested: config.nested,
+    nestedDefined: config.nestedDefined,
   };
 }
 
@@ -157,7 +215,7 @@ async function findRulerDirectories(
 async function warnAboutLegacyMcpJson(rulerDir: string): Promise<void> {
   try {
     const legacyMcpPath = path.join(rulerDir, 'mcp.json');
-    await (await import('fs/promises')).access(legacyMcpPath);
+    await fs.access(legacyMcpPath);
     logWarn(
       'Warning: Using legacy .ruler/mcp.json. Please migrate to ruler.toml. This fallback will be removed in a future release.',
     );

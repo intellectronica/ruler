@@ -72,6 +72,8 @@ export interface LoadedConfig {
   gitignore?: GitignoreConfig;
   /** Whether to enable nested rule loading from nested .ruler directories. */
   nested?: boolean;
+  /** Whether the nested option was explicitly provided in the config. */
+  nestedDefined?: boolean;
 }
 
 /**
@@ -210,7 +212,8 @@ export async function loadConfig(
     gitignoreConfig.enabled = rawGitignoreSection.enabled;
   }
 
-  const nested = typeof raw.nested === 'boolean' ? raw.nested : false;
+  const nestedDefined = typeof raw.nested === 'boolean';
+  const nested = nestedDefined ? (raw.nested as boolean) : false;
 
   return {
     defaultAgents,
@@ -219,5 +222,6 @@ export async function loadConfig(
     mcp: globalMcpConfig,
     gitignore: gitignoreConfig,
     nested,
+    nestedDefined,
   };
 }
