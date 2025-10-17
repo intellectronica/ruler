@@ -7,7 +7,9 @@ import {
   loadNestedConfigurations,
   applyConfigurationsToAgents,
   updateGitignore,
+  processHierarchicalConfigurations,
   RulerConfiguration,
+  HierarchicalRulerConfiguration,
 } from '../../../src/core/apply-engine';
 import { IAgent } from '../../../src/agents/IAgent';
 import { ClaudeAgent } from '../../../src/agents/ClaudeAgent';
@@ -277,6 +279,210 @@ merge_strategy = "overwrite"
       } finally {
         warnSpy.mockRestore();
       }
+    });
+
+    it('propagates unified MCP bundles and preserves agent-level MCP flags per directory', async () => {
+      const moduleDir = path.join(tmpDir, 'module');
+      const submoduleDir = path.join(moduleDir, 'submodule');
+
+      const rootRulerDir = path.join(tmpDir, '.ruler');
+      const moduleRulerDir = path.join(moduleDir, '.ruler');
+      const submoduleRulerDir = path.join(submoduleDir, '.ruler');
+
+      await fs.mkdir(rootRulerDir, { recursive: true });
+      await fs.mkdir(moduleRulerDir, { recursive: true });
+      await fs.mkdir(submoduleRulerDir, { recursive: true });
+
+      await fs.writeFile(
+        path.join(rootRulerDir, 'AGENTS.md'),
+        '# Root Instructions',
+      );
+      await fs.writeFile(
+        path.join(moduleRulerDir, 'AGENTS.md'),
+        '# Module Instructions',
+      );
+      await fs.writeFile(
+        path.join(submoduleRulerDir, 'AGENTS.md'),
+        '# Submodule Instructions',
+      );
+
+      await fs.writeFile(
+        path.join(rootRulerDir, 'ruler.toml'),
+        `default_agents = ["claude", "copilot"]
+
+[agents]
+[agents.claude]
+enabled = true
+
+[agents.claude.mcp]
+enabled = true
+
+[agents.copilot]
+enabled = true
+
+[agents.copilot.mcp]
+enabled = false
+
+[mcp_servers.root-stdio]
+command = "root-cmd"
+args = ["--root"]
+`,
+      );
+
+      await fs.writeFile(
+        path.join(moduleRulerDir, 'ruler.toml'),
+        `default_agents = ["copilot", "windsurf"]
+
+[agents]
+[agents.copilot]
+enabled = true
+
+[agents.copilot.mcp]
+enabled = true
+
+[agents.windsurf]
+enabled = false
+
+[agents.windsurf.mcp]
+enabled = false
+
+[mcp_servers.module-remote]
+url = "https://module.example"
+`,
+      );
+
+      await fs.writeFile(
+        path.join(submoduleRulerDir, 'ruler.toml'),
+        `default_agents = ["windsurf"]
+
+[agents]
+[agents.windsurf]
+enabled = true
+
+[agents.windsurf.mcp]
+enabled = true
+
+[mcp_servers.sub-stdio]
+command = "sub-cmd"
+`,
+      );
+
+      const configs = await loadNestedConfigurations(
+        tmpDir,
+        undefined,
+        false,
+        true,
+      );
+
+      const rootConfig = configs.find((c) => c.rulerDir === rootRulerDir);
+      const moduleConfig = configs.find((c) => c.rulerDir === moduleRulerDir);
+      const submoduleConfig = configs.find(
+        (c) => c.rulerDir === submoduleRulerDir,
+      );
+
+      expect(rootConfig?.rulerMcpJson).toEqual({
+        mcpServers: {
+          'root-stdio': expect.objectContaining({
+            command: 'root-cmd',
+            args: ['--root'],
+            type: 'stdio',
+          }),
+        },
+      });
+
+      expect(moduleConfig?.rulerMcpJson).toEqual({
+        mcpServers: {
+          'module-remote': expect.objectContaining({
+            url: 'https://module.example',
+            type: 'remote',
+          }),
+        },
+      });
+
+      expect(submoduleConfig?.rulerMcpJson).toEqual({
+        mcpServers: {
+          'sub-stdio': expect.objectContaining({
+            command: 'sub-cmd',
+            type: 'stdio',
+          }),
+        },
+      });
+
+      expect(rootConfig?.config.agentConfigs.claude?.mcp?.enabled).toBe(true);
+      expect(rootConfig?.config.agentConfigs.copilot?.mcp?.enabled).toBe(false);
+      expect(moduleConfig?.config.agentConfigs.copilot?.mcp?.enabled).toBe(
+        true,
+      );
+      expect(moduleConfig?.config.agentConfigs.windsurf?.mcp?.enabled).toBe(
+        false,
+      );
+      expect(submoduleConfig?.config.agentConfigs.windsurf?.mcp?.enabled).toBe(
+        true,
+      );
+    });
+  });
+
+  describe('processHierarchicalConfigurations', () => {
+    it('passes each directory root and MCP bundle through to agent applications', async () => {
+      const rootRulerDir = path.join(tmpDir, '.ruler');
+      const nestedRulerDir = path.join(tmpDir, 'nested', '.ruler');
+      await fs.mkdir(rootRulerDir, { recursive: true });
+      await fs.mkdir(nestedRulerDir, { recursive: true });
+
+      const records: Array<{
+        projectRoot: string;
+        mcp: Record<string, unknown> | null;
+      }> = [];
+
+      class RecordingAgent extends MockAgent {
+        async applyRulerConfig(
+          rules: string,
+          projectRoot: string,
+          mcpJson: Record<string, unknown> | null,
+        ): Promise<void> {
+          records.push({ projectRoot, mcp: mcpJson });
+        }
+      }
+
+      const agent = new RecordingAgent('Recording Agent', 'recording');
+
+      const configurations: HierarchicalRulerConfiguration[] = [
+        {
+          rulerDir: rootRulerDir,
+          config: { agentConfigs: { recording: {} } } as LoadedConfig,
+          concatenatedRules: '# Root',
+          rulerMcpJson: { mcpServers: { root: { command: 'root' } } },
+        },
+        {
+          rulerDir: nestedRulerDir,
+          config: { agentConfigs: { recording: {} } } as LoadedConfig,
+          concatenatedRules: '# Nested',
+          rulerMcpJson: {
+            mcpServers: { nested: { url: 'https://nested.example' } },
+          },
+        },
+      ];
+
+      await processHierarchicalConfigurations(
+        [agent],
+        configurations,
+        false,
+        false,
+        true,
+        undefined,
+        false,
+      );
+
+      expect(records).toEqual([
+        {
+          projectRoot: path.dirname(rootRulerDir),
+          mcp: { mcpServers: { root: { command: 'root' } } },
+        },
+        {
+          projectRoot: path.dirname(nestedRulerDir),
+          mcp: { mcpServers: { nested: { url: 'https://nested.example' } } },
+        },
+      ]);
     });
   });
 

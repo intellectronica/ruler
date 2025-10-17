@@ -67,7 +67,12 @@ async function loadNestedConfigurations(
       resolvedNested,
     );
     results.push(
-      await createHierarchicalConfiguration(rulerDir, files, config),
+      await createHierarchicalConfiguration(
+        rulerDir,
+        files,
+        config,
+        configPath,
+      ),
     );
   }
 
@@ -101,16 +106,40 @@ async function createHierarchicalConfiguration(
   rulerDir: string,
   files: { path: string; content: string }[],
   config: LoadedConfig,
+  cliConfigPath: string | undefined,
 ): Promise<HierarchicalRulerConfiguration> {
   await warnAboutLegacyMcpJson(rulerDir);
 
   const concatenatedRules = concatenateRules(files, path.dirname(rulerDir));
 
+  const directoryRoot = path.dirname(rulerDir);
+  const localConfigPath = path.join(rulerDir, 'ruler.toml');
+  let configPathToUse = cliConfigPath;
+  try {
+    await fs.access(localConfigPath);
+    configPathToUse = localConfigPath;
+  } catch {
+    // fall back to CLI config or default resolution
+  }
+
+  const { loadUnifiedConfig } = await import('./UnifiedConfigLoader');
+  const unifiedConfig = await loadUnifiedConfig({
+    projectRoot: directoryRoot,
+    configPath: configPathToUse,
+  });
+
+  let rulerMcpJson: Record<string, unknown> | null = null;
+  if (unifiedConfig.mcp && Object.keys(unifiedConfig.mcp.servers).length > 0) {
+    rulerMcpJson = {
+      mcpServers: unifiedConfig.mcp.servers,
+    };
+  }
+
   return {
     rulerDir,
     config,
     concatenatedRules,
-    rulerMcpJson: null, // No nested MCP support - each level uses root config only
+    rulerMcpJson,
   };
 }
 
@@ -322,7 +351,10 @@ export async function processHierarchicalConfigurations(
       cliMcpStrategy,
       backup,
     );
-    allGeneratedPaths.push(...paths);
+    const normalizedPaths = paths.map((p) =>
+      path.isAbsolute(p) ? p : path.join(rulerRoot, p),
+    );
+    allGeneratedPaths.push(...normalizedPaths);
   }
 
   return allGeneratedPaths;
