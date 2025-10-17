@@ -2,7 +2,7 @@ import * as path from 'path';
 import { IAgent, IAgentConfig } from './agents/IAgent';
 import { allAgents } from './agents';
 import { McpStrategy } from './types';
-import { logVerbose } from './constants';
+import { logVerbose, logWarn } from './constants';
 import {
   loadSingleConfiguration,
   processHierarchicalConfigurations,
@@ -65,6 +65,11 @@ export async function applyAllAgentConfigs(
     if (hierarchicalConfigs.length === 0) {
       throw new Error('No .ruler directories found');
     }
+
+    logWarn(
+      'Nested mode is experimental and may change in future releases.',
+      dryRun,
+    );
 
     // Use the root config for agent selection (all levels share the same agent settings)
     const rootConfigEntry = selectRootConfiguration(

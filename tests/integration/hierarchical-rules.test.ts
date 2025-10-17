@@ -80,6 +80,8 @@ enabled = true
       .spyOn(Constants, 'logWarn')
       .mockImplementation(() => {});
 
+    const experimentalWarningMessage = 'Nested mode is experimental';
+
     try {
       await applyAllAgentConfigs(
         testProject.projectRoot, // Start from project root
@@ -94,6 +96,11 @@ enabled = true
         true, // nested
       );
 
+      const experimentalWarnings = warnSpy.mock.calls.filter((call) =>
+        String(call[0]).includes(experimentalWarningMessage),
+      );
+
+      expect(experimentalWarnings).toHaveLength(1);
       expect(warnSpy).toHaveBeenCalledWith(
         expect.stringContaining(
           path.join(submoduleDir, '.ruler', 'ruler.toml'),
@@ -166,18 +173,32 @@ enabled = true
     );
 
     // Apply without nested flag (should use single-directory logic)
-    await applyAllAgentConfigs(
-      moduleDir,
-      ['claude'],
-      undefined,
-      true,
-      undefined,
-      undefined,
-      false,
-      false,
-      false,
-      false, // nested = false
-    );
+    const warnSpy = jest
+      .spyOn(Constants, 'logWarn')
+      .mockImplementation(() => {});
+
+    try {
+      await applyAllAgentConfigs(
+        moduleDir,
+        ['claude'],
+        undefined,
+        true,
+        undefined,
+        undefined,
+        false,
+        false,
+        false,
+        false, // nested = false
+      );
+
+      const experimentalWarnings = warnSpy.mock.calls.filter((call) =>
+        String(call[0]).includes('Nested mode is experimental'),
+      );
+
+      expect(experimentalWarnings).toHaveLength(0);
+    } finally {
+      warnSpy.mockRestore();
+    }
 
     // Should work without errors (testing that single-directory logic still works)
     expect(true).toBe(true); // If we get here, the test passed
