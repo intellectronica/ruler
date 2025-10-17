@@ -4,6 +4,7 @@ import os from 'os';
 
 import {
   loadSingleConfiguration,
+  loadNestedConfigurations,
   applyConfigurationsToAgents,
   updateGitignore,
   RulerConfiguration,
@@ -13,6 +14,7 @@ import { ClaudeAgent } from '../../../src/agents/ClaudeAgent';
 import { CopilotAgent } from '../../../src/agents/CopilotAgent';
 import { LoadedConfig } from '../../../src/core/ConfigLoader';
 import * as FileSystemUtils from '../../../src/core/FileSystemUtils';
+import * as Constants from '../../../src/constants';
 
 // Mock agents for testing
 class MockAgent implements IAgent {
@@ -134,6 +136,146 @@ describe('apply-engine', () => {
         ).rejects.toThrow('.ruler directory not found');
       } finally {
         (FileSystemUtils.findRulerDir as jest.Mock).mockRestore();
+      }
+    });
+  });
+
+  describe('loadNestedConfigurations', () => {
+    it('loads independent configs and forces nested flag through descendants', async () => {
+      const moduleDir = path.join(tmpDir, 'module');
+      const submoduleDir = path.join(moduleDir, 'submodule');
+
+      const rootRulerDir = path.join(tmpDir, '.ruler');
+      const moduleRulerDir = path.join(moduleDir, '.ruler');
+      const submoduleRulerDir = path.join(submoduleDir, '.ruler');
+
+      await fs.mkdir(rootRulerDir, { recursive: true });
+      await fs.mkdir(moduleRulerDir, { recursive: true });
+      await fs.mkdir(submoduleRulerDir, { recursive: true });
+
+      await fs.writeFile(
+        path.join(rootRulerDir, 'AGENTS.md'),
+        '# Root Instructions',
+      );
+      await fs.writeFile(
+        path.join(moduleRulerDir, 'AGENTS.md'),
+        '# Module Instructions',
+      );
+      await fs.writeFile(
+        path.join(submoduleRulerDir, 'AGENTS.md'),
+        '# Submodule Instructions',
+      );
+
+      await fs.writeFile(
+        path.join(rootRulerDir, 'ruler.toml'),
+        `default_agents = ["root-agent"]
+nested = true
+
+[agents]
+[agents.claude]
+enabled = true
+
+[mcp]
+enabled = true
+`,
+      );
+
+      await fs.writeFile(
+        path.join(moduleRulerDir, 'ruler.toml'),
+        `default_agents = ["module-agent"]
+
+[agents]
+[agents.copilot]
+enabled = false
+
+[mcp]
+enabled = false
+`,
+      );
+
+      await fs.writeFile(
+        path.join(submoduleRulerDir, 'ruler.toml'),
+        `default_agents = ["submodule-agent"]
+nested = false
+
+[agents]
+[agents.windsurf]
+enabled = true
+
+[mcp]
+merge_strategy = "overwrite"
+`,
+      );
+
+      const warnSpy = jest
+        .spyOn(Constants, 'logWarn')
+        .mockImplementation(() => {});
+
+      try {
+        const configs = await loadNestedConfigurations(
+          tmpDir,
+          undefined,
+          false,
+          true,
+        );
+
+        expect(configs).toHaveLength(3);
+
+        const rootConfig = configs.find((c) => c.rulerDir === rootRulerDir);
+        const moduleConfig = configs.find((c) => c.rulerDir === moduleRulerDir);
+        const submoduleConfig = configs.find(
+          (c) => c.rulerDir === submoduleRulerDir,
+        );
+
+        expect(rootConfig).toBeDefined();
+        expect(moduleConfig).toBeDefined();
+        expect(submoduleConfig).toBeDefined();
+
+        if (!rootConfig || !moduleConfig || !submoduleConfig) {
+          throw new Error('Expected hierarchical configs for all directories');
+        }
+
+        expect(rootConfig.config).not.toBe(moduleConfig.config);
+        expect(rootConfig.config).not.toBe(submoduleConfig.config);
+        expect(moduleConfig.config).not.toBe(submoduleConfig.config);
+
+        expect(rootConfig.config.defaultAgents).toEqual(['root-agent']);
+        expect(moduleConfig.config.defaultAgents).toEqual(['module-agent']);
+        expect(submoduleConfig.config.defaultAgents).toEqual([
+          'submodule-agent',
+        ]);
+
+        expect(Object.keys(rootConfig.config.agentConfigs)).toEqual(['claude']);
+        expect(rootConfig.config.agentConfigs.claude?.enabled).toBe(true);
+
+        expect(Object.keys(moduleConfig.config.agentConfigs)).toEqual([
+          'copilot',
+        ]);
+        expect(moduleConfig.config.agentConfigs.copilot?.enabled).toBe(false);
+
+        expect(Object.keys(submoduleConfig.config.agentConfigs)).toEqual([
+          'windsurf',
+        ]);
+        expect(submoduleConfig.config.agentConfigs.windsurf?.enabled).toBe(
+          true,
+        );
+
+        expect(rootConfig.config.mcp?.enabled).toBe(true);
+        expect(moduleConfig.config.mcp?.enabled).toBe(false);
+        expect(submoduleConfig.config.mcp?.strategy).toBe('overwrite');
+
+        expect(rootConfig.config.nested).toBe(true);
+        expect(moduleConfig.config.nested).toBe(true);
+        expect(submoduleConfig.config.nested).toBe(true);
+
+        expect(warnSpy).toHaveBeenCalledWith(
+          expect.stringContaining('nested = false'),
+        );
+        expect(warnSpy).toHaveBeenCalledWith(
+          expect.stringContaining(path.join(submoduleRulerDir, 'ruler.toml')),
+        );
+      } finally {
+        warnSpy.mockRestore();
       }
     });
   });
