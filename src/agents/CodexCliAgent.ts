@@ -3,7 +3,9 @@ import { promises as fs } from 'fs';
 import { parse as parseTOML, stringify } from '@iarna/toml';
 import { IAgent, IAgentConfig } from './IAgent';
 import { AgentsMdAgent } from './AgentsMdAgent';
+import { CommandConfig } from '../types';
 import { writeGeneratedFile } from '../core/FileSystemUtils';
+import { applyCommandsToDirectory } from '../core/CommandProcessor';
 import { DEFAULT_RULES_FILENAME } from '../constants';
 
 interface McpServer {
@@ -157,5 +159,20 @@ export class CodexCliAgent implements IAgent {
 
   supportsMcpRemote(): boolean {
     return false; // Codex CLI only supports STDIO based on PR description
+  }
+
+  async applyCommands(
+    commands: Record<string, CommandConfig>,
+    commandContents: Record<string, string>,
+    projectRoot: string,
+    backup = true,
+  ): Promise<void> {
+    await applyCommandsToDirectory(
+      commands,
+      commandContents,
+      projectRoot,
+      '.codex/prompts',
+      backup,
+    );
   }
 }

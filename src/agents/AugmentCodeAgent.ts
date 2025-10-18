@@ -1,5 +1,7 @@
 import * as path from 'path';
 import { IAgent, IAgentConfig } from './IAgent';
+import { CommandConfig } from '../types';
+import { applyCommandsToDirectory } from '../core/CommandProcessor';
 import { backupFile, writeGeneratedFile } from '../core/FileSystemUtils';
 
 /**
@@ -49,5 +51,20 @@ export class AugmentCodeAgent implements IAgent {
 
   supportsMcpRemote(): boolean {
     return false;
+  }
+
+  async applyCommands(
+    commands: Record<string, CommandConfig>,
+    commandContents: Record<string, string>,
+    projectRoot: string,
+    backup = true,
+  ): Promise<void> {
+    await applyCommandsToDirectory(
+      commands,
+      commandContents,
+      projectRoot,
+      '.augment/commands',
+      backup,
+    );
   }
 }

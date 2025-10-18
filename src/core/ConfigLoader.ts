@@ -3,7 +3,12 @@ import * as path from 'path';
 import * as os from 'os';
 import { parse as parseTOML } from '@iarna/toml';
 import { z } from 'zod';
-import { McpConfig, GlobalMcpConfig, GitignoreConfig } from '../types';
+import {
+  McpConfig,
+  GlobalMcpConfig,
+  GitignoreConfig,
+  CommandConfig,
+} from '../types';
 import { createRulerError } from '../constants';
 
 interface ErrnoException extends Error {
@@ -27,6 +32,20 @@ const agentConfigSchema = z
   })
   .optional();
 
+const commandConfigSchema = z
+  .object({
+    name: z.string(),
+    description: z.string(),
+    prompt: z.string().optional(),
+    prompt_file: z.string().optional(),
+    type: z.enum(['slash', 'workflow', 'prompt-file', 'instruction']),
+  })
+  .refine(
+    (data) =>
+      (data.prompt && !data.prompt_file) || (!data.prompt && data.prompt_file),
+    { message: "Exactly one of 'prompt' or 'prompt_file' must be provided" },
+  );
+
 const rulerConfigSchema = z.object({
   default_agents: z.array(z.string()).optional(),
   agents: z.record(z.string(), agentConfigSchema).optional(),
@@ -41,6 +60,8 @@ const rulerConfigSchema = z.object({
       enabled: z.boolean().optional(),
     })
     .optional(),
+  commands: z.record(z.string(), commandConfigSchema).optional(),
+  command_directory: z.string().optional(),
   nested: z.boolean().optional(),
 });
 
@@ -70,6 +91,10 @@ export interface LoadedConfig {
   mcp?: GlobalMcpConfig;
   /** Gitignore configuration section. */
   gitignore?: GitignoreConfig;
+  /** Custom commands configuration section. */
+  commands?: Record<string, CommandConfig>;
+  /** Command directory configuration. */
+  commandDirectory?: string;
   /** Whether to enable nested rule loading from nested .ruler directories. */
   nested?: boolean;
   /** Whether the nested option was explicitly provided in the config. */
@@ -212,6 +237,40 @@ export async function loadConfig(
     gitignoreConfig.enabled = rawGitignoreSection.enabled;
   }
 
+  const rawCommandsSection =
+    raw.commands &&
+    typeof raw.commands === 'object' &&
+    !Array.isArray(raw.commands)
+      ? (raw.commands as Record<string, unknown>)
+      : {};
+  const commandsConfig: Record<string, CommandConfig> = {};
+  for (const [cmdKey, cmdSection] of Object.entries(rawCommandsSection)) {
+    if (cmdSection && typeof cmdSection === 'object') {
+      const cmdObj = cmdSection as Record<string, unknown>;
+      const cmdConfig: CommandConfig = {
+        name: String(cmdObj.name || cmdKey),
+        description: String(cmdObj.description || ''),
+        prompt:
+          typeof cmdObj.prompt === 'string' ? String(cmdObj.prompt) : undefined,
+        prompt_file:
+          typeof cmdObj.prompt_file === 'string'
+            ? String(cmdObj.prompt_file)
+            : undefined,
+        type: String(cmdObj.type || 'slash') as
+          | 'slash'
+          | 'workflow'
+          | 'prompt-file'
+          | 'instruction',
+      };
+      commandsConfig[cmdKey] = cmdConfig;
+    }
+  }
+
+  const commandDirectory =
+    typeof raw.command_directory === 'string'
+      ? raw.command_directory
+      : 'commands';
+
   const nestedDefined = typeof raw.nested === 'boolean';
   const nested = nestedDefined ? (raw.nested as boolean) : false;
 
@@ -221,6 +280,9 @@ export async function loadConfig(
     cliAgents,
     mcp: globalMcpConfig,
     gitignore: gitignoreConfig,
+    commands:
+      Object.keys(commandsConfig).length > 0 ? commandsConfig : undefined,
+    commandDirectory,
     nested,
     nestedDefined,
   };

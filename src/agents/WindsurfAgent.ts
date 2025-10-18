@@ -1,6 +1,7 @@
 import * as path from 'path';
 import { AbstractAgent } from './AbstractAgent';
 import { IAgentConfig } from './IAgent';
+import { CommandConfig } from '../types';
 import {
   backupFile,
   writeGeneratedFile,
@@ -178,5 +179,20 @@ export class WindsurfAgent extends AbstractAgent {
     }
 
     return files;
+  }
+
+  async applyCommands(
+    commands: Record<string, CommandConfig>,
+    commandContents: Record<string, string>,
+    projectRoot: string,
+    backup = true,
+  ): Promise<void> {
+    await this.applyCommandsToDirectory(
+      commands,
+      commandContents,
+      projectRoot,
+      '.windsurf/workflows',
+      backup,
+    );
   }
 }

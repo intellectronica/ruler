@@ -1,7 +1,7 @@
 /**
  * Interface defining an AI agent configuration adapter.
  */
-import { McpConfig } from '../types';
+import { McpConfig, CommandConfig } from '../types';
 /**
  * Configuration overrides for a specific agent.
  */
@@ -64,4 +64,18 @@ export interface IAgent {
    * Defaults to false if not implemented.
    */
   supportsMcpRemote?(): boolean;
+
+  /**
+   * Applies custom commands to the agent's command directory.
+   * @param commands Command configurations from ruler.toml
+   * @param commandContents Command markdown file contents
+   * @param projectRoot The root directory of the project
+   * @param backup Whether to backup existing files
+   */
+  applyCommands?(
+    commands: Record<string, CommandConfig>,
+    commandContents: Record<string, string>,
+    projectRoot: string,
+    backup?: boolean,
+  ): Promise<void>;
 }
