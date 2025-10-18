@@ -74,7 +74,7 @@ Generate comprehensive unit tests with:
     const output = execSync(
       `node dist/cli/index.js apply --agents cursor --project-root "${projectRoot}"`,
       {
-        cwd: '/Users/fathiraz/Software/misc/ruler',
+        cwd: process.cwd(),
         encoding: 'utf8',
       },
     );
@@ -167,7 +167,7 @@ Review this pull request for:
     execSync(
       `node dist/cli/index.js apply --agents cursor --project-root "${projectRoot}"`,
       {
-        cwd: '/Users/fathiraz/Software/misc/ruler',
+        cwd: process.cwd(),
         encoding: 'utf8',
       },
     );
@@ -237,7 +237,7 @@ Review this pull request for:
     execSync(
       `node dist/cli/index.js apply --agents cursor,claude --project-root "${projectRoot}"`,
       {
-        cwd: '/Users/fathiraz/Software/misc/ruler',
+        cwd: process.cwd(),
         encoding: 'utf8',
       },
     );
