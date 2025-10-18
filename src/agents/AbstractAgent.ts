@@ -1,5 +1,7 @@
 import * as path from 'path';
 import { IAgent, IAgentConfig } from './IAgent';
+import { CommandConfig } from '../types';
+import { applyCommandsToDirectory } from '../core/CommandProcessor';
 import {
   backupFile,
   writeGeneratedFile,
@@ -73,5 +75,29 @@ export abstract class AbstractAgent implements IAgent {
    */
   supportsMcpRemote(): boolean {
     return false;
+  }
+
+  /**
+   * Shared implementation for applying commands to a specific directory.
+   * @param commands Command configurations from ruler.toml
+   * @param commandContents Command markdown file contents
+   * @param projectRoot The root directory of the project
+   * @param commandDir The command directory path (e.g., '.claude/commands')
+   * @param backup Whether to backup existing files
+   */
+  protected async applyCommandsToDirectory(
+    commands: Record<string, CommandConfig>,
+    commandContents: Record<string, string>,
+    projectRoot: string,
+    commandDir: string,
+    backup = true,
+  ): Promise<void> {
+    await applyCommandsToDirectory(
+      commands,
+      commandContents,
+      projectRoot,
+      commandDir,
+      backup,
+    );
   }
 }

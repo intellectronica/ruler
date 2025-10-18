@@ -554,6 +554,103 @@ Ruler uses this configuration with the `merge` (default) or `overwrite` strategy
 export CODEX_HOME="$(pwd)/.codex"
 ```
 
+## Custom Commands Configuration
+
+Ruler supports custom commands that can be propagated to compatible AI agents. These commands allow you to define reusable prompts and workflows that agents can execute.
+
+### Command Directory
+
+Custom command prompt files are stored in a designated directory (default: `commands`). You can configure this location in `ruler.toml`:
+
+```toml
+# Specify where command prompt files are located (default: "commands")
+command_directory = "commands"
+```
+
+### Command Configuration
+
+Commands are defined in the `[commands]` section of `ruler.toml`. Each command requires:
+
+- **name**: The command identifier
+- **description**: Brief description of what the command does
+- **prompt_file**: Relative path to the markdown file containing the command prompt
+- **type**: Command type (`slash`, `workflow`, `prompt-file`, or `instruction`)
+
+### Example Configuration
+
+```toml
+# --- Custom Commands ---
+[commands.pr-review]
+name = "pr-review"
+description = "Review code for best practices and security"
+prompt_file = "commands/pr-review.md"
+type = "slash"
+
+[commands.commit]
+name = "commit"
+description = "Create semantic git commits with proper formatting"
+prompt_file = "commands/commit.md"
+type = "slash"
+
+[commands.refactor]
+name = "refactor"
+description = "Refactor code following best practices"
+prompt_file = "commands/refactor.md"
+type = "workflow"
+```
+
+### Command Types
+
+- **`slash`**: Slash commands that can be invoked with `/command-name`
+- **`workflow`**: Multi-step workflows for complex tasks
+- **`prompt-file`**: Simple prompt-based commands
+- **`instruction`**: Instructional commands for guidance
+
+### Creating Command Prompt Files
+
+Command prompt files are markdown files that contain detailed instructions for the AI agent. They should be placed in your configured `command_directory` (default: `commands/`).
+
+**Example: `commands/pr-review.md`**
+
+```markdown
+# PR Review Command
+
+You have access to the `gh` terminal command. Please review the PR that I asked you to review.
+
+## Review Process
+
+1. **Gather PR Information**:
+   - Get PR title, description, and comments
+   - Review the full diff
+   - Identify modified files
+
+2. **Analyze Changes**:
+   - Understand what was changed and why
+   - Check for code quality issues
+   - Verify security considerations
+   - Ensure best practices are followed
+
+3. **Provide Feedback**:
+   - Highlight positive aspects
+   - Identify areas for improvement
+   - Suggest specific changes if needed
+   - Check for potential bugs or issues
+
+Focus on code quality, security, maintainability, and adherence to project standards.
+```
+
+### Supported Agents
+
+Custom commands are supported by agents that have command processing capabilities. Check the agent-specific documentation for command support details.
+
+### Usage
+
+Once configured, custom commands become available to compatible AI agents. The exact invocation method depends on the agent:
+
+- **Cursor**: Available as slash commands in the chat interface
+- **Claude Code**: Accessible through the command palette
+- **Other agents**: Check agent-specific documentation for usage instructions
+
 ## `.gitignore` Integration
 
 Ruler automatically manages your `.gitignore` file to keep generated agent configuration files out of version control.

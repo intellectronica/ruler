@@ -20,6 +20,11 @@ import {
   logWarn,
 } from '../constants';
 import { McpStrategy } from '../types';
+import {
+  getCommandsFromConfig,
+  readAllCommandFiles,
+  getCommandOutputPaths,
+} from './CommandProcessor';
 
 /**
  * Configuration data loaded from the ruler setup
@@ -58,7 +63,10 @@ async function loadNestedConfigurations(
   );
 
   const results: HierarchicalRulerConfiguration[] = [];
-  const rulerDirConfigs = await processIndependentRulerDirs(rulerDirs);
+  const rulerDirConfigs = await processIndependentRulerDirs(
+    rulerDirs,
+    projectRoot,
+  );
 
   for (const { rulerDir, files } of rulerDirConfigs) {
     const config = await loadConfigForRulerDir(
@@ -85,6 +93,7 @@ async function loadNestedConfigurations(
  */
 async function processIndependentRulerDirs(
   rulerDirs: string[],
+  projectRoot: string,
 ): Promise<
   Array<{ rulerDir: string; files: { path: string; content: string }[] }>
 > {
@@ -95,7 +104,12 @@ async function processIndependentRulerDirs(
 
   // Process each .ruler directory independently
   for (const rulerDir of rulerDirs) {
-    const files = await FileSystemUtils.readMarkdownFiles(rulerDir);
+    // load config to get command directory setting
+    const config = await loadConfig({ projectRoot, configPath: undefined });
+    const commandDir = config.commandDirectory || 'commands';
+    const files = await FileSystemUtils.readMarkdownFiles(rulerDir, [
+      commandDir,
+    ]);
     results.push({ rulerDir, files });
   }
 
@@ -286,7 +300,10 @@ async function loadSingleConfiguration(
   });
 
   // Read rule files
-  const files = await FileSystemUtils.readMarkdownFiles(rulerDirs[0]);
+  const commandDir = config.commandDirectory || 'commands';
+  const files = await FileSystemUtils.readMarkdownFiles(rulerDirs[0], [
+    commandDir,
+  ]);
 
   // Concatenate rules
   const concatenatedRules = concatenateRules(files, path.dirname(primaryDir));
@@ -516,6 +533,17 @@ export async function applyConfigurationsToAgents(
       backup,
     );
   }
+
+  // Handle command processing after all agents have been processed
+  await handleCommandProcessing(
+    agents,
+    config,
+    projectRoot,
+    generatedPaths,
+    verbose,
+    dryRun,
+    backup,
+  );
 
   return generatedPaths;
 }
@@ -868,5 +896,110 @@ export async function updateGitignore(
         );
       }
     }
+  }
+}
+
+/**
+ * Handles command processing for all agents that support commands.
+ * @param agents Array of agents to process
+ * @param config Loaded configuration
+ * @param projectRoot The project root directory
+ * @param generatedPaths Array to collect generated file paths
+ * @param verbose Whether to enable verbose logging
+ * @param dryRun Whether to perform a dry run
+ * @param backup Whether to backup existing files
+ */
+async function handleCommandProcessing(
+  agents: IAgent[],
+  config: LoadedConfig,
+  projectRoot: string,
+  generatedPaths: string[],
+  verbose: boolean,
+  dryRun: boolean,
+  backup = true,
+): Promise<void> {
+  const commands = getCommandsFromConfig(config);
+  if (Object.keys(commands).length === 0) {
+    logVerbose('No commands defined - skipping command processing', verbose);
+    return;
+  }
+
+  const rulerDir = await findRulerDirectory(projectRoot);
+  if (!rulerDir) {
+    logWarn('Could not find .ruler directory for command processing');
+    return;
+  }
+
+  const commandDir = config.commandDirectory || 'commands';
+  const commandContents = await readAllCommandFiles(
+    commands,
+    rulerDir,
+    commandDir,
+  );
+
+  logVerbose(`Processing ${Object.keys(commands).length} command(s)`, verbose);
+
+  for (const agent of agents) {
+    if (
+      !('applyCommands' in agent) ||
+      typeof agent.applyCommands !== 'function'
+    ) {
+      logVerbose(
+        `Agent ${agent.getName()} does not support commands - skipping`,
+        verbose,
+      );
+      continue;
+    }
+
+    const agentName = agent.getName();
+    logVerbose(`Applying commands for ${agentName}...`, verbose);
+
+    if (dryRun) {
+      logVerbose(
+        `DRY RUN: Would apply ${Object.keys(commands).length} command(s) to ${agentName}`,
+        verbose,
+      );
+    } else {
+      try {
+        await agent.applyCommands(
+          commands,
+          commandContents,
+          projectRoot,
+          backup,
+        );
+        logVerbose(
+          `Applied ${Object.keys(commands).length} command(s) to ${agentName}`,
+          verbose,
+        );
+      } catch (error) {
+        logWarn(
+          `Failed to apply commands to ${agentName}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        );
+        continue;
+      }
+    }
+
+    // Add command output paths to generated paths for .gitignore
+    const commandPaths = getCommandOutputPaths(
+      agent.getIdentifier(),
+      commands,
+      projectRoot,
+    );
+    generatedPaths.push(...commandPaths);
+  }
+}
+
+/**
+ * Finds the ruler directory for command file reading.
+ * @param projectRoot The project root directory
+ * @returns Promise resolving to the ruler directory path or null
+ */
+async function findRulerDirectory(projectRoot: string): Promise<string | null> {
+  const rulerPath = path.join(projectRoot, '.ruler');
+  try {
+    await fs.access(rulerPath);
+    return rulerPath;
+  } catch {
+    return null;
   }
 }

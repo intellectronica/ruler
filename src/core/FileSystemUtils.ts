@@ -59,9 +59,12 @@ export async function findRulerDir(
 /**
  * Recursively reads all Markdown (.md) files in rulerDir, returning their paths and contents.
  * Files are sorted alphabetically by path.
+ * @param rulerDir The ruler directory to read from
+ * @param excludeDirs Array of directory names to exclude from reading
  */
 export async function readMarkdownFiles(
   rulerDir: string,
+  excludeDirs: string[] = ['commands'],
 ): Promise<{ path: string; content: string }[]> {
   const mdFiles: { path: string; content: string }[] = [];
 
@@ -70,7 +73,15 @@ export async function readMarkdownFiles(
     const entries = await fs.readdir(dir, { withFileTypes: true });
     for (const entry of entries) {
       const fullPath = path.join(dir, entry.name);
+      const relativePath = path.relative(rulerDir, fullPath);
+
       if (entry.isDirectory()) {
+        // skip excluded directories
+        if (
+          excludeDirs.some((excludeDir) => relativePath.startsWith(excludeDir))
+        ) {
+          continue;
+        }
         await walk(fullPath);
       } else if (entry.isFile() && entry.name.endsWith('.md')) {
         const content = await fs.readFile(fullPath, 'utf8');
