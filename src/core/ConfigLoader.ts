@@ -93,7 +93,7 @@ export interface LoadedConfig {
   gitignore?: GitignoreConfig;
   /** Custom commands configuration section. */
   commands?: Record<string, CommandConfig>;
-  /** Command directory configuration. */
+  /** Command directory configuration (default: commands) */
   commandDirectory?: string;
   /** Whether to enable nested rule loading from nested .ruler directories. */
   nested?: boolean;

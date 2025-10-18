@@ -88,7 +88,7 @@ describe('CommandProcessor', () => {
       );
     });
 
-    it('should throw error for missing prompt_file', () => {
+    it('should throw error for missing prompt or prompt_file', () => {
       const config = {
         name: 'review_code',
         description: 'Review code',
@@ -96,7 +96,21 @@ describe('CommandProcessor', () => {
       } as unknown as CommandConfig;
 
       expect(() => validateCommandConfig(config)).toThrow(
-        'Command configuration missing required field: prompt_file',
+        "Command configuration must have either 'prompt' or 'prompt_file'",
+      );
+    });
+
+    it('should throw error for both prompt and prompt_file', () => {
+      const config = {
+        name: 'review_code',
+        description: 'Review code',
+        prompt: 'Inline prompt text',
+        prompt_file: 'commands/pr-review.md',
+        type: 'slash',
+      } as unknown as CommandConfig;
+
+      expect(() => validateCommandConfig(config)).toThrow(
+        "Command configuration cannot have both 'prompt' and 'prompt_file'",
       );
     });
 
@@ -374,3 +388,5 @@ describe('CommandProcessor', () => {
     });
   });
 });
+
+

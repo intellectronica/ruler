@@ -171,6 +171,29 @@ export async function initHandler(argv: InitArgs): Promise<void> {
 # [mcp_servers.example_remote]
 # url = "https://api.example.com/mcp"
 # headers = { Authorization = "Bearer REPLACE_ME" }
+
+# --- Custom Commands Directory ---
+# Specify where command prompt files are located (default: "commands")
+# command_directory = "commands"
+
+# --- Custom Commands ---
+# Define custom commands that will be propagated to supported agents
+# Each command requires: name, description, type, and either 'prompt' OR 'prompt_file'
+# Available types: "slash", "workflow", "prompt-file", "instruction"
+
+# Example with inline prompt:
+# [commands.pr-review]
+# name = "pr-review"
+# description = "Review code for best practices and security"
+# prompt = "Please review the current code for best practices, security issues, and potential improvements."
+# type = "slash"
+
+# Example with file-based prompt:
+# [commands.commit]
+# name = "commit"
+# description = "Create semantic git commits with proper formatting"
+# prompt_file = "commands/commit.md"
+# type = "slash"
 `;
   if (!(await exists(instructionsPath))) {
     // Create new AGENTS.md regardless of legacy presence.

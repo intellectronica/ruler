@@ -47,9 +47,20 @@ export function validateCommandConfig(config: CommandConfig): void {
     );
   }
 
-  if (!config.prompt_file || typeof config.prompt_file !== 'string') {
+  const hasPrompt = config.prompt && typeof config.prompt === 'string';
+  const hasPromptFile =
+    config.prompt_file && typeof config.prompt_file === 'string';
+
+  if (!hasPrompt && !hasPromptFile) {
     throw createRulerError(
-      'Command configuration missing required field: prompt_file',
+      "Command configuration must have either 'prompt' or 'prompt_file'",
+      `Command config: ${JSON.stringify(config)}`,
+    );
+  }
+
+  if (hasPrompt && hasPromptFile) {
+    throw createRulerError(
+      "Command configuration cannot have both 'prompt' and 'prompt_file'",
       `Command config: ${JSON.stringify(config)}`,
     );
   }
@@ -101,12 +112,19 @@ export async function readAllCommandFiles(
 
   for (const [cmdKey, cmdConfig] of Object.entries(commands)) {
     try {
-      const content = await readCommandFile(
-        rulerDir,
-        cmdConfig.prompt_file,
-        commandDir,
-      );
-      commandContents[cmdKey] = content;
+      // If inline prompt is provided, use it directly
+      if (cmdConfig.prompt) {
+        commandContents[cmdKey] = cmdConfig.prompt.trim();
+      }
+      // Otherwise, read from file
+      else if (cmdConfig.prompt_file) {
+        const content = await readCommandFile(
+          rulerDir,
+          cmdConfig.prompt_file,
+          commandDir,
+        );
+        commandContents[cmdKey] = content;
+      }
     } catch {
       // Log warning but continue - allow partial command processing
       console.warn(
