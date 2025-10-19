@@ -4,7 +4,7 @@ on:
   workflow_dispatch: {}
   schedule:
     # Hourly on Sundays (UTC); we gate to run only at 16:00 Europe/Zurich
-    - cron: "0 * * * 0"
+    - cron: '0 * * * 0'
 
 permissions:
   contents: read
@@ -45,6 +45,14 @@ jobs:
         run: |
           npm install -g @openai/codex
           codex --version
+      - name: Authenticate Codex CLI
+        if: ${{ steps.gate.outputs.run != 'false' }}
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$CODEX_HOME"
+          printf '%s' "$OPENAI_API_KEY" | codex login --with-api-key
 
       - name: Run Codex analysis
         if: ${{ steps.gate.outputs.run != 'false' }}
@@ -82,6 +90,10 @@ jobs:
             fi
             exit 1
           fi
+      - name: Cleanup Codex credentials
+        if: ${{ always() && steps.gate.outputs.run != 'false' }}
+        run: |
+          rm -f "$CODEX_HOME/auth.json"
 
       - name: Resolve Discussion category ID
         if: ${{ steps.gate.outputs.run != 'false' }}
@@ -135,4 +147,3 @@ jobs:
         run: |
           echo "Discussion created:"
           cat discussion_url.txt
-
