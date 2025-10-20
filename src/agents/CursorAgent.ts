@@ -1,6 +1,7 @@
 import * as path from 'path';
 import { AbstractAgent } from './AbstractAgent';
 import { IAgentConfig } from './IAgent';
+import { CommandConfig } from '../types';
 import {
   backupFile,
   writeGeneratedFile,
@@ -57,5 +58,20 @@ export class CursorAgent extends AbstractAgent {
 
   supportsMcpRemote(): boolean {
     return true;
+  }
+
+  async applyCommands(
+    commands: Record<string, CommandConfig>,
+    commandContents: Record<string, string>,
+    projectRoot: string,
+    backup = true,
+  ): Promise<void> {
+    await this.applyCommandsToDirectory(
+      commands,
+      commandContents,
+      projectRoot,
+      '.cursor/commands',
+      backup,
+    );
   }
 }

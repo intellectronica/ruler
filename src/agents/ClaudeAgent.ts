@@ -1,5 +1,6 @@
 import * as path from 'path';
 import { AbstractAgent } from './AbstractAgent';
+import { CommandConfig } from '../types';
 
 /**
  * Claude Code agent adapter.
@@ -23,5 +24,20 @@ export class ClaudeAgent extends AbstractAgent {
 
   supportsMcpRemote(): boolean {
     return true;
+  }
+
+  async applyCommands(
+    commands: Record<string, CommandConfig>,
+    commandContents: Record<string, string>,
+    projectRoot: string,
+    backup = true,
+  ): Promise<void> {
+    await this.applyCommandsToDirectory(
+      commands,
+      commandContents,
+      projectRoot,
+      '.claude/commands',
+      backup,
+    );
   }
 }
