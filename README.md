@@ -62,7 +62,7 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | OpenAI Codex CLI | `AGENTS.md`                                      | `.codex/config.toml`                             |
 | Jules            | `AGENTS.md`                                      | -                                                |
 | Cursor           | `.cursor/rules/ruler_cursor_instructions.mdc`    | `.cursor/mcp.json`                               |
-| Windsurf         | `.windsurf/rules/ruler_windsurf_instructions.md` | -                                                |
+| Windsurf         | `.windsurf/rules/ruler_windsurf_instructions.md` | `.windsurf/mcp_config.json`                      |
 | Cline            | `.clinerules`                                    | -                                                |
 | Crush            | `CRUSH.md`                                       | `.crush.json`                                    |
 | Amp              | `AGENTS.md`                                      | -                                                |
@@ -82,7 +82,7 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | Trae AI          | `.trae/rules/project_rules.md`                   | -                                                |
 | Warp             | `WARP.md`                                        | -                                                |
 | Kiro             | `.kiro/steering/ruler_kiro_instructions.md`      | -                                                |
-| Firebender       | `firebender.json`                                | -                                                |
+| Firebender       | `firebender.json`                                | `firebender.json` (embedded)                     |
 
 ## Getting Started
 
