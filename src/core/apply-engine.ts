@@ -5,7 +5,6 @@ import { concatenateRules } from './RuleProcessor';
 import { loadConfig, LoadedConfig, IAgentConfig } from './ConfigLoader';
 import { updateGitignore as updateGitignoreUtil } from './GitignoreUtils';
 import { IAgent } from '../agents/IAgent';
-import { WindsurfAgent } from '../agents/WindsurfAgent';
 import { mergeMcp } from '../mcp/merge';
 import { getNativeMcpPath, readNativeMcp, writeNativeMcp } from '../paths/mcp';
 import { propagateMcpToOpenHands } from '../mcp/propagateOpenHandsMcp';
@@ -428,21 +427,7 @@ export async function applyConfigurationsToAgents(
     const agentConfig = config.agentConfigs[agent.getIdentifier()];
 
     // Collect output paths for .gitignore
-    let outputPaths: string[];
-
-    // Special handling for Windsurf agent to account for file splitting
-    if (
-      agent.getIdentifier() === 'windsurf' &&
-      'getActualOutputPaths' in agent
-    ) {
-      outputPaths = (agent as WindsurfAgent).getActualOutputPaths(
-        concatenatedRules,
-        projectRoot,
-        agentConfig,
-      );
-    } else {
-      outputPaths = getAgentOutputPaths(agent, projectRoot, agentConfig);
-    }
+    const outputPaths = getAgentOutputPaths(agent, projectRoot, agentConfig);
     logVerbose(
       `Agent ${agent.getName()} output paths: ${outputPaths.join(', ')}`,
       verbose,
