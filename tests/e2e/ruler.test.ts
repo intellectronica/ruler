@@ -53,11 +53,9 @@ describe('End-to-End Ruler CLI', () => {
 
     // Check some generated files contain concatenated rules
     const claudePath = path.join(projectRoot, 'CLAUDE.md');
-    const codexPath = path.join(projectRoot, 'AGENTS.md');
+    const agentsMdPath = path.join(projectRoot, 'AGENTS.md'); // Used by Codex, Windsurf, Aider, etc.
     const cursorPath = path.join(projectRoot, '.cursor', 'rules', 'ruler_cursor_instructions.mdc');
-    const windsurfPath = path.join(projectRoot, '.windsurf', 'rules', 'ruler_windsurf_instructions.md');
     const clinePath = path.join(projectRoot, '.clinerules');
-    const aiderMd = path.join(projectRoot, 'AGENTS.md');
     const aiderCfg = path.join(projectRoot, '.aider.conf.yml');
     const firebasePath = path.join(projectRoot, '.idx', 'airules.md');
     const openHandsInstructionsPath = path.join(
@@ -80,11 +78,9 @@ describe('End-to-End Ruler CLI', () => {
 
     return Promise.all([
       expect(fs.readFile(claudePath, 'utf8')).resolves.toContain('Rule B'),
-      expect(fs.readFile(codexPath, 'utf8')).resolves.toContain('Rule A'),
+      expect(fs.readFile(agentsMdPath, 'utf8')).resolves.toContain('Rule A'), // Used by Codex, Windsurf, Aider, etc.
       expect(fs.readFile(cursorPath, 'utf8')).resolves.toContain('Rule B'),
-      expect(fs.readFile(windsurfPath, 'utf8')).resolves.toContain('Rule A'),
       expect(fs.readFile(clinePath, 'utf8')).resolves.toContain('Rule B'),
-      expect(fs.readFile(aiderMd, 'utf8')).resolves.toContain('Rule A'),
       expect(fs.readFile(aiderCfg, 'utf8')).resolves.toContain('AGENTS.md'),
       expect(fs.readFile(firebasePath, 'utf8')).resolves.toContain('Rule B'),
       expect(
@@ -200,13 +196,9 @@ output_path = "awesome.md"
       expect(gitignoreContent).toContain('CLAUDE.md');
       expect(gitignoreContent).toContain('AGENTS.md');
       expect(gitignoreContent).toContain('.cursor/rules/ruler_cursor_instructions.mdc');
-      expect(gitignoreContent).toContain('.windsurf/rules/ruler_windsurf_instructions.md');
       expect(gitignoreContent).toContain('.clinerules');
-      expect(gitignoreContent).toContain('AGENTS.md');
       expect(gitignoreContent).toContain('.aider.conf.yml');
       expect(gitignoreContent).toContain('.idx/airules.md');
-      expect(gitignoreContent).toContain('.openhands/microagents/repo.md');
-      expect(gitignoreContent).toContain('config.toml');
       expect(gitignoreContent).toContain('.openhands/microagents/repo.md');
       expect(gitignoreContent).toContain('config.toml');
     });

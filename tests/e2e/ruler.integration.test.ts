@@ -242,8 +242,8 @@ File: extra-rules.md
       '.kilocode/rules/ruler_kilocode_instructions.md',
       '.kilocode/mcp.json',
       
-      // Windsurf
-      '.windsurf/rules/ruler_windsurf_instructions.md',
+      // Windsurf - now uses AGENTS.md (no separate file)
+      '.windsurf/mcp_config.json', // MCP config still created
       
       // Cline
       '.clinerules',
@@ -389,7 +389,7 @@ File: extra-rules.md
       '.augment/rules/ruler_augment_instructions.md',
       '.openhands/microagents/repo.md',
       '.kilocode/rules/ruler_kilocode_instructions.md',
-      '.windsurf/rules/ruler_windsurf_instructions.md',
+      // Windsurf now uses AGENTS.md (checked above in markdownRuleFiles)
       '.clinerules',
       '.goosehints',
       '.junie/guidelines.md',
