@@ -7,7 +7,9 @@ describe('Duplication Fix Tests', () => {
   let tempDir: string;
 
   beforeEach(async () => {
-    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ruler-duplication-test-'));
+    tempDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), 'ruler-duplication-test-'),
+    );
   });
 
   afterEach(async () => {
@@ -18,28 +20,34 @@ describe('Duplication Fix Tests', () => {
     // Create .ruler directory and instructions file
     const rulerDir = path.join(tempDir, '.ruler');
     await fs.mkdir(rulerDir);
-    
+
     const instructionsContent = `# Default Agent Instructions
 
 These are the default instructions for the agent.
 `;
-    
-    await fs.writeFile(path.join(rulerDir, 'instructions.md'), instructionsContent);
+
+    await fs.writeFile(
+      path.join(rulerDir, 'instructions.md'),
+      instructionsContent,
+    );
 
     // Test agents that the user mentioned having issues with
     const agentsToTest = ['codex', 'windsurf', 'copilot', 'gemini', 'cursor'];
-    
+
     for (const agentName of agentsToTest) {
       console.log(`Testing agent: ${agentName}`);
-      
+
       // Clean up any previous agent files
       const agentFiles = await fs.readdir(tempDir);
       for (const file of agentFiles) {
         if (file !== '.ruler') {
-          await fs.rm(path.join(tempDir, file), { recursive: true, force: true });
+          await fs.rm(path.join(tempDir, file), {
+            recursive: true,
+            force: true,
+          });
         }
       }
-      
+
       // First apply
       await applyAllAgentConfigs(
         tempDir, // projectRoot
@@ -55,7 +63,10 @@ These are the default instructions for the agent.
       );
 
       // Debug: Check what files were created
-      console.log(`Files in ${tempDir} after first apply:`, await fs.readdir(tempDir, { recursive: true }));
+      console.log(
+        `Files in ${tempDir} after first apply:`,
+        await fs.readdir(tempDir, { recursive: true }),
+      );
 
       // Read the generated files after first apply
       const agentsMdPath = path.join(tempDir, 'AGENTS.md');
@@ -67,13 +78,13 @@ These are the default instructions for the agent.
         // Skip this agent if AGENTS.md wasn't created
         continue;
       }
-      
+
       // Find the agent-specific output file
       let agentOutputPath: string | null = null;
       let agentOutputContent1 = '';
-      
+
       if (agentName === 'windsurf') {
-        agentOutputPath = path.join(tempDir, '.windsurf', 'rules', 'ruler_windsurf_instructions.md');
+        agentOutputPath = agentsMdPath;
       } else if (agentName === 'codex') {
         agentOutputPath = path.join(tempDir, '.codex', 'instructions.md');
       } else if (agentName === 'copilot') {
@@ -83,7 +94,7 @@ These are the default instructions for the agent.
       } else if (agentName === 'gemini') {
         agentOutputPath = path.join(tempDir, '.gemini', 'instructions.md');
       }
-      
+
       if (agentOutputPath) {
         try {
           agentOutputContent1 = await fs.readFile(agentOutputPath, 'utf8');
@@ -108,7 +119,7 @@ These are the default instructions for the agent.
 
       // Read the generated files after second apply
       const agentsMdContent2 = await fs.readFile(agentsMdPath, 'utf8');
-      
+
       let agentOutputContent2 = '';
       if (agentOutputPath) {
         try {
@@ -124,15 +135,19 @@ These are the default instructions for the agent.
 
       // Check that content is identical between first and second apply
       expect(agentsMdContent2).toBe(agentsMdContent1);
-      
+
       if (agentOutputPath && agentOutputContent1 && agentOutputContent2) {
         expect(agentOutputContent2).toBe(agentOutputContent1);
-        
+
         // Check that there's no duplication in the content
         // Count occurrences of the instruction content
-        const instructionOccurrences1 = (agentOutputContent1.match(/# Default Agent Instructions/g) || []).length;
-        const instructionOccurrences2 = (agentOutputContent2.match(/# Default Agent Instructions/g) || []).length;
-        
+        const instructionOccurrences1 = (
+          agentOutputContent1.match(/# Default Agent Instructions/g) || []
+        ).length;
+        const instructionOccurrences2 = (
+          agentOutputContent2.match(/# Default Agent Instructions/g) || []
+        ).length;
+
         expect(instructionOccurrences1).toBe(1);
         expect(instructionOccurrences2).toBe(1);
       }

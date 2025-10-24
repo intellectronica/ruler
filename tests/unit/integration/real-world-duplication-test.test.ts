@@ -1,7 +1,10 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
-import { loadSingleConfiguration, processSingleConfiguration } from '../../../src/core/apply-engine';
+import {
+  loadSingleConfiguration,
+  processSingleConfiguration,
+} from '../../../src/core/apply-engine';
 import { resolveSelectedAgents } from '../../../src/core/agent-selection';
 import { allAgents } from '../../../src/agents';
 import { getAgentOutputPaths } from '../../../src/agents/agent-utils';
@@ -27,36 +30,50 @@ describe('Real-world duplication bug reproduction', () => {
 
   it('should simulate the real CLI workflow with consecutive applies', async () => {
     // Step 1: Create initial ruler content like a real project would have
-    const initialRulerContent = 'You are a helpful coding assistant.\n\nAlways write clean, well-documented code.';
+    const initialRulerContent =
+      'You are a helpful coding assistant.\n\nAlways write clean, well-documented code.';
     await fs.writeFile(path.join(rulerDir, 'AGENTS.md'), initialRulerContent);
-    
+
     // Also create a basic ruler.toml config
-    await fs.writeFile(path.join(rulerDir, 'ruler.toml'), '[agents.windsurf]\nenabled = true');
+    await fs.writeFile(
+      path.join(rulerDir, 'ruler.toml'),
+      '[agents.windsurf]\nenabled = true',
+    );
 
     // Step 2: First apply - simulate `ruler apply`
     console.log('\n=== FIRST APPLY ===');
     let config = await loadSingleConfiguration(projectRoot, undefined, true);
-    console.log('First apply concatenated rules length:', config.concatenatedRules.length);
-    console.log('First apply concatenated rules:', JSON.stringify(config.concatenatedRules));
-    
+    console.log(
+      'First apply concatenated rules length:',
+      config.concatenatedRules.length,
+    );
+    console.log(
+      'First apply concatenated rules:',
+      JSON.stringify(config.concatenatedRules),
+    );
+
     const agents = resolveSelectedAgents(config.config, allAgents);
-    const windsurfAgent = agents.find(a => a.getIdentifier() === 'windsurf');
-    const agentsMdAgent = agents.find(a => a.getIdentifier() === 'agentsmd');
-    
+    const windsurfAgent = agents.find((a) => a.getIdentifier() === 'windsurf');
+    const agentsMdAgent = agents.find((a) => a.getIdentifier() === 'agentsmd');
+
     if (!windsurfAgent) {
       throw new Error('Windsurf agent not found');
     }
     if (!agentsMdAgent) {
       throw new Error('AgentsMd agent not found');
     }
-    
-    console.log('Windsurf default output path:', windsurfAgent.getDefaultOutputPath(projectRoot));
-    
+
+    console.log(
+      'Windsurf default output path:',
+      windsurfAgent.getDefaultOutputPath(projectRoot),
+    );
+
     // Get the actual windsurf path using the agent utils
     const windsurfPaths = getAgentOutputPaths(windsurfAgent, projectRoot);
     console.log('Windsurf actual paths:', windsurfPaths);
     const windsurfPath = windsurfPaths[0];
-    
+    expect(windsurfPath).toBe(path.join(projectRoot, 'AGENTS.md'));
+
     // Apply the configuration
     await processSingleConfiguration(
       [agentsMdAgent, windsurfAgent], // Only these two agents
@@ -64,56 +81,81 @@ describe('Real-world duplication bug reproduction', () => {
       projectRoot,
       false, // verbose
       false, // dryRun
-      true,  // cliMcpEnabled
+      true, // cliMcpEnabled
     );
-    
+
     // Check what was created
     const firstWindsurfContent = await fs.readFile(windsurfPath, 'utf8');
     console.log('First windsurf content length:', firstWindsurfContent.length);
-    console.log('First windsurf content:', JSON.stringify(firstWindsurfContent));
-    
+    console.log(
+      'First windsurf content:',
+      JSON.stringify(firstWindsurfContent),
+    );
+
     const agentsMdPath = path.join(projectRoot, 'AGENTS.md');
     const firstAgentsMdContent = await fs.readFile(agentsMdPath, 'utf8');
-    console.log('First AGENTS.md content:', JSON.stringify(firstAgentsMdContent));
+    console.log(
+      'First AGENTS.md content:',
+      JSON.stringify(firstAgentsMdContent),
+    );
 
     // Step 3: Second apply - this should be idempotent
     console.log('\n=== SECOND APPLY ===');
     config = await loadSingleConfiguration(projectRoot, undefined, true);
-    console.log('Second apply concatenated rules length:', config.concatenatedRules.length);
-    console.log('Second apply concatenated rules:', JSON.stringify(config.concatenatedRules));
-    
+    console.log(
+      'Second apply concatenated rules length:',
+      config.concatenatedRules.length,
+    );
+    console.log(
+      'Second apply concatenated rules:',
+      JSON.stringify(config.concatenatedRules),
+    );
+
     await processSingleConfiguration(
       [agentsMdAgent, windsurfAgent],
       config,
       projectRoot,
       false, // verbose
       false, // dryRun
-      true,  // cliMcpEnabled
+      true, // cliMcpEnabled
     );
-    
+
     const secondWindsurfContent = await fs.readFile(windsurfPath, 'utf8');
-    console.log('Second windsurf content length:', secondWindsurfContent.length);
-    console.log('Second windsurf content:', JSON.stringify(secondWindsurfContent));
+    console.log(
+      'Second windsurf content length:',
+      secondWindsurfContent.length,
+    );
+    console.log(
+      'Second windsurf content:',
+      JSON.stringify(secondWindsurfContent),
+    );
 
     const secondAgentsMdContent = await fs.readFile(agentsMdPath, 'utf8');
-    console.log('Second AGENTS.md content:', JSON.stringify(secondAgentsMdContent));
+    console.log(
+      'Second AGENTS.md content:',
+      JSON.stringify(secondAgentsMdContent),
+    );
 
     // Step 4: Assertions
     // The concatenated rules should be identical between applies
-    const firstConcatenatedRules = '\n\n<!-- Source: .ruler/AGENTS.md -->\n\nYou are a helpful coding assistant.\n\nAlways write clean, well-documented code.\n';
+    const firstConcatenatedRules =
+      '\n\n<!-- Source: .ruler/AGENTS.md -->\n\nYou are a helpful coding assistant.\n\nAlways write clean, well-documented code.\n';
     expect(config.concatenatedRules).toBe(firstConcatenatedRules);
-    
+
     // The windsurf content should be identical (no duplication)
     expect(secondWindsurfContent).toBe(firstWindsurfContent);
-    
-    // The windsurf content should NOT contain the generated marker
-    expect(secondWindsurfContent).not.toContain('<!-- Generated by Ruler -->');
-    
+
+    // The windsurf content should contain the generated marker because it now
+    // reuses the shared AGENTS.md instructions file.
+    expect(secondWindsurfContent).toContain('<!-- Generated by Ruler -->');
+
     // The AGENTS.md should contain the marker
     expect(secondAgentsMdContent).toContain('<!-- Generated by Ruler -->');
-    
+
     // The windsurf content should only contain the original content once
-    const rulerContentCount = (secondWindsurfContent.match(/helpful coding assistant/g) || []).length;
+    const rulerContentCount = (
+      secondWindsurfContent.match(/helpful coding assistant/g) || []
+    ).length;
     expect(rulerContentCount).toBe(1);
   });
 });

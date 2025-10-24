@@ -1,7 +1,11 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import os from 'os';
-import { setupTestProject, teardownTestProject, runRulerWithInheritedStdio } from '../harness';
+import {
+  setupTestProject,
+  teardownTestProject,
+  runRulerWithInheritedStdio,
+} from '../harness';
 
 describe('Comprehensive Integration Test: ruler init → setup → apply → verify', () => {
   let testProject: { projectRoot: string };
@@ -16,7 +20,7 @@ describe('Comprehensive Integration Test: ruler init → setup → apply → ver
 
   it('executes complete CLI workflow and inspects all generated files', async () => {
     const { projectRoot } = testProject;
-    
+
     console.log('=== COMPREHENSIVE INTEGRATION TEST ===');
     console.log(`Test project directory: ${projectRoot}`);
 
@@ -118,7 +122,9 @@ enabled = true
 `;
 
     await fs.writeFile(initTomlFile, customTomlContent);
-    console.log('✓ Custom ruler.toml created with stdio and remote MCP servers');
+    console.log(
+      '✓ Custom ruler.toml created with stdio and remote MCP servers',
+    );
 
     // Step 3: Create custom AGENTS.md with sample instructions
     console.log('\n3. Creating custom AGENTS.md with sample instructions...');
@@ -202,58 +208,55 @@ File: extra-rules.md
       'AGENTS.md', // Root level concatenated file
       'CLAUDE.md', // Claude-specific file
       'CRUSH.md', // Crush-specific file
-      
+
       // GitHub Copilot (writes to both AGENTS.md and legacy location)
       '.github/copilot-instructions.md', // Copilot legacy instructions for VS Code extension
       '.vscode/mcp.json', // Copilot MCP config
-      
+
       // Cursor
       '.cursor/rules/ruler_cursor_instructions.mdc',
       '.cursor/mcp.json', // Cursor MCP config
-      
+
       // OpenCode
       'opencode.json',
-      
+
       // Gemini CLI
       '.gemini/settings.json',
-      
+
       // Codex CLI (OpenAI)
       '.codex/config.toml',
-      
+
       // Zed
       '.zed/settings.json',
-      
+
       // AugmentCode
       '.augment/rules/ruler_augment_instructions.md',
       '.vscode/settings.json', // AugmentCode also uses VSCode settings
-      
+
       // Qwen Code
       '.qwen/settings.json',
-      
+
       // Aider
       '.aider.conf.yml',
       '.mcp.json', // Aider MCP config
-      
+
       // OpenHands
       'config.toml',
       '.openhands/microagents/repo.md',
-      
+
       // Kilo Code
       '.kilocode/rules/ruler_kilocode_instructions.md',
       '.kilocode/mcp.json',
-      
-      // Windsurf
-      '.windsurf/rules/ruler_windsurf_instructions.md',
-      
+
       // Cline
       '.clinerules',
-      
+
       // Goose
       '.goosehints',
-      
+
       // Junie
       '.junie/guidelines.md',
-      
+
       // Shared
       '.gitignore', // Updated gitignore
     ];
@@ -270,7 +273,9 @@ File: extra-rules.md
           generatedFiles.push(expectedFile);
           const content = await fs.readFile(filePath, 'utf8');
           fileContents[expectedFile] = content;
-          console.log(`✓ Found generated file: ${expectedFile} (${content.length} characters)`);
+          console.log(
+            `✓ Found generated file: ${expectedFile} (${content.length} characters)`,
+          );
         }
       } catch (error) {
         console.log(`✗ Expected file not found: ${expectedFile}`);
@@ -284,23 +289,41 @@ File: extra-rules.md
     const markdownRuleFiles = ['AGENTS.md', 'CLAUDE.md', 'CRUSH.md'];
     for (const file of markdownRuleFiles) {
       if (fileContents[file]) {
-        expect(fileContents[file]).toContain('Integration Test Sample Instructions');
-        expect(fileContents[file]).toContain('Extra Rules for Integration Testing');
+        expect(fileContents[file]).toContain(
+          'Integration Test Sample Instructions',
+        );
+        expect(fileContents[file]).toContain(
+          'Extra Rules for Integration Testing',
+        );
         console.log(`✓ ${file} contains expected concatenated content`);
       }
     }
 
     // Verify Cursor instructions
     if (fileContents['.cursor/rules/ruler_cursor_instructions.mdc']) {
-      expect(fileContents['.cursor/rules/ruler_cursor_instructions.mdc']).toContain('Integration Test Sample Instructions');
+      expect(
+        fileContents['.cursor/rules/ruler_cursor_instructions.mdc'],
+      ).toContain('Integration Test Sample Instructions');
       console.log('✓ Cursor instructions contain expected content');
     }
 
     // Verify JSON configuration files
     const jsonConfigFiles = [
-      { path: 'opencode.json', expectedSchema: 'https://opencode.ai/config.json', mcpKey: 'mcp' },
-      { path: '.gemini/settings.json', expectedKey: 'contextFileName', expectedValue: 'AGENTS.md' },
-      { path: '.qwen/settings.json', expectedKey: 'contextFileName', expectedValue: 'AGENTS.md' },
+      {
+        path: 'opencode.json',
+        expectedSchema: 'https://opencode.ai/config.json',
+        mcpKey: 'mcp',
+      },
+      {
+        path: '.gemini/settings.json',
+        expectedKey: 'contextFileName',
+        expectedValue: 'AGENTS.md',
+      },
+      {
+        path: '.qwen/settings.json',
+        expectedKey: 'contextFileName',
+        expectedValue: 'AGENTS.md',
+      },
       { path: '.zed/settings.json', mcpKey: 'context_servers' },
       { path: '.vscode/settings.json', mcpKey: 'mcpServers' }, // AugmentCode
       { path: '.cursor/mcp.json', mcpKey: 'mcpServers' },
@@ -309,41 +332,54 @@ File: extra-rules.md
       { path: '.mcp.json', mcpKey: 'mcpServers' }, // Aider
     ];
 
-    for (const { path, expectedSchema, expectedKey, expectedValue, mcpKey } of jsonConfigFiles) {
+    for (const {
+      path,
+      expectedSchema,
+      expectedKey,
+      expectedValue,
+      mcpKey,
+    } of jsonConfigFiles) {
       if (fileContents[path]) {
         try {
           const config = JSON.parse(fileContents[path]);
-          
+
           // Check for expected schema
           if (expectedSchema) {
             expect(config.$schema).toBe(expectedSchema);
             console.log(`✓ ${path} has correct schema: ${expectedSchema}`);
           }
-          
+
           // Check for expected key-value pairs
           if (expectedKey && expectedValue) {
             expect(config[expectedKey]).toBe(expectedValue);
-            console.log(`✓ ${path} has correct ${expectedKey}: ${expectedValue}`);
+            console.log(
+              `✓ ${path} has correct ${expectedKey}: ${expectedValue}`,
+            );
           }
-          
+
           // Check for MCP server configurations
           if (mcpKey && config[mcpKey]) {
             const mcpServers = config[mcpKey];
             expect(typeof mcpServers).toBe('object');
-            
+
             // Should contain our configured MCP servers
             if (mcpServers.filesystem_server) {
-              console.log(`✓ ${path} contains filesystem_server MCP configuration`);
+              console.log(
+                `✓ ${path} contains filesystem_server MCP configuration`,
+              );
             }
             if (mcpServers.remote_api) {
               console.log(`✓ ${path} contains remote_api MCP configuration`);
             }
-            
-            console.log(`✓ ${path} has valid MCP configuration with ${Object.keys(mcpServers).length} server(s)`);
+
+            console.log(
+              `✓ ${path} has valid MCP configuration with ${Object.keys(mcpServers).length} server(s)`,
+            );
           }
-          
         } catch (error) {
-          console.log(`⚠ ${path} is not valid JSON or has unexpected structure: ${error}`);
+          console.log(
+            `⚠ ${path} is not valid JSON or has unexpected structure: ${error}`,
+          );
         }
       }
     }
@@ -359,17 +395,18 @@ File: extra-rules.md
         try {
           // Basic TOML validation - just check it contains expected sections
           const content = fileContents[path];
-          
+
           if (mcpKey) {
-            expect(content).toMatch(new RegExp(`\\[${mcpKey}\\.|${mcpKey}\\s*=`));
+            expect(content).toMatch(
+              new RegExp(`\\[${mcpKey}\\.|${mcpKey}\\s*=`),
+            );
             console.log(`✓ ${path} contains ${mcpKey} configuration`);
           }
-          
+
           if (sectionKey) {
             expect(content).toContain(sectionKey);
             console.log(`✓ ${path} contains ${sectionKey} section`);
           }
-          
         } catch (error) {
           console.log(`⚠ ${path} has unexpected TOML structure: ${error}`);
         }
@@ -389,7 +426,6 @@ File: extra-rules.md
       '.augment/rules/ruler_augment_instructions.md',
       '.openhands/microagents/repo.md',
       '.kilocode/rules/ruler_kilocode_instructions.md',
-      '.windsurf/rules/ruler_windsurf_instructions.md',
       '.clinerules',
       '.goosehints',
       '.junie/guidelines.md',
@@ -397,28 +433,45 @@ File: extra-rules.md
 
     for (const file of otherInstructionFiles) {
       if (fileContents[file]) {
-        expect(fileContents[file]).toContain('Integration Test Sample Instructions');
+        expect(fileContents[file]).toContain(
+          'Integration Test Sample Instructions',
+        );
         console.log(`✓ ${file} contains expected content`);
       }
     }
 
     // Verify GitHub Copilot dual-file support
-    if (fileContents['AGENTS.md'] && fileContents['.github/copilot-instructions.md']) {
-      expect(fileContents['AGENTS.md']).toBe(fileContents['.github/copilot-instructions.md']);
-      console.log('✓ GitHub Copilot: AGENTS.md and .github/copilot-instructions.md have identical content');
-      expect(fileContents['.github/copilot-instructions.md']).toContain('Integration Test Sample Instructions');
+    if (
+      fileContents['AGENTS.md'] &&
+      fileContents['.github/copilot-instructions.md']
+    ) {
+      expect(fileContents['AGENTS.md']).toBe(
+        fileContents['.github/copilot-instructions.md'],
+      );
+      console.log(
+        '✓ GitHub Copilot: AGENTS.md and .github/copilot-instructions.md have identical content',
+      );
+      expect(fileContents['.github/copilot-instructions.md']).toContain(
+        'Integration Test Sample Instructions',
+      );
       console.log('✓ GitHub Copilot legacy file contains expected content');
     }
 
     // Verify .gitignore contains ruler entries
     if (fileContents['.gitignore']) {
-      expect(fileContents['.gitignore']).toContain('# START Ruler Generated Files');
-      expect(fileContents['.gitignore']).toContain('# END Ruler Generated Files');
+      expect(fileContents['.gitignore']).toContain(
+        '# START Ruler Generated Files',
+      );
+      expect(fileContents['.gitignore']).toContain(
+        '# END Ruler Generated Files',
+      );
       // Should contain entries for some of the files we're generating
       expect(fileContents['.gitignore']).toContain('opencode.json');
       expect(fileContents['.gitignore']).toContain('.gemini/settings.json');
       // Note: .codex/config.toml might not be in gitignore if agent doesn't register it
-      console.log('✓ .gitignore contains comprehensive Ruler-generated entries');
+      console.log(
+        '✓ .gitignore contains comprehensive Ruler-generated entries',
+      );
     }
 
     // Step 8: Output all generated file contents for manual inspection
@@ -433,7 +486,9 @@ File: extra-rules.md
     }
 
     // Step 9: Verify MCP server configurations across all agents
-    console.log('\n9. Verifying MCP server configurations across all agents...');
+    console.log(
+      '\n9. Verifying MCP server configurations across all agents...',
+    );
 
     // List of MCP config files and their expected keys
     const mcpConfigs = [
@@ -452,12 +507,15 @@ File: extra-rules.md
       try {
         const stat = await fs.stat(path.join(projectRoot, configPath));
         if (stat.isFile()) {
-          const content = await fs.readFile(path.join(projectRoot, configPath), 'utf8');
+          const content = await fs.readFile(
+            path.join(projectRoot, configPath),
+            'utf8',
+          );
           const config = JSON.parse(content);
-          
+
           if (config[key]) {
             const servers = config[key];
-            
+
             // Verify our configured MCP servers are present
             let foundServers = [];
             if (servers.filesystem_server || servers['filesystem_server']) {
@@ -466,16 +524,20 @@ File: extra-rules.md
             if (servers.remote_api || servers['remote_api']) {
               foundServers.push('remote_api');
             }
-            
+
             if (foundServers.length > 0) {
-              console.log(`✓ ${name} MCP configuration contains: ${foundServers.join(', ')}`);
-              
+              console.log(
+                `✓ ${name} MCP configuration contains: ${foundServers.join(', ')}`,
+              );
+
               // Detailed verification for specific agents
               if (configPath === 'opencode.json') {
                 // OpenCode has a special structure
                 if (servers.filesystem_server) {
                   expect(servers.filesystem_server.type).toBe('local');
-                  expect(Array.isArray(servers.filesystem_server.command)).toBe(true);
+                  expect(Array.isArray(servers.filesystem_server.command)).toBe(
+                    true,
+                  );
                 }
               } else if (configPath === '.zed/settings.json') {
                 // Zed uses context_servers with source: "custom"
@@ -486,24 +548,34 @@ File: extra-rules.md
                 // Most other agents use standard MCP format
                 if (servers.filesystem_server) {
                   expect(servers.filesystem_server.command).toBe('npx');
-                  expect(Array.isArray(servers.filesystem_server.args)).toBe(true);
+                  expect(Array.isArray(servers.filesystem_server.args)).toBe(
+                    true,
+                  );
                 }
               }
-              
+
               // Display the full config for inspection
-              console.log(`\n📄 ${name.toUpperCase()} MCP CONFIG (${configPath}):`);
+              console.log(
+                `\n📄 ${name.toUpperCase()} MCP CONFIG (${configPath}):`,
+              );
               console.log('─'.repeat(50));
               console.log(JSON.stringify(config[key], null, 2));
               console.log('─'.repeat(50));
             } else {
-              console.log(`ℹ ${name} MCP configuration found but no test servers configured`);
+              console.log(
+                `ℹ ${name} MCP configuration found but no test servers configured`,
+              );
             }
           } else {
-            console.log(`ℹ ${name} config file found but no MCP section with key '${key}'`);
+            console.log(
+              `ℹ ${name} config file found but no MCP section with key '${key}'`,
+            );
           }
         }
       } catch (error) {
-        console.log(`ℹ ${name} MCP file not found or not accessible: ${configPath}`);
+        console.log(
+          `ℹ ${name} MCP file not found or not accessible: ${configPath}`,
+        );
       }
     }
 
@@ -513,9 +585,12 @@ File: extra-rules.md
       const stat = await fs.stat(codexConfigPath);
       if (stat.isFile()) {
         const content = await fs.readFile(codexConfigPath, 'utf8');
-        
+
         // Check if it contains our MCP servers
-        if (content.includes('[mcp_servers.filesystem_server]') || content.includes('[mcp_servers.remote_api]')) {
+        if (
+          content.includes('[mcp_servers.filesystem_server]') ||
+          content.includes('[mcp_servers.remote_api]')
+        ) {
           console.log('✓ Codex CLI TOML configuration contains MCP servers');
           console.log('\n📄 CODEX CLI CONFIG (.codex/config.toml):');
           console.log('─'.repeat(50));
@@ -547,7 +622,9 @@ File: extra-rules.md
     expect(generatedFiles.length).toBeGreaterThan(10);
     console.log(`\n✅ COMPREHENSIVE INTEGRATION TEST COMPLETED SUCCESSFULLY!`);
     console.log(`Generated ${generatedFiles.length} files total`);
-    console.log(`Files generated: ${generatedFiles.slice(0, 10).join(', ')}${generatedFiles.length > 10 ? `, and ${generatedFiles.length - 10} more...` : ''}`);
+    console.log(
+      `Files generated: ${generatedFiles.slice(0, 10).join(', ')}${generatedFiles.length > 10 ? `, and ${generatedFiles.length - 10} more...` : ''}`,
+    );
     console.log('='.repeat(80));
   }, 60000); // 60 second timeout for the comprehensive test
 });

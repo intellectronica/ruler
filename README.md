@@ -62,7 +62,7 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | OpenAI Codex CLI | `AGENTS.md`                                      | `.codex/config.toml`                             |
 | Jules            | `AGENTS.md`                                      | -                                                |
 | Cursor           | `.cursor/rules/ruler_cursor_instructions.mdc`    | `.cursor/mcp.json`                               |
-| Windsurf         | `.windsurf/rules/ruler_windsurf_instructions.md` | -                                                |
+| Windsurf         | `AGENTS.md`                                      | -                                                |
 | Cline            | `.clinerules`                                    | -                                                |
 | Crush            | `CRUSH.md`                                       | `.crush.json`                                    |
 | Amp              | `AGENTS.md`                                      | -                                                |
@@ -576,7 +576,6 @@ node_modules/
 .aider.conf.yml
 .clinerules
 .cursor/rules/ruler_cursor_instructions.mdc
-.windsurf/rules/ruler_windsurf_instructions.md
 AGENTS.md
 CLAUDE.md
 AGENTS.md
