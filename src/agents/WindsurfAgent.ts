@@ -16,4 +16,16 @@ export class WindsurfAgent extends AgentsMdAgent {
   getName(): string {
     return 'Windsurf';
   }
+
+  override getMcpServerKey(): string {
+    return 'mcpServers';
+  }
+
+  override supportsMcpStdio(): boolean {
+    return true;
+  }
+
+  override supportsMcpRemote(): boolean {
+    return true;
+  }
 }

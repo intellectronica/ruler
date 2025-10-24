@@ -27,6 +27,13 @@ describe('WindsurfAgent', () => {
     expect(agent.getName()).toBe('Windsurf');
   });
 
+  it('preserves Windsurf MCP support and server key configuration', () => {
+    const agent = new WindsurfAgent();
+    expect(agent.supportsMcpStdio()).toBe(true);
+    expect(agent.supportsMcpRemote()).toBe(true);
+    expect(agent.getMcpServerKey()).toBe('mcpServers');
+  });
+
   it('defaults to writing to the shared AGENTS.md at the project root', () => {
     const agent = new WindsurfAgent();
     expect(agent.getDefaultOutputPath(tmpDir)).toBe(
