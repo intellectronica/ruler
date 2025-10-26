@@ -58,11 +58,17 @@ export async function getSkillsGitignorePaths(
   ];
 }
 
-// Track if we've already warned about experimental features
+/**
+ * Module-level state to track if experimental warning has been shown.
+ * This ensures the warning appears once per process (CLI invocation), not once per apply call.
+ * This is intentional: warnings about experimental features should not spam the user
+ * if they run multiple applies in the same process or test suite.
+ */
 let hasWarnedExperimental = false;
 
 /**
- * Warns once about experimental skills features and uv requirement.
+ * Warns once per process about experimental skills features and uv requirement.
+ * Uses module-level state to prevent duplicate warnings within the same process.
  */
 function warnOnceExperimentalAndUv(verbose: boolean, dryRun: boolean): void {
   if (hasWarnedExperimental) {
