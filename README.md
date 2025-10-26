@@ -574,18 +574,20 @@ Skills can be organized flat or nested:
 ```
 .ruler/skills/
 ├── my-skill/
-│   ├── skill.json         # Required: skill metadata
-│   ├── prompt.md          # Required: skill instructions
-│   ├── resource1.txt      # Optional: additional resources
-│   └── resource2.md
+│   ├── SKILL.md           # Required: skill instructions/knowledge
+│   ├── helper.py          # Optional: additional resources (scripts)
+│   └── reference.md       # Optional: additional resources (docs)
 └── another-skill/
-    ├── skill.json
-    └── prompt.md
+    └── SKILL.md
 ```
 
 Each skill must contain:
-- `skill.json` - Metadata file with skill name, description, and version
-- `prompt.md` - Instructions or knowledge base for the skill
+- `SKILL.md` - Primary skill file with instructions or knowledge base
+
+Skills can optionally include additional resources like:
+- Markdown files with supplementary documentation
+- Python, JavaScript, or other scripts
+- Configuration files or data
 
 ### Configuration
 
@@ -641,9 +643,8 @@ to your `.gitignore` file within the managed Ruler block.
 ### Validation
 
 Ruler validates discovered skills and issues warnings for:
-- Missing required files (`skill.json`, `prompt.md`)
-- Invalid directory structures
-- Malformed skill metadata
+- Missing required file (`SKILL.md`)
+- Invalid directory structures (directories without `SKILL.md` and no sub-skills)
 
 Warnings don't prevent propagation but help identify potential issues.
 
@@ -661,16 +662,17 @@ This shows which skills would be copied and which MCP servers would be configure
 ```bash
 # 1. Add a skill to your project
 mkdir -p .ruler/skills/my-skill
-cat > .ruler/skills/my-skill/skill.json << 'EOF'
-{
-  "name": "my-skill",
-  "description": "My custom skill",
-  "version": "1.0.0"
-}
-EOF
-cat > .ruler/skills/my-skill/prompt.md << 'EOF'
+cat > .ruler/skills/my-skill/SKILL.md << 'EOF'
 # My Custom Skill
+
 This skill provides specialized knowledge for...
+
+## Usage
+
+When working on this project, always follow these guidelines:
+- Use TypeScript for all new code
+- Write tests for all features
+- Follow the existing code style
 EOF
 
 # 2. Apply to all agents (skills enabled by default)
