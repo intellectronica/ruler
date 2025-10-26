@@ -138,6 +138,7 @@ export async function applyAllAgentConfigs(
       cliMcpEnabled,
       cliMcpStrategy,
       backup,
+      skillsEnabledResolved,
     );
   } else {
     const singleConfig = await loadSingleConfiguration(
@@ -191,6 +192,7 @@ export async function applyAllAgentConfigs(
       cliMcpEnabled,
       cliMcpStrategy,
       backup,
+      skillsEnabledResolved,
     );
   }
 

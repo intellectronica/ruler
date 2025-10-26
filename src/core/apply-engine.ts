@@ -328,6 +328,7 @@ export async function processHierarchicalConfigurations(
   cliMcpEnabled: boolean,
   cliMcpStrategy?: McpStrategy,
   backup = true,
+  skillsEnabled = true,
 ): Promise<string[]> {
   const allGeneratedPaths: string[] = [];
 
@@ -349,6 +350,7 @@ export async function processHierarchicalConfigurations(
       cliMcpEnabled,
       cliMcpStrategy,
       backup,
+      skillsEnabled,
     );
     const normalizedPaths = paths.map((p) =>
       path.isAbsolute(p) ? p : path.join(rulerRoot, p),
@@ -380,6 +382,7 @@ export async function processSingleConfiguration(
   cliMcpEnabled: boolean,
   cliMcpStrategy?: McpStrategy,
   backup = true,
+  skillsEnabled = true,
 ): Promise<string[]> {
   return await applyConfigurationsToAgents(
     agents,
@@ -392,6 +395,7 @@ export async function processSingleConfiguration(
     cliMcpEnabled,
     cliMcpStrategy,
     backup,
+    skillsEnabled,
   );
 }
 
@@ -417,6 +421,7 @@ export async function applyConfigurationsToAgents(
   cliMcpEnabled = true,
   cliMcpStrategy?: McpStrategy,
   backup = true,
+  skillsEnabled = true,
 ): Promise<string[]> {
   const generatedPaths: string[] = [];
   let agentsMdWritten = false;
@@ -499,6 +504,7 @@ export async function applyConfigurationsToAgents(
       cliMcpEnabled,
       cliMcpStrategy,
       backup,
+      skillsEnabled,
     );
   }
 
@@ -517,6 +523,7 @@ async function handleMcpConfiguration(
   cliMcpEnabled = true,
   cliMcpStrategy?: McpStrategy,
   backup = true,
+  skillsEnabled = true,
 ): Promise<void> {
   if (!agentSupportsMcp(agent)) {
     logVerbose(
@@ -537,7 +544,9 @@ async function handleMcpConfiguration(
   let filteredMcpJson = filterMcpConfigForAgent(rulerMcpJson, agent);
 
   // Add Skillz MCP server for agents that support stdio but not native skills
+  // Only add if skills are enabled
   if (
+    skillsEnabled &&
     agent.supportsMcpStdio?.() &&
     !agent.supportsNativeSkills?.() &&
     filteredMcpJson
