@@ -217,7 +217,7 @@ merge_strategy = "overwrite"
         const configs = await loadNestedConfigurations(
           tmpDir,
           undefined,
-          false,
+          true, // localOnly: true to avoid picking up global config
           true,
         );
 
