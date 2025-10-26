@@ -19,6 +19,7 @@ export interface ApplyArgs {
   'local-only': boolean;
   nested?: boolean;
   backup: boolean;
+  skills?: boolean;
 }
 
 export interface InitArgs {
@@ -84,6 +85,14 @@ export async function applyHandler(argv: ApplyArgs): Promise<void> {
     }
   }
 
+  // Determine skills preference: CLI > TOML > Default (enabled)
+  let skillsEnabled: boolean | undefined;
+  if (argv.skills !== undefined) {
+    skillsEnabled = argv.skills;
+  } else {
+    skillsEnabled = undefined; // Let config/default decide
+  }
+
   try {
     await applyAllAgentConfigs(
       projectRoot,
@@ -97,6 +106,7 @@ export async function applyHandler(argv: ApplyArgs): Promise<void> {
       localOnly,
       nested,
       backup,
+      skillsEnabled,
     );
     console.log('Ruler apply completed successfully.');
   } catch (err: unknown) {

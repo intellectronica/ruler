@@ -24,3 +24,28 @@ export async function discoverSkills(
   // Walk the skills tree
   return await walkSkillsTree(skillsDir);
 }
+
+/**
+ * Gets the paths that skills will generate, for gitignore purposes.
+ * Returns empty array if skills directory doesn't exist.
+ */
+export async function getSkillsGitignorePaths(
+  projectRoot: string,
+): Promise<string[]> {
+  const skillsDir = path.join(projectRoot, RULER_SKILLS_PATH);
+
+  // Check if skills directory exists
+  try {
+    await fs.access(skillsDir);
+  } catch {
+    return [];
+  }
+
+  // Import here to avoid circular dependency
+  const { CLAUDE_SKILLS_PATH, SKILLZ_DIR } = await import('../constants');
+
+  return [
+    path.join(projectRoot, CLAUDE_SKILLS_PATH),
+    path.join(projectRoot, SKILLZ_DIR),
+  ];
+}

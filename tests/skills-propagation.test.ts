@@ -109,4 +109,60 @@ describe('Skills Discovery and Validation', () => {
       expect(result.warnings).toHaveLength(0);
     });
   });
+
+  describe('copySkillsDirectory', () => {
+    it('copies .ruler/skills to destination preserving structure', async () => {
+      const { copySkillsDirectory } = await import(
+        '../src/core/SkillsUtils'
+      );
+      const skillsDir = path.join(tmpDir, '.ruler', 'skills');
+      const skill1 = path.join(skillsDir, 'skill1');
+      const nested = path.join(skillsDir, 'category', 'nested-skill');
+
+      await fs.mkdir(skill1, { recursive: true });
+      await fs.mkdir(nested, { recursive: true });
+      await fs.writeFile(path.join(skill1, SKILL_MD_FILENAME), '# Skill 1');
+      await fs.writeFile(
+        path.join(skill1, 'helper.py'),
+        'print("helper")',
+      );
+      await fs.writeFile(
+        path.join(nested, SKILL_MD_FILENAME),
+        '# Nested Skill',
+      );
+
+      const destDir = path.join(tmpDir, '.claude', 'skills');
+      await copySkillsDirectory(skillsDir, destDir);
+
+      const copiedSkill1 = path.join(destDir, 'skill1', SKILL_MD_FILENAME);
+      const copiedHelper = path.join(destDir, 'skill1', 'helper.py');
+      const copiedNested = path.join(
+        destDir,
+        'category',
+        'nested-skill',
+        SKILL_MD_FILENAME,
+      );
+
+      expect(await fs.readFile(copiedSkill1, 'utf8')).toBe('# Skill 1');
+      expect(await fs.readFile(copiedHelper, 'utf8')).toBe('print("helper")');
+      expect(await fs.readFile(copiedNested, 'utf8')).toBe('# Nested Skill');
+    });
+
+    it('creates destination directory if it does not exist', async () => {
+      const { copySkillsDirectory } = await import(
+        '../src/core/SkillsUtils'
+      );
+      const skillsDir = path.join(tmpDir, '.ruler', 'skills');
+      const skill1 = path.join(skillsDir, 'skill1');
+
+      await fs.mkdir(skill1, { recursive: true });
+      await fs.writeFile(path.join(skill1, SKILL_MD_FILENAME), '# Skill 1');
+
+      const destDir = path.join(tmpDir, '.claude', 'skills');
+      await copySkillsDirectory(skillsDir, destDir);
+
+      const copiedSkill1 = path.join(destDir, 'skill1', SKILL_MD_FILENAME);
+      expect(await fs.readFile(copiedSkill1, 'utf8')).toBe('# Skill 1');
+    });
+  });
 });

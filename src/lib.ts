@@ -40,6 +40,7 @@ export async function applyAllAgentConfigs(
   localOnly = false,
   nested = false,
   backup = true,
+  skillsEnabled?: boolean,
 ): Promise<void> {
   // Load configuration and rules
   logVerbose(
@@ -147,9 +148,20 @@ export async function applyAllAgentConfigs(
     );
   }
 
+  // Add skills-generated paths to gitignore if skills are enabled
+  let allGeneratedPaths = generatedPaths;
+  if (skillsEnabled !== false) {
+    // Skills enabled by default or explicitly
+    const { getSkillsGitignorePaths } = await import(
+      './core/SkillsProcessor'
+    );
+    const skillsPaths = await getSkillsGitignorePaths(projectRoot);
+    allGeneratedPaths = [...generatedPaths, ...skillsPaths];
+  }
+
   await updateGitignore(
     projectRoot,
-    generatedPaths,
+    allGeneratedPaths,
     loadedConfig,
     cliGitignoreEnabled,
     dryRun,

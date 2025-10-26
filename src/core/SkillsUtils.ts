@@ -106,3 +106,35 @@ export function formatValidationWarnings(warnings: string[]): string {
   }
   return warnings.map((w) => `  - ${w}`).join('\n');
 }
+
+/**
+ * Recursively copies a directory and all its contents.
+ */
+async function copyRecursive(src: string, dest: string): Promise<void> {
+  const stat = await fs.stat(src);
+
+  if (stat.isDirectory()) {
+    await fs.mkdir(dest, { recursive: true });
+    const entries = await fs.readdir(src, { withFileTypes: true });
+
+    for (const entry of entries) {
+      const srcPath = path.join(src, entry.name);
+      const destPath = path.join(dest, entry.name);
+      await copyRecursive(srcPath, destPath);
+    }
+  } else {
+    await fs.copyFile(src, dest);
+  }
+}
+
+/**
+ * Copies the skills directory to the destination, preserving structure.
+ * Creates the destination directory if it doesn't exist.
+ */
+export async function copySkillsDirectory(
+  srcDir: string,
+  destDir: string,
+): Promise<void> {
+  await fs.mkdir(destDir, { recursive: true });
+  await copyRecursive(srcDir, destDir);
+}
