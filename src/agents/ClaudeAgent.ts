@@ -24,4 +24,8 @@ export class ClaudeAgent extends AbstractAgent {
   supportsMcpRemote(): boolean {
     return true;
   }
+
+  supportsNativeSkills(): boolean {
+    return true;
+  }
 }

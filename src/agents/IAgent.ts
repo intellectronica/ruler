@@ -64,4 +64,11 @@ export interface IAgent {
    * Defaults to false if not implemented.
    */
   supportsMcpRemote?(): boolean;
+
+  /**
+   * Returns whether this agent has native skills support (like Claude Code).
+   * When true, skills are copied directly to the agent's skills directory.
+   * Defaults to false if not implemented.
+   */
+  supportsNativeSkills?(): boolean;
 }
