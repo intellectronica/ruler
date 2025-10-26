@@ -1,5 +1,5 @@
 import * as path from 'path';
-import { promises as fs, promises } from 'fs';
+import { promises as fs } from 'fs';
 import * as FileSystemUtils from './FileSystemUtils';
 import { concatenateRules } from './RuleProcessor';
 import { loadConfig, LoadedConfig, IAgentConfig } from './ConfigLoader';
