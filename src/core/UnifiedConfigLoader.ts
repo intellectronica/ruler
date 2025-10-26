@@ -82,12 +82,25 @@ export async function loadUnifiedConfig(
     nested = (tomlRaw as Record<string, unknown>).nested as boolean;
   }
 
+  // Parse skills configuration
+  let skillsConfig;
+  if (tomlRaw && typeof tomlRaw === 'object') {
+    const skillsSection = (tomlRaw as Record<string, unknown>).skills;
+    if (skillsSection && typeof skillsSection === 'object') {
+      const skillsObj = skillsSection as Record<string, unknown>;
+      if (typeof skillsObj.enabled === 'boolean') {
+        skillsConfig = { enabled: skillsObj.enabled };
+      }
+    }
+  }
+
   const toml: TomlConfig = {
     raw: tomlRaw,
     schemaVersion: 1,
     agents: {},
     defaultAgents,
     nested,
+    skills: skillsConfig,
   };
 
   // Collect rule markdown files
