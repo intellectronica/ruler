@@ -546,7 +546,7 @@ async function handleMcpConfiguration(
     try {
       const { SKILLZ_DIR } = await import('../constants');
       const skillzPath = path.join(projectRoot, SKILLZ_DIR);
-      await promises.access(skillzPath);
+      await fs.access(skillzPath);
 
       // Skills exist, add Skillz MCP server
       const { buildSkillzMcpConfig } = await import('./SkillsProcessor');
