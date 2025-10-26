@@ -100,6 +100,19 @@ export async function applyAllAgentConfigs(
       verbose,
     );
 
+    // Propagate skills if enabled
+    const skillsEnabledResolved = skillsEnabled !== false; // enabled by default
+    if (skillsEnabledResolved) {
+      const { propagateSkills } = await import('./core/SkillsProcessor');
+      await propagateSkills(
+        projectRoot,
+        selectedAgents,
+        skillsEnabledResolved,
+        verbose,
+        dryRun,
+      );
+    }
+
     generatedPaths = await processHierarchicalConfigurations(
       selectedAgents,
       hierarchicalConfigs,
@@ -135,6 +148,19 @@ export async function applyAllAgentConfigs(
       `Selected ${selectedAgents.length} agents: ${selectedAgents.map((a) => a.getName()).join(', ')}`,
       verbose,
     );
+
+    // Propagate skills if enabled
+    const skillsEnabledResolved = skillsEnabled !== false; // enabled by default
+    if (skillsEnabledResolved) {
+      const { propagateSkills } = await import('./core/SkillsProcessor');
+      await propagateSkills(
+        projectRoot,
+        selectedAgents,
+        skillsEnabledResolved,
+        verbose,
+        dryRun,
+      );
+    }
 
     generatedPaths = await processSingleConfiguration(
       selectedAgents,

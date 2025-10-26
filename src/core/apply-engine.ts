@@ -1,5 +1,5 @@
 import * as path from 'path';
-import { promises as fs } from 'fs';
+import { promises as fs, promises } from 'fs';
 import * as FileSystemUtils from './FileSystemUtils';
 import { concatenateRules } from './RuleProcessor';
 import { loadConfig, LoadedConfig, IAgentConfig } from './ConfigLoader';
@@ -534,7 +534,47 @@ async function handleMcpConfiguration(
     return;
   }
 
-  const filteredMcpJson = filterMcpConfigForAgent(rulerMcpJson, agent);
+  let filteredMcpJson = filterMcpConfigForAgent(rulerMcpJson, agent);
+
+  // Add Skillz MCP server for agents that support stdio but not native skills
+  if (
+    agent.supportsMcpStdio?.() &&
+    !agent.supportsNativeSkills?.() &&
+    filteredMcpJson
+  ) {
+    // Check if .skillz directory exists
+    try {
+      const { SKILLZ_DIR } = await import('../constants');
+      const skillzPath = path.join(projectRoot, SKILLZ_DIR);
+      await promises.access(skillzPath);
+
+      // Skills exist, add Skillz MCP server
+      const { buildSkillzMcpConfig } = await import('./SkillsProcessor');
+      const skillzMcp = buildSkillzMcpConfig(projectRoot);
+
+      // Merge Skillz server into MCP config
+      const mcpServers = (filteredMcpJson.mcpServers as Record<
+        string,
+        unknown
+      >) || {};
+      filteredMcpJson = {
+        ...filteredMcpJson,
+        mcpServers: {
+          ...mcpServers,
+          ...skillzMcp,
+        },
+      };
+
+      logVerboseInfo(
+        `Added Skillz MCP server for ${agent.getName()}`,
+        verbose,
+        dryRun,
+      );
+    } catch {
+      // No .skillz directory, skip adding Skillz server
+    }
+  }
+
   if (!filteredMcpJson) {
     logVerbose(
       `No compatible MCP servers found for ${agent.getName()} - skipping MCP configuration`,
