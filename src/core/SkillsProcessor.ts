@@ -90,7 +90,11 @@ export async function propagateSkills(
   dryRun: boolean,
 ): Promise<void> {
   if (!skillsEnabled) {
-    logVerboseInfo('Skills support disabled, skipping propagation', verbose, dryRun);
+    logVerboseInfo(
+      'Skills support disabled, skipping propagation',
+      verbose,
+      dryRun,
+    );
     return;
   }
 
@@ -101,7 +105,11 @@ export async function propagateSkills(
     await fs.access(skillsDir);
   } catch {
     // No skills directory - this is fine
-    logVerboseInfo('No .ruler/skills directory found, skipping skills propagation', verbose, dryRun);
+    logVerboseInfo(
+      'No .ruler/skills directory found, skipping skills propagation',
+      verbose,
+      dryRun,
+    );
     return;
   }
 
@@ -120,9 +128,7 @@ export async function propagateSkills(
   logVerboseInfo(`Discovered ${skills.length} skill(s)`, verbose, dryRun);
 
   // Check if any agents need skills
-  const hasNativeSkillsAgent = agents.some((a) =>
-    a.supportsNativeSkills?.(),
-  );
+  const hasNativeSkillsAgent = agents.some((a) => a.supportsNativeSkills?.());
   const hasMcpAgent = agents.some(
     (a) => a.supportsMcpStdio?.() && !a.supportsNativeSkills?.(),
   );
@@ -186,9 +192,7 @@ export async function propagateSkillsForClaude(
   }
 
   if (options.dryRun) {
-    return [
-      `Copy skills from ${RULER_SKILLS_PATH} to ${CLAUDE_SKILLS_PATH}`,
-    ];
+    return [`Copy skills from ${RULER_SKILLS_PATH} to ${CLAUDE_SKILLS_PATH}`];
   }
 
   // Ensure .claude directory exists
@@ -196,7 +200,7 @@ export async function propagateSkillsForClaude(
 
   // Use atomic replace: copy to temp, then rename
   const tempDir = path.join(claudeDir, `skills.tmp-${Date.now()}`);
-  
+
   try {
     // Copy to temp directory
     await copySkillsDirectory(skillsDir, tempDir);

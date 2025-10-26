@@ -1,4 +1,9 @@
-import { McpConfig, GitignoreConfig, SkillsConfig, McpStrategy } from '../types';
+import {
+  McpConfig,
+  GitignoreConfig,
+  SkillsConfig,
+  McpStrategy,
+} from '../types';
 
 export interface RulerUnifiedConfig {
   meta: ConfigMeta;

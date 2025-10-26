@@ -553,10 +553,8 @@ async function handleMcpConfiguration(
       const skillzMcp = buildSkillzMcpConfig(projectRoot);
 
       // Merge Skillz server into MCP config
-      const mcpServers = (filteredMcpJson.mcpServers as Record<
-        string,
-        unknown
-      >) || {};
+      const mcpServers =
+        (filteredMcpJson.mcpServers as Record<string, unknown>) || {};
       filteredMcpJson = {
         ...filteredMcpJson,
         mcpServers: {
