@@ -101,7 +101,13 @@ export async function applyAllAgentConfigs(
     );
 
     // Propagate skills if enabled
-    const skillsEnabledResolved = skillsEnabled !== false; // enabled by default
+    // Precedence: CLI flag > ruler.toml > default (enabled)
+    const skillsEnabledResolved =
+      skillsEnabled !== undefined
+        ? skillsEnabled
+        : rootConfig.skills?.enabled !== undefined
+          ? rootConfig.skills.enabled
+          : true; // default to enabled
     if (skillsEnabledResolved) {
       const { propagateSkills } = await import('./core/SkillsProcessor');
       await propagateSkills(
@@ -150,7 +156,13 @@ export async function applyAllAgentConfigs(
     );
 
     // Propagate skills if enabled
-    const skillsEnabledResolved = skillsEnabled !== false; // enabled by default
+    // Precedence: CLI flag > ruler.toml > default (enabled)
+    const skillsEnabledResolved =
+      skillsEnabled !== undefined
+        ? skillsEnabled
+        : singleConfig.config.skills?.enabled !== undefined
+          ? singleConfig.config.skills.enabled
+          : true; // default to enabled
     if (skillsEnabledResolved) {
       const { propagateSkills } = await import('./core/SkillsProcessor');
       await propagateSkills(
@@ -176,7 +188,14 @@ export async function applyAllAgentConfigs(
 
   // Add skills-generated paths to gitignore if skills are enabled
   let allGeneratedPaths = generatedPaths;
-  if (skillsEnabled !== false) {
+  // Use the same precedence logic for gitignore paths
+  const skillsEnabledForGitignore =
+    skillsEnabled !== undefined
+      ? skillsEnabled
+      : loadedConfig.skills?.enabled !== undefined
+        ? loadedConfig.skills.enabled
+        : true; // default to enabled
+  if (skillsEnabledForGitignore) {
     // Skills enabled by default or explicitly
     const { getSkillsGitignorePaths } = await import('./core/SkillsProcessor');
     const skillsPaths = await getSkillsGitignorePaths(projectRoot);
