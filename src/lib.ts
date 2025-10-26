@@ -20,6 +20,20 @@ const agents: IAgent[] = allAgents;
 export { allAgents };
 
 /**
+ * Resolves skills enabled state based on precedence: CLI flag > ruler.toml > default (enabled)
+ */
+function resolveSkillsEnabled(
+  cliFlag: boolean | undefined,
+  configSetting: boolean | undefined,
+): boolean {
+  return cliFlag !== undefined
+    ? cliFlag
+    : configSetting !== undefined
+      ? configSetting
+      : true; // default to enabled
+}
+
+/**
  * Applies ruler configurations for all supported AI agents.
  * @param projectRoot Root directory of the project
  */
@@ -40,6 +54,7 @@ export async function applyAllAgentConfigs(
   localOnly = false,
   nested = false,
   backup = true,
+  skillsEnabled?: boolean,
 ): Promise<void> {
   // Load configuration and rules
   logVerbose(
@@ -99,6 +114,30 @@ export async function applyAllAgentConfigs(
       verbose,
     );
 
+    // Propagate skills if enabled - do this for each nested directory
+    const skillsEnabledResolved = resolveSkillsEnabled(
+      skillsEnabled,
+      rootConfig.skills?.enabled,
+    );
+    if (skillsEnabledResolved) {
+      const { propagateSkills } = await import('./core/SkillsProcessor');
+      // Propagate skills for each nested .ruler directory
+      for (const configEntry of hierarchicalConfigs) {
+        const nestedRoot = path.dirname(configEntry.rulerDir);
+        logVerbose(
+          `Propagating skills for nested directory: ${nestedRoot}`,
+          verbose,
+        );
+        await propagateSkills(
+          nestedRoot,
+          selectedAgents,
+          skillsEnabledResolved,
+          verbose,
+          dryRun,
+        );
+      }
+    }
+
     generatedPaths = await processHierarchicalConfigurations(
       selectedAgents,
       hierarchicalConfigs,
@@ -107,6 +146,7 @@ export async function applyAllAgentConfigs(
       cliMcpEnabled,
       cliMcpStrategy,
       backup,
+      skillsEnabledResolved,
     );
   } else {
     const singleConfig = await loadSingleConfiguration(
@@ -135,6 +175,22 @@ export async function applyAllAgentConfigs(
       verbose,
     );
 
+    // Propagate skills if enabled
+    const skillsEnabledResolved = resolveSkillsEnabled(
+      skillsEnabled,
+      singleConfig.config.skills?.enabled,
+    );
+    if (skillsEnabledResolved) {
+      const { propagateSkills } = await import('./core/SkillsProcessor');
+      await propagateSkills(
+        projectRoot,
+        selectedAgents,
+        skillsEnabledResolved,
+        verbose,
+        dryRun,
+      );
+    }
+
     generatedPaths = await processSingleConfiguration(
       selectedAgents,
       singleConfig,
@@ -144,12 +200,26 @@ export async function applyAllAgentConfigs(
       cliMcpEnabled,
       cliMcpStrategy,
       backup,
+      skillsEnabledResolved,
     );
+  }
+
+  // Add skills-generated paths to gitignore if skills are enabled
+  let allGeneratedPaths = generatedPaths;
+  const skillsEnabledForGitignore = resolveSkillsEnabled(
+    skillsEnabled,
+    loadedConfig.skills?.enabled,
+  );
+  if (skillsEnabledForGitignore) {
+    // Skills enabled by default or explicitly
+    const { getSkillsGitignorePaths } = await import('./core/SkillsProcessor');
+    const skillsPaths = await getSkillsGitignorePaths(projectRoot);
+    allGeneratedPaths = [...generatedPaths, ...skillsPaths];
   }
 
   await updateGitignore(
     projectRoot,
-    generatedPaths,
+    allGeneratedPaths,
     loadedConfig,
     cliGitignoreEnabled,
     dryRun,

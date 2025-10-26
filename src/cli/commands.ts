@@ -72,6 +72,11 @@ export function run(): void {
             description:
               'Enable/disable creation of .bak backup files (default: enabled)',
             default: true,
+          })
+          .option('skills', {
+            type: 'boolean',
+            description:
+              'Enable/disable skills support (experimental, default: enabled)',
           });
       },
       applyHandler,

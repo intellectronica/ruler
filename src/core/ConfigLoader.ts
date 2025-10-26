@@ -3,7 +3,12 @@ import * as path from 'path';
 import * as os from 'os';
 import { parse as parseTOML } from '@iarna/toml';
 import { z } from 'zod';
-import { McpConfig, GlobalMcpConfig, GitignoreConfig } from '../types';
+import {
+  McpConfig,
+  GlobalMcpConfig,
+  GitignoreConfig,
+  SkillsConfig,
+} from '../types';
 import { createRulerError } from '../constants';
 
 interface ErrnoException extends Error {
@@ -41,6 +46,11 @@ const rulerConfigSchema = z.object({
       enabled: z.boolean().optional(),
     })
     .optional(),
+  skills: z
+    .object({
+      enabled: z.boolean().optional(),
+    })
+    .optional(),
   nested: z.boolean().optional(),
 });
 
@@ -70,6 +80,8 @@ export interface LoadedConfig {
   mcp?: GlobalMcpConfig;
   /** Gitignore configuration section. */
   gitignore?: GitignoreConfig;
+  /** Skills configuration section. */
+  skills?: SkillsConfig;
   /** Whether to enable nested rule loading from nested .ruler directories. */
   nested?: boolean;
   /** Whether the nested option was explicitly provided in the config. */
@@ -212,6 +224,15 @@ export async function loadConfig(
     gitignoreConfig.enabled = rawGitignoreSection.enabled;
   }
 
+  const rawSkillsSection =
+    raw.skills && typeof raw.skills === 'object' && !Array.isArray(raw.skills)
+      ? (raw.skills as Record<string, unknown>)
+      : {};
+  const skillsConfig: SkillsConfig = {};
+  if (typeof rawSkillsSection.enabled === 'boolean') {
+    skillsConfig.enabled = rawSkillsSection.enabled;
+  }
+
   const nestedDefined = typeof raw.nested === 'boolean';
   const nested = nestedDefined ? (raw.nested as boolean) : false;
 
@@ -221,6 +242,7 @@ export async function loadConfig(
     cliAgents,
     mcp: globalMcpConfig,
     gitignore: gitignoreConfig,
+    skills: skillsConfig,
     nested,
     nestedDefined,
   };

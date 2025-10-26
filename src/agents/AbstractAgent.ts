@@ -74,4 +74,12 @@ export abstract class AbstractAgent implements IAgent {
   supportsMcpRemote(): boolean {
     return false;
   }
+
+  /**
+   * Returns whether this agent has native skills support.
+   * Defaults to false if not overridden.
+   */
+  supportsNativeSkills(): boolean {
+    return false;
+  }
 }

@@ -51,3 +51,11 @@ export function logVerboseInfo(
     console.log(`${prefix} ${message}`);
   }
 }
+
+// Skills-related constants
+export const SKILLS_DIR = 'skills';
+export const RULER_SKILLS_PATH = '.ruler/skills';
+export const CLAUDE_SKILLS_PATH = '.claude/skills';
+export const SKILLZ_DIR = '.skillz';
+export const SKILL_MD_FILENAME = 'SKILL.md';
+export const SKILLZ_MCP_SERVER_NAME = 'skillz';

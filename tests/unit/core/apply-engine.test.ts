@@ -217,8 +217,8 @@ merge_strategy = "overwrite"
         const configs = await loadNestedConfigurations(
           tmpDir,
           undefined,
-          false,
-          true,
+          true, // localOnly: true to avoid picking up global config
+          true, // resolvedNested: true to force nested mode
         );
 
         expect(configs).toHaveLength(3);
