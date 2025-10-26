@@ -218,7 +218,7 @@ merge_strategy = "overwrite"
           tmpDir,
           undefined,
           true, // localOnly: true to avoid picking up global config
-          true,
+          true, // resolvedNested: true to force nested mode
         );
 
         expect(configs).toHaveLength(3);
