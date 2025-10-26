@@ -537,19 +537,20 @@ async function handleMcpConfiguration(
   const mcpEnabledForAgent =
     cliMcpEnabled && (agentConfig?.mcp?.enabled ?? config.mcp?.enabled ?? true);
 
-  if (!dest || !mcpEnabledForAgent || !rulerMcpJson) {
+  if (!dest || !mcpEnabledForAgent) {
     return;
   }
 
-  let filteredMcpJson = filterMcpConfigForAgent(rulerMcpJson, agent);
+  let filteredMcpJson = rulerMcpJson
+    ? filterMcpConfigForAgent(rulerMcpJson, agent)
+    : null;
 
   // Add Skillz MCP server for agents that support stdio but not native skills
   // Only add if skills are enabled
   if (
     skillsEnabled &&
     agent.supportsMcpStdio?.() &&
-    !agent.supportsNativeSkills?.() &&
-    filteredMcpJson
+    !agent.supportsNativeSkills?.()
   ) {
     // Check if .skillz directory exists
     try {
@@ -562,6 +563,10 @@ async function handleMcpConfiguration(
       const skillzMcp = buildSkillzMcpConfig(projectRoot);
 
       // Merge Skillz server into MCP config
+      // Initialize empty config if null
+      if (!filteredMcpJson) {
+        filteredMcpJson = { mcpServers: {} };
+      }
       const mcpServers =
         (filteredMcpJson.mcpServers as Record<string, unknown>) || {};
       filteredMcpJson = {
