@@ -620,7 +620,7 @@ Example auto-generated MCP server configuration:
 ```toml
 [mcp_servers.skillz]
 command = "uvx"
-args = ["skillz", "--skills-dir", "/absolute/path/to/project/.skillz"]
+args = ["skillz@latest", "/absolute/path/to/project/.skillz"]
 ```
 
 ### `.gitignore` Integration
