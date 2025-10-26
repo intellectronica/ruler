@@ -114,20 +114,28 @@ export async function applyAllAgentConfigs(
       verbose,
     );
 
-    // Propagate skills if enabled
+    // Propagate skills if enabled - do this for each nested directory
     const skillsEnabledResolved = resolveSkillsEnabled(
       skillsEnabled,
       rootConfig.skills?.enabled,
     );
     if (skillsEnabledResolved) {
       const { propagateSkills } = await import('./core/SkillsProcessor');
-      await propagateSkills(
-        projectRoot,
-        selectedAgents,
-        skillsEnabledResolved,
-        verbose,
-        dryRun,
-      );
+      // Propagate skills for each nested .ruler directory
+      for (const configEntry of hierarchicalConfigs) {
+        const nestedRoot = path.dirname(configEntry.rulerDir);
+        logVerbose(
+          `Propagating skills for nested directory: ${nestedRoot}`,
+          verbose,
+        );
+        await propagateSkills(
+          nestedRoot,
+          selectedAgents,
+          skillsEnabledResolved,
+          verbose,
+          dryRun,
+        );
+      }
     }
 
     generatedPaths = await processHierarchicalConfigurations(
