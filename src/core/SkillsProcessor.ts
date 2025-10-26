@@ -151,28 +151,22 @@ export async function propagateSkills(
 
   // Copy to Claude skills directory if needed
   if (hasNativeSkillsAgent) {
-    const claudeSkillsPath = path.join(projectRoot, CLAUDE_SKILLS_PATH);
     logVerboseInfo(
       `Copying skills to ${CLAUDE_SKILLS_PATH} for Claude Code`,
       verbose,
       dryRun,
     );
-    if (!dryRun) {
-      await copySkillsDirectory(skillsDir, claudeSkillsPath);
-    }
+    await propagateSkillsForClaude(projectRoot, { dryRun });
   }
 
   // Copy to .skillz directory if needed
   if (hasMcpAgent) {
-    const skillzPath = path.join(projectRoot, SKILLZ_DIR);
     logVerboseInfo(
       `Copying skills to ${SKILLZ_DIR} for MCP agents`,
       verbose,
       dryRun,
     );
-    if (!dryRun) {
-      await copySkillsDirectory(skillsDir, skillzPath);
-    }
+    await propagateSkillsForSkillz(projectRoot, { dryRun });
   }
 }
 
