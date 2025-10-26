@@ -225,6 +225,63 @@ export async function propagateSkillsForClaude(
 }
 
 /**
+ * Propagates skills for MCP agents by copying .ruler/skills to .skillz.
+ * Uses atomic replace to ensure safe overwriting of existing skills.
+ * Returns dry-run steps if dryRun is true, otherwise returns empty array.
+ */
+export async function propagateSkillsForSkillz(
+  projectRoot: string,
+  options: { dryRun: boolean },
+): Promise<string[]> {
+  const skillsDir = path.join(projectRoot, RULER_SKILLS_PATH);
+  const skillzPath = path.join(projectRoot, SKILLZ_DIR);
+
+  // Check if source skills directory exists
+  try {
+    await fs.access(skillsDir);
+  } catch {
+    // No skills directory - return empty
+    return [];
+  }
+
+  if (options.dryRun) {
+    return [
+      `Copy skills from ${RULER_SKILLS_PATH} to ${SKILLZ_DIR}`,
+      `Configure Skillz MCP server with absolute path to ${SKILLZ_DIR}`,
+    ];
+  }
+
+  // Use atomic replace: copy to temp, then rename
+  const tempDir = path.join(projectRoot, `${SKILLZ_DIR}.tmp-${Date.now()}`);
+
+  try {
+    // Copy to temp directory
+    await copySkillsDirectory(skillsDir, tempDir);
+
+    // Atomically replace the target
+    // First, remove existing target if it exists
+    try {
+      await fs.rm(skillzPath, { recursive: true, force: true });
+    } catch {
+      // Target didn't exist, that's fine
+    }
+
+    // Rename temp to target
+    await fs.rename(tempDir, skillzPath);
+  } catch (error) {
+    // Clean up temp directory on error
+    try {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    } catch {
+      // Ignore cleanup errors
+    }
+    throw error;
+  }
+
+  return [];
+}
+
+/**
  * Builds MCP config for Skillz server.
  */
 export function buildSkillzMcpConfig(
