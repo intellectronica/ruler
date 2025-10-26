@@ -86,6 +86,57 @@ function warnOnceExperimentalAndUv(verbose: boolean, dryRun: boolean): void {
 }
 
 /**
+ * Cleans up skills directories (.claude/skills and .skillz) when skills are disabled.
+ * This ensures that stale skills from previous runs don't persist when skills are turned off.
+ */
+async function cleanupSkillsDirectories(
+  projectRoot: string,
+  dryRun: boolean,
+  verbose: boolean,
+): Promise<void> {
+  const claudeSkillsPath = path.join(projectRoot, CLAUDE_SKILLS_PATH);
+  const skillzPath = path.join(projectRoot, SKILLZ_DIR);
+
+  // Clean up .claude/skills
+  try {
+    await fs.access(claudeSkillsPath);
+    if (dryRun) {
+      logVerboseInfo(
+        `DRY RUN: Would remove ${CLAUDE_SKILLS_PATH}`,
+        verbose,
+        dryRun,
+      );
+    } else {
+      await fs.rm(claudeSkillsPath, { recursive: true, force: true });
+      logVerboseInfo(
+        `Removed ${CLAUDE_SKILLS_PATH} (skills disabled)`,
+        verbose,
+        dryRun,
+      );
+    }
+  } catch {
+    // Directory doesn't exist, nothing to clean
+  }
+
+  // Clean up .skillz
+  try {
+    await fs.access(skillzPath);
+    if (dryRun) {
+      logVerboseInfo(`DRY RUN: Would remove ${SKILLZ_DIR}`, verbose, dryRun);
+    } else {
+      await fs.rm(skillzPath, { recursive: true, force: true });
+      logVerboseInfo(
+        `Removed ${SKILLZ_DIR} (skills disabled)`,
+        verbose,
+        dryRun,
+      );
+    }
+  } catch {
+    // Directory doesn't exist, nothing to clean
+  }
+}
+
+/**
  * Propagates skills for agents that need them.
  */
 export async function propagateSkills(
@@ -97,10 +148,12 @@ export async function propagateSkills(
 ): Promise<void> {
   if (!skillsEnabled) {
     logVerboseInfo(
-      'Skills support disabled, skipping propagation',
+      'Skills support disabled, cleaning up skills directories',
       verbose,
       dryRun,
     );
+    // Clean up skills directories when skills are disabled
+    await cleanupSkillsDirectories(projectRoot, dryRun, verbose);
     return;
   }
 
