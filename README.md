@@ -554,6 +554,133 @@ Ruler uses this configuration with the `merge` (default) or `overwrite` strategy
 export CODEX_HOME="$(pwd)/.codex"
 ```
 
+## Skills Support (Experimental)
+
+**⚠️ Experimental Feature**: Skills support is currently experimental and requires `uv` (the Python package manager) to be installed on your system for MCP-based agent integration.
+
+Ruler can manage and propagate Claude Code-compatible skills to supported AI agents. Skills are stored in `.ruler/skills/` and are automatically distributed to compatible agents when you run `ruler apply`.
+
+### How It Works
+
+Skills are specialized knowledge packages that extend AI agent capabilities with domain-specific expertise, workflows, or tool integrations. Ruler discovers skills in your `.ruler/skills/` directory and propagates them to compatible agents:
+
+- **Claude Code agents**: Skills are copied to `.claude/skills/` in their native format
+- **Other MCP-compatible agents**: Skills are copied to `.skillz/` and a Skillz MCP server is automatically configured via `uvx`
+
+### Skills Directory Structure
+
+Skills can be organized flat or nested:
+
+```
+.ruler/skills/
+├── my-skill/
+│   ├── skill.json         # Required: skill metadata
+│   ├── prompt.md          # Required: skill instructions
+│   ├── resource1.txt      # Optional: additional resources
+│   └── resource2.md
+└── another-skill/
+    ├── skill.json
+    └── prompt.md
+```
+
+Each skill must contain:
+- `skill.json` - Metadata file with skill name, description, and version
+- `prompt.md` - Instructions or knowledge base for the skill
+
+### Configuration
+
+Skills support is **enabled by default** but can be controlled via:
+
+**CLI flags:**
+```bash
+# Enable skills (default)
+ruler apply --skills
+
+# Disable skills
+ruler apply --no-skills
+```
+
+**Configuration in `ruler.toml`:**
+```toml
+[skills]
+enabled = true  # or false to disable
+```
+
+### Skillz MCP Server
+
+For agents that support MCP but don't have native skills support (all agents except Claude Code), Ruler automatically:
+
+1. Copies skills to `.skillz/` directory
+2. Configures a Skillz MCP server in the agent's configuration
+3. Uses `uvx` to launch the server with the absolute path to `.skillz`
+
+Example auto-generated MCP server configuration:
+```toml
+[mcp_servers.skillz]
+command = "uvx"
+args = ["skillz", "--skills-dir", "/absolute/path/to/project/.skillz"]
+```
+
+### `.gitignore` Integration
+
+When skills support is enabled and gitignore integration is active, Ruler automatically adds:
+- `.claude/skills/` (for Claude Code agents)
+- `.skillz/` (for MCP-based agents)
+
+to your `.gitignore` file within the managed Ruler block.
+
+### Requirements
+
+- **For Claude Code**: No additional requirements
+- **For MCP agents**: `uv` must be installed and available in your PATH
+  ```bash
+  # Install uv if needed
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+  ```
+
+### Validation
+
+Ruler validates discovered skills and issues warnings for:
+- Missing required files (`skill.json`, `prompt.md`)
+- Invalid directory structures
+- Malformed skill metadata
+
+Warnings don't prevent propagation but help identify potential issues.
+
+### Dry-Run Mode
+
+Test skills propagation without making changes:
+```bash
+ruler apply --dry-run
+```
+
+This shows which skills would be copied and which MCP servers would be configured.
+
+### Example Workflow
+
+```bash
+# 1. Add a skill to your project
+mkdir -p .ruler/skills/my-skill
+cat > .ruler/skills/my-skill/skill.json << 'EOF'
+{
+  "name": "my-skill",
+  "description": "My custom skill",
+  "version": "1.0.0"
+}
+EOF
+cat > .ruler/skills/my-skill/prompt.md << 'EOF'
+# My Custom Skill
+This skill provides specialized knowledge for...
+EOF
+
+# 2. Apply to all agents (skills enabled by default)
+ruler apply
+
+# 3. Skills are now available to compatible agents:
+#    - Claude Code: .claude/skills/my-skill/
+#    - Other MCP agents: .skillz/my-skill/ + Skillz MCP server configured
+```
+
 ## `.gitignore` Integration
 
 Ruler automatically manages your `.gitignore` file to keep generated agent configuration files out of version control.

@@ -165,6 +165,66 @@ export async function propagateSkills(
 }
 
 /**
+ * Propagates skills for Claude Code by copying .ruler/skills to .claude/skills.
+ * Uses atomic replace to ensure safe overwriting of existing skills.
+ * Returns dry-run steps if dryRun is true, otherwise returns empty array.
+ */
+export async function propagateSkillsForClaude(
+  projectRoot: string,
+  options: { dryRun: boolean },
+): Promise<string[]> {
+  const skillsDir = path.join(projectRoot, RULER_SKILLS_PATH);
+  const claudeSkillsPath = path.join(projectRoot, CLAUDE_SKILLS_PATH);
+  const claudeDir = path.dirname(claudeSkillsPath);
+
+  // Check if source skills directory exists
+  try {
+    await fs.access(skillsDir);
+  } catch {
+    // No skills directory - return empty
+    return [];
+  }
+
+  if (options.dryRun) {
+    return [
+      `Copy skills from ${RULER_SKILLS_PATH} to ${CLAUDE_SKILLS_PATH}`,
+    ];
+  }
+
+  // Ensure .claude directory exists
+  await fs.mkdir(claudeDir, { recursive: true });
+
+  // Use atomic replace: copy to temp, then rename
+  const tempDir = path.join(claudeDir, `skills.tmp-${Date.now()}`);
+  
+  try {
+    // Copy to temp directory
+    await copySkillsDirectory(skillsDir, tempDir);
+
+    // Atomically replace the target
+    // First, remove existing target if it exists
+    try {
+      await fs.rm(claudeSkillsPath, { recursive: true, force: true });
+    } catch {
+      // Target didn't exist, that's fine
+    }
+
+    // Rename temp to target
+    await fs.rename(tempDir, claudeSkillsPath);
+  } catch (error) {
+    // Clean up temp directory on error
+    try {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    } catch {
+      // Ignore cleanup errors
+    }
+    throw error;
+  }
+
+  return [];
+}
+
+/**
  * Builds MCP config for Skillz server.
  */
 export function buildSkillzMcpConfig(
