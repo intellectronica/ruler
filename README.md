@@ -54,16 +54,16 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 
 ## Supported AI Agents
 
-| Agent            | Rules File(s)                                 | MCP Configuration / Notes                        |
-| ---------------- | --------------------------------------------- | ------------------------------------------------ |
-| AGENTS.md        | `AGENTS.md`                                   | (pseudo-agent ensuring root `AGENTS.md` exists)  |
-| GitHub Copilot   | `AGENTS.md`                                   | `.vscode/mcp.json`                               |
-| Claude Code      | `CLAUDE.md`                                   | `.mcp.json`                                      |
-| OpenAI Codex CLI | `AGENTS.md`                                   | `.codex/config.toml`                             |
-| Jules            | `AGENTS.md`                                   | -                                                |
-| Cursor           | `.cursor/rules/ruler_cursor_instructions.mdc` | `.cursor/mcp.json`                               |
-| Windsurf         | `AGENTS.md`                                   | `.windsurf/mcp_config.json`                      |
-| Cline            | `.clinerules`                                 | -                                                |
+| Agent            | Rules File(s)                                    | MCP Configuration / Notes                        |
+| ---------------- | ------------------------------------------------ | ------------------------------------------------ |
+| AGENTS.md        | `AGENTS.md`                                      | (pseudo-agent ensuring root `AGENTS.md` exists)  |
+| GitHub Copilot   | `AGENTS.md`                                      | `.vscode/mcp.json`                               |
+| Claude Code      | `CLAUDE.md`                                      | `.mcp.json`                                      |
+| OpenAI Codex CLI | `AGENTS.md`                                      | `.codex/config.toml`                             |
+| Jules            | `AGENTS.md`                                      | -                                                |
+| Cursor           | `.cursor/rules/ruler_cursor_instructions.mdc`    | `.cursor/mcp.json`                               |
+| Windsurf         | `AGENTS.md`                                      | `.windsurf/mcp_config.json`                      |
+| Cline            | `.clinerules`                                    | -                                                |
 | Crush            | `CRUSH.md`                                       | `.crush.json`                                    |
 | Amp              | `AGENTS.md`                                      | -                                                |
 | Amazon Q CLI     | `.amazonq/rules/ruler_q_rules.md`                | `.amazonq/mcp.json`                              |
@@ -82,7 +82,7 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | Trae AI          | `.trae/rules/project_rules.md`                   | -                                                |
 | Warp             | `WARP.md`                                        | -                                                |
 | Kiro             | `.kiro/steering/ruler_kiro_instructions.md`      | -                                                |
-| Firebender       | `firebender.json`                                | -                                                |
+| Firebender       | `firebender.json`                                | `firebender.json` (rules and MCP in same file)   |
 
 ## Getting Started
 
@@ -582,9 +582,11 @@ Skills can be organized flat or nested:
 ```
 
 Each skill must contain:
+
 - `SKILL.md` - Primary skill file with instructions or knowledge base
 
 Skills can optionally include additional resources like:
+
 - Markdown files with supplementary documentation
 - Python, JavaScript, or other scripts
 - Configuration files or data
@@ -594,6 +596,7 @@ Skills can optionally include additional resources like:
 Skills support is **enabled by default** but can be controlled via:
 
 **CLI flags:**
+
 ```bash
 # Enable skills (default)
 ruler apply --skills
@@ -603,6 +606,7 @@ ruler apply --no-skills
 ```
 
 **Configuration in `ruler.toml`:**
+
 ```toml
 [skills]
 enabled = true  # or false to disable
@@ -617,6 +621,7 @@ For agents that support MCP but don't have native skills support (all agents exc
 3. Uses `uvx` to launch the server with the absolute path to `.skillz`
 
 Example auto-generated MCP server configuration:
+
 ```toml
 [mcp_servers.skillz]
 command = "uvx"
@@ -626,6 +631,7 @@ args = ["skillz@latest", "/absolute/path/to/project/.skillz"]
 ### `.gitignore` Integration
 
 When skills support is enabled and gitignore integration is active, Ruler automatically adds:
+
 - `.claude/skills/` (for Claude Code agents)
 - `.skillz/` (for MCP-based agents)
 
@@ -643,6 +649,7 @@ to your `.gitignore` file within the managed Ruler block.
 ### Validation
 
 Ruler validates discovered skills and issues warnings for:
+
 - Missing required file (`SKILL.md`)
 - Invalid directory structures (directories without `SKILL.md` and no sub-skills)
 
@@ -651,6 +658,7 @@ Warnings don't prevent propagation but help identify potential issues.
 ### Dry-Run Mode
 
 Test skills propagation without making changes:
+
 ```bash
 ruler apply --dry-run
 ```
