@@ -15,7 +15,7 @@ export class QwenCodeAgent extends AgentsMdAgent {
   async applyRulerConfig(
     concatenatedRules: string,
     projectRoot: string,
-    rulerMcpJson: Record<string, unknown> | null, // eslint-disable-line @typescript-eslint/no-unused-vars
+    _rulerMcpJson: Record<string, unknown> | null,
     agentConfig?: IAgentConfig,
   ): Promise<void> {
     // First, perform idempotent write of AGENTS.md via base class

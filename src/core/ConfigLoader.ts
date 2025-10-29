@@ -55,6 +55,28 @@ const rulerConfigSchema = z.object({
 });
 
 /**
+ * Recursively creates a new object with only enumerable string keys,
+ * effectively excluding Symbol properties.
+ * The @iarna/toml parser adds Symbol properties (Symbol(type), Symbol(declared))
+ * for metadata, which Zod v4+ validates and rejects as invalid record keys.
+ * By rebuilding the object structure using Object.keys(), we create clean objects
+ * that only contain the actual data without Symbol metadata.
+ */
+function stripSymbols(obj: unknown): unknown {
+  if (obj === null || typeof obj !== 'object') {
+    return obj;
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(stripSymbols);
+  }
+  const result: Record<string, unknown> = {};
+  for (const key of Object.keys(obj)) {
+    result[key] = stripSymbols((obj as Record<string, unknown>)[key]);
+  }
+  return result;
+}
+
+/**
  * Configuration for a specific agent as defined in ruler.toml.
  */
 export interface IAgentConfig {
@@ -127,7 +149,9 @@ export async function loadConfig(
   let raw: Record<string, unknown> = {};
   try {
     const text = await fs.readFile(configFile, 'utf8');
-    raw = text.trim() ? parseTOML(text) : {};
+    const parsed = text.trim() ? parseTOML(text) : {};
+    // Strip Symbol properties added by @iarna/toml (required for Zod v4+)
+    raw = stripSymbols(parsed) as Record<string, unknown>;
 
     // Validate the configuration with zod
     const validationResult = rulerConfigSchema.safeParse(raw);
