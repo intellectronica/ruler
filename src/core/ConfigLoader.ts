@@ -55,9 +55,12 @@ const rulerConfigSchema = z.object({
 });
 
 /**
- * Recursively removes Symbol properties from an object.
- * The @iarna/toml parser adds Symbol properties for metadata,
- * which Zod v4+ validates and rejects.
+ * Recursively creates a new object with only enumerable string keys,
+ * effectively excluding Symbol properties.
+ * The @iarna/toml parser adds Symbol properties (Symbol(type), Symbol(declared))
+ * for metadata, which Zod v4+ validates and rejects as invalid record keys.
+ * By rebuilding the object structure using Object.keys(), we create clean objects
+ * that only contain the actual data without Symbol metadata.
  */
 function stripSymbols(obj: unknown): unknown {
   if (obj === null || typeof obj !== 'object') {
