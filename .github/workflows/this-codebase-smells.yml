@@ -49,13 +49,13 @@ jobs:
         if: ${{ steps.gate.outputs.run != 'false' }}
         env:
           GITHUB_TOKEN: ${{ secrets.COPILOT_CLI_TOKEN }}
-          COPILOT_MODEL: gpt-5
         run: |
           set -o pipefail
           mkdir -p "$RUNNER_TEMP"
 
           # Read the prompt and run Copilot CLI in programmatic mode
           copilot -p "$(cat .github/workflows/this-codebase-smells/prompt.md)" \
+            --model gpt-5 \
             --allow-tool 'shell(*)' \
             --allow-tool 'read_file(*)' \
             --allow-tool 'glob(*)' \
