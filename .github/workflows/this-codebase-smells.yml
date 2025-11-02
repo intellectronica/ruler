@@ -54,6 +54,7 @@ jobs:
       - name: Run GitHub Copilot CLI analysis
         if: ${{ steps.gate.outputs.run != 'false' }}
         env:
+          GITHUB_TOKEN: ${{ secrets.COPILOT_PAT }}
           COPILOT_MODEL: gpt-5
         run: |
           set -o pipefail
