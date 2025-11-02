@@ -45,12 +45,6 @@ jobs:
           npm install -g @github/copilot
           copilot --version
 
-      - name: Authenticate GitHub CLI for Copilot
-        if: ${{ steps.gate.outputs.run != 'false' }}
-        run: |
-          echo "${{ secrets.COPILOT_CLI_TOKEN }}" | gh auth login --with-token
-          gh auth status
-
       - name: Run GitHub Copilot CLI analysis
         if: ${{ steps.gate.outputs.run != 'false' }}
         env:
