@@ -44,10 +44,19 @@ jobs:
         run: |
           npm install -g @github/copilot
           copilot --version
+
+      - name: Authenticate with GitHub CLI
+        if: ${{ steps.gate.outputs.run != 'false' }}
+        env:
+          GH_TOKEN: ${{ secrets.COPILOT_PAT }}
+        run: |
+          gh auth status || gh auth login --with-token <<< "${{ secrets.COPILOT_PAT }}"
+          gh auth status
+
       - name: Run GitHub Copilot CLI analysis
         if: ${{ steps.gate.outputs.run != 'false' }}
         env:
-          GITHUB_TOKEN: ${{ secrets.COPILOT_PAT }}
+          GH_TOKEN: ${{ secrets.COPILOT_PAT }}
           COPILOT_MODEL: gpt-5
         run: |
           set -o pipefail
