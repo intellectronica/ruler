@@ -48,13 +48,13 @@ jobs:
       - name: Authenticate GitHub CLI for Copilot
         if: ${{ steps.gate.outputs.run != 'false' }}
         run: |
-          echo "${{ secrets.COPILOT_PAT }}" | gh auth login --with-token
+          echo "${{ secrets.COPILOT_CLI_TOKEN }}" | gh auth login --with-token
           gh auth status
 
       - name: Run GitHub Copilot CLI analysis
         if: ${{ steps.gate.outputs.run != 'false' }}
         env:
-          GITHUB_TOKEN: ${{ secrets.COPILOT_PAT }}
+          GITHUB_TOKEN: ${{ secrets.COPILOT_CLI_TOKEN }}
           COPILOT_MODEL: gpt-5
         run: |
           set -o pipefail
