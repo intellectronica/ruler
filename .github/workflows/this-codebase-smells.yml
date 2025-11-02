@@ -11,7 +11,6 @@ permissions:
   discussions: write
 
 env:
-  CODEX_HOME: ./.github/workflows/this-codebase-smells
   TZ: Europe/Zurich
 
 jobs:
@@ -37,35 +36,30 @@ jobs:
       - uses: actions/setup-node@v4
         if: ${{ steps.gate.outputs.run != 'false' }}
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
 
-      - name: Install Codex CLI
+      - name: Install GitHub Copilot CLI
         if: ${{ steps.gate.outputs.run != 'false' }}
         run: |
-          npm install -g @openai/codex
-          codex --version
-      - name: Authenticate Codex CLI
-        if: ${{ steps.gate.outputs.run != 'false' }}
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: |
-          set -euo pipefail
-          mkdir -p "$CODEX_HOME"
-          printf '%s' "$OPENAI_API_KEY" | codex login --with-api-key
+          npm install -g @github/copilot
+          copilot --version
 
-      - name: Run Codex analysis
+      - name: Run GitHub Copilot CLI analysis
         if: ${{ steps.gate.outputs.run != 'false' }}
         env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          RUST_LOG: info
+          GITHUB_TOKEN: ${{ secrets.COPILOT_CLI_TOKEN }}
         run: |
           set -o pipefail
           mkdir -p "$RUNNER_TEMP"
-          codex exec \
-            --model "gpt-5" \
-            --sandbox read-only \
-            < "$CODEX_HOME/prompt.md" 2>&1 | tee "$RUNNER_TEMP/raw_report.md"
+
+          # Read the prompt and run Copilot CLI in programmatic mode
+          copilot -p "$(cat .github/workflows/this-codebase-smells/prompt.md)" \
+            --model gpt-5 \
+            --allow-tool 'shell(*)' \
+            --allow-tool 'read_file(*)' \
+            --allow-tool 'glob(*)' \
+            2>&1 | tee "$RUNNER_TEMP/raw_report.md"
 
           # Extract only the content between our markers for the Discussion body
           awk '/^---BEGIN REPORT---$/ {flag=1; next} /^---END REPORT---$/ {flag=0} flag' "$RUNNER_TEMP/raw_report.md" > "$RUNNER_TEMP/report.md"
@@ -74,27 +68,10 @@ jobs:
             echo "Report markers not found or empty report produced"
             echo "First 200 lines of raw output for debugging:"
             head -n 200 "$RUNNER_TEMP/raw_report.md" || true
-            # Try to locate the latest session JSONL and show a short excerpt for diagnostics
-            latest_jsonl=""
-            if compgen -G "$HOME/.codex/sessions/*/*/*/rollout-*.jsonl" > /dev/null; then
-              latest_jsonl=$(ls -t $HOME/.codex/sessions/*/*/*/rollout-*.jsonl | head -n1)
-            elif compgen -G "$CODEX_HOME/sessions/*/*/*/rollout-*.jsonl" > /dev/null; then
-              latest_jsonl=$(ls -t $CODEX_HOME/sessions/*/*/*/rollout-*.jsonl | head -n1)
-            fi
-            if [ -n "$latest_jsonl" ]; then
-              echo "Latest session JSONL: $latest_jsonl"
-              echo "Showing last 200 lines of session JSONL:"
-              tail -n 200 "$latest_jsonl" || true
-            else
-              echo "No session JSONL found."
-            fi
+            echo "Full raw output:"
+            cat "$RUNNER_TEMP/raw_report.md" || true
             exit 1
           fi
-      - name: Cleanup Codex credentials
-        if: ${{ always() && steps.gate.outputs.run != 'false' }}
-        run: |
-          rm -f "$CODEX_HOME/auth.json"
-
       - name: Resolve Discussion category ID
         if: ${{ steps.gate.outputs.run != 'false' }}
         id: cat
