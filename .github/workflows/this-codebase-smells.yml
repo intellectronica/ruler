@@ -50,7 +50,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.COPILOT_PAT }}
         run: |
-          gh auth status || gh auth login --with-token <<< "${{ secrets.COPILOT_PAT }}"
+          echo "$GH_TOKEN" | gh auth login --with-token
           gh auth status
 
       - name: Run GitHub Copilot CLI analysis
