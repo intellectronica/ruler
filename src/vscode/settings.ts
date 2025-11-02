@@ -52,6 +52,14 @@ export async function writeVSCodeSettings(
 }
 
 /**
+ * Helper function to deep clone an object
+ * Uses structuredClone (available in Node >= 18)
+ */
+export function clone<T>(obj: T): T {
+  return structuredClone(obj);
+}
+
+/**
  * Transform ruler MCP config to Augment MCP server array format
  */
 export function transformRulerToAugmentMcp(
@@ -98,7 +106,7 @@ export function mergeAugmentMcpServers(
   newServers: AugmentMcpServer[],
   strategy: McpStrategy,
 ): VSCodeSettings {
-  const result = structuredClone(existingSettings);
+  const result = clone(existingSettings);
 
   if (!result['augment.advanced']) {
     result['augment.advanced'] = {};

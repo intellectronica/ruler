@@ -35,6 +35,9 @@
     "url": "https://github.com/intellectronica/ruler/issues"
   },
   "homepage": "https://ai.intellectronica.net/ruler",
+  "engines": {
+    "node": ">=18"
+  },
   "files": [
     "dist",
     "README.md",
