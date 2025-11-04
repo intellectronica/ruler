@@ -49,6 +49,14 @@ class MockAgent implements IAgent {
   getMcpServerKey?(): string {
     return 'mcpServers';
   }
+
+  supportsMcpStdio?(): boolean {
+    return true;
+  }
+
+  supportsMcpRemote?(): boolean {
+    return true;
+  }
 }
 
 describe('apply-engine', () => {
@@ -636,6 +644,189 @@ command = "sub-cmd"
 
       expect(hasRulerPrefix).toBe(true);
       consoleLogSpy.mockRestore();
+    });
+  });
+
+  describe('MCP type transformations', () => {
+    it('should transform remote type to streamable-http for Kilo Code', async () => {
+      const kilocodeDir = path.join(tmpDir, '.kilocode');
+      await fs.mkdir(kilocodeDir, { recursive: true });
+
+      const config: LoadedConfig = {
+        agentConfigs: {
+          kilocode: {
+            enabled: true,
+            mcp: { enabled: true },
+          },
+        },
+      };
+
+      const rules = '# Test rules';
+      const mcpJson = {
+        mcpServers: {
+          'context7': {
+            url: 'https://mcp.context7.com/mcp',
+            type: 'remote',
+            headers: {
+              Authorization: 'Bearer CTX123456',
+            },
+          },
+        },
+      };
+
+      const kilocodeAgent = new MockAgent('Kilo Code', 'kilocode');
+
+      await applyConfigurationsToAgents(
+        [kilocodeAgent],
+        rules,
+        mcpJson,
+        config,
+        tmpDir,
+        false,
+        false,
+        true,
+        undefined,
+        false,
+      );
+
+      const mcpPath = path.join(kilocodeDir, 'mcp.json');
+      const mcpContent = JSON.parse(await fs.readFile(mcpPath, 'utf8'));
+
+      expect(mcpContent.mcpServers.context7.type).toBe('streamable-http');
+      expect(mcpContent.mcpServers.context7.url).toBe(
+        'https://mcp.context7.com/mcp',
+      );
+      expect(mcpContent.mcpServers.context7.headers.Authorization).toBe(
+        'Bearer CTX123456',
+      );
+    });
+
+    it('should preserve non-remote types for Kilo Code', async () => {
+      const kilocodeDir = path.join(tmpDir, '.kilocode');
+      await fs.mkdir(kilocodeDir, { recursive: true });
+
+      const config: LoadedConfig = {
+        agentConfigs: {
+          kilocode: {
+            enabled: true,
+            mcp: { enabled: true },
+          },
+        },
+      };
+
+      const rules = '# Test rules';
+      const mcpJson = {
+        mcpServers: {
+          'local-stdio': {
+            command: 'node',
+            args: ['server.js'],
+            type: 'stdio',
+          },
+        },
+      };
+
+      const kilocodeAgent = new MockAgent('Kilo Code', 'kilocode');
+
+      await applyConfigurationsToAgents(
+        [kilocodeAgent],
+        rules,
+        mcpJson,
+        config,
+        tmpDir,
+        false,
+        false,
+        true,
+        undefined,
+        false,
+      );
+
+      const mcpPath = path.join(kilocodeDir, 'mcp.json');
+      const mcpContent = JSON.parse(await fs.readFile(mcpPath, 'utf8'));
+
+      expect(mcpContent.mcpServers['local-stdio'].type).toBe('stdio');
+      expect(mcpContent.mcpServers['local-stdio'].command).toBe('node');
+    });
+
+    it('should transform remote type to http for Claude Code', async () => {
+      const config: LoadedConfig = {
+        agentConfigs: {
+          claude: {
+            enabled: true,
+            mcp: { enabled: true },
+          },
+        },
+      };
+
+      const rules = '# Test rules';
+      const mcpJson = {
+        mcpServers: {
+          'remote-server': {
+            url: 'https://api.example.com/mcp',
+            type: 'remote',
+          },
+        },
+      };
+
+      const claudeAgent = new ClaudeAgent();
+
+      await applyConfigurationsToAgents(
+        [claudeAgent],
+        rules,
+        mcpJson,
+        config,
+        tmpDir,
+        false,
+        false,
+        true,
+        undefined,
+        false,
+      );
+
+      const mcpPath = path.join(tmpDir, '.mcp.json');
+      const mcpContent = JSON.parse(await fs.readFile(mcpPath, 'utf8'));
+
+      expect(mcpContent.mcpServers['remote-server'].type).toBe('http');
+    });
+
+    it('should transform remote type to sse for SSE endpoints in Claude Code', async () => {
+      const config: LoadedConfig = {
+        agentConfigs: {
+          claude: {
+            enabled: true,
+            mcp: { enabled: true },
+          },
+        },
+      };
+
+      const rules = '# Test rules';
+      const mcpJson = {
+        mcpServers: {
+          'sse-server': {
+            url: 'https://api.example.com/sse/events',
+            type: 'remote',
+          },
+        },
+      };
+
+      const claudeAgent = new ClaudeAgent();
+
+      await applyConfigurationsToAgents(
+        [claudeAgent],
+        rules,
+        mcpJson,
+        config,
+        tmpDir,
+        false,
+        false,
+        true,
+        undefined,
+        false,
+      );
+
+      const mcpPath = path.join(tmpDir, '.mcp.json');
+      const mcpContent = JSON.parse(await fs.readFile(mcpPath, 'utf8'));
+
+      expect(mcpContent.mcpServers['sse-server'].type).toBe('sse');
     });
   });
 });

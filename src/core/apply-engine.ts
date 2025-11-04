@@ -837,6 +837,46 @@ function transformMcpForClaude(
   return transformedMcp;
 }
 
+/**
+ * Transform MCP server types for Kilo Code compatibility.
+ * Kilo Code expects "streamable-http" for remote HTTP servers, not "remote".
+ */
+function transformMcpForKiloCode(
+  mcpJson: Record<string, unknown>,
+): Record<string, unknown> {
+  if (!mcpJson.mcpServers || typeof mcpJson.mcpServers !== 'object') {
+    return mcpJson;
+  }
+
+  const transformedMcp = { ...mcpJson };
+  const transformedServers: Record<string, unknown> = {};
+
+  for (const [name, serverDef] of Object.entries(
+    mcpJson.mcpServers as Record<string, unknown>,
+  )) {
+    if (serverDef && typeof serverDef === 'object') {
+      const server = serverDef as Record<string, unknown>;
+      const transformedServer = { ...server };
+
+      // Transform type: "remote" to "streamable-http" for HTTP-based servers
+      if (
+        server.type === 'remote' &&
+        server.url &&
+        typeof server.url === 'string'
+      ) {
+        transformedServer.type = 'streamable-http';
+      }
+
+      transformedServers[name] = transformedServer;
+    } else {
+      transformedServers[name] = serverDef;
+    }
+  }
+
+  transformedMcp.mcpServers = transformedServers;
+  return transformedMcp;
+}
+
 async function applyStandardMcpConfiguration(
   agent: IAgent,
   filteredMcpJson: Record<string, unknown>,
@@ -872,10 +912,12 @@ async function applyStandardMcpConfiguration(
   if (dryRun) {
     logVerbose(`DRY RUN: Would apply MCP config to: ${dest}`, verbose);
   } else {
-    // Transform MCP config for Claude Code compatibility
+    // Transform MCP config for agent-specific compatibility
     let mcpToMerge = filteredMcpJson;
     if (agent.getIdentifier() === 'claude') {
       mcpToMerge = transformMcpForClaude(filteredMcpJson);
+    } else if (agent.getIdentifier() === 'kilocode') {
+      mcpToMerge = transformMcpForKiloCode(filteredMcpJson);
     }
 
     const existing = await readNativeMcp(dest);
