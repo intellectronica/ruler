@@ -24,9 +24,15 @@ export class CursorAgent extends AgentsMdAgent {
   ): Promise<void> {
     // Write AGENTS.md via base class
     // Cursor natively reads AGENTS.md from the project root
-    await super.applyRulerConfig(concatenatedRules, projectRoot, null, {
-      outputPath: agentConfig?.outputPath,
-    }, backup);
+    await super.applyRulerConfig(
+      concatenatedRules,
+      projectRoot,
+      null,
+      {
+        outputPath: agentConfig?.outputPath,
+      },
+      backup,
+    );
   }
 
   getMcpServerKey(): string {
