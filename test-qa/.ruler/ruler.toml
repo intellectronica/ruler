@@ -22,7 +22,7 @@
 
 # [agents.Cursor]
 # enabled = true
-# output_path = ".cursor/rules/ruler_cursor_instructions.mdc"
+# output_path = "AGENTS.md"
 
 # [agents.Windsurf]
 # enabled = true

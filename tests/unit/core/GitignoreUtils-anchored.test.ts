@@ -19,19 +19,19 @@ describe('GitignoreUtils - Root Anchored Paths', () => {
       'AGENTS.md',
       'subdir/AGENTS.md',
       '.codex/config.toml',
-      '.cursor/rules/ruler_cursor_instructions.mdc'
+      '.aider/config.yml'
     ];
-    
+
     await updateGitignore(tmpDir, paths);
-    
+
     const gitignorePath = path.join(tmpDir, '.gitignore');
     const content = await fs.readFile(gitignorePath, 'utf8');
-    
+
     expect(content).toContain('/AGENTS.md');
     expect(content).toContain('/subdir/AGENTS.md');
     expect(content).toContain('/.codex/config.toml');
-    expect(content).toContain('/.cursor/rules/ruler_cursor_instructions.mdc');
-    
+    expect(content).toContain('/.aider/config.yml');
+
     // Should not contain unanchored patterns
     expect(content).not.toContain('\nAGENTS.md\n');
     expect(content).not.toContain('\nconfig.toml\n');

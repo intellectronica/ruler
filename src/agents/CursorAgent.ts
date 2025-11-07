@@ -1,16 +1,12 @@
-import * as path from 'path';
-import { AbstractAgent } from './AbstractAgent';
 import { IAgentConfig } from './IAgent';
-import {
-  backupFile,
-  writeGeneratedFile,
-  ensureDirExists,
-} from '../core/FileSystemUtils';
+import { AgentsMdAgent } from './AgentsMdAgent';
 
 /**
  * Cursor agent adapter.
+ * Leverages the standardized AGENTS.md approach supported natively by Cursor.
+ * See: https://docs.cursor.com/en/cli/using
  */
-export class CursorAgent extends AbstractAgent {
+export class CursorAgent extends AgentsMdAgent {
   getIdentifier(): string {
     return 'cursor';
   }
@@ -26,29 +22,15 @@ export class CursorAgent extends AbstractAgent {
     agentConfig?: IAgentConfig,
     backup = true,
   ): Promise<void> {
-    const output =
-      agentConfig?.outputPath ?? this.getDefaultOutputPath(projectRoot);
-    const absolutePath = path.resolve(projectRoot, output);
-
-    // Cursor expects a YAML front-matter block with an `alwaysApply` flag.
-    // See: https://docs.cursor.com/context/rules#rule-anatomy
-    const frontMatter = ['---', 'alwaysApply: true', '---', ''].join('\n');
-    const content = `${frontMatter}${concatenatedRules.trimStart()}`;
-
-    await ensureDirExists(path.dirname(absolutePath));
-    if (backup) {
-      await backupFile(absolutePath);
-    }
-    await writeGeneratedFile(absolutePath, content);
+    // Write AGENTS.md via base class
+    // Cursor natively reads AGENTS.md from the project root
+    await super.applyRulerConfig(concatenatedRules, projectRoot, null, {
+      outputPath: agentConfig?.outputPath,
+    }, backup);
   }
 
-  getDefaultOutputPath(projectRoot: string): string {
-    return path.join(
-      projectRoot,
-      '.cursor',
-      'rules',
-      'ruler_cursor_instructions.mdc',
-    );
+  getMcpServerKey(): string {
+    return 'mcpServers';
   }
 
   supportsMcpStdio(): boolean {

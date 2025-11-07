@@ -206,9 +206,8 @@ File: extra-rules.md
       // GitHub Copilot (writes to both AGENTS.md and legacy location)
       '.github/copilot-instructions.md', // Copilot legacy instructions for VS Code extension
       '.vscode/mcp.json', // Copilot MCP config
-      
-      // Cursor
-      '.cursor/rules/ruler_cursor_instructions.mdc',
+
+      // Cursor (now uses AGENTS.md)
       '.cursor/mcp.json', // Cursor MCP config
       
       // OpenCode
@@ -288,12 +287,6 @@ File: extra-rules.md
         expect(fileContents[file]).toContain('Extra Rules for Integration Testing');
         console.log(`✓ ${file} contains expected concatenated content`);
       }
-    }
-
-    // Verify Cursor instructions
-    if (fileContents['.cursor/rules/ruler_cursor_instructions.mdc']) {
-      expect(fileContents['.cursor/rules/ruler_cursor_instructions.mdc']).toContain('Integration Test Sample Instructions');
-      console.log('✓ Cursor instructions contain expected content');
     }
 
     // Verify JSON configuration files

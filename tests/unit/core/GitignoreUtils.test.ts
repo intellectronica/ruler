@@ -17,16 +17,16 @@ describe('GitignoreUtils', () => {
 
   describe('updateGitignore', () => {
     it('creates .gitignore with Ruler block when file does not exist', async () => {
-      const paths = ['CLAUDE.md', '.cursor/rules/ruler_cursor_instructions.mdc'];
+      const paths = ['CLAUDE.md', 'AGENTS.md'];
       const gitignorePath = path.join(tmpDir, '.gitignore');
-      
+
       await updateGitignore(tmpDir, paths);
-      
+
       const content = await fs.readFile(gitignorePath, 'utf8');
       expect(content).toContain('# START Ruler Generated Files');
       expect(content).toContain('# END Ruler Generated Files');
       expect(content).toContain('/CLAUDE.md');
-      expect(content).toContain('/.cursor/rules/ruler_cursor_instructions.mdc');
+      expect(content).toContain('/AGENTS.md');
     });
 
     it('creates .gitignore with empty block when no paths provided', async () => {
@@ -141,13 +141,13 @@ CLAUDE.md
     });
 
     it('converts paths to POSIX format', async () => {
-      const paths = ['.cursor\\rules\\ruler_cursor_instructions.mdc'];
+      const paths = ['.aider\\conf.yml'];
       const gitignorePath = path.join(tmpDir, '.gitignore');
-      
+
       await updateGitignore(tmpDir, paths);
-      
+
       const content = await fs.readFile(gitignorePath, 'utf8');
-      expect(content).toContain('/.cursor/rules/ruler_cursor_instructions.mdc');
+      expect(content).toContain('/.aider/conf.yml');
       expect(content).not.toContain('\\');
     });
 
