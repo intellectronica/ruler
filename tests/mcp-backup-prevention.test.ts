@@ -29,7 +29,7 @@ describe('MCP Backup Prevention for All Agents', () => {
     { name: 'gemini-cli', configPath: '.gemini/settings.json' },
     { name: 'copilot', configPath: 'AGENTS.md' }, // Uses AgentsMdAgent + MCP handled by engine
     { name: 'claude', configPath: 'CLAUDE.md' }, // Uses AbstractAgent + MCP handled by engine
-    { name: 'cursor', configPath: '.cursor/rules/ruler_cursor_instructions.mdc' }, // Uses AbstractAgent + MCP handled by engine
+    { name: 'cursor', configPath: 'AGENTS.md' }, // Uses AgentsMdAgent + MCP handled by engine
   ];
 
   mcpAgents.forEach(({ name, configPath }) => {

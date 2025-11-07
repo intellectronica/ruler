@@ -53,8 +53,7 @@ describe('End-to-End Ruler CLI', () => {
 
     // Check some generated files contain concatenated rules
     const claudePath = path.join(projectRoot, 'CLAUDE.md');
-    const agentsMdPath = path.join(projectRoot, 'AGENTS.md'); // Used by Codex, Windsurf, Aider, etc.
-    const cursorPath = path.join(projectRoot, '.cursor', 'rules', 'ruler_cursor_instructions.mdc');
+    const agentsMdPath = path.join(projectRoot, 'AGENTS.md'); // Used by Codex, Windsurf, Cursor, Aider, etc.
     const clinePath = path.join(projectRoot, '.clinerules');
     const aiderCfg = path.join(projectRoot, '.aider.conf.yml');
     const firebasePath = path.join(projectRoot, '.idx', 'airules.md');
@@ -78,8 +77,7 @@ describe('End-to-End Ruler CLI', () => {
 
     return Promise.all([
       expect(fs.readFile(claudePath, 'utf8')).resolves.toContain('Rule B'),
-      expect(fs.readFile(agentsMdPath, 'utf8')).resolves.toContain('Rule A'), // Used by Codex, Windsurf, Aider, etc.
-      expect(fs.readFile(cursorPath, 'utf8')).resolves.toContain('Rule B'),
+      expect(fs.readFile(agentsMdPath, 'utf8')).resolves.toContain('Rule A'), // Used by Codex, Windsurf, Cursor, Aider, etc.
       expect(fs.readFile(clinePath, 'utf8')).resolves.toContain('Rule B'),
       expect(fs.readFile(aiderCfg, 'utf8')).resolves.toContain('AGENTS.md'),
       expect(fs.readFile(firebasePath, 'utf8')).resolves.toContain('Rule B'),
@@ -195,7 +193,6 @@ output_path = "awesome.md"
       expect(gitignoreContent).toContain('# END Ruler Generated Files');
       expect(gitignoreContent).toContain('CLAUDE.md');
       expect(gitignoreContent).toContain('AGENTS.md');
-      expect(gitignoreContent).toContain('.cursor/rules/ruler_cursor_instructions.mdc');
       expect(gitignoreContent).toContain('.clinerules');
       expect(gitignoreContent).toContain('.aider.conf.yml');
       expect(gitignoreContent).toContain('.idx/airules.md');

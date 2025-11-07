@@ -32,13 +32,12 @@ describe('Revert Agent Integration', () => {
     it('should revert multiple specific agents', async () => {
       await fs.writeFile(path.join(tmpDir, 'CLAUDE.md'), 'Claude content');
       await fs.writeFile(path.join(tmpDir, 'AGENTS.md'), 'Agents content');
-      await fs.mkdir(path.join(tmpDir, '.cursor', 'rules'), { recursive: true });
-      await fs.writeFile(path.join(tmpDir, '.cursor', 'rules', 'ruler_cursor_instructions.mdc'), 'Cursor content');
-      
-      await revertAllAgentConfigs(tmpDir, ['claude', 'cursor'], undefined, false, false, false);
-      
+      await fs.writeFile(path.join(tmpDir, 'CRUSH.md'), 'Crush content');
+
+      await revertAllAgentConfigs(tmpDir, ['claude', 'crush'], undefined, false, false, false);
+
       await expect(fs.access(path.join(tmpDir, 'CLAUDE.md'))).rejects.toThrow();
-      await expect(fs.access(path.join(tmpDir, '.cursor'))).rejects.toThrow();
+      await expect(fs.access(path.join(tmpDir, 'CRUSH.md'))).rejects.toThrow();
       await expect(fs.access(path.join(tmpDir, 'AGENTS.md'))).resolves.toBeUndefined();
     });
 
@@ -67,14 +66,14 @@ describe('Revert Agent Integration', () => {
   describe('Directory Cleanup', () => {
     it('should remove empty agent directories', async () => {
       await fs.writeFile(path.join(tmpDir, 'AGENTS.md'), 'Copilot content');
-      
-      await fs.mkdir(path.join(tmpDir, '.cursor', 'rules'), { recursive: true });
-      await fs.writeFile(path.join(tmpDir, '.cursor', 'rules', 'ruler_cursor_instructions.mdc'), 'Cursor content');
-      
+
+      await fs.mkdir(path.join(tmpDir, '.augment', 'rules'), { recursive: true });
+      await fs.writeFile(path.join(tmpDir, '.augment', 'rules', 'ruler_augment_instructions.md'), 'Augment content');
+
       await revertAllAgentConfigs(tmpDir, undefined, undefined, false, false, false);
-      
+
       await expect(fs.access(path.join(tmpDir, 'AGENTS.md'))).rejects.toThrow();
-      await expect(fs.access(path.join(tmpDir, '.cursor'))).rejects.toThrow();
+      await expect(fs.access(path.join(tmpDir, '.augment'))).rejects.toThrow();
     });
 
     it('should preserve directories with non-ruler content', async () => {
