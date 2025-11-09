@@ -84,6 +84,87 @@ describe('CrushAgent', () => {
     await expect(fs.access(mcpPath)).rejects.toThrow();
   });
 
+  it('should transform MCP server type from "remote" to "http"', async () => {
+    const rules = 'some rules';
+    const mcpJson = {
+      mcpServers: {
+        context7: {
+          url: 'https://mcp.context7.com/mcp',
+          headers: {
+            CONTEXT7_API_KEY: '${CONTEXT7_API_KEY}',
+          },
+          type: 'remote',
+        },
+      },
+    };
+    await agent.applyRulerConfig(rules, projectRoot, mcpJson);
+
+    const mcpPath = path.join(projectRoot, '.crush.json');
+    const mcpContent = JSON.parse(await fs.readFile(mcpPath, 'utf-8'));
+
+    expect(mcpContent).toEqual({
+      mcp: {
+        context7: {
+          url: 'https://mcp.context7.com/mcp',
+          headers: {
+            CONTEXT7_API_KEY: '${CONTEXT7_API_KEY}',
+          },
+          type: 'http',
+        },
+      },
+    });
+  });
+
+  it('should transform MCP server type from "remote" to "sse" for SSE URLs', async () => {
+    const rules = 'some rules';
+    const mcpJson = {
+      mcpServers: {
+        'sse-server': {
+          url: 'https://example.com/sse/endpoint',
+          type: 'remote',
+        },
+      },
+    };
+    await agent.applyRulerConfig(rules, projectRoot, mcpJson);
+
+    const mcpPath = path.join(projectRoot, '.crush.json');
+    const mcpContent = JSON.parse(await fs.readFile(mcpPath, 'utf-8'));
+
+    expect(mcpContent).toEqual({
+      mcp: {
+        'sse-server': {
+          url: 'https://example.com/sse/endpoint',
+          type: 'sse',
+        },
+      },
+    });
+  });
+
+  it('should preserve non-remote MCP server types', async () => {
+    const rules = 'some rules';
+    const mcpJson = {
+      mcpServers: {
+        'local-server': {
+          command: 'echo',
+          type: 'stdio',
+        },
+      },
+    };
+    await agent.applyRulerConfig(rules, projectRoot, mcpJson);
+
+    const mcpPath = path.join(projectRoot, '.crush.json');
+    const mcpContent = JSON.parse(await fs.readFile(mcpPath, 'utf-8'));
+
+    expect(mcpContent).toEqual({
+      mcp: {
+        'local-server': {
+          command: 'echo',
+          type: 'stdio',
+        },
+      },
+    });
+  });
+
   describe('backup and revert functionality', () => {
     let tmpDir: string;
     let testAgent: CrushAgent;
