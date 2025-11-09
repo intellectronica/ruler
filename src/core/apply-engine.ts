@@ -734,7 +734,8 @@ async function applyMcpConfiguration(
   if (
     agent.getIdentifier() === 'zed' ||
     agent.getIdentifier() === 'gemini-cli' ||
-    agent.getIdentifier() === 'amazon-q-cli'
+    agent.getIdentifier() === 'amazon-q-cli' ||
+    agent.getIdentifier() === 'crush'
   ) {
     logVerbose(
       `Skipping external MCP config for ${agent.getName()} - handled internally by agent`,
