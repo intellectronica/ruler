@@ -57,11 +57,53 @@ export async function findRulerDir(
 }
 
 /**
+ * Simple glob pattern matcher supporting basic patterns:
+ * - `*` matches any characters except `/`
+ * - `**` matches any characters including `/` (zero or more path segments)
+ * - Exact string matches
+ */
+export function matchesPattern(filePath: string, pattern: string): boolean {
+  // Convert glob pattern to regex
+  // Escape special regex characters except * and /
+  let regexPattern = pattern
+    .replace(/[.+?^${}()|[\]\\]/g, '\\$&')
+    // Replace **/ with a special placeholder (matches zero or more path segments)
+    .replace(/\*\*\//g, '__DOUBLESTAR_SLASH__')
+    // Replace /** with another placeholder
+    .replace(/\/\*\*/g, '__SLASH_DOUBLESTAR__')
+    // Replace remaining ** with yet another placeholder
+    .replace(/\*\*/g, '__DOUBLESTAR__')
+    // Replace single * with regex (matches anything except /)
+    .replace(/\*/g, '[^/]*')
+    // Replace **/ with regex that matches zero or more path segments
+    .replace(/__DOUBLESTAR_SLASH__/g, '(?:.*?/)?')
+    // Replace /** with regex
+    .replace(/__SLASH_DOUBLESTAR__/g, '(?:/.*)?')
+    // Replace standalone ** with regex
+    .replace(/__DOUBLESTAR__/g, '.*');
+
+  // Anchor the pattern to match the full path
+  regexPattern = '^' + regexPattern + '$';
+
+  const regex = new RegExp(regexPattern);
+  return regex.test(filePath);
+}
+
+/**
  * Recursively reads all Markdown (.md) files in rulerDir, returning their paths and contents.
  * Files are sorted alphabetically by path.
+ *
+ * @param rulerDir The directory to scan for markdown files
+ * @param options Optional filtering configuration
+ * @param options.include Glob patterns to include (if specified, only matching files are included)
+ * @param options.exclude Glob patterns to exclude (takes precedence over include)
  */
 export async function readMarkdownFiles(
   rulerDir: string,
+  options?: {
+    include?: string[];
+    exclude?: string[];
+  },
 ): Promise<{ path: string; content: string }[]> {
   const mdFiles: { path: string; content: string }[] = [];
 
@@ -80,6 +122,42 @@ export async function readMarkdownFiles(
   }
   await walk(rulerDir);
 
+  // Apply include/exclude filters
+  let filteredFiles = mdFiles;
+  if (options?.include || options?.exclude) {
+    filteredFiles = mdFiles.filter((file) => {
+      // Get relative path from rulerDir for pattern matching
+      const relativePath = path.relative(rulerDir, file.path);
+      // Normalize to forward slashes for consistent pattern matching
+      const normalizedPath = relativePath.replace(/\\/g, '/');
+
+      // Check exclude patterns first (they take precedence)
+      if (options.exclude) {
+        for (const pattern of options.exclude) {
+          if (matchesPattern(normalizedPath, pattern)) {
+            return false; // Exclude this file
+          }
+        }
+      }
+
+      // If include patterns are specified, file must match at least one
+      if (options.include && options.include.length > 0) {
+        for (const pattern of options.include) {
+          if (matchesPattern(normalizedPath, pattern)) {
+            return true; // Include this file
+          }
+        }
+        return false; // No include pattern matched
+      }
+
+      // No include patterns specified, file passed exclude check
+      return true;
+    });
+  }
+
+  // Use filtered files for the rest of the processing
+  const processedFiles = filteredFiles;
+
   // Prioritisation logic:
   // 1. Prefer top-level AGENTS.md if present.
   // 2. If AGENTS.md absent but legacy instructions.md present, use it (no longer emits a warning; legacy accepted silently).
@@ -92,13 +170,13 @@ export async function readMarkdownFiles(
   let primaryFile: { path: string; content: string } | null = null;
   const others: { path: string; content: string }[] = [];
 
-  for (const f of mdFiles) {
+  for (const f of processedFiles) {
     if (f.path === topLevelAgents) {
       primaryFile = f; // Highest priority
     }
   }
   if (!primaryFile) {
-    for (const f of mdFiles) {
+    for (const f of processedFiles) {
       if (f.path === topLevelLegacy) {
         primaryFile = f;
         break;
@@ -106,7 +184,7 @@ export async function readMarkdownFiles(
     }
   }
 
-  for (const f of mdFiles) {
+  for (const f of processedFiles) {
     if (primaryFile && f.path === primaryFile.path) continue;
     others.push(f);
   }

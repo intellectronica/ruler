@@ -57,14 +57,13 @@ async function loadNestedConfigurations(
   );
 
   const results: HierarchicalRulerConfiguration[] = [];
-  const rulerDirConfigs = await processIndependentRulerDirs(rulerDirs);
+  const rulerDirConfigs = await processIndependentRulerDirs(
+    rulerDirs,
+    configPath,
+    resolvedNested,
+  );
 
-  for (const { rulerDir, files } of rulerDirConfigs) {
-    const config = await loadConfigForRulerDir(
-      rulerDir,
-      configPath,
-      resolvedNested,
-    );
+  for (const { rulerDir, files, config } of rulerDirConfigs) {
     results.push(
       await createHierarchicalConfiguration(
         rulerDir,
@@ -84,18 +83,36 @@ async function loadNestedConfigurations(
  */
 async function processIndependentRulerDirs(
   rulerDirs: string[],
+  configPath: string | undefined,
+  resolvedNested: boolean,
 ): Promise<
-  Array<{ rulerDir: string; files: { path: string; content: string }[] }>
+  Array<{
+    rulerDir: string;
+    files: { path: string; content: string }[];
+    config: LoadedConfig;
+  }>
 > {
   const results: Array<{
     rulerDir: string;
     files: { path: string; content: string }[];
+    config: LoadedConfig;
   }> = [];
 
   // Process each .ruler directory independently
   for (const rulerDir of rulerDirs) {
-    const files = await FileSystemUtils.readMarkdownFiles(rulerDir);
-    results.push({ rulerDir, files });
+    // Load config first to get rules filtering options
+    const config = await loadConfigForRulerDir(
+      rulerDir,
+      configPath,
+      resolvedNested,
+    );
+
+    // Apply rules filtering if configured
+    const files = await FileSystemUtils.readMarkdownFiles(rulerDir, {
+      include: config.rules?.include,
+      exclude: config.rules?.exclude,
+    });
+    results.push({ rulerDir, files, config });
   }
 
   return results;
@@ -284,8 +301,11 @@ async function loadSingleConfiguration(
     configPath,
   });
 
-  // Read rule files
-  const files = await FileSystemUtils.readMarkdownFiles(rulerDirs[0]);
+  // Read rule files with filtering options from config
+  const files = await FileSystemUtils.readMarkdownFiles(rulerDirs[0], {
+    include: config.rules?.include,
+    exclude: config.rules?.exclude,
+  });
 
   // Concatenate rules
   const concatenatedRules = concatenateRules(files, path.dirname(primaryDir));

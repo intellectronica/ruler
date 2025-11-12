@@ -8,6 +8,7 @@ import {
   GlobalMcpConfig,
   GitignoreConfig,
   SkillsConfig,
+  RulesConfig,
 } from '../types';
 import { createRulerError } from '../constants';
 
@@ -49,6 +50,12 @@ const rulerConfigSchema = z.object({
   skills: z
     .object({
       enabled: z.boolean().optional(),
+    })
+    .optional(),
+  rules: z
+    .object({
+      include: z.array(z.string()).optional(),
+      exclude: z.array(z.string()).optional(),
     })
     .optional(),
   nested: z.boolean().optional(),
@@ -104,6 +111,8 @@ export interface LoadedConfig {
   gitignore?: GitignoreConfig;
   /** Skills configuration section. */
   skills?: SkillsConfig;
+  /** Rules configuration section for filtering markdown files. */
+  rules?: RulesConfig;
   /** Whether to enable nested rule loading from nested .ruler directories. */
   nested?: boolean;
   /** Whether the nested option was explicitly provided in the config. */
@@ -257,6 +266,18 @@ export async function loadConfig(
     skillsConfig.enabled = rawSkillsSection.enabled;
   }
 
+  const rawRulesSection =
+    raw.rules && typeof raw.rules === 'object' && !Array.isArray(raw.rules)
+      ? (raw.rules as Record<string, unknown>)
+      : {};
+  const rulesConfig: RulesConfig = {};
+  if (Array.isArray(rawRulesSection.include)) {
+    rulesConfig.include = rawRulesSection.include.map((p) => String(p));
+  }
+  if (Array.isArray(rawRulesSection.exclude)) {
+    rulesConfig.exclude = rawRulesSection.exclude.map((p) => String(p));
+  }
+
   const nestedDefined = typeof raw.nested === 'boolean';
   const nested = nestedDefined ? (raw.nested as boolean) : false;
 
@@ -267,6 +288,7 @@ export async function loadConfig(
     mcp: globalMcpConfig,
     gitignore: gitignoreConfig,
     skills: skillsConfig,
+    rules: rulesConfig,
     nested,
     nestedDefined,
   };

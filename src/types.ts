@@ -26,6 +26,14 @@ export interface SkillsConfig {
   enabled?: boolean;
 }
 
+/** Rules configuration for filtering which markdown files to include/exclude. */
+export interface RulesConfig {
+  /** Glob patterns to include (if specified, only matching files are included). */
+  include?: string[];
+  /** Glob patterns to exclude (takes precedence over include). */
+  exclude?: string[];
+}
+
 /** Information about a discovered skill. */
 export interface SkillInfo {
   /** Name of the skill (directory name). */
