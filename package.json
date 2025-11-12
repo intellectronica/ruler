@@ -5,6 +5,7 @@
   "main": "dist/lib.js",
   "scripts": {
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
+    "lint:fix": "eslint \"src/**/*.{ts,tsx}\" --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,json,md}\"",
     "test": "jest",
     "test:watch": "jest --watch",
@@ -47,6 +48,7 @@
   },
   "devDependencies": {
     "@changesets/cli": "2.27.11",
+    "@eslint/js": "^9.39.1",
     "@types/iarna__toml": "^2.0.5",
     "@types/jest": "^29.5.14",
     "@types/js-yaml": "^4.0.9",
