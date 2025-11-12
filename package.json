@@ -12,7 +12,7 @@
     "test:coverage": "jest --coverage",
     "test:integration": "jest tests/e2e/ruler.integration.test.ts --verbose",
     "build": "tsc",
-    "prepare": "pnpm build"
+    "release": "pnpm build && pnpm changeset version"
   },
   "repository": {
     "type": "git",
