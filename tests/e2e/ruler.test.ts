@@ -76,7 +76,7 @@ describe('End-to-End Ruler CLI', () => {
     );
 
     return Promise.all([
-      expect(fs.readFile(claudePath, 'utf8')).resolves.toContain('Rule B'),
+      expect(fs.readFile(claudePath, 'utf8')).resolves.toContain('@.ruler/b.md'),
       expect(fs.readFile(agentsMdPath, 'utf8')).resolves.toContain('Rule A'), // Used by Codex, Windsurf, Cursor, Aider, etc.
       expect(fs.readFile(clinePath, 'utf8')).resolves.toContain('Rule B'),
       expect(fs.readFile(aiderCfg, 'utf8')).resolves.toContain('AGENTS.md'),
@@ -103,7 +103,7 @@ describe('End-to-End Ruler CLI', () => {
     ).resolves.toContain('Rule A');
     await expect(
       fs.readFile(path.join(testProject.projectRoot, 'CLAUDE.md'), 'utf8'),
-    ).resolves.toContain('Rule B');
+    ).resolves.toContain('@.ruler/b.md');
   });
 
   it('CLI --agents overrides default_agents', async () => {

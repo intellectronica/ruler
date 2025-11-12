@@ -1,5 +1,17 @@
 # Ruler
 
+## Documentation
+
+### README.md Fork Features Section
+
+The fork features section at the top of README.md documents `@udecode/ruler` fork additions:
+
+- **Stay concise**: Bullet points only, no verbose explanations
+- **Be factual**: No marketing language or unnecessary justifications
+- **Format**: Use `##` for feature numbers, `-` for bullet points
+- **Code examples**: Only when essential for clarity
+- **No proof needed**: State features directly without proving their value
+
 ## Development Process
 
 ### Testing
@@ -25,3 +37,15 @@
   - `npm run build`
 - IMPORTANT: Before committing, always use Prettier to ensure that the code is formatted correctly.
 - IMPORTANT: When committing yourself with `git commit`, always pass `--author="AI <ruler+ai@okigu.com>"` so that your commits can be easily identified.
+
+## Documentation
+
+### README.md Fork Features Section
+
+The fork features section at the top of README.md documents `@udecode/ruler` fork additions:
+
+- **Stay concise**: Bullet points only, no verbose explanations
+- **Be factual**: No marketing language or unnecessary justifications
+- **Format**: Use `##` for feature numbers, `-` for bullet points
+- **Code examples**: Only when essential for clarity
+- **No proof needed**: State features directly without proving their value

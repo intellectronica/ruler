@@ -459,12 +459,14 @@ command = "sub-cmd"
           rulerDir: rootRulerDir,
           config: { agentConfigs: { recording: {} } } as LoadedConfig,
           concatenatedRules: '# Root',
+          ruleFiles: [],
           rulerMcpJson: { mcpServers: { root: { command: 'root' } } },
         },
         {
           rulerDir: nestedRulerDir,
           config: { agentConfigs: { recording: {} } } as LoadedConfig,
           concatenatedRules: '# Nested',
+          ruleFiles: [],
           rulerMcpJson: {
             mcpServers: { nested: { url: 'https://nested.example' } },
           },

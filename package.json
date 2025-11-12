@@ -1,5 +1,5 @@
 {
-  "name": "@intellectronica/ruler",
+  "name": "@udecode/ruler",
   "version": "0.3.14",
   "description": "Ruler — apply the same rules to all coding agents",
   "main": "dist/lib.js",
@@ -15,7 +15,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/intellectronica/ruler.git"
+    "url": "git+https://github.com/udecode/ruler.git"
   },
   "keywords": [
     "ai",
@@ -32,9 +32,8 @@
   "author": "Eleanor Berger",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/intellectronica/ruler/issues"
+    "url": "https://github.com/udecode/ruler/issues"
   },
-  "homepage": "https://ai.intellectronica.net/ruler",
   "engines": {
     "node": ">=18"
   },
@@ -47,6 +46,7 @@
     "ruler": "dist/cli/index.js"
   },
   "devDependencies": {
+    "@changesets/cli": "2.27.11",
     "@types/iarna__toml": "^2.0.5",
     "@types/jest": "^29.5.14",
     "@types/js-yaml": "^4.0.9",

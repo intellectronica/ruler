@@ -7,7 +7,9 @@ import {
   McpConfig,
   GlobalMcpConfig,
   GitignoreConfig,
+  BackupConfig,
   SkillsConfig,
+  RulesConfig,
 } from '../types';
 import { createRulerError } from '../constants';
 
@@ -34,6 +36,7 @@ const agentConfigSchema = z
 
 const rulerConfigSchema = z.object({
   default_agents: z.array(z.string()).optional(),
+  root_folder: z.string().optional(),
   agents: z.record(z.string(), agentConfigSchema).optional(),
   mcp: z
     .object({
@@ -46,9 +49,21 @@ const rulerConfigSchema = z.object({
       enabled: z.boolean().optional(),
     })
     .optional(),
+  backup: z
+    .object({
+      enabled: z.boolean().optional(),
+    })
+    .optional(),
   skills: z
     .object({
       enabled: z.boolean().optional(),
+    })
+    .optional(),
+  rules: z
+    .object({
+      include: z.array(z.string()).optional(),
+      exclude: z.array(z.string()).optional(),
+      merge_strategy: z.enum(['all', 'cursor']).optional(),
     })
     .optional(),
   nested: z.boolean().optional(),
@@ -94,6 +109,8 @@ export interface IAgentConfig {
 export interface LoadedConfig {
   /** Agents to run by default, as specified by default_agents. */
   defaultAgents?: string[];
+  /** Root folder name (e.g., ".ruler" or ".claude"). */
+  rootFolder?: string;
   /** Per-agent configuration overrides. */
   agentConfigs: Record<string, IAgentConfig>;
   /** Command-line agent filters (--agents), if provided. */
@@ -102,8 +119,12 @@ export interface LoadedConfig {
   mcp?: GlobalMcpConfig;
   /** Gitignore configuration section. */
   gitignore?: GitignoreConfig;
+  /** Backup configuration section. */
+  backup?: BackupConfig;
   /** Skills configuration section. */
   skills?: SkillsConfig;
+  /** Rules configuration section for filtering markdown files. */
+  rules?: RulesConfig;
   /** Whether to enable nested rule loading from nested .ruler directories. */
   nested?: boolean;
   /** Whether the nested option was explicitly provided in the config. */
@@ -140,10 +161,17 @@ export async function loadConfig(
       await fs.access(localConfigFile);
       configFile = localConfigFile;
     } catch {
-      // If local config doesn't exist, try global config
-      const xdgConfigDir =
-        process.env.XDG_CONFIG_HOME || path.join(os.homedir(), '.config');
-      configFile = path.join(xdgConfigDir, 'ruler', 'ruler.toml');
+      // If .ruler config doesn't exist, try .claude/ruler.toml
+      const claudeConfigFile = path.join(projectRoot, '.claude', 'ruler.toml');
+      try {
+        await fs.access(claudeConfigFile);
+        configFile = claudeConfigFile;
+      } catch {
+        // If neither local config exists, try global config
+        const xdgConfigDir =
+          process.env.XDG_CONFIG_HOME || path.join(os.homedir(), '.config');
+        configFile = path.join(xdgConfigDir, 'ruler', 'ruler.toml');
+      }
     }
   }
   let raw: Record<string, unknown> = {};
@@ -176,6 +204,8 @@ export async function loadConfig(
   const defaultAgents = Array.isArray(raw.default_agents)
     ? raw.default_agents.map((a) => String(a))
     : undefined;
+
+  const rootFolder = typeof raw.root_folder === 'string' ? raw.root_folder : undefined;
 
   const agentsSection =
     raw.agents && typeof raw.agents === 'object' && !Array.isArray(raw.agents)
@@ -248,6 +278,17 @@ export async function loadConfig(
     gitignoreConfig.enabled = rawGitignoreSection.enabled;
   }
 
+  const rawBackupSection =
+    raw.backup &&
+    typeof raw.backup === 'object' &&
+    !Array.isArray(raw.backup)
+      ? (raw.backup as Record<string, unknown>)
+      : {};
+  const backupConfig: BackupConfig = {};
+  if (typeof rawBackupSection.enabled === 'boolean') {
+    backupConfig.enabled = rawBackupSection.enabled;
+  }
+
   const rawSkillsSection =
     raw.skills && typeof raw.skills === 'object' && !Array.isArray(raw.skills)
       ? (raw.skills as Record<string, unknown>)
@@ -256,17 +297,38 @@ export async function loadConfig(
   if (typeof rawSkillsSection.enabled === 'boolean') {
     skillsConfig.enabled = rawSkillsSection.enabled;
   }
+  if (typeof rawSkillsSection.generate_from_rules === 'boolean') {
+    skillsConfig.generate_from_rules = rawSkillsSection.generate_from_rules;
+  }
+
+  const rawRulesSection =
+    raw.rules && typeof raw.rules === 'object' && !Array.isArray(raw.rules)
+      ? (raw.rules as Record<string, unknown>)
+      : {};
+  const rulesConfig: RulesConfig = {};
+  if (Array.isArray(rawRulesSection.include)) {
+    rulesConfig.include = rawRulesSection.include.map((p) => String(p));
+  }
+  if (Array.isArray(rawRulesSection.exclude)) {
+    rulesConfig.exclude = rawRulesSection.exclude.map((p) => String(p));
+  }
+  if (rawRulesSection.merge_strategy === 'all' || rawRulesSection.merge_strategy === 'cursor') {
+    rulesConfig.merge_strategy = rawRulesSection.merge_strategy;
+  }
 
   const nestedDefined = typeof raw.nested === 'boolean';
   const nested = nestedDefined ? (raw.nested as boolean) : false;
 
   return {
     defaultAgents,
+    rootFolder,
     agentConfigs,
     cliAgents,
     mcp: globalMcpConfig,
     gitignore: gitignoreConfig,
+    backup: backupConfig,
     skills: skillsConfig,
+    rules: rulesConfig,
     nested,
     nestedDefined,
   };

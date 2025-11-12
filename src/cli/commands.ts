@@ -71,7 +71,6 @@ export function run(): void {
             type: 'boolean',
             description:
               'Enable/disable creation of .bak backup files (default: enabled)',
-            default: true,
           })
           .option('skills', {
             type: 'boolean',
@@ -95,6 +94,12 @@ export function run(): void {
             type: 'boolean',
             description:
               'Initialize in global config directory (XDG_CONFIG_HOME/ruler)',
+            default: false,
+          })
+          .option('claude', {
+            type: 'boolean',
+            description:
+              'Use .claude directory instead of .ruler (for Claude Code users)',
             default: false,
           });
       },

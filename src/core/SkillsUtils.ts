@@ -138,3 +138,91 @@ export async function copySkillsDirectory(
   await fs.mkdir(destDir, { recursive: true });
   await copyRecursive(srcDir, destDir);
 }
+
+/**
+ * Recursively copies and transforms skills by expanding @filename references.
+ * Transforms SKILL.md files to replace @filename with actual file content.
+ * This is needed for MCP agents that don't support Claude Code's @filename syntax.
+ */
+async function copyAndTransformSkills(
+  src: string,
+  dest: string,
+  projectRoot: string,
+): Promise<void> {
+  const stat = await fs.stat(src);
+
+  if (stat.isDirectory()) {
+    await fs.mkdir(dest, { recursive: true });
+    const entries = await fs.readdir(src, { withFileTypes: true });
+
+    for (const entry of entries) {
+      const srcPath = path.join(src, entry.name);
+      const destPath = path.join(dest, entry.name);
+      await copyAndTransformSkills(srcPath, destPath, projectRoot);
+    }
+  } else {
+    // Check if this is a SKILL.md file that needs transformation
+    if (path.basename(src) === SKILL_MD_FILENAME) {
+      const content = await fs.readFile(src, 'utf8');
+      const transformed = await expandAtFilenameReferences(content, projectRoot);
+      await fs.writeFile(dest, transformed, 'utf8');
+    } else {
+      // Copy other files as-is
+      await fs.copyFile(src, dest);
+    }
+  }
+}
+
+/**
+ * Expands @filename references in skill content by replacing them with actual file content.
+ * Strips frontmatter from referenced files to avoid duplication.
+ */
+async function expandAtFilenameReferences(
+  content: string,
+  projectRoot: string,
+): Promise<string> {
+  const { parseFrontmatter } = await import('./FrontmatterParser');
+
+  // Match @filename patterns (e.g., @.claude/rules/foo.mdc or @./relative/path)
+  const atFilenamePattern = /@([^\s]+)/g;
+
+  let transformed = content;
+  const matches = Array.from(content.matchAll(atFilenamePattern));
+
+  for (const match of matches) {
+    const fileReference = match[0]; // e.g., "@.claude/rules/foo.mdc"
+    const filePath = match[1]; // e.g., ".claude/rules/foo.mdc"
+
+    try {
+      // Resolve path relative to project root
+      const absolutePath = path.resolve(projectRoot, filePath);
+      const fileContent = await fs.readFile(absolutePath, 'utf8');
+
+      // Parse and strip frontmatter from the referenced file
+      // This prevents duplicate frontmatter in the final skill
+      const { body } = parseFrontmatter(fileContent);
+
+      // Replace the @filename reference with the content (without frontmatter)
+      transformed = transformed.replace(fileReference, body);
+    } catch (error) {
+      // If file can't be read, leave the reference as-is
+      // This allows graceful degradation
+    }
+  }
+
+  return transformed;
+}
+
+/**
+ * Copies skills directory with transformation for MCP agents.
+ * Expands @filename references to actual file content since MCP agents
+ * don't support Claude Code's @filename syntax.
+ */
+export async function copySkillsDirectoryWithTransform(
+  srcDir: string,
+  destDir: string,
+  projectRoot: string,
+): Promise<void> {
+  await fs.mkdir(destDir, { recursive: true });
+  await copyAndTransformSkills(srcDir, destDir, projectRoot);
+}

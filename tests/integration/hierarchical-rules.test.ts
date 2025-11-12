@@ -143,21 +143,16 @@ enabled = true
     const moduleContent = await fs.readFile(moduleClaudeFile, 'utf8');
     const submoduleContent = await fs.readFile(submoduleClaudeFile, 'utf8');
 
-    // Verify each file contains only its level's rules
-    expect(rootContent).toContain('Root Rules');
-    expect(rootContent).toContain('should only appear in root-level files');
-    expect(rootContent).not.toContain('Module Rules');
-    expect(rootContent).not.toContain('Submodule Rules');
+    // Verify each file contains only its level's @filename references
+    expect(rootContent).toContain('@.ruler/AGENTS.md');
+    expect(rootContent).not.toContain('@module');
+    expect(rootContent).not.toContain('@submodule');
 
-    expect(moduleContent).toContain('Module Rules');
-    expect(moduleContent).toContain('should only appear in module-level files');
+    expect(moduleContent).toContain('@.ruler/AGENTS.md');
     expect(moduleContent).not.toContain('Root Rules');
     expect(moduleContent).not.toContain('Submodule Rules');
 
-    expect(submoduleContent).toContain('Submodule Rules');
-    expect(submoduleContent).toContain(
-      'should only appear in submodule-level files',
-    );
+    expect(submoduleContent).toContain('@.ruler/AGENTS.md');
     expect(submoduleContent).not.toContain('Root Rules');
     expect(submoduleContent).not.toContain('Module Rules');
   });

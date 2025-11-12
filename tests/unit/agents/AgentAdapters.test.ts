@@ -45,21 +45,29 @@ describe('Agent Adapters', () => {
   });
 
   describe('ClaudeAgent', () => {
-  it('backs up and writes CLAUDE.md', async () => {
+  it('backs up and writes CLAUDE.md with @filename references', async () => {
       const agent = new ClaudeAgent();
       const target = path.join(tmpDir, 'CLAUDE.md');
       await fs.writeFile(target, 'old claude');
-      await agent.applyRulerConfig('new claude', tmpDir, null);
+      const ruleFiles = [
+        { path: path.join(tmpDir, '.ruler/AGENTS.md'), content: 'new claude' },
+      ];
+      await agent.applyRulerConfig('new claude', tmpDir, null, undefined, true, ruleFiles);
       expect(await fs.readFile(`${target}.bak`, 'utf8')).toBe('old claude');
-      expect(await fs.readFile(target, 'utf8')).toBe('new claude');
+      const content = await fs.readFile(target, 'utf8');
+      expect(content).toContain('@.ruler/AGENTS.md');
     });
   });
   it('uses custom outputPath when provided', async () => {
     const agent = new ClaudeAgent();
     const custom = path.join(tmpDir, 'CUSTOM_CLAUDE.md');
     await fs.mkdir(path.dirname(custom), { recursive: true });
-    await agent.applyRulerConfig('x', tmpDir, null, { outputPath: custom });
-    expect(await fs.readFile(custom, 'utf8')).toBe('x');
+    const ruleFiles = [
+      { path: path.join(tmpDir, '.ruler/AGENTS.md'), content: 'x' },
+    ];
+    await agent.applyRulerConfig('x', tmpDir, null, { outputPath: custom }, true, ruleFiles);
+    const content = await fs.readFile(custom, 'utf8');
+    expect(content).toContain('@.ruler/AGENTS.md');
   });
 
   describe('CodexCliAgent', () => {

@@ -92,6 +92,79 @@ describe('Skills MCP Integration', () => {
       const steps = await propagateSkillsForSkillz(tmpDir, { dryRun: true });
       expect(steps).toHaveLength(0);
     });
+
+    it('copies .claude/skills to .skillz when using .claude root folder', async () => {
+      const claudeSkillsDir = path.join(tmpDir, '.claude', 'skills');
+      const skill1 = path.join(claudeSkillsDir, 'skill1');
+      await fs.mkdir(skill1, { recursive: true });
+      await fs.writeFile(
+        path.join(skill1, SKILL_MD_FILENAME),
+        '# Claude Skill 1',
+      );
+
+      await propagateSkillsForSkillz(tmpDir, {
+        dryRun: false,
+        rulerDir: path.join(tmpDir, '.claude'),
+      });
+
+      const skillzDir = path.join(tmpDir, SKILLZ_DIR);
+      const copiedSkill = path.join(skillzDir, 'skill1', SKILL_MD_FILENAME);
+      const content = await fs.readFile(copiedSkill, 'utf8');
+      expect(content).toBe('# Claude Skill 1');
+    });
+
+    it('expands @filename references when copying to .skillz', async () => {
+      // Create source .mdc file with frontmatter
+      const claudeRulesDir = path.join(tmpDir, '.claude', 'rules');
+      await fs.mkdir(claudeRulesDir, { recursive: true });
+      await fs.writeFile(
+        path.join(claudeRulesDir, 'test-rule.mdc'),
+        `---
+description: Original .mdc file description
+alwaysApply: false
+---
+
+# Test Rule Content
+
+This is the actual rule content.`,
+      );
+
+      // Create skill with @filename reference
+      const claudeSkillsDir = path.join(tmpDir, '.claude', 'skills');
+      const skill1 = path.join(claudeSkillsDir, 'test-rule');
+      await fs.mkdir(skill1, { recursive: true });
+      await fs.writeFile(
+        path.join(skill1, SKILL_MD_FILENAME),
+        `---
+name: test-rule
+description: Test rule
+---
+
+@.claude/rules/test-rule.mdc
+`,
+      );
+
+      await propagateSkillsForSkillz(tmpDir, {
+        dryRun: false,
+        rulerDir: path.join(tmpDir, '.claude'),
+      });
+
+      const skillzDir = path.join(tmpDir, SKILLZ_DIR);
+      const copiedSkill = path.join(skillzDir, 'test-rule', SKILL_MD_FILENAME);
+      const content = await fs.readFile(copiedSkill, 'utf8');
+
+      // Should NOT contain @filename reference
+      expect(content).not.toContain('@.claude/rules/test-rule.mdc');
+      // Should contain the actual file content
+      expect(content).toContain('# Test Rule Content');
+      expect(content).toContain('This is the actual rule content.');
+      // Should preserve skill frontmatter
+      expect(content).toContain('name: test-rule');
+      expect(content).toContain('description: Test rule');
+      // Should NOT contain duplicate frontmatter from .mdc file
+      expect(content).not.toContain('alwaysApply: false');
+      expect(content).not.toContain('Original .mdc file description');
+    });
   });
 
   describe('buildSkillzMcpConfig', () => {
