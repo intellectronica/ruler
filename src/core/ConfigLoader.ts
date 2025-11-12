@@ -205,7 +205,8 @@ export async function loadConfig(
     ? raw.default_agents.map((a) => String(a))
     : undefined;
 
-  const rootFolder = typeof raw.root_folder === 'string' ? raw.root_folder : undefined;
+  const rootFolder =
+    typeof raw.root_folder === 'string' ? raw.root_folder : undefined;
 
   const agentsSection =
     raw.agents && typeof raw.agents === 'object' && !Array.isArray(raw.agents)
@@ -279,9 +280,7 @@ export async function loadConfig(
   }
 
   const rawBackupSection =
-    raw.backup &&
-    typeof raw.backup === 'object' &&
-    !Array.isArray(raw.backup)
+    raw.backup && typeof raw.backup === 'object' && !Array.isArray(raw.backup)
       ? (raw.backup as Record<string, unknown>)
       : {};
   const backupConfig: BackupConfig = {};
@@ -312,7 +311,10 @@ export async function loadConfig(
   if (Array.isArray(rawRulesSection.exclude)) {
     rulesConfig.exclude = rawRulesSection.exclude.map((p) => String(p));
   }
-  if (rawRulesSection.merge_strategy === 'all' || rawRulesSection.merge_strategy === 'cursor') {
+  if (
+    rawRulesSection.merge_strategy === 'all' ||
+    rawRulesSection.merge_strategy === 'cursor'
+  ) {
     rulesConfig.merge_strategy = rawRulesSection.merge_strategy;
   }
 

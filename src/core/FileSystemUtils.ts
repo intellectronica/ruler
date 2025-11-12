@@ -94,7 +94,11 @@ export async function findRulerDir(
  */
 export function normalizePattern(pattern: string): string {
   // If pattern already contains wildcards or is a specific markdown file, return as-is
-  if (pattern.includes('*') || pattern.endsWith('.md') || pattern.endsWith('.mdc')) {
+  if (
+    pattern.includes('*') ||
+    pattern.endsWith('.md') ||
+    pattern.endsWith('.mdc')
+  ) {
     return pattern;
   }
 
@@ -172,7 +176,10 @@ export async function readMarkdownFiles(
       const fullPath = path.join(dir, entry.name);
       if (entry.isDirectory()) {
         await walk(fullPath);
-      } else if (entry.isFile() && (entry.name.endsWith('.md') || entry.name.endsWith('.mdc'))) {
+      } else if (
+        entry.isFile() &&
+        (entry.name.endsWith('.md') || entry.name.endsWith('.mdc'))
+      ) {
         const content = await fs.readFile(fullPath, 'utf8');
         mdFiles.push({ path: fullPath, content });
       }

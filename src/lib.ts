@@ -135,7 +135,9 @@ export async function applyAllAgentConfigs(
       rootConfig.skills?.enabled,
     );
     if (skillsEnabledResolved) {
-      const { propagateSkills, generateSkillsFromRules } = await import('./core/SkillsProcessor');
+      const { propagateSkills, generateSkillsFromRules } = await import(
+        './core/SkillsProcessor'
+      );
 
       // Generate skills from .mdc files if enabled
       const generateFromRules = rootConfig.skills?.generate_from_rules ?? false;
@@ -222,15 +224,15 @@ export async function applyAllAgentConfigs(
       singleConfig.config.skills?.enabled,
     );
     if (skillsEnabledResolved) {
-      const { propagateSkills, generateSkillsFromRules } = await import('./core/SkillsProcessor');
+      const { propagateSkills, generateSkillsFromRules } = await import(
+        './core/SkillsProcessor'
+      );
 
       // Generate skills from .mdc files if enabled
-      const generateFromRules = singleConfig.config.skills?.generate_from_rules ?? false;
+      const generateFromRules =
+        singleConfig.config.skills?.generate_from_rules ?? false;
       if (generateFromRules) {
-        logVerbose(
-          'Generating skills from .mdc files',
-          verbose,
-        );
+        logVerbose('Generating skills from .mdc files', verbose);
         await generateSkillsFromRules(
           projectRoot,
           singleConfig.rulerDir,

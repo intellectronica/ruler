@@ -84,7 +84,9 @@ export async function loadUnifiedConfig(
   }
 
   // Parse skills configuration
-  let skillsConfig: { enabled?: boolean; generate_from_rules?: boolean } | undefined;
+  let skillsConfig:
+    | { enabled?: boolean; generate_from_rules?: boolean }
+    | undefined;
   if (tomlRaw && typeof tomlRaw === 'object') {
     const skillsSection = (tomlRaw as Record<string, unknown>).skills;
     if (skillsSection && typeof skillsSection === 'object') {
@@ -102,7 +104,6 @@ export async function loadUnifiedConfig(
   // Parse rules configuration
   let rulesInclude: string[] | undefined;
   let rulesExclude: string[] | undefined;
-  let rulesMergeStrategy: 'all' | 'cursor' | undefined;
   if (tomlRaw && typeof tomlRaw === 'object') {
     const rulesSection = (tomlRaw as Record<string, unknown>).rules;
     if (rulesSection && typeof rulesSection === 'object') {
@@ -113,9 +114,7 @@ export async function loadUnifiedConfig(
       if (Array.isArray(rulesObj.exclude)) {
         rulesExclude = rulesObj.exclude.map((p) => String(p));
       }
-      if (rulesObj.merge_strategy === 'all' || rulesObj.merge_strategy === 'cursor') {
-        rulesMergeStrategy = rulesObj.merge_strategy;
-      }
+      // Note: merge_strategy is handled in ConfigLoader.ts for single configs
     }
   }
 
@@ -133,7 +132,12 @@ export async function loadUnifiedConfig(
   try {
     const dirEntries = await fs.readdir(meta.rulerDir, { withFileTypes: true });
     let mdFiles = dirEntries
-      .filter((e) => e.isFile() && (e.name.toLowerCase().endsWith('.md') || e.name.toLowerCase().endsWith('.mdc')))
+      .filter(
+        (e) =>
+          e.isFile() &&
+          (e.name.toLowerCase().endsWith('.md') ||
+            e.name.toLowerCase().endsWith('.mdc')),
+      )
       .map((e) => path.join(meta.rulerDir, e.name));
 
     // Apply include/exclude filters

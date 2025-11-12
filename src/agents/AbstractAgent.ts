@@ -40,9 +40,11 @@ export abstract class AbstractAgent implements IAgent {
     _rulerMcpJson: Record<string, unknown> | null,
     agentConfig?: IAgentConfig,
     backup = true,
+    /* eslint-disable @typescript-eslint/no-unused-vars */
     _ruleFiles?: { path: string; content: string }[],
     _rulerDir?: string,
     _mergeStrategy?: 'all' | 'cursor',
+    /* eslint-enable @typescript-eslint/no-unused-vars */
   ): Promise<void> {
     const output =
       agentConfig?.outputPath ?? this.getDefaultOutputPath(projectRoot);

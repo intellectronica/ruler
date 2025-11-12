@@ -34,6 +34,7 @@ export interface RulerConfiguration {
 /**
  * Configuration data for a specific .ruler directory in hierarchical mode
  */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface HierarchicalRulerConfiguration extends RulerConfiguration {
   // rulerDir is inherited from RulerConfiguration
 }

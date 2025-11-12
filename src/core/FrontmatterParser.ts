@@ -45,13 +45,13 @@ export function parseFrontmatter(content: string): ParsedContent {
     // Try parsing YAML as-is first
     const parsed = yaml.load(yamlContent) as Record<string, unknown> | null;
     return extractFrontmatter(parsed, body);
-  } catch (error) {
+  } catch {
     // YAML parsing failed - try to fix common issues
     try {
       // Fix common issue: globs as comma-separated unquoted strings
       // Pattern: globs: *.tsx,**/path -> globs: ["*.tsx", "**/path"]
       const fixedYaml = yamlContent.replace(
-        /^(\s*globs\s*:\s*)([^\n\[\{]+)$/gm,
+        /^(\s*globs\s*:\s*)([^\n[{]+)$/gm,
         (match, prefix, value) => {
           // Check if value looks like comma-separated patterns (contains * or commas)
           if (value.includes('*') || value.includes(',')) {

@@ -164,7 +164,10 @@ async function copyAndTransformSkills(
     // Check if this is a SKILL.md file that needs transformation
     if (path.basename(src) === SKILL_MD_FILENAME) {
       const content = await fs.readFile(src, 'utf8');
-      const transformed = await expandAtFilenameReferences(content, projectRoot);
+      const transformed = await expandAtFilenameReferences(
+        content,
+        projectRoot,
+      );
       await fs.writeFile(dest, transformed, 'utf8');
     } else {
       // Copy other files as-is
@@ -204,7 +207,7 @@ async function expandAtFilenameReferences(
 
       // Replace the @filename reference with the content (without frontmatter)
       transformed = transformed.replace(fileReference, body);
-    } catch (error) {
+    } catch {
       // If file can't be read, leave the reference as-is
       // This allows graceful degradation
     }

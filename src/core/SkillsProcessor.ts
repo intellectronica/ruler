@@ -115,6 +115,8 @@ let hasWarnedExperimental = false;
  * Warns once per process about experimental skills features and uv requirement.
  * Uses module-level state to prevent duplicate warnings within the same process.
  */
+// Currently unused but kept for potential future use
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function warnOnceExperimentalAndUv(verbose: boolean, dryRun: boolean): void {
   if (hasWarnedExperimental) {
     return;
@@ -170,11 +172,7 @@ export async function generateSkillsFromRules(
   dryRun: boolean,
 ): Promise<void> {
   // Determine skills directory based on rulerDir
-  const isClaudeMode = path.basename(rulerDir) === '.claude';
-  const skillsDir = path.join(
-    rulerDir,
-    'skills',
-  );
+  const skillsDir = path.join(rulerDir, 'skills');
 
   // Find all .mdc files in the ruler directory
   const mdcFiles = await findMdcFiles(rulerDir);
@@ -209,7 +207,8 @@ export async function generateSkillsFromRules(
     }
 
     // Build description with globs sentence
-    let description = frontmatter.description || `Generated from ${fileName}.mdc`;
+    let description =
+      frontmatter.description || `Generated from ${fileName}.mdc`;
     if (frontmatter.globs && frontmatter.globs.length > 0) {
       const globsText = frontmatter.globs.join(', ');
       description += ` Applies to files matching: ${globsText}.`;
@@ -220,7 +219,9 @@ export async function generateSkillsFromRules(
     const skillFile = path.join(skillDir, 'SKILL.md');
 
     // Generate @filename reference to the original .mdc file (relative to projectRoot)
-    const relativeToProject = path.relative(projectRoot, mdcFile).replace(/\\/g, '/');
+    const relativeToProject = path
+      .relative(projectRoot, mdcFile)
+      .replace(/\\/g, '/');
     const fileReference = `@${relativeToProject}`;
 
     // Generate skill content with frontmatter
@@ -312,7 +313,10 @@ ${fileReference}
     for (const skillName of skillsToRemove) {
       const skillPath = path.join(skillsDir, skillName);
       try {
-        const exists = await fs.access(skillPath).then(() => true).catch(() => false);
+        const exists = await fs
+          .access(skillPath)
+          .then(() => true)
+          .catch(() => false);
         if (exists) {
           if (dryRun) {
             logVerboseInfo(
