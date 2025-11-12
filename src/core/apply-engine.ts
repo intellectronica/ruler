@@ -26,14 +26,16 @@ import { McpStrategy } from '../types';
 export interface RulerConfiguration {
   config: LoadedConfig;
   concatenatedRules: string;
+  ruleFiles: { path: string; content: string }[];
   rulerMcpJson: Record<string, unknown> | null;
+  rulerDir: string;
 }
 
 /**
  * Configuration data for a specific .ruler directory in hierarchical mode
  */
 export interface HierarchicalRulerConfiguration extends RulerConfiguration {
-  rulerDir: string;
+  // rulerDir is inherited from RulerConfiguration
 }
 
 export /**
@@ -111,6 +113,7 @@ async function processIndependentRulerDirs(
     const files = await FileSystemUtils.readMarkdownFiles(rulerDir, {
       include: config.rules?.include,
       exclude: config.rules?.exclude,
+      merge_strategy: config.rules?.merge_strategy,
     });
     results.push({ rulerDir, files, config });
   }
@@ -155,6 +158,7 @@ async function createHierarchicalConfiguration(
     rulerDir,
     config,
     concatenatedRules,
+    ruleFiles: files,
     rulerMcpJson,
   };
 }
@@ -305,6 +309,7 @@ async function loadSingleConfiguration(
   const files = await FileSystemUtils.readMarkdownFiles(rulerDirs[0], {
     include: config.rules?.include,
     exclude: config.rules?.exclude,
+    merge_strategy: config.rules?.merge_strategy,
   });
 
   // Concatenate rules
@@ -325,7 +330,9 @@ async function loadSingleConfiguration(
   return {
     config,
     concatenatedRules,
+    ruleFiles: files,
     rulerMcpJson,
+    rulerDir: primaryDir,
   };
 }
 
@@ -371,6 +378,7 @@ export async function processHierarchicalConfigurations(
       cliMcpStrategy,
       backup,
       skillsEnabled,
+      config.ruleFiles,
     );
     const normalizedPaths = paths.map((p) =>
       path.isAbsolute(p) ? p : path.join(rulerRoot, p),
@@ -416,6 +424,8 @@ export async function processSingleConfiguration(
     cliMcpStrategy,
     backup,
     skillsEnabled,
+    configuration.ruleFiles,
+    configuration.rulerDir,
   );
 }
 
@@ -493,6 +503,8 @@ export async function applyConfigurationsToAgents(
   cliMcpStrategy?: McpStrategy,
   backup = true,
   skillsEnabled = true,
+  ruleFiles?: { path: string; content: string }[],
+  rulerDir?: string,
 ): Promise<string[]> {
   const generatedPaths: string[] = [];
   let agentsMdWritten = false;
@@ -571,7 +583,21 @@ export async function applyConfigurationsToAgents(
           augmentedRulerMcpJson,
           finalAgentConfig,
           backup,
+          ruleFiles,
+          rulerDir,
+          config.rules?.merge_strategy,
         );
+
+        // Add .cursor/rules to gitignore when copying from .claude
+        if (
+          agent.getIdentifier() === 'cursor' &&
+          config.rules?.merge_strategy === 'cursor' &&
+          rulerDir &&
+          path.basename(rulerDir) === '.claude'
+        ) {
+          const cursorRulesPath = path.join(projectRoot, '.cursor', 'rules');
+          generatedPaths.push(cursorRulesPath);
+        }
       }
     }
 

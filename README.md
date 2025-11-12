@@ -1,34 +1,61 @@
-# Ruler: Centralise Your AI Coding Assistant Instructions
+# `@udecode/ruler` fork
 
-<table style="width:100%">
-  <tr>
-    <td style="vertical-align: top;">
-      <p>
-        <a href="https://github.com/intellectronica/ruler/actions/workflows/ci.yml"><img src="https://github.com/intellectronica/ruler/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-        <a href="https://www.npmjs.com/package/@intellectronica/ruler"><img src="https://badge.fury.io/js/%40intellectronica%2Fruler.svg" alt="npm version"></a>
-        <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT">
-      </p>
-      <ul>
-        <li><strong>GitHub</strong>: <a href="https://github.com/intellectronica/ruler">intellectronica/ruler</a></li>
-        <li><strong>NPM</strong>: <a href="https://www.npmjs.com/package/@intellectronica/ruler">@intellectronica/ruler</a></li>
-      </ul>
-      <hr />
-      <p>
-        <em>Animation by <a href="https://isaacflath.com/">Isaac Flath</a> of <strong><a href="https://elite-ai-assisted-coding.dev/">Elite AI-Assisted Coding</a></strong></em> ➡︎
-      </p>
-    </td>
-    <td style="vertical-align: top; width:33%;">
-      <img src="img/ruler-short.gif" alt="Ruler demo" style="width:300px; height:auto; display:block;" />
-    </td>
-  </tr>
-</table>
+**Fork features:**
+
+## 1. CLAUDE.md @filename References
+
+- Uses `@filename` syntax instead of merging content
+- Claude Code auto-includes referenced files
+- Reduces CLAUDE.md size and keeps sources separate
+- Other agents still get merged content
+
+## 2. MDC File Support
+
+- Supports both `.md` and `.mdc` files (Nuxt Content, Vue)
+- All patterns auto-expand: `"components"` → `"components/**/*.{md,mdc}"`
+
+## 3. Rules Filtering
+
+- `include`/`exclude` glob patterns in `[rules]`
+- Directory names auto-expand to `directory/**/*.{md,mdc}`
+- Organize by team/feature, exclude drafts/internal docs
+
+## 4. Claude Root Folder
+
+- `ruler init --claude` creates `.claude/` instead of `.ruler/`
+- Skills already in `.claude/skills` (no copying)
+- Single directory for all Claude Code config
+
+## 5. Cursor-style Rules
+
+- `merge_strategy = "cursor"` parses `.mdc` frontmatter
+- Only includes rules with `alwaysApply: true`
+- Strips frontmatter, keeps body only
+
+## 6. Backup Control
+
+- `[backup].enabled = false` disables `.bak` files
+
+## 7. Auto-Generate Skills from Rules
+
+- `[skills].generate_from_rules = true` creates skills from .mdc files
+- Only generates from files with `alwaysApply: false` (or undefined)
+- Files with `alwaysApply: true` are merged into AGENTS.md instead
+- Automatically removes skills when `alwaysApply` changes to `true`
+- Skills use @filename references to original .mdc (for Claude Code)
+- MCP agents (excluding Cursor) get full content in .skillz (frontmatter stripped)
+- Cursor uses .cursor/rules directly (no skillz MCP needed)
+- Globs appended to description: "Applies to files matching: ..."
+- **Folder support**: `rules/docx/docx.mdc` + `rules/docx/script.sh` → `skills/docx/SKILL.md` + `skills/docx/script.sh`
 
 ---
+
+# Ruler: Centralise Your AI Coding Assistant Instructions
 
 > **Beta Research Preview**
 >
 > - Please test this version carefully in your environment
-> - Report issues at https://github.com/intellectronica/ruler/issues
+> - Report issues at https://github.com/udecode/ruler/issues
 
 ## Why Ruler?
 
@@ -58,8 +85,8 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | ---------------- | ------------------------------------------------ | ------------------------------------------------ |
 | AGENTS.md        | `AGENTS.md`                                      | (pseudo-agent ensuring root `AGENTS.md` exists)  |
 | GitHub Copilot   | `AGENTS.md`                                      | `.vscode/mcp.json`                               |
-| Claude Code      | `CLAUDE.md`                                      | `.mcp.json`                                      |
-| OpenAI Codex CLI | `AGENTS.md`                                      | `.codex/config.toml`                             |
+| Claude Code      | `CLAUDE.md` (@filename references)               | `.mcp.json`                                      |
+| OpenAI Codex CLI | `AGENTS.md`                                      | `.codex/config.toml` (MCP via Skillz)            |
 | Jules            | `AGENTS.md`                                      | -                                                |
 | Cursor           | `AGENTS.md`                                      | `.cursor/mcp.json`                               |
 | Windsurf         | `AGENTS.md`                                      | `.windsurf/mcp_config.json`                      |
@@ -91,13 +118,13 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 **Global Installation (Recommended for CLI use):**
 
 ```bash
-npm install -g @intellectronica/ruler
+npm install -g @udecode/ruler
 ```
 
 **Using `npx` (for one-off commands):**
 
 ```bash
-npx @intellectronica/ruler apply
+npx @udecode/ruler apply
 ```
 
 ### Project Initialisation
@@ -108,8 +135,7 @@ npx @intellectronica/ruler apply
 
 - `.ruler/` directory
 - `.ruler/AGENTS.md`: The primary starter Markdown file for your rules
-- `.ruler/ruler.toml`: The main configuration file for Ruler (now contains sample MCP server sections; legacy `.ruler/mcp.json` no longer scaffolded)
-- (Optional legacy fallback) If you previously used `.ruler/instructions.md`, it is still respected when `AGENTS.md` is absent. (The prior runtime warning was removed.)
+- `.ruler/ruler.toml`: The main configuration file for Ruler
 
 Additionally, you can create a global configuration to use when no local `.ruler/` directory is found:
 
@@ -128,8 +154,7 @@ This is your central hub for all AI agent instructions:
 - **Primary File Order & Precedence**:
   1. A repository root `AGENTS.md` (outside `.ruler/`) if present (highest precedence, prepended)
   2. `.ruler/AGENTS.md` (new default starter file)
-  3. Legacy `.ruler/instructions.md` (only if `.ruler/AGENTS.md` absent; no longer emits a deprecation warning)
-  4. Remaining discovered `.md` files under `.ruler/` (and subdirectories) in sorted order
+  3. Remaining discovered `.md` files under `.ruler/` (and subdirectories) in sorted order
 - **Rule Files (`*.md`)**: Discovered recursively from `.ruler/` or `$XDG_CONFIG_HOME/ruler` and concatenated in the order above
 - **Concatenation Marker**: Each file's content is prepended with `--- Source: <relative_path_to_md_file> ---` for traceability
 - **`ruler.toml`**: Master configuration for Ruler's behavior, agent selection, and output paths
@@ -233,7 +258,7 @@ The `apply` command looks for `.ruler/` in the current directory tree, reading t
 | `--no-gitignore`               | Disable automatic .gitignore updates.                                  |
 | `--nested`                     | Enable nested rule loading (default: inherit from config or disabled). |
 | `--no-nested`                  | Disable nested rule loading even if `nested = true` in config.         |
-| `--backup`                     | Toggle creation of `.bak` backup files (default: enabled).             |
+| `--backup` / `--no-backup`     | Enable/disable creation of `.bak` backup files (default: enabled).     |
 | `--dry-run`                    | Preview changes without writing files.                                 |
 | `--local-only`                 | Skip `$XDG_CONFIG_HOME` when looking for configuration.                |
 | `--verbose` / `-v`             | Display detailed output during execution.                              |
@@ -397,6 +422,11 @@ Authorization = "Bearer your-token"
 # Enable/disable automatic .gitignore updates (default: true)
 enabled = true
 
+# --- Backup Configuration ---
+[backup]
+# Enable/disable creation of .bak backup files (default: true)
+enabled = false
+
 # --- Agent-Specific Configurations ---
 [agents.copilot]
 enabled = true
@@ -490,29 +520,6 @@ Authorization = "Bearer your-token"
 "X-API-Version" = "v1"
 ```
 
-### Legacy `.ruler/mcp.json` (Deprecated)
-
-For backward compatibility, you can still use the JSON format; a warning is issued encouraging migration to TOML. The file is no longer created during `ruler init`.
-
-```json
-{
-  "mcpServers": {
-    "filesystem": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-filesystem",
-        "/path/to/project"
-      ]
-    },
-    "git": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-git", "--repository", "."]
-    }
-  }
-}
-```
-
 ### Configuration Precedence
 
 When both TOML and JSON configurations are present:
@@ -564,8 +571,9 @@ Ruler can manage and propagate Claude Code-compatible skills to supported AI age
 
 Skills are specialized knowledge packages that extend AI agent capabilities with domain-specific expertise, workflows, or tool integrations. Ruler discovers skills in your `.ruler/skills/` directory and propagates them to compatible agents:
 
-- **Claude Code agents**: Skills are copied to `.claude/skills/` in their native format
-- **Other MCP-compatible agents**: Skills are copied to `.skillz/` and a Skillz MCP server is automatically configured via `uvx`
+- **Claude Code**: Skills copied to `.claude/skills/` with @filename references preserved
+- **Cursor**: Uses `.cursor/rules/` directly (copied when `merge_strategy = "cursor"`), no skillz MCP needed
+- **Other MCP agents**: Skills copied to `.skillz/` with @filename references expanded to full content (frontmatter stripped), Skillz MCP server auto-configured via `uvx`
 
 ### Skills Directory Structure
 
@@ -591,6 +599,46 @@ Skills can optionally include additional resources like:
 - Python, JavaScript, or other scripts
 - Configuration files or data
 
+### Auto-Generated Skills from Rules (with `generate_from_rules = true`)
+
+When using `[skills].generate_from_rules = true`, skills are automatically created from `.mdc` files in your rules directory. This feature supports folder-based organization:
+
+**Folder Support**: If your `.mdc` file is in a folder with the same name, all additional files in that folder are automatically copied to the generated skill:
+
+```
+.claude/rules/docx/
+├── docx.mdc          # Main rule (with frontmatter)
+├── script.sh         # Helper script
+└── templates/        # Subdirectory
+    └── default.docx  # Template file
+
+→ Generated:
+
+.claude/skills/docx/
+├── SKILL.md          # Generated from docx.mdc
+├── script.sh         # Copied automatically
+└── templates/        # Copied automatically
+    └── default.docx  # Copied automatically
+```
+
+**Requirements for folder copying**:
+- The `.mdc` file must be in a folder with the same basename (e.g., `docx/docx.mdc`)
+- The `.mdc` file must have frontmatter with `alwaysApply: false` (or undefined)
+- All files and subdirectories in that folder (except the `.mdc` file itself) are copied
+
+**Example `.mdc` file with frontmatter**:
+```markdown
+---
+description: DOCX file processing utilities
+globs: ["**/*.docx"]
+alwaysApply: false
+---
+
+# DOCX Processing
+
+Use script.sh to process DOCX files. Templates are in templates/ directory.
+```
+
 ### Configuration
 
 Skills support is **enabled by default** but can be controlled via:
@@ -614,11 +662,14 @@ enabled = true  # or false to disable
 
 ### Skillz MCP Server
 
-For agents that support MCP but don't have native skills support (all agents except Claude Code), Ruler automatically:
+For agents that support MCP but don't have native skills support (excluding Claude Code and Cursor), Ruler automatically:
 
-1. Copies skills to `.skillz/` directory
-2. Configures a Skillz MCP server in the agent's configuration
-3. Uses `uvx` to launch the server with the absolute path to `.skillz`
+1. Copies skills to `.skillz/` directory with @filename references expanded to full content
+2. Strips frontmatter from referenced .mdc files to avoid duplication
+3. Configures a Skillz MCP server in the agent's configuration
+4. Uses `uvx` to launch the server with the absolute path to `.skillz`
+
+**Note**: Cursor is excluded from Skillz MCP because it uses `.cursor/rules/` directory natively.
 
 Example auto-generated MCP server configuration:
 
@@ -632,10 +683,13 @@ args = ["skillz@latest", "/absolute/path/to/project/.skillz"]
 
 When skills support is enabled and gitignore integration is active, Ruler automatically adds:
 
-- `.claude/skills/` (for Claude Code agents)
-- `.skillz/` (for MCP-based agents)
+- `.claude/skills/` (when generated from `.claude/rules/` or copied from `.ruler/skills/`)
+- `.skillz/` (for MCP-based agents excluding Cursor)
+- `.cursor/rules/` (when using `merge_strategy = "cursor"`)
 
 to your `.gitignore` file within the managed Ruler block.
+
+**Note**: If you manually create `.claude/skills/` without `.claude/rules/`, it won't be gitignored (assumed to be versioned).
 
 ### Requirements
 
@@ -818,7 +872,7 @@ jobs:
           cache: 'npm'
 
       - name: Install Ruler
-        run: npm install -g @intellectronica/ruler
+        run: npm install -g @udecode/ruler
 
       - name: Apply Ruler configuration
         run: ruler apply --no-gitignore
@@ -838,8 +892,8 @@ jobs:
 
 **"Cannot find module" errors:**
 
-- Ensure Ruler is installed globally: `npm install -g @intellectronica/ruler`
-- Or use `npx @intellectronica/ruler`
+- Ensure Ruler is installed globally: `npm install -g @udecode/ruler`
+- Or use `npx @udecode/ruler`
 
 **Permission denied errors:**
 
@@ -888,9 +942,6 @@ A: Ruler creates backups with `.bak` extension before overwriting any existing f
 **Q: Can I run Ruler in CI/CD pipelines?**
 A: Yes! Use `ruler apply --no-gitignore` in CI to avoid modifying `.gitignore`. See the GitHub Actions example above.
 
-**Q: How do I migrate from older versions using `instructions.md`?**
-A: Simply rename `.ruler/instructions.md` to `.ruler/AGENTS.md` (recommended). If you keep the legacy file and omit `AGENTS.md`, Ruler will still use it (without emitting the old deprecation warning). Having both causes `AGENTS.md` to take precedence; the legacy file is still concatenated afterward.
-
 **Q: How does OpenHands MCP propagation classify servers?**
 A: Local stdio servers become `stdio_servers`. Remote URLs containing `/sse` are classified as `sse_servers`; others become `shttp_servers`. Bearer tokens in an `Authorization` header are extracted into `api_key` where possible.
 
@@ -908,7 +959,7 @@ A: Yes. Kiro receives concatenated rules at `.kiro/steering/ruler_kiro_instructi
 ### Setup
 
 ```bash
-git clone https://github.com/intellectronica/ruler.git
+git clone https://github.com/udecode/ruler.git
 cd ruler
 npm install
 npm run build
@@ -936,25 +987,3 @@ npm run lint
 # Run formatting
 npm run format
 ```
-
-## Contributing
-
-Contributions are welcome! Please:
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Ensure all tests pass
-6. Submit a pull request
-
-For bugs and feature requests, please [open an issue](https://github.com/intellectronica/ruler/issues).
-
-## License
-
-MIT
-
----
-
-© Eleanor Berger  
-[ai.intellectronica.net](https://ai.intellectronica.net/)

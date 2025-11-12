@@ -4,7 +4,7 @@ import { parse as parseTOML } from '@iarna/toml';
 import { sha256, stableJson } from './hash';
 import { concatenateRules } from './RuleProcessor';
 import * as FileSystemUtils from './FileSystemUtils';
-import { matchesPattern } from './FileSystemUtils';
+import { matchesPattern, normalizePattern } from './FileSystemUtils';
 import {
   RulerUnifiedConfig,
   ConfigMeta,
@@ -84,13 +84,17 @@ export async function loadUnifiedConfig(
   }
 
   // Parse skills configuration
-  let skillsConfig;
+  let skillsConfig: { enabled?: boolean; generate_from_rules?: boolean } | undefined;
   if (tomlRaw && typeof tomlRaw === 'object') {
     const skillsSection = (tomlRaw as Record<string, unknown>).skills;
     if (skillsSection && typeof skillsSection === 'object') {
       const skillsObj = skillsSection as Record<string, unknown>;
+      skillsConfig = {};
       if (typeof skillsObj.enabled === 'boolean') {
-        skillsConfig = { enabled: skillsObj.enabled };
+        skillsConfig.enabled = skillsObj.enabled;
+      }
+      if (typeof skillsObj.generate_from_rules === 'boolean') {
+        skillsConfig.generate_from_rules = skillsObj.generate_from_rules;
       }
     }
   }
@@ -98,6 +102,7 @@ export async function loadUnifiedConfig(
   // Parse rules configuration
   let rulesInclude: string[] | undefined;
   let rulesExclude: string[] | undefined;
+  let rulesMergeStrategy: 'all' | 'cursor' | undefined;
   if (tomlRaw && typeof tomlRaw === 'object') {
     const rulesSection = (tomlRaw as Record<string, unknown>).rules;
     if (rulesSection && typeof rulesSection === 'object') {
@@ -107,6 +112,9 @@ export async function loadUnifiedConfig(
       }
       if (Array.isArray(rulesObj.exclude)) {
         rulesExclude = rulesObj.exclude.map((p) => String(p));
+      }
+      if (rulesObj.merge_strategy === 'all' || rulesObj.merge_strategy === 'cursor') {
+        rulesMergeStrategy = rulesObj.merge_strategy;
       }
     }
   }
@@ -125,11 +133,15 @@ export async function loadUnifiedConfig(
   try {
     const dirEntries = await fs.readdir(meta.rulerDir, { withFileTypes: true });
     let mdFiles = dirEntries
-      .filter((e) => e.isFile() && e.name.toLowerCase().endsWith('.md'))
+      .filter((e) => e.isFile() && (e.name.toLowerCase().endsWith('.md') || e.name.toLowerCase().endsWith('.mdc')))
       .map((e) => path.join(meta.rulerDir, e.name));
 
     // Apply include/exclude filters
     if (rulesInclude || rulesExclude) {
+      // Normalize patterns (expand directory patterns to globs)
+      const normalizedInclude = rulesInclude?.map(normalizePattern);
+      const normalizedExclude = rulesExclude?.map(normalizePattern);
+
       mdFiles = mdFiles.filter((file) => {
         // Get relative path from rulerDir for pattern matching
         const relativePath = path.relative(meta.rulerDir, file);
@@ -137,8 +149,8 @@ export async function loadUnifiedConfig(
         const normalizedPath = relativePath.replace(/\\/g, '/');
 
         // Check exclude patterns first (they take precedence)
-        if (rulesExclude) {
-          for (const pattern of rulesExclude) {
+        if (normalizedExclude) {
+          for (const pattern of normalizedExclude) {
             if (matchesPattern(normalizedPath, pattern)) {
               return false; // Exclude this file
             }
@@ -146,8 +158,8 @@ export async function loadUnifiedConfig(
         }
 
         // If include patterns are specified, file must match at least one
-        if (rulesInclude && rulesInclude.length > 0) {
-          for (const pattern of rulesInclude) {
+        if (normalizedInclude && normalizedInclude.length > 0) {
+          for (const pattern of normalizedInclude) {
             if (matchesPattern(normalizedPath, pattern)) {
               return true; // Include this file
             }

@@ -25,6 +25,7 @@ export interface ApplyArgs {
 export interface InitArgs {
   'project-root': string;
   global: boolean;
+  claude?: boolean;
 }
 
 export interface RevertArgs {
@@ -53,7 +54,15 @@ export async function applyHandler(argv: ApplyArgs): Promise<void> {
   const verbose = argv.verbose;
   const dryRun = argv['dry-run'];
   const localOnly = argv['local-only'];
-  const backup = argv.backup;
+
+  // Determine backup preference: CLI > TOML > Default (enabled)
+  // yargs handles --no-backup by setting backup to false
+  let backupPreference: boolean | undefined;
+  if (argv.backup !== undefined) {
+    backupPreference = argv.backup;
+  } else {
+    backupPreference = undefined; // Let TOML/default decide
+  }
 
   // Determine gitignore preference: CLI > TOML > Default (enabled)
   // yargs handles --no-gitignore by setting gitignore to false
@@ -105,7 +114,7 @@ export async function applyHandler(argv: ApplyArgs): Promise<void> {
       dryRun,
       localOnly,
       nested,
-      backup,
+      backupPreference,
       skillsEnabled,
     );
     console.log('Ruler apply completed successfully.');
@@ -122,15 +131,17 @@ export async function applyHandler(argv: ApplyArgs): Promise<void> {
 export async function initHandler(argv: InitArgs): Promise<void> {
   const projectRoot = argv['project-root'];
   const isGlobal = argv['global'];
+  const useClaude = argv['claude'] ?? false;
 
+  const folderName = useClaude ? '.claude' : '.ruler';
   const rulerDir = isGlobal
     ? path.join(
         process.env.XDG_CONFIG_HOME || path.join(os.homedir(), '.config'),
         'ruler',
       )
-    : path.join(projectRoot, '.ruler');
+    : path.join(projectRoot, folderName);
   await fs.mkdir(rulerDir, { recursive: true });
-  const instructionsPath = path.join(rulerDir, DEFAULT_RULES_FILENAME); // .ruler/AGENTS.md
+  const instructionsPath = path.join(rulerDir, DEFAULT_RULES_FILENAME); // .ruler/AGENTS.md or .claude/AGENTS.md
   const tomlPath = path.join(rulerDir, 'ruler.toml');
   const exists = async (p: string) => {
     try {
@@ -147,9 +158,9 @@ export async function initHandler(argv: InitArgs): Promise<void> {
 # To specify which agents are active by default when --agents is not used,
 # uncomment and populate the following line. If omitted, all agents are active.
 # default_agents = ["copilot", "claude"]
-
-# Enable nested rule loading from nested .ruler directories
-# When enabled, ruler will search for and process .ruler directories throughout the project hierarchy
+${useClaude ? '\n# Root folder for ruler files\nroot_folder = ".claude"\n' : ''}
+# Enable nested rule loading from nested ${folderName} directories
+# When enabled, ruler will search for and process ${folderName} directories throughout the project hierarchy
 # nested = false
 
 # --- Agent Specific Configurations ---

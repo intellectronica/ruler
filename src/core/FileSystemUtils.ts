@@ -1,6 +1,8 @@
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import { parseFrontmatter } from './FrontmatterParser';
+import { MergeStrategy } from '../types';
 
 /**
  * Gets the XDG config directory path, falling back to ~/.config if XDG_CONFIG_HOME is not set.
@@ -10,9 +12,10 @@ function getXdgConfigDir(): string {
 }
 
 /**
- * Searches upwards from startPath to find a directory named .ruler.
+ * Searches upwards from startPath to find a directory named .ruler or .claude.
+ * Priority: .ruler first, then .claude (to check .ruler/ruler.toml before .claude/ruler.toml)
  * If not found locally and checkGlobal is true, checks for global config at XDG_CONFIG_HOME/ruler.
- * Returns the path to the .ruler directory, or null if not found.
+ * Returns the path to the found directory, or null if not found.
  */
 export async function findRulerDir(
   startPath: string,
@@ -21,11 +24,11 @@ export async function findRulerDir(
   // First, search upwards from startPath for local .ruler directory
   let current = startPath;
   while (current) {
-    const candidate = path.join(current, '.ruler');
+    const rulerCandidate = path.join(current, '.ruler');
     try {
-      const stat = await fs.stat(candidate);
+      const stat = await fs.stat(rulerCandidate);
       if (stat.isDirectory()) {
-        return candidate;
+        return rulerCandidate;
       }
     } catch {
       // ignore errors when checking for .ruler directory
@@ -37,7 +40,33 @@ export async function findRulerDir(
     current = parent;
   }
 
-  // If no local .ruler found and checkGlobal is true, check global config directory
+  // If no .ruler found, search for .claude directory
+  current = startPath;
+  while (current) {
+    const claudeCandidate = path.join(current, '.claude');
+    try {
+      const stat = await fs.stat(claudeCandidate);
+      if (stat.isDirectory()) {
+        // Check if this .claude directory has ruler.toml
+        const tomlPath = path.join(claudeCandidate, 'ruler.toml');
+        try {
+          await fs.stat(tomlPath);
+          return claudeCandidate;
+        } catch {
+          // .claude exists but no ruler.toml, continue searching
+        }
+      }
+    } catch {
+      // ignore errors when checking for .claude directory
+    }
+    const parent = path.dirname(current);
+    if (parent === current) {
+      break;
+    }
+    current = parent;
+  }
+
+  // If no local .ruler or .claude found and checkGlobal is true, check global config directory
   if (checkGlobal) {
     const globalConfigDir = path.join(getXdgConfigDir(), 'ruler');
     try {
@@ -57,16 +86,43 @@ export async function findRulerDir(
 }
 
 /**
+ * Normalizes a pattern by expanding directory patterns to glob patterns.
+ * Directory patterns (no wildcards, no .md/.mdc extension) are expanded to match all markdown files.
+ * @example "rules-global" becomes a pattern matching both .md and .mdc files
+ * @example "rules-global/star.md" stays unchanged
+ * @example "AGENTS.md" stays unchanged
+ */
+export function normalizePattern(pattern: string): string {
+  // If pattern already contains wildcards or is a specific markdown file, return as-is
+  if (pattern.includes('*') || pattern.endsWith('.md') || pattern.endsWith('.mdc')) {
+    return pattern;
+  }
+
+  // Otherwise, treat as directory and expand to include all .md/.mdc files recursively
+  // We'll return the .md pattern, but the file walker will pick up both .md and .mdc
+  return `${pattern}/**/*.{md,mdc}`;
+}
+
+/**
  * Simple glob pattern matcher supporting basic patterns:
  * - `*` matches any characters except `/`
  * - `**` matches any characters including `/` (zero or more path segments)
+ * - `{md,mdc}` matches either md or mdc
  * - Exact string matches
  */
 export function matchesPattern(filePath: string, pattern: string): boolean {
+  // Handle brace expansion {md,mdc} -> (md|mdc)
+  let expandedPattern = pattern;
+  const braceMatch = pattern.match(/\{([^}]+)\}/);
+  if (braceMatch) {
+    const options = braceMatch[1].split(',');
+    expandedPattern = pattern.replace(braceMatch[0], `(${options.join('|')})`);
+  }
+
   // Convert glob pattern to regex
-  // Escape special regex characters except * and /
-  let regexPattern = pattern
-    .replace(/[.+?^${}()|[\]\\]/g, '\\$&')
+  // Escape special regex characters except * / ( ) |
+  let regexPattern = expandedPattern
+    .replace(/[.+?^${}[\]\\]/g, '\\$&')
     // Replace **/ with a special placeholder (matches zero or more path segments)
     .replace(/\*\*\//g, '__DOUBLESTAR_SLASH__')
     // Replace /** with another placeholder
@@ -90,19 +146,21 @@ export function matchesPattern(filePath: string, pattern: string): boolean {
 }
 
 /**
- * Recursively reads all Markdown (.md) files in rulerDir, returning their paths and contents.
+ * Recursively reads all Markdown (.md and .mdc) files in rulerDir, returning their paths and contents.
  * Files are sorted alphabetically by path.
  *
  * @param rulerDir The directory to scan for markdown files
  * @param options Optional filtering configuration
  * @param options.include Glob patterns to include (if specified, only matching files are included)
  * @param options.exclude Glob patterns to exclude (takes precedence over include)
+ * @param options.merge_strategy Merge strategy: 'all' (default) or 'cursor' (uses MDC frontmatter)
  */
 export async function readMarkdownFiles(
   rulerDir: string,
   options?: {
     include?: string[];
     exclude?: string[];
+    merge_strategy?: MergeStrategy;
   },
 ): Promise<{ path: string; content: string }[]> {
   const mdFiles: { path: string; content: string }[] = [];
@@ -114,7 +172,7 @@ export async function readMarkdownFiles(
       const fullPath = path.join(dir, entry.name);
       if (entry.isDirectory()) {
         await walk(fullPath);
-      } else if (entry.isFile() && entry.name.endsWith('.md')) {
+      } else if (entry.isFile() && (entry.name.endsWith('.md') || entry.name.endsWith('.mdc'))) {
         const content = await fs.readFile(fullPath, 'utf8');
         mdFiles.push({ path: fullPath, content });
       }
@@ -125,6 +183,10 @@ export async function readMarkdownFiles(
   // Apply include/exclude filters
   let filteredFiles = mdFiles;
   if (options?.include || options?.exclude) {
+    // Normalize patterns (expand directory patterns to globs)
+    const normalizedInclude = options.include?.map(normalizePattern);
+    const normalizedExclude = options.exclude?.map(normalizePattern);
+
     filteredFiles = mdFiles.filter((file) => {
       // Get relative path from rulerDir for pattern matching
       const relativePath = path.relative(rulerDir, file.path);
@@ -132,8 +194,8 @@ export async function readMarkdownFiles(
       const normalizedPath = relativePath.replace(/\\/g, '/');
 
       // Check exclude patterns first (they take precedence)
-      if (options.exclude) {
-        for (const pattern of options.exclude) {
+      if (normalizedExclude) {
+        for (const pattern of normalizedExclude) {
           if (matchesPattern(normalizedPath, pattern)) {
             return false; // Exclude this file
           }
@@ -141,8 +203,8 @@ export async function readMarkdownFiles(
       }
 
       // If include patterns are specified, file must match at least one
-      if (options.include && options.include.length > 0) {
-        for (const pattern of options.include) {
+      if (normalizedInclude && normalizedInclude.length > 0) {
+        for (const pattern of normalizedInclude) {
           if (matchesPattern(normalizedPath, pattern)) {
             return true; // Include this file
           }
@@ -155,8 +217,39 @@ export async function readMarkdownFiles(
     });
   }
 
-  // Use filtered files for the rest of the processing
-  const processedFiles = filteredFiles;
+  // Apply cursor mode filtering if enabled
+  let processedFiles = filteredFiles;
+  if (options?.merge_strategy === 'cursor') {
+    const cursorFiles: { path: string; content: string }[] = [];
+
+    for (const file of filteredFiles) {
+      const relativePath = path.relative(rulerDir, file.path);
+      const normalizedPath = relativePath.replace(/\\/g, '/');
+
+      // Always include AGENTS.md for backward compatibility
+      if (/^AGENTS\.md$/i.test(normalizedPath)) {
+        cursorFiles.push(file);
+        continue;
+      }
+
+      // Check if file is in rules/ folder and is .mdc
+      if (normalizedPath.startsWith('rules/') && file.path.endsWith('.mdc')) {
+        // Parse frontmatter
+        const parsed = parseFrontmatter(file.content);
+
+        // Only include if alwaysApply is true
+        if (parsed.frontmatter?.alwaysApply === true) {
+          // Strip frontmatter from content
+          cursorFiles.push({
+            path: file.path,
+            content: parsed.body,
+          });
+        }
+      }
+    }
+
+    processedFiles = cursorFiles;
+  }
 
   // Prioritisation logic:
   // 1. Prefer top-level AGENTS.md if present.
@@ -277,8 +370,8 @@ export async function findGlobalRulerDir(): Promise<string | null> {
 }
 
 /**
- * Searches the entire directory tree from startPath to find all .ruler directories.
- * Returns an array of .ruler directory paths from most specific to least specific.
+ * Searches the entire directory tree from startPath to find all .ruler and .claude directories with ruler.toml.
+ * Returns an array of directory paths from most specific to least specific.
  */
 export async function findAllRulerDirs(startPath: string): Promise<string[]> {
   const rulerDirs: string[] = [];
@@ -292,6 +385,15 @@ export async function findAllRulerDirs(startPath: string): Promise<string[]> {
         if (entry.isDirectory()) {
           if (entry.name === '.ruler') {
             rulerDirs.push(fullPath);
+          } else if (entry.name === '.claude') {
+            // Check if .claude has ruler.toml
+            const tomlPath = path.join(fullPath, 'ruler.toml');
+            try {
+              await fs.stat(tomlPath);
+              rulerDirs.push(fullPath);
+            } catch {
+              // .claude exists but no ruler.toml
+            }
           } else {
             // Recursively search subdirectories (but skip hidden directories like .git)
             if (!entry.name.startsWith('.')) {

@@ -52,7 +52,7 @@ describe('CLI nested toggle precedence', () => {
 
     await expect(
       fs.readFile(path.join(projectRoot, 'module', 'CLAUDE.md'), 'utf8'),
-    ).resolves.toContain('Module Rules');
+    ).resolves.toContain('@.ruler/AGENTS.md');
   });
 
   it('remains flat when config sets nested = false and CLI omits --nested', async () => {
@@ -72,6 +72,6 @@ describe('CLI nested toggle precedence', () => {
 
     await expect(
       fs.readFile(path.join(projectRoot, 'module', 'CLAUDE.md'), 'utf8'),
-    ).resolves.toContain('Module Rules');
+    ).resolves.toContain('@.ruler/AGENTS.md');
   });
 });

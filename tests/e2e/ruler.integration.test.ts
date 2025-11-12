@@ -279,13 +279,22 @@ File: extra-rules.md
     // Step 7: Verify file contents contain expected elements
     console.log('\n7. Verifying file contents...');
 
-    // Verify markdown rule files contain concatenated content
+    // Verify markdown rule files contain expected content
+    // CLAUDE.md uses @filename references, others use concatenated content
     const markdownRuleFiles = ['AGENTS.md', 'CLAUDE.md', 'CRUSH.md'];
     for (const file of markdownRuleFiles) {
       if (fileContents[file]) {
-        expect(fileContents[file]).toContain('Integration Test Sample Instructions');
-        expect(fileContents[file]).toContain('Extra Rules for Integration Testing');
-        console.log(`✓ ${file} contains expected concatenated content`);
+        if (file === 'CLAUDE.md') {
+          // Claude Code uses @filename references
+          expect(fileContents[file]).toContain('@.ruler/AGENTS.md');
+          expect(fileContents[file]).toContain('@.ruler/extra-rules.md');
+          console.log(`✓ ${file} contains expected @filename references`);
+        } else {
+          // Other agents use concatenated content
+          expect(fileContents[file]).toContain('Integration Test Sample Instructions');
+          expect(fileContents[file]).toContain('Extra Rules for Integration Testing');
+          console.log(`✓ ${file} contains expected concatenated content`);
+        }
       }
     }
 

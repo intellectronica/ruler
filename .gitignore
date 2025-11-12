@@ -139,3 +139,11 @@ dist
 .pnp.*
 issue-body.md
 .specstory/
+
+
+# START Ruler Generated Files
+/.codex/config.toml
+/.skillz
+/AGENTS.md
+/CLAUDE.md
+# END Ruler Generated Files

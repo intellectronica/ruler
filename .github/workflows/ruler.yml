@@ -26,7 +26,7 @@ jobs:
 
       - name: Run ruler apply
         run: |
-          npx -y @intellectronica/ruler@latest apply --no-gitignore --no-backup --agents=agentsmd,copilot
+          npx -y @udecode/ruler@latest apply --no-gitignore --no-backup --agents=agentsmd,copilot
 
       - name: Commit and push changes
         run: |

@@ -33,6 +33,7 @@ export interface IAgent {
    * Applies the concatenated ruler rules to the agent's configuration.
    * @param concatenatedRules The combined rules text
    * @param projectRoot The root directory of the project
+   * @param ruleFiles Optional array of source rule files (for agents that support @filename references)
    */
   applyRulerConfig(
     concatenatedRules: string,
@@ -40,6 +41,9 @@ export interface IAgent {
     rulerMcpJson: Record<string, unknown> | null,
     agentConfig?: IAgentConfig,
     backup?: boolean,
+    ruleFiles?: { path: string; content: string }[],
+    rulerDir?: string,
+    mergeStrategy?: 'all' | 'cursor',
   ): Promise<void>;
 
   /**

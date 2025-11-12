@@ -36,20 +36,26 @@ describe('ClaudeAgent', () => {
     expect(agent.getDefaultOutputPath(projectRoot)).toBe(path.join(projectRoot, 'CLAUDE.md'));
   });
 
-  it('writes rules to CLAUDE.md file', async () => {
+  it('writes @filename references to CLAUDE.md file', async () => {
     const { projectRoot } = await setupTestProject({
       '.ruler/AGENTS.md': 'Rule A',
     });
     try {
       const agent = new ClaudeAgent();
       const rules = 'Combined rules\n- Rule A';
+      const ruleFiles = [
+        {
+          path: path.join(projectRoot, '.ruler/AGENTS.md'),
+          content: 'Rule A',
+        },
+      ];
 
-      await agent.applyRulerConfig(rules, projectRoot, null);
+      await agent.applyRulerConfig(rules, projectRoot, null, undefined, true, ruleFiles);
 
-      // CLAUDE.md should be written at the repository root
+      // CLAUDE.md should be written at the repository root with @filename references
       const claudeMdPath = path.join(projectRoot, 'CLAUDE.md');
       const content = await fs.readFile(claudeMdPath, 'utf8');
-      expect(content).toContain('Rule A');
+      expect(content).toContain('@.ruler/AGENTS.md');
     } finally {
       await teardownTestProject(projectRoot);
     }
