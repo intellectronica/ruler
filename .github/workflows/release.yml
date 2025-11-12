@@ -41,7 +41,7 @@ jobs:
           # publish: yarn g:release
           cwd: ${{ github.workspace }}
           title: '[Release] Version packages'
-          publish: npm run build && npx changeset publish
+          publish: pnpm build && pnpm changeset publish
           # Optional, might be used in conjunction with GITHUB_TOKEN to
           # allow running the workflows on a Version package action.
           # Be aware of security implications.

@@ -11,7 +11,7 @@
     "test:coverage": "jest --coverage",
     "test:integration": "jest tests/e2e/ruler.integration.test.ts --verbose",
     "build": "tsc",
-    "prepare": "npm run build"
+    "prepare": "pnpm build"
   },
   "repository": {
     "type": "git",
