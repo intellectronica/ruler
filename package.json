@@ -46,6 +46,7 @@
     "ruler": "dist/cli/index.js"
   },
   "devDependencies": {
+    "@changesets/cli": "2.27.11",
     "@types/iarna__toml": "^2.0.5",
     "@types/jest": "^29.5.14",
     "@types/js-yaml": "^4.0.9",

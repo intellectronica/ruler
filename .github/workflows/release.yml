@@ -1,22 +1,54 @@
-name: Release
+name: ReleaseOrVersionPR
 
 on:
-  release:
-    types: [created]
-  workflow_dispatch: {}
+  push:
+    branches: [main]
 
 jobs:
-  publish:
+  release:
+    # Basic security: the release job can only be executed from this repo and from the main branch (not a remote thing)
+    if: ${{ github.repository == 'udecode/better-auth-convex' && contains('refs/heads/main',github.ref)}}
+    name: Release and changelog
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
+      - name: Checkout Repo
+        uses: actions/checkout@v4
         with:
-          node-version: '18.x'
-          registry-url: 'https://registry.npmjs.org/'
-      - run: npm ci
-      - run: npm run build
-      - run: npm publish --access public
+          # To run comparison we need more than the latest commit.
+          # @link https://github.com/actions/checkout#fetch-all-history-for-all-tags-and-branches
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        name: Install pnpm
+        with:
+          version: 10
+          run_install: false
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      # @link https://github.com/changesets/action
+      - name: 🦋 Create Release Pull Request or Publish to npm
+        id: changesets
+        uses: changesets/action@v1
+        with:
+          # publish: yarn g:release
+          cwd: ${{ github.workspace }}
+          title: '[Release] Version packages'
+          publish: npm run build && npx changeset publish
+          # Optional, might be used in conjunction with GITHUB_TOKEN to
+          # allow running the workflows on a Version package action.
+          # Be aware of security implications.
+          # setupGitUser: true
         env:
+          # See https://github.com/changesets/action/issues/147
+          HOME: ${{ github.workspace }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
