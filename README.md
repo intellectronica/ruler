@@ -101,7 +101,7 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | Junie            | `.junie/guidelines.md`                           | -                                                |
 | AugmentCode      | `.augment/rules/ruler_augment_instructions.md`   | -                                                |
 | Kilo Code        | `.kilocode/rules/ruler_kilocode_instructions.md` | `.kilocode/mcp.json`                             |
-| opencode         | `AGENTS.md`                                      | `opencode.json`                                  |
+| OpenCode         | `AGENTS.md`                                      | `opencode.json`                                  |
 | Goose            | `.goosehints`                                    | -                                                |
 | Qwen Code        | `AGENTS.md`                                      | `.qwen/settings.json`                            |
 | RooCode          | `AGENTS.md`                                      | `.roo/mcp.json`                                  |
