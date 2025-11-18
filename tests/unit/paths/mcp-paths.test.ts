@@ -40,6 +40,7 @@ describe('MCP Path Resolution', () => {
         'Gemini CLI',
         'Qwen Code',
         'Kilo Code',
+        'Kiro',
         'OpenCode',
         'Zed',
         'Firebase Studio'
@@ -97,6 +98,11 @@ describe('MCP Path Resolution', () => {
       it('Firebase Studio should use project-local path', async () => {
         const mcpPath = await getNativeMcpPath('Firebase Studio', projectRoot);
         expect(mcpPath).toBe(path.join(projectRoot, '.idx', 'mcp.json'));
+      });
+
+      it('Kiro should use project-local path', async () => {
+        const mcpPath = await getNativeMcpPath('Kiro', projectRoot);
+        expect(mcpPath).toBe(path.join(projectRoot, '.kiro', 'settings', 'mcp.json'));
       });
     });
   });
