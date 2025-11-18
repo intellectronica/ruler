@@ -18,4 +18,12 @@ export class KiroAgent extends AbstractAgent {
       'ruler_kiro_instructions.md',
     );
   }
+
+  supportsMcpStdio(): boolean {
+    return true;
+  }
+
+  supportsMcpRemote(): boolean {
+    return true;
+  }
 }

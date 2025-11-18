@@ -43,6 +43,9 @@ export async function getNativeMcpPath(
     case 'Kilo Code':
       candidates.push(path.join(projectRoot, '.kilocode', 'mcp.json'));
       break;
+    case 'Kiro':
+      candidates.push(path.join(projectRoot, '.kiro', 'settings', 'mcp.json'));
+      break;
     case 'OpenCode':
       candidates.push(path.join(projectRoot, 'opencode.json'));
       break;
