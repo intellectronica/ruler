@@ -81,7 +81,7 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | Zed              | `AGENTS.md`                                      | `.zed/settings.json` (project root, never $HOME) |
 | Trae AI          | `.trae/rules/project_rules.md`                   | -                                                |
 | Warp             | `WARP.md`                                        | -                                                |
-| Kiro             | `.kiro/steering/ruler_kiro_instructions.md`      | -                                                |
+| Kiro             | `.kiro/steering/ruler_kiro_instructions.md`      | `.kiro/settings/mcp.json`                        |
 | Firebender       | `firebender.json`                                | `firebender.json` (rules and MCP in same file)   |
 
 ## Getting Started
