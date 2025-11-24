@@ -71,7 +71,7 @@ describe('MCP Path Resolution', () => {
 
       it('OpenAI Codex CLI should use project-local path', async () => {
         const mcpPath = await getNativeMcpPath('OpenAI Codex CLI', projectRoot);
-        expect(mcpPath).toBe(path.join(projectRoot, '.codex', 'config.json'));
+        expect(mcpPath).toBe(path.join(projectRoot, '.codex', 'config.toml'));
       });
 
       it('Cursor should use project-local path', async () => {

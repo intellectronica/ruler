@@ -260,6 +260,104 @@ describe('Skills Discovery and Validation', () => {
     });
   });
 
+  describe('propagateSkills - agent exclusion', () => {
+    it('does not create .skillz when only Claude Code agent is present', async () => {
+      const { propagateSkills } = await import('../src/core/SkillsProcessor');
+      const { ClaudeAgent } = await import('../src/agents/ClaudeAgent');
+
+      // Create skills in .ruler/skills
+      const skillsDir = path.join(tmpDir, '.ruler', 'skills');
+      const skill1 = path.join(skillsDir, 'skill1');
+      await fs.mkdir(skill1, { recursive: true });
+      await fs.writeFile(path.join(skill1, SKILL_MD_FILENAME), '# Skill 1');
+
+      // Run with only Claude Code agent
+      await propagateSkills(tmpDir, [new ClaudeAgent()], true, false, false);
+
+      // Verify .claude/skills was created
+      const claudeSkillsDir = path.join(tmpDir, '.claude', 'skills');
+      await expect(fs.access(claudeSkillsDir)).resolves.toBeUndefined();
+
+      // Verify .skillz was NOT created
+      const skillzDir = path.join(tmpDir, '.skillz');
+      await expect(fs.access(skillzDir)).rejects.toThrow();
+    });
+
+    it('does not create .skillz when only Cursor agent is present', async () => {
+      const { propagateSkills } = await import('../src/core/SkillsProcessor');
+      const { CursorAgent } = await import('../src/agents/CursorAgent');
+
+      // Create skills in .ruler/skills
+      const skillsDir = path.join(tmpDir, '.ruler', 'skills');
+      const skill1 = path.join(skillsDir, 'skill1');
+      await fs.mkdir(skill1, { recursive: true });
+      await fs.writeFile(path.join(skill1, SKILL_MD_FILENAME), '# Skill 1');
+
+      // Run with only Cursor agent
+      await propagateSkills(tmpDir, [new CursorAgent()], true, false, false);
+
+      // Verify .skillz was NOT created (Cursor uses .cursor/rules)
+      const skillzDir = path.join(tmpDir, '.skillz');
+      await expect(fs.access(skillzDir)).rejects.toThrow();
+    });
+
+    it('creates .skillz when MCP agent (Windsurf) is present', async () => {
+      const { propagateSkills } = await import('../src/core/SkillsProcessor');
+      const { WindsurfAgent } = await import('../src/agents/WindsurfAgent');
+
+      // Create skills in .ruler/skills
+      const skillsDir = path.join(tmpDir, '.ruler', 'skills');
+      const skill1 = path.join(skillsDir, 'skill1');
+      await fs.mkdir(skill1, { recursive: true });
+      await fs.writeFile(path.join(skill1, SKILL_MD_FILENAME), '# Skill 1');
+
+      // Run with Windsurf agent (supports MCP)
+      await propagateSkills(tmpDir, [new WindsurfAgent()], true, false, false);
+
+      // Verify .skillz was created
+      const skillzDir = path.join(tmpDir, '.skillz');
+      await expect(fs.access(skillzDir)).resolves.toBeUndefined();
+    });
+
+    it('does not create .skillz when only Claude Code and Cursor are present', async () => {
+      const { propagateSkills } = await import('../src/core/SkillsProcessor');
+      const { ClaudeAgent } = await import('../src/agents/ClaudeAgent');
+      const { CursorAgent } = await import('../src/agents/CursorAgent');
+
+      // Create skills in .ruler/skills
+      const skillsDir = path.join(tmpDir, '.ruler', 'skills');
+      const skill1 = path.join(skillsDir, 'skill1');
+      await fs.mkdir(skill1, { recursive: true });
+      await fs.writeFile(path.join(skill1, SKILL_MD_FILENAME), '# Skill 1');
+
+      // Run with both Claude Code and Cursor agents
+      await propagateSkills(tmpDir, [new ClaudeAgent(), new CursorAgent()], true, false, false);
+
+      // Verify .skillz was NOT created (both have native support)
+      const skillzDir = path.join(tmpDir, '.skillz');
+      await expect(fs.access(skillzDir)).rejects.toThrow();
+    });
+
+    it('creates .skillz when MCP agent is present alongside Claude Code', async () => {
+      const { propagateSkills } = await import('../src/core/SkillsProcessor');
+      const { ClaudeAgent } = await import('../src/agents/ClaudeAgent');
+      const { WindsurfAgent } = await import('../src/agents/WindsurfAgent');
+
+      // Create skills in .ruler/skills
+      const skillsDir = path.join(tmpDir, '.ruler', 'skills');
+      const skill1 = path.join(skillsDir, 'skill1');
+      await fs.mkdir(skill1, { recursive: true });
+      await fs.writeFile(path.join(skill1, SKILL_MD_FILENAME), '# Skill 1');
+
+      // Run with both Claude Code and Windsurf agents
+      await propagateSkills(tmpDir, [new ClaudeAgent(), new WindsurfAgent()], true, false, false);
+
+      // Verify .skillz was created for Windsurf
+      const skillzDir = path.join(tmpDir, '.skillz');
+      await expect(fs.access(skillzDir)).resolves.toBeUndefined();
+    });
+  });
+
   describe('propagateSkills - cleanup when disabled', () => {
     it('removes .claude/skills and .skillz when skills are disabled', async () => {
       const { propagateSkills } = await import('../src/core/SkillsProcessor');

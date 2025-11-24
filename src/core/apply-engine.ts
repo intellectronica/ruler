@@ -441,6 +441,7 @@ async function addSkillzMcpServerIfNeeded(
   verbose: boolean,
 ): Promise<Record<string, unknown> | null> {
   // Check if any agent supports MCP stdio but not native skills
+  // Agents with native skills support (Claude Code, Cursor) are automatically excluded
   const hasAgentNeedingSkillz = agents.some(
     (agent) => agent.supportsMcpStdio?.() && !agent.supportsNativeSkills?.(),
   );
@@ -658,6 +659,7 @@ async function handleMcpConfiguration(
 
   // Add Skillz MCP server for agents that support stdio but not native skills
   // Only add if skills are enabled
+  // Agents with native skills support (Claude Code, Cursor) are automatically excluded
   if (
     skillsEnabled &&
     agent.supportsMcpStdio?.() &&
@@ -779,6 +781,7 @@ async function applyMcpConfiguration(
 
   // Agents that handle MCP configuration internally should not have external MCP handling
   if (
+    agent.getIdentifier() === 'codex' ||
     agent.getIdentifier() === 'zed' ||
     agent.getIdentifier() === 'gemini-cli' ||
     agent.getIdentifier() === 'amazon-q-cli' ||
