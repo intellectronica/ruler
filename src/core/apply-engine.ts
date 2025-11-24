@@ -657,6 +657,30 @@ async function handleMcpConfiguration(
     ? filterMcpConfigForAgent(rulerMcpJson, agent)
     : null;
 
+  // Remove Skillz MCP server for agents with native skills support
+  if (filteredMcpJson && agent.supportsNativeSkills?.()) {
+    const { SKILLZ_MCP_SERVER_NAME } = await import('../constants');
+    if (
+      filteredMcpJson.mcpServers &&
+      typeof filteredMcpJson.mcpServers === 'object'
+    ) {
+      const mcpServers = { ...filteredMcpJson.mcpServers } as Record<
+        string,
+        unknown
+      >;
+      delete mcpServers[SKILLZ_MCP_SERVER_NAME];
+      filteredMcpJson = {
+        ...filteredMcpJson,
+        mcpServers,
+      };
+      logVerboseInfo(
+        `Removed Skillz MCP server for ${agent.getName()} (has native skills support)`,
+        verbose,
+        dryRun,
+      );
+    }
+  }
+
   // Add Skillz MCP server for agents that support stdio but not native skills
   // Only add if skills are enabled
   // Agents with native skills support (Claude Code, Cursor) are automatically excluded

@@ -1,5 +1,15 @@
 # @udecode/ruler
 
+## 0.4.3
+
+### Patch Changes
+
+- Fix: Actually remove skillz from Claude and Cursor MCP configs
+  - Add missing code to explicitly remove skillz server from filtered MCP config
+  - Previous version (0.4.2) didn't include this critical fix
+  - Claude .mcp.json and Cursor .cursor/mcp.json now correctly exclude skillz
+  - Codex .codex/config.toml still correctly includes skillz
+
 ## 0.4.2
 
 ### Patch Changes
