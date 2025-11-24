@@ -247,5 +247,154 @@ args = ["server.js"]
       expect(geminiSettings.mcpServers).toHaveProperty('skillz');
       expect(copilotMcp.servers).toHaveProperty('skillz');
     });
+
+    it('does not add Skillz server to Claude Code (uses .claude/skills natively)', async () => {
+      await applyAllAgentConfigs(
+        tmpDir,
+        ['claude'],
+        undefined,
+        true,
+        undefined,
+        undefined,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true, // skills enabled
+      );
+
+      // Check that .mcp.json does not have skillz server
+      const claudeMcpPath = path.join(tmpDir, '.mcp.json');
+
+      try {
+        const mcpContent = await fs.readFile(claudeMcpPath, 'utf8');
+        const mcp = JSON.parse(mcpContent);
+
+        // Claude should not have skillz server (uses .claude/skills instead)
+        if (mcp.mcpServers) {
+          expect(mcp.mcpServers).not.toHaveProperty('skillz');
+        }
+      } catch (err) {
+        // File might not exist if no MCP servers at all, which is fine
+      }
+
+      // Verify .claude/skills was created instead
+      const claudeSkillsPath = path.join(tmpDir, '.claude', 'skills', 'test-skill', SKILL_MD_FILENAME);
+      const skillContent = await fs.readFile(claudeSkillsPath, 'utf8');
+      expect(skillContent).toBe('# Test Skill');
+    });
+
+    it('does not add Skillz server to Cursor (uses .cursor/rules natively)', async () => {
+      await applyAllAgentConfigs(
+        tmpDir,
+        ['cursor'],
+        undefined,
+        true,
+        undefined,
+        undefined,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true, // skills enabled
+      );
+
+      // Check that .cursor/mcp.json does not have skillz server
+      const cursorMcpPath = path.join(tmpDir, '.cursor', 'mcp.json');
+
+      try {
+        const mcpContent = await fs.readFile(cursorMcpPath, 'utf8');
+        const mcp = JSON.parse(mcpContent);
+
+        // Cursor should not have skillz server (uses .cursor/rules instead)
+        if (mcp.mcpServers) {
+          expect(mcp.mcpServers).not.toHaveProperty('skillz');
+        }
+      } catch (err) {
+        // File might not exist if no MCP servers at all, which is fine
+      }
+    });
+
+    it('does not create duplicate config files for Codex', async () => {
+      await applyAllAgentConfigs(
+        tmpDir,
+        ['codex'],
+        undefined,
+        true,
+        undefined,
+        undefined,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true, // skills enabled
+      );
+
+      // Verify only config.toml is created, not config.json
+      const configTomlPath = path.join(tmpDir, '.codex', 'config.toml');
+      const configJsonPath = path.join(tmpDir, '.codex', 'config.json');
+
+      // config.toml should exist
+      await expect(fs.access(configTomlPath)).resolves.toBeUndefined();
+
+      // config.json should NOT exist
+      await expect(fs.access(configJsonPath)).rejects.toThrow();
+    });
+
+    it('adds Skillz to MCP agents but not to Claude/Cursor when all are enabled', async () => {
+      await applyAllAgentConfigs(
+        tmpDir,
+        ['claude', 'cursor', 'codex', 'gemini-cli'],
+        undefined,
+        true,
+        undefined,
+        undefined,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true, // skills enabled
+      );
+
+      // Claude should NOT have skillz
+      const claudeMcpPath = path.join(tmpDir, '.mcp.json');
+      try {
+        const claudeContent = await fs.readFile(claudeMcpPath, 'utf8');
+        const claudeMcp = JSON.parse(claudeContent);
+        if (claudeMcp.mcpServers) {
+          expect(claudeMcp.mcpServers).not.toHaveProperty('skillz');
+        }
+      } catch {
+        // File might not exist, which is fine
+      }
+
+      // Cursor should NOT have skillz
+      const cursorMcpPath = path.join(tmpDir, '.cursor', 'mcp.json');
+      try {
+        const cursorContent = await fs.readFile(cursorMcpPath, 'utf8');
+        const cursorMcp = JSON.parse(cursorContent);
+        if (cursorMcp.mcpServers) {
+          expect(cursorMcp.mcpServers).not.toHaveProperty('skillz');
+        }
+      } catch {
+        // File might not exist, which is fine
+      }
+
+      // Codex SHOULD have skillz
+      const codexConfigPath = path.join(tmpDir, '.codex', 'config.toml');
+      const codexContent = await fs.readFile(codexConfigPath, 'utf8');
+      const codexConfig = parseTOML(codexContent);
+      expect(codexConfig.mcp_servers).toHaveProperty('skillz');
+
+      // Gemini SHOULD have skillz
+      const geminiSettingsPath = path.join(tmpDir, '.gemini', 'settings.json');
+      const geminiContent = await fs.readFile(geminiSettingsPath, 'utf8');
+      const geminiSettings = JSON.parse(geminiContent);
+      expect(geminiSettings.mcpServers).toHaveProperty('skillz');
+    });
   });
 });

@@ -25,7 +25,7 @@ export async function getNativeMcpPath(
       candidates.push(path.join(projectRoot, '.mcp.json'));
       break;
     case 'OpenAI Codex CLI':
-      candidates.push(path.join(projectRoot, '.codex', 'config.json'));
+      candidates.push(path.join(projectRoot, '.codex', 'config.toml'));
       break;
     case 'Aider':
       candidates.push(path.join(projectRoot, '.mcp.json'));

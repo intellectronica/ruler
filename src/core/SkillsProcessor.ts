@@ -454,12 +454,10 @@ export async function propagateSkills(
 
   // Check if any agents need skills
   const hasNativeSkillsAgent = agents.some((a) => a.supportsNativeSkills?.());
-  // Cursor uses .cursor/rules (not skillz MCP), so exclude it from MCP agents
+  // Only add skillz for agents that support MCP stdio but not native skills
+  // Claude Code and Cursor are excluded because they have native skills support
   const hasMcpAgent = agents.some(
-    (a) =>
-      a.supportsMcpStdio?.() &&
-      !a.supportsNativeSkills?.() &&
-      a.getIdentifier() !== 'cursor',
+    (a) => a.supportsMcpStdio?.() && !a.supportsNativeSkills?.(),
   );
 
   if (!hasNativeSkillsAgent && !hasMcpAgent) {
@@ -488,7 +486,7 @@ export async function propagateSkills(
   // Copy to .skillz directory if needed
   if (hasMcpAgent) {
     logVerboseInfo(
-      `Copying skills to ${SKILLZ_DIR} for MCP agents (excluding Cursor)`,
+      `Copying skills to ${SKILLZ_DIR} for MCP agents without native skills support`,
       verbose,
       dryRun,
     );
