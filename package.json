@@ -1,6 +1,6 @@
 {
 	"name": "@udecode/ruler",
-	"version": "0.4.0",
+	"version": "0.4.1",
 	"description": "Ruler — apply the same rules to all coding agents",
 	"main": "dist/lib.js",
 	"publishConfig": {
