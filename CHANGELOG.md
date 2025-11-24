@@ -1,5 +1,14 @@
 # @udecode/ruler
 
+## 0.4.2
+
+### Patch Changes
+
+- Fix skillz MCP server removal from agents with native skills support
+  - Explicitly remove skillz from filtered MCP config for Claude Code and Cursor
+  - Fixes issue where skillz was still appearing in .mcp.json and .cursor/mcp.json even though agents have native skills support
+  - Skillz is added to shared rulerMcpJson for agents like Codex, but now properly filtered out for agents with native skills
+
 ## 0.4.1
 
 ### Patch Changes
