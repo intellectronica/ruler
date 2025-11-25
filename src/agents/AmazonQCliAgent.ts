@@ -20,10 +20,10 @@ export class AmazonQCliAgent implements IAgent {
     return 'Amazon Q CLI';
   }
 
-  async applyRulerConfig(
+  async applySkillerConfig(
     concatenatedRules: string,
     projectRoot: string,
-    rulerMcpJson: Record<string, unknown> | null,
+    skillerMcpJson: Record<string, unknown> | null,
     agentConfig?: IAgentConfig,
     backup = true,
   ): Promise<void> {
@@ -44,7 +44,7 @@ export class AmazonQCliAgent implements IAgent {
 
     // Handle MCP configuration if enabled and provided
     const mcpEnabled = agentConfig?.mcp?.enabled ?? true;
-    if (mcpEnabled && rulerMcpJson) {
+    if (mcpEnabled && skillerMcpJson) {
       const mcpPath = path.resolve(
         projectRoot,
         agentConfig?.outputPathConfig ?? outputPaths['mcp'],
@@ -67,7 +67,7 @@ export class AmazonQCliAgent implements IAgent {
       // Merge the MCP configurations using the standard merge function
       const mergedConfig = mergeMcp(
         existingMcpConfig,
-        rulerMcpJson,
+        skillerMcpJson,
         mcpStrategy,
         'mcpServers',
       );
@@ -85,7 +85,7 @@ export class AmazonQCliAgent implements IAgent {
         projectRoot,
         '.amazonq',
         'rules',
-        'ruler_q_rules.md',
+        'skiller_q_rules.md',
       ),
       mcp: path.join(projectRoot, '.amazonq', 'mcp.json'),
     };

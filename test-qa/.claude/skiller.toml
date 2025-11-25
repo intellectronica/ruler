@@ -1,5 +1,5 @@
-# Ruler Configuration File
-# See https://ai.intellectronica.net/ruler for documentation.
+# Skiller Configuration File
+# See https://github.com/udecode/skiller for documentation.
 
 # To specify which agents are active by default when --agents is not used,
 # uncomment and populate the following line. If omitted, all agents are active.
@@ -26,7 +26,7 @@
 
 # [agents.Windsurf]
 # enabled = true
-# output_path = ".windsurf/rules/ruler_windsurf_instructions.md"
+# output_path = ".windsurf/rules/skiller_windsurf_instructions.md"
 
 # [agents.Cline]
 # enabled = true

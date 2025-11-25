@@ -24,7 +24,7 @@ class MockAgent implements IAgent {
     return this.identifier;
   }
 
-  async applyRulerConfig(
+  async applySkillerConfig(
     rules: string,
     projectRoot: string,
     mcpJson: Record<string, unknown> | null,
@@ -46,7 +46,7 @@ describe('revert-engine', () => {
   let tmpDir: string;
 
   beforeEach(async () => {
-    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ruler-revert-engine-'));
+    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'skiller-revert-engine-'));
   });
 
   afterEach(async () => {
@@ -233,7 +233,7 @@ describe('revert-engine', () => {
       jest.clearAllMocks();
     });
 
-    it('should use [ruler:dry-run] prefix when dryRun is true', async () => {
+    it('should use [skiller:dry-run] prefix when dryRun is true', async () => {
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
       
       // Create a test file to trigger removal in removeAdditionalAgentFiles
@@ -243,15 +243,15 @@ describe('revert-engine', () => {
       await cleanUpAuxiliaryFiles(tmpDir, true, true); // verbose=true, dryRun=true
       
       const errorCalls = consoleErrorSpy.mock.calls.flat();
-      const hasRulerDryRunPrefix = errorCalls.some(call => 
-        typeof call === 'string' && call.includes('[ruler:dry-run]')
+      const hasSkillerDryRunPrefix = errorCalls.some(call => 
+        typeof call === 'string' && call.includes('[skiller:dry-run]')
       );
       
-      expect(hasRulerDryRunPrefix).toBe(true);
+      expect(hasSkillerDryRunPrefix).toBe(true);
       consoleErrorSpy.mockRestore();
     });
 
-    it('should use [ruler] prefix when dryRun is false', async () => {
+    it('should use [skiller] prefix when dryRun is false', async () => {
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
       
       // Create a test file to trigger removal in removeAdditionalAgentFiles
@@ -261,11 +261,11 @@ describe('revert-engine', () => {
       await cleanUpAuxiliaryFiles(tmpDir, true, false); // verbose=true, dryRun=false
       
       const errorCalls = consoleErrorSpy.mock.calls.flat();
-      const hasRulerPrefix = errorCalls.some(call => 
-        typeof call === 'string' && call.includes('[ruler]') && !call.includes('[ruler:dry-run]')
+      const hasSkillerPrefix = errorCalls.some(call => 
+        typeof call === 'string' && call.includes('[skiller]') && !call.includes('[skiller:dry-run]')
       );
       
-      expect(hasRulerPrefix).toBe(true);
+      expect(hasSkillerPrefix).toBe(true);
       consoleErrorSpy.mockRestore();
     });
   });

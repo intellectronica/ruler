@@ -18,7 +18,7 @@ describe('constants', () => {
     it('calls console.error when isVerbose is true', () => {
       logVerbose('test message', true);
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith('[ruler:verbose] test message');
+      expect(consoleErrorSpy).toHaveBeenCalledWith('[skiller:verbose] test message');
       expect(consoleLogSpy).not.toHaveBeenCalled();
     });
 
@@ -34,7 +34,7 @@ describe('constants', () => {
       logVerbose(message, true);
 
       expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
-      expect(consoleErrorSpy).toHaveBeenCalledWith(`[ruler:verbose] ${message}`);
+      expect(consoleErrorSpy).toHaveBeenCalledWith(`[skiller:verbose] ${message}`);
     });
   });
 
@@ -56,38 +56,38 @@ describe('constants', () => {
     });
 
     describe('logInfo', () => {
-      it('uses [ruler] prefix by default', () => {
+      it('uses [skiller] prefix by default', () => {
         logInfo('test message');
-        expect(consoleLogSpy).toHaveBeenCalledWith('[ruler] test message');
+        expect(consoleLogSpy).toHaveBeenCalledWith('[skiller] test message');
       });
 
-      it('uses [ruler:dry-run] prefix when dryRun is true', () => {
+      it('uses [skiller:dry-run] prefix when dryRun is true', () => {
         logInfo('test message', true);
-        expect(consoleLogSpy).toHaveBeenCalledWith('[ruler:dry-run] test message');
+        expect(consoleLogSpy).toHaveBeenCalledWith('[skiller:dry-run] test message');
       });
     });
 
     describe('logWarn', () => {
-      it('uses [ruler] prefix by default', () => {
+      it('uses [skiller] prefix by default', () => {
         logWarn('warning message');
-        expect(consoleWarnSpy).toHaveBeenCalledWith('[ruler] warning message');
+        expect(consoleWarnSpy).toHaveBeenCalledWith('[skiller] warning message');
       });
 
-      it('uses [ruler:dry-run] prefix when dryRun is true', () => {
+      it('uses [skiller:dry-run] prefix when dryRun is true', () => {
         logWarn('warning message', true);
-        expect(consoleWarnSpy).toHaveBeenCalledWith('[ruler:dry-run] warning message');
+        expect(consoleWarnSpy).toHaveBeenCalledWith('[skiller:dry-run] warning message');
       });
     });
 
     describe('logError', () => {
-      it('uses [ruler] prefix by default', () => {
+      it('uses [skiller] prefix by default', () => {
         logError('error message');
-        expect(consoleErrorSpy).toHaveBeenCalledWith('[ruler] error message');
+        expect(consoleErrorSpy).toHaveBeenCalledWith('[skiller] error message');
       });
 
-      it('uses [ruler:dry-run] prefix when dryRun is true', () => {
+      it('uses [skiller:dry-run] prefix when dryRun is true', () => {
         logError('error message', true);
-        expect(consoleErrorSpy).toHaveBeenCalledWith('[ruler:dry-run] error message');
+        expect(consoleErrorSpy).toHaveBeenCalledWith('[skiller:dry-run] error message');
       });
     });
 
@@ -97,14 +97,14 @@ describe('constants', () => {
         expect(consoleLogSpy).not.toHaveBeenCalled();
       });
 
-      it('logs to stdout with [ruler] prefix when isVerbose is true', () => {
+      it('logs to stdout with [skiller] prefix when isVerbose is true', () => {
         logVerboseInfo('verbose message', true);
-        expect(consoleLogSpy).toHaveBeenCalledWith('[ruler] verbose message');
+        expect(consoleLogSpy).toHaveBeenCalledWith('[skiller] verbose message');
       });
 
-      it('logs to stdout with [ruler:dry-run] prefix when isVerbose and dryRun are true', () => {
+      it('logs to stdout with [skiller:dry-run] prefix when isVerbose and dryRun are true', () => {
         logVerboseInfo('verbose message', true, true);
-        expect(consoleLogSpy).toHaveBeenCalledWith('[ruler:dry-run] verbose message');
+        expect(consoleLogSpy).toHaveBeenCalledWith('[skiller:dry-run] verbose message');
       });
     });
   });

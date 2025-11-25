@@ -49,10 +49,10 @@ export class FirebenderAgent implements IAgent {
     return 'Firebender';
   }
 
-  async applyRulerConfig(
+  async applySkillerConfig(
     concatenatedRules: string,
     projectRoot: string,
-    rulerMcpJson: Record<string, unknown> | null,
+    skillerMcpJson: Record<string, unknown> | null,
     agentConfig?: IAgentConfig,
     backup = true,
   ): Promise<void> {
@@ -69,10 +69,10 @@ export class FirebenderAgent implements IAgent {
     this.removeDuplicateRules(firebenderConfig);
 
     const mcpEnabled = agentConfig?.mcp?.enabled ?? true;
-    if (mcpEnabled && rulerMcpJson) {
+    if (mcpEnabled && skillerMcpJson) {
       await this.handleMcpConfiguration(
         firebenderConfig,
-        rulerMcpJson,
+        skillerMcpJson,
         agentConfig,
       );
     }
@@ -189,13 +189,13 @@ export class FirebenderAgent implements IAgent {
    */
   private async handleMcpConfiguration(
     firebenderConfig: FirebenderConfig,
-    rulerMcpJson: Record<string, unknown>,
+    skillerMcpJson: Record<string, unknown>,
     agentConfig?: IAgentConfig,
   ): Promise<void> {
     const strategy = agentConfig?.mcp?.strategy ?? 'merge';
 
     const incomingServers =
-      (rulerMcpJson.mcpServers as Record<string, unknown>) || {};
+      (skillerMcpJson.mcpServers as Record<string, unknown>) || {};
 
     if (!firebenderConfig.mcpServers) {
       firebenderConfig.mcpServers = {};

@@ -3,7 +3,7 @@ import { McpStrategy } from '../types';
 /**
  * Merge native and incoming MCP server configurations according to strategy.
  * @param base Existing native MCP config object.
- * @param incoming Ruler MCP config object.
+ * @param incoming Skiller MCP config object.
  * @param strategy Merge strategy: 'merge' to union servers, 'overwrite' to replace.
  * @param serverKey The key to use for servers in the output (e.g., 'servers' for Copilot, 'mcpServers' for others).
  * @returns Merged MCP config object.

@@ -141,8 +141,8 @@ issue-body.md
 .specstory/
 
 
-# START Ruler Generated Files
+# START Skiller Generated Files
 /.codex/config.toml
 /AGENTS.md
 /CLAUDE.md
-# END Ruler Generated Files
+# END Skiller Generated Files

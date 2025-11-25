@@ -81,7 +81,7 @@ export async function walkSkillsTree(
         } else {
           // This is neither a skill nor a grouping directory - warn about it
           warnings.push(
-            `Directory '${entryRelativePath}' in .ruler/skills has no SKILL.md and contains no sub-skills. It may be malformed or stray.`,
+            `Directory '${entryRelativePath}' in .claude/skills has no SKILL.md and contains no sub-skills. It may be malformed or stray.`,
           );
         }
       }

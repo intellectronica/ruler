@@ -2,34 +2,28 @@ import * as path from 'path';
 import * as fs from 'fs/promises';
 import { SkillInfo } from '../types';
 import {
-  RULER_SKILLS_PATH,
   CLAUDE_SKILLS_PATH,
   SKILLZ_DIR,
   SKILLZ_MCP_SERVER_NAME,
   logWarn,
   logVerboseInfo,
 } from '../constants';
-import { walkSkillsTree, copySkillsDirectory } from './SkillsUtils';
+import { walkSkillsTree } from './SkillsUtils';
 import type { IAgent } from '../agents/IAgent';
 import { parseFrontmatter } from './FrontmatterParser';
 
 /**
- * Discovers skills in the project's skills directory (.ruler/skills or .claude/skills).
+ * Discovers skills in the project's skills directory (.claude/skills).
  * Returns discovered skills and any validation warnings.
  */
 export async function discoverSkills(
   projectRoot: string,
-  rulerDir?: string,
+  skillerDir?: string,
 ): Promise<{ skills: SkillInfo[]; warnings: string[] }> {
-  // Determine skills directory based on rulerDir
-  let skillsPath: string;
-  if (rulerDir && path.basename(rulerDir) === '.claude') {
-    // Use .claude/skills
-    skillsPath = path.join(rulerDir, 'skills');
-  } else {
-    // Use .ruler/skills (default)
-    skillsPath = path.join(projectRoot, RULER_SKILLS_PATH);
-  }
+  // Use .claude/skills
+  const skillsPath = skillerDir
+    ? path.join(skillerDir, 'skills')
+    : path.join(projectRoot, CLAUDE_SKILLS_PATH);
 
   // Check if skills directory exists
   try {
@@ -50,51 +44,33 @@ export async function discoverSkills(
 export async function getSkillsGitignorePaths(
   projectRoot: string,
 ): Promise<string[]> {
-  const rulerSkillsDir = path.join(projectRoot, RULER_SKILLS_PATH);
-  const claudeSkillsDir = path.join(projectRoot, '.claude', 'skills');
+  const claudeSkillsDir = path.join(projectRoot, CLAUDE_SKILLS_PATH);
 
-  // Check if skills directory exists in either location
-  let isClaudeMode = false;
+  // Check if skills directory exists
   let skillsExist = false;
 
   try {
-    await fs.access(rulerSkillsDir);
+    await fs.access(claudeSkillsDir);
     skillsExist = true;
-    isClaudeMode = false;
   } catch {
-    // Try .claude/skills
-    try {
-      await fs.access(claudeSkillsDir);
-      skillsExist = true;
-      isClaudeMode = true;
-    } catch {
-      return [];
-    }
+    return [];
   }
 
   if (!skillsExist) {
     return [];
   }
 
-  // Import here to avoid circular dependency
-  const { CLAUDE_SKILLS_PATH, SKILLZ_DIR } = await import('../constants');
-
   const paths: string[] = [];
 
   // When using .claude/skills, check if it's generated from .claude/rules
-  if (isClaudeMode) {
-    // If .claude/rules exists, then .claude/skills is generated and should be gitignored
-    const claudeRulesDir = path.join(projectRoot, '.claude', 'rules');
-    try {
-      await fs.access(claudeRulesDir);
-      // .claude/rules exists, so .claude/skills is generated
-      paths.push(path.join(projectRoot, CLAUDE_SKILLS_PATH));
-    } catch {
-      // .claude/rules doesn't exist, so .claude/skills is versioned (don't gitignore)
-    }
-  } else {
-    // Using .ruler/skills - gitignore .claude/skills (generated copy)
+  // If .claude/rules exists, then .claude/skills is generated and should be gitignored
+  const claudeRulesDir = path.join(projectRoot, '.claude', 'rules');
+  try {
+    await fs.access(claudeRulesDir);
+    // .claude/rules exists, so .claude/skills is generated
     paths.push(path.join(projectRoot, CLAUDE_SKILLS_PATH));
+  } catch {
+    // .claude/rules doesn't exist, so .claude/skills is versioned (don't gitignore)
   }
 
   // Always gitignore .skillz (for MCP agents)
@@ -167,15 +143,15 @@ async function findMdcFiles(dir: string): Promise<string[]> {
  */
 export async function generateSkillsFromRules(
   projectRoot: string,
-  rulerDir: string,
+  skillerDir: string,
   verbose: boolean,
   dryRun: boolean,
 ): Promise<void> {
-  // Determine skills directory based on rulerDir
-  const skillsDir = path.join(rulerDir, 'skills');
+  // Determine skills directory based on skillerDir
+  const skillsDir = path.join(skillerDir, 'skills');
 
-  // Find all .mdc files in the ruler directory
-  const mdcFiles = await findMdcFiles(rulerDir);
+  // Find all .mdc files in the skiller directory
+  const mdcFiles = await findMdcFiles(skillerDir);
 
   if (mdcFiles.length === 0) {
     logVerboseInfo('No .mdc files found for skill generation', verbose, dryRun);
@@ -400,7 +376,7 @@ export async function propagateSkills(
   skillsEnabled: boolean,
   verbose: boolean,
   dryRun: boolean,
-  rulerDir?: string,
+  skillerDir?: string,
 ): Promise<void> {
   if (!skillsEnabled) {
     logVerboseInfo(
@@ -413,25 +389,18 @@ export async function propagateSkills(
     return;
   }
 
-  // Determine skills directory based on rulerDir
-  let skillsDir: string;
-  if (rulerDir && path.basename(rulerDir) === '.claude') {
-    skillsDir = path.join(rulerDir, 'skills');
-  } else {
-    skillsDir = path.join(projectRoot, RULER_SKILLS_PATH);
-  }
+  // Determine skills directory - always use .claude/skills
+  const skillsDir = skillerDir
+    ? path.join(skillerDir, 'skills')
+    : path.join(projectRoot, CLAUDE_SKILLS_PATH);
 
   // Check if skills directory exists
   try {
     await fs.access(skillsDir);
   } catch {
     // No skills directory - this is fine
-    const dirName =
-      rulerDir && path.basename(rulerDir) === '.claude'
-        ? '.claude/skills'
-        : '.ruler/skills';
     logVerboseInfo(
-      `No ${dirName} directory found, skipping skills propagation`,
+      `No .claude/skills directory found, skipping skills propagation`,
       verbose,
       dryRun,
     );
@@ -439,14 +408,14 @@ export async function propagateSkills(
   }
 
   // Discover skills
-  const { skills, warnings } = await discoverSkills(projectRoot, rulerDir);
+  const { skills, warnings } = await discoverSkills(projectRoot, skillerDir);
 
   if (warnings.length > 0) {
     warnings.forEach((warning) => logWarn(warning, dryRun));
   }
 
   if (skills.length === 0) {
-    logVerboseInfo('No valid skills found in .ruler/skills', verbose, dryRun);
+    logVerboseInfo('No valid skills found in .claude/skills', verbose, dryRun);
     return;
   }
 
@@ -470,113 +439,31 @@ export async function propagateSkills(
     // warnOnceExperimentalAndUv(verbose, dryRun);
   }
 
-  // Copy to Claude skills directory if needed
-  if (hasNativeSkillsAgent) {
-    const isClaudeRoot = rulerDir && path.basename(rulerDir) === '.claude';
-    if (!isClaudeRoot) {
-      logVerboseInfo(
-        `Copying skills to ${CLAUDE_SKILLS_PATH} for Claude Code`,
-        verbose,
-        dryRun,
-      );
-    }
-    await propagateSkillsForClaude(projectRoot, { dryRun, rulerDir });
-  }
-
-  // Copy to .skillz directory if needed
+  // Copy to .skillz directory if needed (for MCP agents without native skills)
   if (hasMcpAgent) {
     logVerboseInfo(
       `Copying skills to ${SKILLZ_DIR} for MCP agents without native skills support`,
       verbose,
       dryRun,
     );
-    await propagateSkillsForSkillz(projectRoot, { dryRun, rulerDir });
+    await propagateSkillsForSkillz(projectRoot, { dryRun, skillerDir });
   }
-}
-
-/**
- * Propagates skills for Claude Code by copying .ruler/skills to .claude/skills.
- * If rulerDir is .claude, skills are already in the right place, so no copy is needed.
- * Uses atomic replace to ensure safe overwriting of existing skills.
- * Returns dry-run steps if dryRun is true, otherwise returns empty array.
- */
-export async function propagateSkillsForClaude(
-  projectRoot: string,
-  options: { dryRun: boolean; rulerDir?: string },
-): Promise<string[]> {
-  // If using .claude as the root folder, skills are already in .claude/skills
-  const isClaudeRoot =
-    options.rulerDir && path.basename(options.rulerDir) === '.claude';
-  if (isClaudeRoot) {
-    // No need to copy, skills are already in .claude/skills
-    return [];
-  }
-
-  const skillsDir = path.join(projectRoot, RULER_SKILLS_PATH);
-  const claudeSkillsPath = path.join(projectRoot, CLAUDE_SKILLS_PATH);
-  const claudeDir = path.dirname(claudeSkillsPath);
-
-  // Check if source skills directory exists
-  try {
-    await fs.access(skillsDir);
-  } catch {
-    // No skills directory - return empty
-    return [];
-  }
-
-  if (options.dryRun) {
-    return [`Copy skills from ${RULER_SKILLS_PATH} to ${CLAUDE_SKILLS_PATH}`];
-  }
-
-  // Ensure .claude directory exists
-  await fs.mkdir(claudeDir, { recursive: true });
-
-  // Use atomic replace: copy to temp, then rename
-  const tempDir = path.join(claudeDir, `skills.tmp-${Date.now()}`);
-
-  try {
-    // Copy to temp directory
-    await copySkillsDirectory(skillsDir, tempDir);
-
-    // Atomically replace the target
-    // First, remove existing target if it exists
-    try {
-      await fs.rm(claudeSkillsPath, { recursive: true, force: true });
-    } catch {
-      // Target didn't exist, that's fine
-    }
-
-    // Rename temp to target
-    await fs.rename(tempDir, claudeSkillsPath);
-  } catch (error) {
-    // Clean up temp directory on error
-    try {
-      await fs.rm(tempDir, { recursive: true, force: true });
-    } catch {
-      // Ignore cleanup errors
-    }
-    throw error;
-  }
-
-  return [];
 }
 
 /**
  * Propagates skills for MCP agents by copying skills to .skillz.
- * Supports both .ruler/skills and .claude/skills as source.
+ * Uses .claude/skills as the source.
  * Uses atomic replace to ensure safe overwriting of existing skills.
  * Returns dry-run steps if dryRun is true, otherwise returns empty array.
  */
 export async function propagateSkillsForSkillz(
   projectRoot: string,
-  options: { dryRun: boolean; rulerDir?: string },
+  options: { dryRun: boolean; skillerDir?: string },
 ): Promise<string[]> {
-  // Determine source skills directory based on rulerDir
-  const isClaudeRoot =
-    options.rulerDir && path.basename(options.rulerDir) === '.claude';
-  const skillsDir = isClaudeRoot
-    ? path.join(projectRoot, '.claude', 'skills')
-    : path.join(projectRoot, RULER_SKILLS_PATH);
+  // Use .claude/skills as the source
+  const skillsDir = options.skillerDir
+    ? path.join(options.skillerDir, 'skills')
+    : path.join(projectRoot, CLAUDE_SKILLS_PATH);
   const skillzPath = path.join(projectRoot, SKILLZ_DIR);
 
   // Check if source skills directory exists

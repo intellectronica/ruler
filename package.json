@@ -1,7 +1,7 @@
 {
-	"name": "@udecode/ruler",
+	"name": "skiller",
 	"version": "0.4.3",
-	"description": "Ruler — apply the same rules to all coding agents",
+	"description": "Skiller — apply the same rules to all coding agents",
 	"main": "dist/lib.js",
 	"publishConfig": {
 		"access": "public"
@@ -13,13 +13,13 @@
 		"test": "jest",
 		"test:watch": "jest --watch",
 		"test:coverage": "jest --coverage",
-		"test:integration": "jest tests/e2e/ruler.integration.test.ts --verbose",
+		"test:integration": "jest tests/e2e/skiller.integration.test.ts --verbose",
 		"build": "tsc",
 		"release": "pnpm build && pnpm changeset version"
 	},
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/udecode/ruler.git"
+		"url": "git+https://github.com/udecode/skiller.git"
 	},
 	"keywords": [
 		"ai",
@@ -36,7 +36,7 @@
 	"author": "Eleanor Berger",
 	"license": "MIT",
 	"bugs": {
-		"url": "https://github.com/udecode/ruler/issues"
+		"url": "https://github.com/udecode/skiller/issues"
 	},
 	"engines": {
 		"node": ">=18"
@@ -47,7 +47,7 @@
 		"LICENSE"
 	],
 	"bin": {
-		"ruler": "dist/cli/index.js"
+		"skiller": "dist/cli/index.js"
 	},
 	"devDependencies": {
 		"@changesets/cli": "2.27.11",

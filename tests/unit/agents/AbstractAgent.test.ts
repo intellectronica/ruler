@@ -50,10 +50,10 @@ describe('AbstractAgent', () => {
     });
   });
 
-  describe('applyRulerConfig', () => {
+  describe('applySkillerConfig', () => {
     it('writes rules to default output path', async () => {
       const rules = 'Test rules for agent';
-      await agent.applyRulerConfig(rules, tmpDir, null);
+      await agent.applySkillerConfig(rules, tmpDir, null);
 
       const outputPath = path.join(tmpDir, 'TEST.md');
       const content = await fs.readFile(outputPath, 'utf8');
@@ -64,7 +64,7 @@ describe('AbstractAgent', () => {
       const rules = 'Test rules with nested path';
       const customPath = path.join('nested', 'dir', 'test.md');
       
-      await agent.applyRulerConfig(rules, tmpDir, null, { outputPath: customPath });
+      await agent.applySkillerConfig(rules, tmpDir, null, { outputPath: customPath });
 
       const fullPath = path.join(tmpDir, customPath);
       const content = await fs.readFile(fullPath, 'utf8');
@@ -79,7 +79,7 @@ describe('AbstractAgent', () => {
 
       // Apply new rules
       const newRules = 'New test rules';
-      await agent.applyRulerConfig(newRules, tmpDir, null);
+      await agent.applySkillerConfig(newRules, tmpDir, null);
 
       // Check backup was created
       const backupPath = `${outputPath}.bak`;
@@ -96,7 +96,7 @@ describe('AbstractAgent', () => {
       const customPath = path.join(tmpDir, 'custom', 'test-rules.md');
       await fs.mkdir(path.dirname(customPath), { recursive: true });
       
-      await agent.applyRulerConfig(rules, tmpDir, null, { outputPath: customPath });
+      await agent.applySkillerConfig(rules, tmpDir, null, { outputPath: customPath });
       
       const content = await fs.readFile(customPath, 'utf8');
       expect(content).toBe(rules);
@@ -107,7 +107,7 @@ describe('AbstractAgent', () => {
       const relativePath = '../outside/test.md';
       
       // This should resolve relative to the project root
-      await agent.applyRulerConfig(rules, tmpDir, null, { outputPath: relativePath });
+      await agent.applySkillerConfig(rules, tmpDir, null, { outputPath: relativePath });
       
       const expectedPath = path.resolve(tmpDir, relativePath);
       const content = await fs.readFile(expectedPath, 'utf8');
@@ -118,7 +118,7 @@ describe('AbstractAgent', () => {
       const rules = 'Absolute path rules';
       const absolutePath = path.join(tmpDir, 'absolute', 'test.md');
       
-      await agent.applyRulerConfig(rules, tmpDir, null, { outputPath: absolutePath });
+      await agent.applySkillerConfig(rules, tmpDir, null, { outputPath: absolutePath });
       
       const content = await fs.readFile(absolutePath, 'utf8');
       expect(content).toBe(rules);

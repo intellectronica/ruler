@@ -8,7 +8,7 @@ describe('TraeAgent', () => {
   let agent: TraeAgent;
 
   beforeEach(async () => {
-    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ruler-trae-'));
+    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'skiller-trae-'));
     agent = new TraeAgent();
   });
 
@@ -36,10 +36,10 @@ describe('TraeAgent', () => {
     });
   });
 
-  describe('applyRulerConfig', () => {
+  describe('applySkillerConfig', () => {
     it('creates project_rules.md file', async () => {
       const target = path.join(tmpDir, '.trae', 'rules', 'project_rules.md');
-      await agent.applyRulerConfig('test guidelines', tmpDir, null);
+      await agent.applySkillerConfig('test guidelines', tmpDir, null);
 
       const content = await fs.readFile(target, 'utf8');
       expect(content).toBe('test guidelines');
@@ -50,7 +50,7 @@ describe('TraeAgent', () => {
       await fs.mkdir(path.dirname(target), { recursive: true });
       await fs.writeFile(target, 'old guidelines');
 
-      await agent.applyRulerConfig('new guidelines', tmpDir, null);
+      await agent.applySkillerConfig('new guidelines', tmpDir, null);
 
       const backup = await fs.readFile(`${target}.bak`, 'utf8');
       const content = await fs.readFile(target, 'utf8');
@@ -60,7 +60,7 @@ describe('TraeAgent', () => {
 
     it('uses custom output path when provided', async () => {
       const customPath = path.join(tmpDir, 'custom-guidelines.md');
-      await agent.applyRulerConfig('custom guidelines', tmpDir, null, { 
+      await agent.applySkillerConfig('custom guidelines', tmpDir, null, { 
         outputPath: customPath 
       });
       
@@ -78,7 +78,7 @@ describe('TraeAgent', () => {
         }
       };
 
-      await agent.applyRulerConfig('test guidelines', tmpDir, mcpConfig);
+      await agent.applySkillerConfig('test guidelines', tmpDir, mcpConfig);
 
       // Only the rules file should be created, no additional MCP configuration
       const rulesPath = path.join(tmpDir, '.trae', 'rules', 'project_rules.md');
@@ -93,7 +93,7 @@ describe('TraeAgent', () => {
     });
 
     it('creates nested directory structure', async () => {
-      await agent.applyRulerConfig('nested test', tmpDir, null);
+      await agent.applySkillerConfig('nested test', tmpDir, null);
 
       const target = path.join(tmpDir, '.trae', 'rules', 'project_rules.md');
       const content = await fs.readFile(target, 'utf8');
@@ -106,7 +106,7 @@ describe('TraeAgent', () => {
 
     it('handles empty content', async () => {
       const target = path.join(tmpDir, '.trae', 'rules', 'project_rules.md');
-      await agent.applyRulerConfig('', tmpDir, null);
+      await agent.applySkillerConfig('', tmpDir, null);
 
       const content = await fs.readFile(target, 'utf8');
       expect(content).toBe('');
@@ -117,7 +117,7 @@ describe('TraeAgent', () => {
       await fs.mkdir(path.dirname(target), { recursive: true });
       await fs.writeFile(target, 'original content');
 
-      await agent.applyRulerConfig('updated content', tmpDir, null);
+      await agent.applySkillerConfig('updated content', tmpDir, null);
 
       const content = await fs.readFile(target, 'utf8');
       expect(content).toBe('updated content');
@@ -128,7 +128,7 @@ describe('TraeAgent', () => {
       await fs.mkdir(path.dirname(target), { recursive: true });
       await fs.writeFile(target, 'original content');
 
-      await agent.applyRulerConfig('new content', tmpDir, null, undefined, false);
+      await agent.applySkillerConfig('new content', tmpDir, null, undefined, false);
 
       const content = await fs.readFile(target, 'utf8');
       expect(content).toBe('new content');

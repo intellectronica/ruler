@@ -12,48 +12,28 @@ function getXdgConfigDir(): string {
 }
 
 /**
- * Searches upwards from startPath to find a directory named .ruler or .claude.
- * Priority: .ruler first, then .claude (to check .ruler/ruler.toml before .claude/ruler.toml)
- * If not found locally and checkGlobal is true, checks for global config at XDG_CONFIG_HOME/ruler.
+ * Searches upwards from startPath to find a .claude directory with skiller.toml.
+ * If not found locally and checkGlobal is true, checks for global config at XDG_CONFIG_HOME/skiller.
  * Returns the path to the found directory, or null if not found.
  */
-export async function findRulerDir(
+export async function findSkillerDir(
   startPath: string,
   checkGlobal: boolean = true,
 ): Promise<string | null> {
-  // First, search upwards from startPath for local .ruler directory
+  // Search upwards from startPath for local .claude directory with skiller.toml
   let current = startPath;
-  while (current) {
-    const rulerCandidate = path.join(current, '.ruler');
-    try {
-      const stat = await fs.stat(rulerCandidate);
-      if (stat.isDirectory()) {
-        return rulerCandidate;
-      }
-    } catch {
-      // ignore errors when checking for .ruler directory
-    }
-    const parent = path.dirname(current);
-    if (parent === current) {
-      break;
-    }
-    current = parent;
-  }
-
-  // If no .ruler found, search for .claude directory
-  current = startPath;
   while (current) {
     const claudeCandidate = path.join(current, '.claude');
     try {
       const stat = await fs.stat(claudeCandidate);
       if (stat.isDirectory()) {
-        // Check if this .claude directory has ruler.toml
-        const tomlPath = path.join(claudeCandidate, 'ruler.toml');
+        // Check if this .claude directory has skiller.toml
+        const tomlPath = path.join(claudeCandidate, 'skiller.toml');
         try {
           await fs.stat(tomlPath);
           return claudeCandidate;
         } catch {
-          // .claude exists but no ruler.toml, continue searching
+          // .claude exists but no skiller.toml, continue searching
         }
       }
     } catch {
@@ -66,9 +46,9 @@ export async function findRulerDir(
     current = parent;
   }
 
-  // If no local .ruler or .claude found and checkGlobal is true, check global config directory
+  // If no local .claude found and checkGlobal is true, check global config directory
   if (checkGlobal) {
-    const globalConfigDir = path.join(getXdgConfigDir(), 'ruler');
+    const globalConfigDir = path.join(getXdgConfigDir(), 'skiller');
     try {
       const stat = await fs.stat(globalConfigDir);
       if (stat.isDirectory()) {
@@ -76,7 +56,7 @@ export async function findRulerDir(
       }
     } catch (err) {
       console.error(
-        `[ruler] Error checking global config directory ${globalConfigDir}:`,
+        `[skiller] Error checking global config directory ${globalConfigDir}:`,
         err,
       );
     }
@@ -84,6 +64,9 @@ export async function findRulerDir(
 
   return null;
 }
+
+// Alias for backward compatibility
+export const findRulerDir = findSkillerDir;
 
 /**
  * Normalizes a pattern by expanding directory patterns to glob patterns.
@@ -150,17 +133,17 @@ export function matchesPattern(filePath: string, pattern: string): boolean {
 }
 
 /**
- * Recursively reads all Markdown (.md and .mdc) files in rulerDir, returning their paths and contents.
+ * Recursively reads all Markdown (.md and .mdc) files in skillerDir, returning their paths and contents.
  * Files are sorted alphabetically by path.
  *
- * @param rulerDir The directory to scan for markdown files
+ * @param skillerDir The directory to scan for markdown files
  * @param options Optional filtering configuration
  * @param options.include Glob patterns to include (if specified, only matching files are included)
  * @param options.exclude Glob patterns to exclude (takes precedence over include)
  * @param options.merge_strategy Merge strategy: 'all' (default) or 'cursor' (uses MDC frontmatter)
  */
 export async function readMarkdownFiles(
-  rulerDir: string,
+  skillerDir: string,
   options?: {
     include?: string[];
     exclude?: string[];
@@ -185,7 +168,7 @@ export async function readMarkdownFiles(
       }
     }
   }
-  await walk(rulerDir);
+  await walk(skillerDir);
 
   // Apply include/exclude filters
   let filteredFiles = mdFiles;
@@ -195,8 +178,8 @@ export async function readMarkdownFiles(
     const normalizedExclude = options.exclude?.map(normalizePattern);
 
     filteredFiles = mdFiles.filter((file) => {
-      // Get relative path from rulerDir for pattern matching
-      const relativePath = path.relative(rulerDir, file.path);
+      // Get relative path from skillerDir for pattern matching
+      const relativePath = path.relative(skillerDir, file.path);
       // Normalize to forward slashes for consistent pattern matching
       const normalizedPath = relativePath.replace(/\\/g, '/');
 
@@ -230,7 +213,7 @@ export async function readMarkdownFiles(
     const cursorFiles: { path: string; content: string }[] = [];
 
     for (const file of filteredFiles) {
-      const relativePath = path.relative(rulerDir, file.path);
+      const relativePath = path.relative(skillerDir, file.path);
       const normalizedPath = relativePath.replace(/\\/g, '/');
 
       // Always include AGENTS.md for backward compatibility
@@ -263,8 +246,8 @@ export async function readMarkdownFiles(
   // 2. If AGENTS.md absent but legacy instructions.md present, use it (no longer emits a warning; legacy accepted silently).
   // 3. Include any remaining .md files (excluding whichever of the above was used if present) in
   //    sorted order AFTER the preferred primary file so that new concatenation priority starts with AGENTS.md.
-  const topLevelAgents = path.join(rulerDir, 'AGENTS.md');
-  const topLevelLegacy = path.join(rulerDir, 'instructions.md');
+  const topLevelAgents = path.join(skillerDir, 'AGENTS.md');
+  const topLevelLegacy = path.join(skillerDir, 'instructions.md');
 
   // Separate primary candidates from others
   let primaryFile: { path: string; content: string } | null = null;
@@ -294,29 +277,29 @@ export async function readMarkdownFiles(
 
   let ordered = primaryFile ? [primaryFile, ...others] : others;
 
-  // NEW: Prepend repository root AGENTS.md (outside .ruler) if it exists and is not identical path.
+  // NEW: Prepend repository root AGENTS.md (outside .claude) if it exists and is not identical path.
   try {
-    const repoRoot = path.dirname(rulerDir); // .ruler parent
+    const repoRoot = path.dirname(skillerDir); // .claude parent
     const rootAgentsPath = path.join(repoRoot, 'AGENTS.md');
     if (path.resolve(rootAgentsPath) !== path.resolve(topLevelAgents)) {
       const stat = await fs.stat(rootAgentsPath);
       if (stat.isFile()) {
         const content = await fs.readFile(rootAgentsPath, 'utf8');
 
-        // Check if this is a generated file and we have other .ruler files
-        const isGenerated = content.startsWith('<!-- Generated by Ruler -->');
-        const hasRulerFiles = others.length > 0 || primaryFile !== null;
+        // Check if this is a generated file and we have other .claude files
+        const isGenerated = content.startsWith('<!-- Generated by Skiller -->');
+        const hasSkillerFiles = others.length > 0 || primaryFile !== null;
 
-        // Additional check: if AGENTS.md contains ruler source comments and we have ruler files,
+        // Additional check: if AGENTS.md contains skiller source comments and we have skiller files,
         // it's likely a corrupted generated file that should be skipped
-        const containsRulerSources =
-          content.includes('<!-- Source: .ruler/') ||
-          content.includes('<!-- Source: ruler/');
+        const containsSkillerSources =
+          content.includes('<!-- Source: .claude/') ||
+          content.includes('<!-- Source: claude/');
         const isProbablyGenerated =
-          isGenerated || (containsRulerSources && hasRulerFiles);
+          isGenerated || (containsSkillerSources && hasSkillerFiles);
 
-        // Skip generated AGENTS.md if we have other files in .ruler
-        if (!isProbablyGenerated || !hasRulerFiles) {
+        // Skip generated AGENTS.md if we have other files in .claude
+        if (!isProbablyGenerated || !hasSkillerFiles) {
           // Prepend so it has highest precedence
           ordered = [{ path: rootAgentsPath, content }, ...ordered];
         }
@@ -360,11 +343,11 @@ export async function ensureDirExists(dirPath: string): Promise<void> {
 }
 
 /**
- * Finds the global ruler configuration directory at XDG_CONFIG_HOME/ruler.
+ * Finds the global skiller configuration directory at XDG_CONFIG_HOME/skiller.
  * Returns the path if it exists, null otherwise.
  */
-export async function findGlobalRulerDir(): Promise<string | null> {
-  const globalConfigDir = path.join(getXdgConfigDir(), 'ruler');
+export async function findGlobalSkillerDir(): Promise<string | null> {
+  const globalConfigDir = path.join(getXdgConfigDir(), 'skiller');
   try {
     const stat = await fs.stat(globalConfigDir);
     if (stat.isDirectory()) {
@@ -376,35 +359,36 @@ export async function findGlobalRulerDir(): Promise<string | null> {
   return null;
 }
 
+// Alias for backward compatibility
+export const findGlobalRulerDir = findGlobalSkillerDir;
+
 /**
- * Searches the entire directory tree from startPath to find all .ruler and .claude directories with ruler.toml.
+ * Searches the entire directory tree from startPath to find all .claude directories with skiller.toml.
  * Returns an array of directory paths from most specific to least specific.
  */
-export async function findAllRulerDirs(startPath: string): Promise<string[]> {
-  const rulerDirs: string[] = [];
+export async function findAllSkillerDirs(startPath: string): Promise<string[]> {
+  const skillerDirs: string[] = [];
 
   // Search the entire directory tree downwards from startPath
-  async function findRulerDirs(dir: string) {
+  async function findSkillerDirsRecursive(dir: string) {
     try {
       const entries = await fs.readdir(dir, { withFileTypes: true });
       for (const entry of entries) {
         const fullPath = path.join(dir, entry.name);
         if (entry.isDirectory()) {
-          if (entry.name === '.ruler') {
-            rulerDirs.push(fullPath);
-          } else if (entry.name === '.claude') {
-            // Check if .claude has ruler.toml
-            const tomlPath = path.join(fullPath, 'ruler.toml');
+          if (entry.name === '.claude') {
+            // Check if .claude has skiller.toml
+            const tomlPath = path.join(fullPath, 'skiller.toml');
             try {
               await fs.stat(tomlPath);
-              rulerDirs.push(fullPath);
+              skillerDirs.push(fullPath);
             } catch {
-              // .claude exists but no ruler.toml
+              // .claude exists but no skiller.toml
             }
           } else {
             // Recursively search subdirectories (but skip hidden directories like .git)
             if (!entry.name.startsWith('.')) {
-              await findRulerDirs(fullPath);
+              await findSkillerDirsRecursive(fullPath);
             }
           }
         }
@@ -415,10 +399,10 @@ export async function findAllRulerDirs(startPath: string): Promise<string[]> {
   }
 
   // Start searching from the startPath
-  await findRulerDirs(startPath);
+  await findSkillerDirsRecursive(startPath);
 
   // Sort by depth (most specific first) - deeper paths come first
-  rulerDirs.sort((a, b) => {
+  skillerDirs.sort((a, b) => {
     const depthA = a.split(path.sep).length;
     const depthB = b.split(path.sep).length;
     if (depthA !== depthB) {
@@ -427,5 +411,8 @@ export async function findAllRulerDirs(startPath: string): Promise<string[]> {
     return a.localeCompare(b); // Alphabetical for same depth
   });
 
-  return rulerDirs;
+  return skillerDirs;
 }
+
+// Alias for backward compatibility
+export const findAllRulerDirs = findAllSkillerDirs;

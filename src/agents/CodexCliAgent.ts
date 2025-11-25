@@ -19,7 +19,7 @@ interface CodexCliConfig {
   mcp_servers?: Record<string, McpServer>;
 }
 
-interface RulerMcp {
+interface SkillerMcp {
   mcpServers?: Record<string, McpServer>;
 }
 
@@ -37,15 +37,15 @@ export class CodexCliAgent implements IAgent {
     return 'OpenAI Codex CLI';
   }
 
-  async applyRulerConfig(
+  async applySkillerConfig(
     concatenatedRules: string,
     projectRoot: string,
-    rulerMcpJson: RulerMcp | null,
+    skillerMcpJson: SkillerMcp | null,
     agentConfig?: IAgentConfig,
     backup = true,
   ): Promise<void> {
     // First perform idempotent AGENTS.md write via composed AgentsMdAgent
-    await this.agentsMdAgent.applyRulerConfig(
+    await this.agentsMdAgent.applySkillerConfig(
       concatenatedRules,
       projectRoot,
       null,
@@ -61,11 +61,11 @@ export class CodexCliAgent implements IAgent {
     // Use proper path resolution from getDefaultOutputPath and agentConfig
     const defaults = this.getDefaultOutputPath(projectRoot);
     const mcpEnabled = agentConfig?.mcp?.enabled ?? true;
-    if (mcpEnabled && rulerMcpJson) {
+    if (mcpEnabled && skillerMcpJson) {
       // Apply MCP server filtering and transformation
       const { filterMcpConfigForAgent } = await import('../mcp/capabilities');
       const filteredMcpConfig = filterMcpConfigForAgent(
-        rulerMcpJson as Record<string, unknown>,
+        skillerMcpJson as Record<string, unknown>,
         this,
       );
 
@@ -73,7 +73,7 @@ export class CodexCliAgent implements IAgent {
         return; // No compatible servers found
       }
 
-      const filteredRulerMcpJson = filteredMcpConfig as {
+      const filteredSkillerMcpJson = filteredMcpConfig as {
         mcpServers: Record<string, McpServer>;
       };
 
@@ -86,8 +86,8 @@ export class CodexCliAgent implements IAgent {
       // Get the merge strategy
       const strategy = agentConfig?.mcp?.strategy ?? 'merge';
 
-      // Extract MCP servers from filtered ruler config
-      const rulerServers = filteredRulerMcpJson.mcpServers || {};
+      // Extract MCP servers from filtered skiller config
+      const skillerServers = filteredSkillerMcpJson.mcpServers || {};
 
       // Read existing TOML config if it exists
       let existingConfig: CodexCliConfig = {};
@@ -111,8 +111,8 @@ export class CodexCliAgent implements IAgent {
         updatedConfig.mcp_servers = {};
       }
 
-      // Add the ruler servers
-      for (const [serverName, serverConfig] of Object.entries(rulerServers)) {
+      // Add the skiller servers
+      for (const [serverName, serverConfig] of Object.entries(skillerServers)) {
         // Create a properly formatted MCP server entry
         const mcpServer: McpServer = {
           command: serverConfig.command,

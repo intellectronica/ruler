@@ -1,4 +1,4 @@
-# @udecode/ruler
+# skiller
 
 ## 0.4.3
 
@@ -17,7 +17,7 @@
 - Fix skillz MCP server removal from agents with native skills support
   - Explicitly remove skillz from filtered MCP config for Claude Code and Cursor
   - Fixes issue where skillz was still appearing in .mcp.json and .cursor/mcp.json even though agents have native skills support
-  - Skillz is added to shared rulerMcpJson for agents like Codex, but now properly filtered out for agents with native skills
+  - Skillz is added to shared skillerMcpJson for agents like Codex, but now properly filtered out for agents with native skills
 
 ## 0.4.1
 
@@ -48,7 +48,7 @@
   - Organize by team/feature, exclude drafts/internal docs
 
   ## 4. Claude Root Folder
-  - `ruler init --claude` creates `.claude/` instead of `.ruler/`
+  - `skiller init --claude` creates `.claude/` instead of `.claude/`
   - Skills already in `.claude/skills` (no copying)
   - Single directory for all Claude Code config
 

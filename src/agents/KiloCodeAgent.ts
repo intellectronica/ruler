@@ -3,7 +3,7 @@ import { AbstractAgent } from './AbstractAgent';
 
 /**
  * Kilo Code agent adapter.
- * Generates ruler_kilocode_instructions.md configuration file in .kilocode/rules/ directory.
+ * Generates skiller_kilocode_instructions.md configuration file in .kilocode/rules/ directory.
  */
 export class KiloCodeAgent extends AbstractAgent {
   getIdentifier(): string {
@@ -19,7 +19,7 @@ export class KiloCodeAgent extends AbstractAgent {
       projectRoot,
       '.kilocode',
       'rules',
-      'ruler_kilocode_instructions.md',
+      'skiller_kilocode_instructions.md',
     );
   }
 

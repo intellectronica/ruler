@@ -25,7 +25,6 @@ export interface ApplyArgs {
 export interface InitArgs {
   'project-root': string;
   global: boolean;
-  claude?: boolean;
 }
 
 export interface RevertArgs {
@@ -117,7 +116,7 @@ export async function applyHandler(argv: ApplyArgs): Promise<void> {
       backupPreference,
       skillsEnabled,
     );
-    console.log('Ruler apply completed successfully.');
+    console.log('Skiller apply completed successfully.');
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     console.error(`${ERROR_PREFIX} ${message}`);
@@ -131,18 +130,16 @@ export async function applyHandler(argv: ApplyArgs): Promise<void> {
 export async function initHandler(argv: InitArgs): Promise<void> {
   const projectRoot = argv['project-root'];
   const isGlobal = argv['global'];
-  const useClaude = argv['claude'] ?? false;
 
-  const folderName = useClaude ? '.claude' : '.ruler';
-  const rulerDir = isGlobal
+  const skillerDir = isGlobal
     ? path.join(
         process.env.XDG_CONFIG_HOME || path.join(os.homedir(), '.config'),
-        'ruler',
+        'skiller',
       )
-    : path.join(projectRoot, folderName);
-  await fs.mkdir(rulerDir, { recursive: true });
-  const instructionsPath = path.join(rulerDir, DEFAULT_RULES_FILENAME); // .ruler/AGENTS.md or .claude/AGENTS.md
-  const tomlPath = path.join(rulerDir, 'ruler.toml');
+    : path.join(projectRoot, '.claude');
+  await fs.mkdir(skillerDir, { recursive: true });
+  const instructionsPath = path.join(skillerDir, DEFAULT_RULES_FILENAME); // .claude/AGENTS.md
+  const tomlPath = path.join(skillerDir, 'skiller.toml');
   const exists = async (p: string) => {
     try {
       await fs.access(p);
@@ -151,16 +148,16 @@ export async function initHandler(argv: InitArgs): Promise<void> {
       return false;
     }
   };
-  const DEFAULT_INSTRUCTIONS = `# AGENTS.md\n\nCentralised AI agent instructions. Add coding guidelines, style guides, and project context here.\n\nRuler concatenates all .md files in this directory (and subdirectories), starting with AGENTS.md (if present), then remaining files in sorted order.\n`;
-  const DEFAULT_TOML = `# Ruler Configuration File
-# See https://ai.intellectronica.net/ruler for documentation.
+  const DEFAULT_INSTRUCTIONS = `# AGENTS.md\n\nCentralised AI agent instructions. Add coding guidelines, style guides, and project context here.\n\nSkiller concatenates all .md files in this directory (and subdirectories), starting with AGENTS.md (if present), then remaining files in sorted order.\n`;
+  const DEFAULT_TOML = `# Skiller Configuration File
+# See https://github.com/udecode/skiller for documentation.
 
 # To specify which agents are active by default when --agents is not used,
 # uncomment and populate the following line. If omitted, all agents are active.
 # default_agents = ["copilot", "claude"]
-${useClaude ? '\n# Root folder for ruler files\nroot_folder = ".claude"\n' : ''}
-# Enable nested rule loading from nested ${folderName} directories
-# When enabled, ruler will search for and process ${folderName} directories throughout the project hierarchy
+
+# Enable nested rule loading from nested .claude directories
+# When enabled, skiller will search for and process .claude directories throughout the project hierarchy
 # nested = false
 
 # --- Agent Specific Configurations ---
@@ -196,15 +193,15 @@ ${useClaude ? '\n# Root folder for ruler files\nroot_folder = ".claude"\n' : ''}
   if (!(await exists(instructionsPath))) {
     // Create new AGENTS.md regardless of legacy presence.
     await fs.writeFile(instructionsPath, DEFAULT_INSTRUCTIONS);
-    console.log(`[ruler] Created ${instructionsPath}`);
+    console.log(`[skiller] Created ${instructionsPath}`);
   } else {
-    console.log(`[ruler] ${DEFAULT_RULES_FILENAME} already exists, skipping`);
+    console.log(`[skiller] ${DEFAULT_RULES_FILENAME} already exists, skipping`);
   }
   if (!(await exists(tomlPath))) {
     await fs.writeFile(tomlPath, DEFAULT_TOML);
-    console.log(`[ruler] Created ${tomlPath}`);
+    console.log(`[skiller] Created ${tomlPath}`);
   } else {
-    console.log(`[ruler] ruler.toml already exists, skipping`);
+    console.log(`[skiller] skiller.toml already exists, skipping`);
   }
 }
 

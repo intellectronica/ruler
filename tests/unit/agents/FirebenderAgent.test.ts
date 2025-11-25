@@ -8,7 +8,7 @@ describe('FirebenderAgent', () => {
   let tmpDir: string;
 
   beforeEach(async () => {
-    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ruler-firebender-'));
+    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'skiller-firebender-'));
   });
 
   afterEach(async () => {
@@ -45,7 +45,7 @@ describe('FirebenderAgent', () => {
       const target = path.join(tmpDir, 'firebender.json');
 
       const rules = 'Use TypeScript\nFollow clean architecture';
-      await agent.applyRulerConfig(rules, tmpDir, null);
+      await agent.applySkillerConfig(rules, tmpDir, null);
 
       const written = await fs.readFile(target, 'utf8');
       const config = JSON.parse(written);
@@ -65,7 +65,7 @@ Use consistent naming
 <!-- Source: docs/arch.md -->
 Follow patterns`;
 
-      await agent.applyRulerConfig(rules, tmpDir, null);
+      await agent.applySkillerConfig(rules, tmpDir, null);
 
       const written = await fs.readFile(target, 'utf8');
       const config = JSON.parse(written);
@@ -86,7 +86,7 @@ Follow patterns`;
       };
       await fs.writeFile(target, JSON.stringify(existingConfig));
 
-      await agent.applyRulerConfig('New rule', tmpDir, null);
+      await agent.applySkillerConfig('New rule', tmpDir, null);
 
       const written = await fs.readFile(target, 'utf8');
       const config = JSON.parse(written);
@@ -102,7 +102,7 @@ Follow patterns`;
       const existingConfig = { rules: ['Rule 1', 'Rule 2'] };
       await fs.writeFile(target, JSON.stringify(existingConfig));
 
-      await agent.applyRulerConfig('Rule 2\nRule 3\nRule 1', tmpDir, null);
+      await agent.applySkillerConfig('Rule 2\nRule 3\nRule 1', tmpDir, null);
 
       const written = await fs.readFile(target, 'utf8');
       const config = JSON.parse(written);
@@ -122,7 +122,7 @@ Follow patterns`;
       };
       await fs.writeFile(target, JSON.stringify(existingConfig));
 
-      await agent.applyRulerConfig('Another rule', tmpDir, null);
+      await agent.applySkillerConfig('Another rule', tmpDir, null);
 
       const written = await fs.readFile(target, 'utf8');
       const config = JSON.parse(written);
@@ -152,7 +152,7 @@ Follow patterns`;
       };
       await fs.writeFile(target, JSON.stringify(existingConfig));
 
-      const rulerMcpJson = {
+      const skillerMcpJson = {
         mcpServers: {
           'new-server': {
             command: 'new-command',
@@ -161,7 +161,7 @@ Follow patterns`;
         },
       };
 
-      await agent.applyRulerConfig('New rule', tmpDir, rulerMcpJson);
+      await agent.applySkillerConfig('New rule', tmpDir, skillerMcpJson);
 
       const written = await fs.readFile(target, 'utf8');
       const config = JSON.parse(written);
@@ -192,7 +192,7 @@ Follow patterns`;
       };
       await fs.writeFile(target, JSON.stringify(existingConfig));
 
-      const rulerMcpJson = {
+      const skillerMcpJson = {
         mcpServers: {
           'new-server': {
             command: 'new-command',
@@ -204,10 +204,10 @@ Follow patterns`;
         mcp: { strategy: 'overwrite' as const },
       };
 
-      await agent.applyRulerConfig(
+      await agent.applySkillerConfig(
         'New rule',
         tmpDir,
-        rulerMcpJson,
+        skillerMcpJson,
         agentConfig,
       );
 
@@ -225,7 +225,7 @@ Follow patterns`;
       const agent = new FirebenderAgent();
       const target = path.join(tmpDir, 'firebender.json');
 
-      const rulerMcpJson = {
+      const skillerMcpJson = {
         mcpServers: {
           'test-server': {
             command: 'test-command',
@@ -234,7 +234,7 @@ Follow patterns`;
         },
       };
 
-      await agent.applyRulerConfig('Test rule', tmpDir, rulerMcpJson);
+      await agent.applySkillerConfig('Test rule', tmpDir, skillerMcpJson);
 
       const written = await fs.readFile(target, 'utf8');
       const config = JSON.parse(written);
@@ -251,7 +251,7 @@ Follow patterns`;
       const agent = new FirebenderAgent();
       const target = path.join(tmpDir, 'firebender.json');
 
-      const rulerMcpJson = {
+      const skillerMcpJson = {
         mcpServers: {
           'test-server': {
             command: 'test-command',
@@ -263,10 +263,10 @@ Follow patterns`;
         mcp: { enabled: false },
       };
 
-      await agent.applyRulerConfig(
+      await agent.applySkillerConfig(
         'Test rule',
         tmpDir,
-        rulerMcpJson,
+        skillerMcpJson,
         agentConfig,
       );
 
@@ -286,11 +286,11 @@ Follow patterns`;
       const agentConfig = { outputPath: customPath };
 
       // First write
-      await agent.applyRulerConfig('First rule', tmpDir, null, agentConfig);
+      await agent.applySkillerConfig('First rule', tmpDir, null, agentConfig);
       expect(await fs.stat(path.dirname(target))).toBeTruthy();
 
       // Second write should create backup
-      await agent.applyRulerConfig('Second rule', tmpDir, null, agentConfig);
+      await agent.applySkillerConfig('Second rule', tmpDir, null, agentConfig);
 
       const backup = await fs.readFile(`${target}.bak`, 'utf8');
       const backupConfig = JSON.parse(backup);
@@ -308,7 +308,7 @@ Follow patterns`;
       await fs.writeFile(target, '{ invalid json }');
       const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
 
-      await agent.applyRulerConfig('New rule', tmpDir, null);
+      await agent.applySkillerConfig('New rule', tmpDir, null);
 
       const written = await fs.readFile(target, 'utf8');
       const config = JSON.parse(written);
@@ -329,7 +329,7 @@ Use TypeScript
 <!-- Source: docs/README.md -->
 Follow documentation`;
 
-      await agent.applyRulerConfig(rules, tmpDir, null);
+      await agent.applySkillerConfig(rules, tmpDir, null);
 
       const written = await fs.readFile(target, 'utf8');
       const config = JSON.parse(written);
@@ -349,7 +349,7 @@ Malicious rule
 <!-- Source: src/main.ts -->
 Valid rule`;
 
-      await agent.applyRulerConfig(rules, tmpDir, null);
+      await agent.applySkillerConfig(rules, tmpDir, null);
 
       const written = await fs.readFile(target, 'utf8');
       const config = JSON.parse(written);
@@ -373,7 +373,7 @@ Malicious rule
 <!-- Source: src/utils.ts -->
 Valid rule`;
 
-      await agent.applyRulerConfig(rules, tmpDir, null);
+      await agent.applySkillerConfig(rules, tmpDir, null);
 
       const written = await fs.readFile(target, 'utf8');
       const config = JSON.parse(written);
@@ -393,7 +393,7 @@ Malicious rule
 <!-- Source: src/main.ts -->
 Valid rule`;
 
-      await agent.applyRulerConfig(rules, tmpDir, null);
+      await agent.applySkillerConfig(rules, tmpDir, null);
 
       const written = await fs.readFile(target, 'utf8');
       const config = JSON.parse(written);
@@ -417,7 +417,7 @@ Use React components
 <!-- Source: src/../src/main.ts -->
 Navigate up and back`;
 
-      await agent.applyRulerConfig(rules, tmpDir, null);
+      await agent.applySkillerConfig(rules, tmpDir, null);
 
       const written = await fs.readFile(target, 'utf8');
       const config = JSON.parse(written);

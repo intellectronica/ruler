@@ -4,7 +4,7 @@ import { backupFile, writeGeneratedFile } from '../core/FileSystemUtils';
 
 /**
  * AugmentCode agent adapter.
- * Generates ruler_augment_instructions.md configuration file and updates VSCode settings.json with MCP server configuration.
+ * Generates skiller_augment_instructions.md configuration file and updates VSCode settings.json with MCP server configuration.
  */
 export class AugmentCodeAgent implements IAgent {
   getIdentifier(): string {
@@ -15,10 +15,10 @@ export class AugmentCodeAgent implements IAgent {
     return 'AugmentCode';
   }
 
-  async applyRulerConfig(
+  async applySkillerConfig(
     concatenatedRules: string,
     projectRoot: string,
-    _rulerMcpJson: Record<string, unknown> | null,
+    _skillerMcpJson: Record<string, unknown> | null,
     agentConfig?: IAgentConfig,
     backup = true,
   ): Promise<void> {
@@ -38,7 +38,7 @@ export class AugmentCodeAgent implements IAgent {
       projectRoot,
       '.augment',
       'rules',
-      'ruler_augment_instructions.md',
+      'skiller_augment_instructions.md',
     );
   }
 

@@ -32,7 +32,7 @@ describe('AmazonQCliAgent Unit Tests', () => {
 
     it('returns correct default output paths', () => {
       const paths = agent.getDefaultOutputPath('/tmp/test');
-      expect(paths.instructions).toBe('/tmp/test/.amazonq/rules/ruler_q_rules.md');
+      expect(paths.instructions).toBe('/tmp/test/.amazonq/rules/skiller_q_rules.md');
       expect(paths.mcp).toBe('/tmp/test/.amazonq/mcp.json');
     });
 
@@ -49,13 +49,13 @@ describe('AmazonQCliAgent Unit Tests', () => {
     });
   });
 
-  describe('applyRulerConfig', () => {
+  describe('applySkillerConfig', () => {
     it('creates rules file in correct location', async () => {
       const rules = '# Test Rules\nUse TypeScript';
       
-      await agent.applyRulerConfig(rules, tmpDir, null, undefined, false);
+      await agent.applySkillerConfig(rules, tmpDir, null, undefined, false);
       
-      const rulesPath = path.join(tmpDir, '.amazonq', 'rules', 'ruler_q_rules.md');
+      const rulesPath = path.join(tmpDir, '.amazonq', 'rules', 'skiller_q_rules.md');
       const content = await fs.readFile(rulesPath, 'utf8');
       expect(content).toBe(rules);
     });
@@ -71,7 +71,7 @@ describe('AmazonQCliAgent Unit Tests', () => {
         }
       };
 
-      await agent.applyRulerConfig(rules, tmpDir, mcpConfig, undefined, false);
+      await agent.applySkillerConfig(rules, tmpDir, mcpConfig, undefined, false);
 
       const mcpPath = path.join(tmpDir, '.amazonq', 'mcp.json');
       const mcpContent = await fs.readFile(mcpPath, 'utf8');
@@ -104,7 +104,7 @@ describe('AmazonQCliAgent Unit Tests', () => {
         }
       };
 
-      await agent.applyRulerConfig(rules, tmpDir, newMcpConfig, undefined, false);
+      await agent.applySkillerConfig(rules, tmpDir, newMcpConfig, undefined, false);
 
       const mcpContent = await fs.readFile(existingMcpPath, 'utf8');
       const parsedMcp = JSON.parse(mcpContent);
@@ -128,7 +128,7 @@ describe('AmazonQCliAgent Unit Tests', () => {
         mcp: { enabled: false }
       };
 
-      await agent.applyRulerConfig(rules, tmpDir, mcpConfig, agentConfig, false);
+      await agent.applySkillerConfig(rules, tmpDir, mcpConfig, agentConfig, false);
 
       const mcpPath = path.join(tmpDir, '.amazonq', 'mcp.json');
       
@@ -142,7 +142,7 @@ describe('AmazonQCliAgent Unit Tests', () => {
         outputPath: 'custom/path/rules.md'
       };
 
-      await agent.applyRulerConfig(rules, tmpDir, null, agentConfig, false);
+      await agent.applySkillerConfig(rules, tmpDir, null, agentConfig, false);
 
       const customPath = path.join(tmpDir, 'custom', 'path', 'rules.md');
       const content = await fs.readFile(customPath, 'utf8');

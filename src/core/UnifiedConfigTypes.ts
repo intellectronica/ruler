@@ -5,7 +5,7 @@ import {
   McpStrategy,
 } from '../types';
 
-export interface RulerUnifiedConfig {
+export interface SkillerUnifiedConfig {
   meta: ConfigMeta;
   toml: TomlConfig;
   rules: RulesBundle;
@@ -17,7 +17,7 @@ export interface RulerUnifiedConfig {
 
 export interface ConfigMeta {
   projectRoot: string;
-  rulerDir: string;
+  skillerDir: string;
   configFile?: string;
   mcpFile?: string;
   loadedAt: Date;

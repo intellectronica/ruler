@@ -39,10 +39,10 @@ describe('FirebaseAgent', () => {
     });
   });
 
-  describe('applyRulerConfig', () => {
+  describe('applySkillerConfig', () => {
     it('creates .idx directory and writes airules.md', async () => {
       const rules = 'Test rules for Firebase Studio';
-      await agent.applyRulerConfig(rules, tmpDir, null);
+      await agent.applySkillerConfig(rules, tmpDir, null);
 
       const outputPath = path.join(tmpDir, '.idx', 'airules.md');
       const content = await fs.readFile(outputPath, 'utf8');
@@ -59,7 +59,7 @@ describe('FirebaseAgent', () => {
 
       // Apply new rules
       const newRules = 'New Firebase rules';
-      await agent.applyRulerConfig(newRules, tmpDir, null);
+      await agent.applySkillerConfig(newRules, tmpDir, null);
 
       // Check backup was created
       const backupPath = `${outputPath}.bak`;
@@ -75,7 +75,7 @@ describe('FirebaseAgent', () => {
       const rules = 'some rules';
       const customPath = path.join(tmpDir, 'custom', 'firebase-rules.md');
       await fs.mkdir(path.dirname(customPath), { recursive: true });
-      await agent.applyRulerConfig(rules, tmpDir, null, { outputPath: customPath });
+      await agent.applySkillerConfig(rules, tmpDir, null, { outputPath: customPath });
       const content = await fs.readFile(customPath, 'utf8');
       expect(content).toBe(rules);
     });

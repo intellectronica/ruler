@@ -1,12 +1,12 @@
 import { promises as fs } from 'fs';
 import * as path from 'path';
 
-const RULER_START_MARKER = '# START Ruler Generated Files';
-const RULER_END_MARKER = '# END Ruler Generated Files';
+const SKILLER_START_MARKER = '# START Skiller Generated Files';
+const SKILLER_END_MARKER = '# END Skiller Generated Files';
 
 /**
- * Updates the .gitignore file in the project root with paths in a managed Ruler block.
- * Creates the file if it doesn't exist, and creates or updates the Ruler-managed block.
+ * Updates the .gitignore file in the project root with paths in a managed Skiller block.
+ * Creates the file if it doesn't exist, and creates or updates the Skiller-managed block.
  *
  * @param projectRoot The project root directory (where .gitignore should be located)
  * @param paths Array of file paths to add to .gitignore (can be absolute or relative)
@@ -51,49 +51,49 @@ export async function updateGitignore(
       return relative.replace(/\\/g, '/'); // Convert to POSIX format
     })
     .filter((p) => {
-      // Never include any path that resides inside a .ruler directory (inputs, not outputs)
-      return !p.includes('/.ruler/') && !p.startsWith('.ruler/');
+      // Never include any path that resides inside a .claude directory (inputs, not outputs)
+      return !p.includes('/.claude/') && !p.startsWith('.claude/');
     })
     .map((p) => {
       // Always write full repository-relative paths (prefix with leading /)
       return p.startsWith('/') ? p : `/${p}`;
     });
 
-  // Get all existing paths from .gitignore (excluding Ruler block)
-  const existingPaths = getExistingPathsExcludingRulerBlock(existingContent);
+  // Get all existing paths from .gitignore (excluding Skiller block)
+  const existingPaths = getExistingPathsExcludingSkillerBlock(existingContent);
 
-  // Filter out paths that already exist outside the Ruler block
+  // Filter out paths that already exist outside the Skiller block
   const newPaths = relativePaths.filter((p) => !existingPaths.includes(p));
 
-  // The Ruler block should contain only the new paths (replacement behavior)
-  const allRulerPaths = [...new Set(newPaths)].sort();
+  // The Skiller block should contain only the new paths (replacement behavior)
+  const allSkillerPaths = [...new Set(newPaths)].sort();
 
   // Create new content
-  const newContent = updateGitignoreContent(existingContent, allRulerPaths);
+  const newContent = updateGitignoreContent(existingContent, allSkillerPaths);
 
   // Write the updated content
   await fs.writeFile(gitignorePath, newContent);
 }
 
 /**
- * Gets all paths from .gitignore content excluding those in the Ruler block.
+ * Gets all paths from .gitignore content excluding those in the Skiller block.
  */
-function getExistingPathsExcludingRulerBlock(content: string): string[] {
+function getExistingPathsExcludingSkillerBlock(content: string): string[] {
   const lines = content.split('\n');
   const paths: string[] = [];
-  let inRulerBlock = false;
+  let inSkillerBlock = false;
 
   for (const line of lines) {
     const trimmed = line.trim();
-    if (trimmed === RULER_START_MARKER) {
-      inRulerBlock = true;
+    if (trimmed === SKILLER_START_MARKER) {
+      inSkillerBlock = true;
       continue;
     }
-    if (trimmed === RULER_END_MARKER) {
-      inRulerBlock = false;
+    if (trimmed === SKILLER_END_MARKER) {
+      inSkillerBlock = false;
       continue;
     }
-    if (!inRulerBlock && trimmed && !trimmed.startsWith('#')) {
+    if (!inSkillerBlock && trimmed && !trimmed.startsWith('#')) {
       paths.push(trimmed);
     }
   }
@@ -102,49 +102,49 @@ function getExistingPathsExcludingRulerBlock(content: string): string[] {
 }
 
 /**
- * Updates the .gitignore content by replacing or adding the Ruler block.
+ * Updates the .gitignore content by replacing or adding the Skiller block.
  */
 function updateGitignoreContent(
   existingContent: string,
-  rulerPaths: string[],
+  skillerPaths: string[],
 ): string {
   const lines = existingContent.split('\n');
   const newLines: string[] = [];
-  let inFirstRulerBlock = false;
-  let hasRulerBlock = false;
+  let inFirstSkillerBlock = false;
+  let hasSkillerBlock = false;
   let processedFirstBlock = false;
 
   for (const line of lines) {
     const trimmed = line.trim();
-    if (trimmed === RULER_START_MARKER && !processedFirstBlock) {
-      inFirstRulerBlock = true;
-      hasRulerBlock = true;
+    if (trimmed === SKILLER_START_MARKER && !processedFirstBlock) {
+      inFirstSkillerBlock = true;
+      hasSkillerBlock = true;
       newLines.push(line);
-      // Add the new Ruler paths
-      rulerPaths.forEach((p) => newLines.push(p));
+      // Add the new Skiller paths
+      skillerPaths.forEach((p) => newLines.push(p));
       continue;
     }
-    if (trimmed === RULER_END_MARKER && inFirstRulerBlock) {
-      inFirstRulerBlock = false;
+    if (trimmed === SKILLER_END_MARKER && inFirstSkillerBlock) {
+      inFirstSkillerBlock = false;
       processedFirstBlock = true;
       newLines.push(line);
       continue;
     }
-    if (!inFirstRulerBlock) {
+    if (!inFirstSkillerBlock) {
       newLines.push(line);
     }
-    // Skip lines that are in the first Ruler block (they get replaced)
+    // Skip lines that are in the first Skiller block (they get replaced)
   }
 
-  // If no Ruler block exists, add one at the end
-  if (!hasRulerBlock) {
+  // If no Skiller block exists, add one at the end
+  if (!hasSkillerBlock) {
     // Add blank line if content exists and doesn't end with blank line
     if (existingContent.trim() && !existingContent.endsWith('\n\n')) {
       newLines.push('');
     }
-    newLines.push(RULER_START_MARKER);
-    rulerPaths.forEach((p) => newLines.push(p));
-    newLines.push(RULER_END_MARKER);
+    newLines.push(SKILLER_START_MARKER);
+    skillerPaths.forEach((p) => newLines.push(p));
+    newLines.push(SKILLER_END_MARKER);
   }
 
   // Ensure file ends with a newline

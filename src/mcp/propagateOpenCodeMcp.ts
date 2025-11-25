@@ -40,18 +40,18 @@ function isRemoteServer(value: unknown): value is RemoteServer {
   return server && typeof server.url === 'string';
 }
 
-interface RulerMcp {
+interface SkillerMcp {
   mcpServers?: Record<string, unknown>;
 }
 
 /**
- * Transform ruler MCP configuration to OpenCode's specific format
+ * Transform skiller MCP configuration to OpenCode's specific format
  */
-function transformToOpenCodeFormat(rulerMcp: RulerMcp): OpenCodeConfig {
-  const rulerServers = rulerMcp.mcpServers || {};
+function transformToOpenCodeFormat(skillerMcp: SkillerMcp): OpenCodeConfig {
+  const skillerServers = skillerMcp.mcpServers || {};
   const openCodeServers: Record<string, OpenCodeMcpServer> = {};
 
-  for (const [name, serverDef] of Object.entries(rulerServers)) {
+  for (const [name, serverDef] of Object.entries(skillerServers)) {
     const openCodeServer: OpenCodeMcpServer = {
       type: 'local',
       enabled: true,
@@ -88,11 +88,11 @@ function transformToOpenCodeFormat(rulerMcp: RulerMcp): OpenCodeConfig {
 }
 
 export async function propagateMcpToOpenCode(
-  rulerMcpData: Record<string, unknown> | null,
+  skillerMcpData: Record<string, unknown> | null,
   openCodeConfigPath: string,
   backup = true,
 ): Promise<void> {
-  const rulerMcp: RulerMcp = rulerMcpData || {};
+  const skillerMcp: SkillerMcp = skillerMcpData || {};
 
   // Read existing OpenCode config if it exists
   let existingConfig: Partial<OpenCodeConfig> & Record<string, unknown> = {};
@@ -103,8 +103,8 @@ export async function propagateMcpToOpenCode(
     // File doesn't exist, we'll create it
   }
 
-  // Transform ruler MCP to OpenCode format
-  const transformedConfig = transformToOpenCodeFormat(rulerMcp);
+  // Transform skiller MCP to OpenCode format
+  const transformedConfig = transformToOpenCodeFormat(skillerMcp);
 
   // Merge with existing config, preserving non-MCP settings
   const finalConfig = {

@@ -9,11 +9,11 @@ import { getAgentIdentifiersForCliHelp } from '../agents/index';
  */
 export function run(): void {
   yargs(hideBin(process.argv))
-    .scriptName('ruler')
+    .scriptName('skiller')
     .usage('$0 <command> [options]')
     .command<ApplyArgs>(
       'apply',
-      'Apply ruler configurations to supported AI agents',
+      'Apply skiller configurations to supported AI agents',
       (y: Argv) => {
         return y
           .option('project-root', {
@@ -59,13 +59,13 @@ export function run(): void {
           .option('local-only', {
             type: 'boolean',
             description:
-              'Only search for local .ruler directories, ignore global config',
+              'Only search for local .claude directories, ignore global config',
             default: false,
           })
           .option('nested', {
             type: 'boolean',
             description:
-              'Enable nested rule loading from nested .ruler directories (default: from config or disabled)',
+              'Enable nested rule loading from nested .claude directories (default: from config or disabled)',
           })
           .option('backup', {
             type: 'boolean',
@@ -82,7 +82,7 @@ export function run(): void {
     )
     .command<InitArgs>(
       'init',
-      'Scaffold a .ruler directory with default files',
+      'Scaffold a .claude directory with default files',
       (y: Argv) => {
         return y
           .option('project-root', {
@@ -93,13 +93,7 @@ export function run(): void {
           .option('global', {
             type: 'boolean',
             description:
-              'Initialize in global config directory (XDG_CONFIG_HOME/ruler)',
-            default: false,
-          })
-          .option('claude', {
-            type: 'boolean',
-            description:
-              'Use .claude directory instead of .ruler (for Claude Code users)',
+              'Initialize in global config directory (XDG_CONFIG_HOME/skiller)',
             default: false,
           });
       },
@@ -107,7 +101,7 @@ export function run(): void {
     )
     .command<RevertArgs>(
       'revert',
-      'Revert ruler configurations from supported AI agents',
+      'Revert skiller configurations from supported AI agents',
       (y: Argv) => {
         return y
           .option('project-root', {
@@ -142,7 +136,7 @@ export function run(): void {
           .option('local-only', {
             type: 'boolean',
             description:
-              'Only search for local .ruler directories, ignore global config',
+              'Only search for local .claude directories, ignore global config',
             default: false,
           });
       },

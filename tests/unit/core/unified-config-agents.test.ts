@@ -2,7 +2,7 @@ import * as path from 'path';
 import { loadUnifiedConfig } from '../../../src/core/UnifiedConfigLoader';
 
 /**
- * Fixture uses integration/fixtures/unified with ruler.toml specifying default_agents=["alpha","beta"].
+ * Fixture uses integration/fixtures/unified with skiller.toml specifying default_agents=["alpha","beta"].
  * We'll simulate CLI override selecting only beta.
  */
 

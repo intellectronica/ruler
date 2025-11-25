@@ -1,13 +1,12 @@
-export const ERROR_PREFIX = '[ruler]';
+export const ERROR_PREFIX = '[skiller]';
 // Centralized default rules filename. Now points to 'AGENTS.md'.
-// Legacy '.ruler/instructions.md' is still supported as a fallback with a warning.
 export const DEFAULT_RULES_FILENAME = 'AGENTS.md';
 
 export function actionPrefix(dry: boolean): string {
-  return dry ? '[ruler:dry-run]' : '[ruler]';
+  return dry ? '[skiller:dry-run]' : '[skiller]';
 }
 
-export function createRulerError(message: string, context?: string): Error {
+export function createSkillerError(message: string, context?: string): Error {
   const fullMessage = context
     ? `${ERROR_PREFIX} ${message} (Context: ${context})`
     : `${ERROR_PREFIX} ${message}`;
@@ -16,7 +15,7 @@ export function createRulerError(message: string, context?: string): Error {
 
 export function logVerbose(message: string, isVerbose: boolean): void {
   if (isVerbose) {
-    console.error(`[ruler:verbose] ${message}`);
+    console.error(`[skiller:verbose] ${message}`);
   }
 }
 
@@ -54,7 +53,6 @@ export function logVerboseInfo(
 
 // Skills-related constants
 export const SKILLS_DIR = 'skills';
-export const RULER_SKILLS_PATH = '.ruler/skills';
 export const CLAUDE_SKILLS_PATH = '.claude/skills';
 export const SKILLZ_DIR = '.skillz';
 export const SKILL_MD_FILENAME = 'SKILL.md';

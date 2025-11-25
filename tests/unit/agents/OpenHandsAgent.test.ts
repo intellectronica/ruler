@@ -25,7 +25,7 @@ describe('OpenHandsAgent', () => {
   });
   it('should write instructions to the correct file', async () => {
     const rules = 'Test instructions';
-    await agent.applyRulerConfig(rules, tmpDir, null);
+    await agent.applySkillerConfig(rules, tmpDir, null);
     const outputPath = path.join(tmpDir, '.openhands', 'microagents', 'repo.md');
     const content = await fs.readFile(outputPath, 'utf8');
     expect(content).toBe(rules);

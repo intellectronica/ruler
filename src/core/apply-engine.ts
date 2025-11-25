@@ -1,50 +1,54 @@
-import * as path from 'path';
 import { promises as fs } from 'fs';
-import * as FileSystemUtils from './FileSystemUtils';
-import { concatenateRules } from './RuleProcessor';
-import { loadConfig, LoadedConfig, IAgentConfig } from './ConfigLoader';
-import { updateGitignore as updateGitignoreUtil } from './GitignoreUtils';
-import { IAgent } from '../agents/IAgent';
-import { mergeMcp } from '../mcp/merge';
-import { getNativeMcpPath, readNativeMcp, writeNativeMcp } from '../paths/mcp';
-import { propagateMcpToOpenHands } from '../mcp/propagateOpenHandsMcp';
-import { propagateMcpToOpenCode } from '../mcp/propagateOpenCodeMcp';
+import * as path from 'path';
 import { getAgentOutputPaths } from '../agents/agent-utils';
-import { agentSupportsMcp, filterMcpConfigForAgent } from '../mcp/capabilities';
+import type { IAgent } from '../agents/IAgent';
 import {
-  createRulerError,
+  createSkillerError,
+  logInfo,
   logVerbose,
   logVerboseInfo,
-  logInfo,
   logWarn,
 } from '../constants';
-import { McpStrategy } from '../types';
+import { agentSupportsMcp, filterMcpConfigForAgent } from '../mcp/capabilities';
+import { mergeMcp } from '../mcp/merge';
+import { propagateMcpToOpenCode } from '../mcp/propagateOpenCodeMcp';
+import { propagateMcpToOpenHands } from '../mcp/propagateOpenHandsMcp';
+import { getNativeMcpPath, readNativeMcp, writeNativeMcp } from '../paths/mcp';
+import type { McpStrategy } from '../types';
+import {
+  type IAgentConfig,
+  type LoadedConfig,
+  loadConfig,
+} from './ConfigLoader';
+import * as FileSystemUtils from './FileSystemUtils';
+import { updateGitignore as updateGitignoreUtil } from './GitignoreUtils';
+import { concatenateRules } from './RuleProcessor';
 
 /**
- * Configuration data loaded from the ruler setup
+ * Configuration data loaded from the skiller setup
  */
-export interface RulerConfiguration {
+export interface SkillerConfiguration {
   config: LoadedConfig;
   concatenatedRules: string;
   ruleFiles: { path: string; content: string }[];
-  rulerMcpJson: Record<string, unknown> | null;
-  rulerDir: string;
+  skillerMcpJson: Record<string, unknown> | null;
+  skillerDir: string;
 }
 
 /**
- * Configuration data for a specific .ruler directory in hierarchical mode
+ * Configuration data for a specific .claude directory in hierarchical mode
  */
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface HierarchicalRulerConfiguration extends RulerConfiguration {
-  // rulerDir is inherited from RulerConfiguration
+export interface HierarchicalSkillerConfiguration extends SkillerConfiguration {
+  // skillerDir is inherited from SkillerConfiguration
 }
 
 export /**
- * Loads configurations for all .ruler directories in hierarchical mode.
- * Each .ruler directory gets its own independent configuration with separate rules.
+ * Loads configurations for all .claude directories in hierarchical mode.
+ * Each .claude directory gets its own independent configuration with separate rules.
  * @param projectRoot Root directory of the project
  * @param configPath Optional custom config path
- * @param localOnly Whether to search only locally for .ruler directories
+ * @param localOnly Whether to search only locally for .claude directories
  * @returns Promise resolving to array of hierarchical configurations
  */
 async function loadNestedConfigurations(
@@ -52,24 +56,24 @@ async function loadNestedConfigurations(
   configPath: string | undefined,
   localOnly: boolean,
   resolvedNested: boolean,
-): Promise<HierarchicalRulerConfiguration[]> {
-  const { dirs: rulerDirs } = await findRulerDirectories(
+): Promise<HierarchicalSkillerConfiguration[]> {
+  const { dirs: skillerDirs } = await findSkillerDirectories(
     projectRoot,
     localOnly,
     true,
   );
 
-  const results: HierarchicalRulerConfiguration[] = [];
-  const rulerDirConfigs = await processIndependentRulerDirs(
-    rulerDirs,
+  const results: HierarchicalSkillerConfiguration[] = [];
+  const skillerDirConfigs = await processIndependentSkillerDirs(
+    skillerDirs,
     configPath,
     resolvedNested,
   );
 
-  for (const { rulerDir, files, config } of rulerDirConfigs) {
+  for (const { skillerDir, files, config } of skillerDirConfigs) {
     results.push(
       await createHierarchicalConfiguration(
-        rulerDir,
+        skillerDir,
         files,
         config,
         configPath,
@@ -81,59 +85,59 @@ async function loadNestedConfigurations(
 }
 
 /**
- * Processes each .ruler directory independently, returning configuration for each.
- * Each .ruler directory gets its own rules (not merged with others).
+ * Processes each .claude directory independently, returning configuration for each.
+ * Each .claude directory gets its own rules (not merged with others).
  */
-async function processIndependentRulerDirs(
-  rulerDirs: string[],
+async function processIndependentSkillerDirs(
+  skillerDirs: string[],
   configPath: string | undefined,
   resolvedNested: boolean,
 ): Promise<
   Array<{
-    rulerDir: string;
+    skillerDir: string;
     files: { path: string; content: string }[];
     config: LoadedConfig;
   }>
 > {
   const results: Array<{
-    rulerDir: string;
+    skillerDir: string;
     files: { path: string; content: string }[];
     config: LoadedConfig;
   }> = [];
 
-  // Process each .ruler directory independently
-  for (const rulerDir of rulerDirs) {
+  // Process each .claude directory independently
+  for (const skillerDir of skillerDirs) {
     // Load config first to get rules filtering options
-    const config = await loadConfigForRulerDir(
-      rulerDir,
+    const config = await loadConfigForSkillerDir(
+      skillerDir,
       configPath,
       resolvedNested,
     );
 
     // Apply rules filtering if configured
-    const files = await FileSystemUtils.readMarkdownFiles(rulerDir, {
+    const files = await FileSystemUtils.readMarkdownFiles(skillerDir, {
       include: config.rules?.include,
       exclude: config.rules?.exclude,
       merge_strategy: config.rules?.merge_strategy,
     });
-    results.push({ rulerDir, files, config });
+    results.push({ skillerDir, files, config });
   }
 
   return results;
 }
 
 async function createHierarchicalConfiguration(
-  rulerDir: string,
+  skillerDir: string,
   files: { path: string; content: string }[],
   config: LoadedConfig,
   cliConfigPath: string | undefined,
-): Promise<HierarchicalRulerConfiguration> {
-  await warnAboutLegacyMcpJson(rulerDir);
+): Promise<HierarchicalSkillerConfiguration> {
+  await warnAboutLegacyMcpJson(skillerDir);
 
-  const concatenatedRules = concatenateRules(files, path.dirname(rulerDir));
+  const concatenatedRules = concatenateRules(files, path.dirname(skillerDir));
 
-  const directoryRoot = path.dirname(rulerDir);
-  const localConfigPath = path.join(rulerDir, 'ruler.toml');
+  const directoryRoot = path.dirname(skillerDir);
+  const localConfigPath = path.join(skillerDir, 'skiller.toml');
   let configPathToUse = cliConfigPath;
   try {
     await fs.access(localConfigPath);
@@ -148,29 +152,29 @@ async function createHierarchicalConfiguration(
     configPath: configPathToUse,
   });
 
-  let rulerMcpJson: Record<string, unknown> | null = null;
+  let skillerMcpJson: Record<string, unknown> | null = null;
   if (unifiedConfig.mcp && Object.keys(unifiedConfig.mcp.servers).length > 0) {
-    rulerMcpJson = {
+    skillerMcpJson = {
       mcpServers: unifiedConfig.mcp.servers,
     };
   }
 
   return {
-    rulerDir,
+    skillerDir,
     config,
     concatenatedRules,
     ruleFiles: files,
-    rulerMcpJson,
+    skillerMcpJson,
   };
 }
 
-async function loadConfigForRulerDir(
-  rulerDir: string,
+async function loadConfigForSkillerDir(
+  skillerDir: string,
   cliConfigPath: string | undefined,
   resolvedNested: boolean,
 ): Promise<LoadedConfig> {
-  const directoryRoot = path.dirname(rulerDir);
-  const localConfigPath = path.join(rulerDir, 'ruler.toml');
+  const directoryRoot = path.dirname(skillerDir);
+  const localConfigPath = path.join(skillerDir, 'skiller.toml');
 
   let hasLocalConfig = false;
   try {
@@ -221,37 +225,37 @@ function cloneLoadedConfig(config: LoadedConfig): LoadedConfig {
 }
 
 /**
- * Finds ruler directories based on the specified mode.
+ * Finds skiller directories based on the specified mode.
  */
-async function findRulerDirectories(
+async function findSkillerDirectories(
   projectRoot: string,
   localOnly: boolean,
   hierarchical: boolean,
 ): Promise<{ dirs: string[]; primaryDir: string }> {
   if (hierarchical) {
-    const dirs = await FileSystemUtils.findAllRulerDirs(projectRoot);
+    const dirs = await FileSystemUtils.findAllSkillerDirs(projectRoot);
     const allDirs = [...dirs];
 
     // Add global config if not local-only
     if (!localOnly) {
-      const globalDir = await FileSystemUtils.findGlobalRulerDir();
+      const globalDir = await FileSystemUtils.findGlobalSkillerDir();
       if (globalDir) {
         allDirs.push(globalDir);
       }
     }
 
     if (allDirs.length === 0) {
-      throw createRulerError(
-        `.ruler directory not found`,
+      throw createSkillerError(
+        `.claude directory not found`,
         `Searched from: ${projectRoot}`,
       );
     }
     return { dirs: allDirs, primaryDir: allDirs[0] };
   } else {
-    const dir = await FileSystemUtils.findRulerDir(projectRoot, !localOnly);
+    const dir = await FileSystemUtils.findSkillerDir(projectRoot, !localOnly);
     if (!dir) {
-      throw createRulerError(
-        `.ruler directory not found`,
+      throw createSkillerError(
+        `.claude directory not found`,
         `Searched from: ${projectRoot}`,
       );
     }
@@ -262,12 +266,12 @@ async function findRulerDirectories(
 /**
  * Warns about legacy mcp.json files if they exist.
  */
-async function warnAboutLegacyMcpJson(rulerDir: string): Promise<void> {
+async function warnAboutLegacyMcpJson(skillerDir: string): Promise<void> {
   try {
-    const legacyMcpPath = path.join(rulerDir, 'mcp.json');
+    const legacyMcpPath = path.join(skillerDir, 'mcp.json');
     await fs.access(legacyMcpPath);
     logWarn(
-      'Warning: Using legacy .ruler/mcp.json. Please migrate to ruler.toml. This fallback will be removed in a future release.',
+      'Warning: Using legacy .claude/mcp.json. Please migrate to skiller.toml. This fallback will be removed in a future release.',
     );
   } catch {
     // ignore
@@ -278,20 +282,20 @@ async function warnAboutLegacyMcpJson(rulerDir: string): Promise<void> {
  * Loads configuration for single-directory mode (existing behavior).
  */
 export /**
- * Loads configuration for a single .ruler directory.
+ * Loads configuration for a single .claude directory.
  * All rules from the directory are concatenated into a single configuration.
  * @param projectRoot Root directory of the project
  * @param configPath Optional custom config path
- * @param localOnly Whether to search only locally for .ruler directory
+ * @param localOnly Whether to search only locally for .claude directory
  * @returns Promise resolving to the loaded configuration
  */
 async function loadSingleConfiguration(
   projectRoot: string,
   configPath: string | undefined,
   localOnly: boolean,
-): Promise<RulerConfiguration> {
-  // Find the single ruler directory
-  const { dirs: rulerDirs, primaryDir } = await findRulerDirectories(
+): Promise<SkillerConfiguration> {
+  // Find the single skiller directory
+  const { dirs: skillerDirs, primaryDir } = await findSkillerDirectories(
     projectRoot,
     localOnly,
     false, // single mode
@@ -300,14 +304,14 @@ async function loadSingleConfiguration(
   // Warn about legacy mcp.json
   await warnAboutLegacyMcpJson(primaryDir);
 
-  // Load the ruler.toml configuration
+  // Load the skiller.toml configuration
   const config = await loadConfig({
     projectRoot,
     configPath,
   });
 
   // Read rule files with filtering options from config
-  const files = await FileSystemUtils.readMarkdownFiles(rulerDirs[0], {
+  const files = await FileSystemUtils.readMarkdownFiles(skillerDirs[0], {
     include: config.rules?.include,
     exclude: config.rules?.exclude,
     merge_strategy: config.rules?.merge_strategy,
@@ -320,10 +324,10 @@ async function loadSingleConfiguration(
   const { loadUnifiedConfig } = await import('./UnifiedConfigLoader');
   const unifiedConfig = await loadUnifiedConfig({ projectRoot, configPath });
 
-  // Synthesize rulerMcpJson from unified MCP bundle for backward compatibility
-  let rulerMcpJson: Record<string, unknown> | null = null;
+  // Synthesize skillerMcpJson from unified MCP bundle for backward compatibility
+  let skillerMcpJson: Record<string, unknown> | null = null;
   if (unifiedConfig.mcp && Object.keys(unifiedConfig.mcp.servers).length > 0) {
-    rulerMcpJson = {
+    skillerMcpJson = {
       mcpServers: unifiedConfig.mcp.servers,
     };
   }
@@ -332,16 +336,16 @@ async function loadSingleConfiguration(
     config,
     concatenatedRules,
     ruleFiles: files,
-    rulerMcpJson,
-    rulerDir: primaryDir,
+    skillerMcpJson: skillerMcpJson,
+    skillerDir: primaryDir,
   };
 }
 
 /**
- * Processes hierarchical configurations by applying rules to each .ruler directory independently.
+ * Processes hierarchical configurations by applying rules to each .claude directory independently.
  * Each directory gets its own set of rules and generates its own agent files.
  * @param agents Array of agents to process
- * @param configurations Array of hierarchical configurations for each .ruler directory
+ * @param configurations Array of hierarchical configurations for each .claude directory
  * @param verbose Whether to enable verbose logging
  * @param dryRun Whether to perform a dry run
  * @param cliMcpEnabled Whether MCP is enabled via CLI
@@ -350,7 +354,7 @@ async function loadSingleConfiguration(
  */
 export async function processHierarchicalConfigurations(
   agents: IAgent[],
-  configurations: HierarchicalRulerConfiguration[],
+  configurations: HierarchicalSkillerConfiguration[],
   verbose: boolean,
   dryRun: boolean,
   cliMcpEnabled: boolean,
@@ -362,17 +366,17 @@ export async function processHierarchicalConfigurations(
 
   for (const config of configurations) {
     logVerboseInfo(
-      `Processing .ruler directory: ${config.rulerDir}`,
+      `Processing .claude directory: ${config.skillerDir}`,
       verbose,
       dryRun,
     );
-    const rulerRoot = path.dirname(config.rulerDir);
+    const skillerRoot = path.dirname(config.skillerDir);
     const paths = await applyConfigurationsToAgents(
       agents,
       config.concatenatedRules,
-      config.rulerMcpJson,
+      config.skillerMcpJson,
       config.config,
-      rulerRoot,
+      skillerRoot,
       verbose,
       dryRun,
       cliMcpEnabled,
@@ -382,7 +386,7 @@ export async function processHierarchicalConfigurations(
       config.ruleFiles,
     );
     const normalizedPaths = paths.map((p) =>
-      path.isAbsolute(p) ? p : path.join(rulerRoot, p),
+      path.isAbsolute(p) ? p : path.join(skillerRoot, p),
     );
     allGeneratedPaths.push(...normalizedPaths);
   }
@@ -394,7 +398,7 @@ export async function processHierarchicalConfigurations(
  * Processes a single configuration by applying rules to all selected agents.
  * All rules are concatenated and applied to generate agent files in the project root.
  * @param agents Array of agents to process
- * @param configuration Single ruler configuration with concatenated rules
+ * @param configuration Single skiller configuration with concatenated rules
  * @param projectRoot Root directory of the project
  * @param verbose Whether to enable verbose logging
  * @param dryRun Whether to perform a dry run
@@ -404,7 +408,7 @@ export async function processHierarchicalConfigurations(
  */
 export async function processSingleConfiguration(
   agents: IAgent[],
-  configuration: RulerConfiguration,
+  configuration: SkillerConfiguration,
   projectRoot: string,
   verbose: boolean,
   dryRun: boolean,
@@ -416,7 +420,7 @@ export async function processSingleConfiguration(
   return await applyConfigurationsToAgents(
     agents,
     configuration.concatenatedRules,
-    configuration.rulerMcpJson,
+    configuration.skillerMcpJson,
     configuration.config,
     projectRoot,
     verbose,
@@ -426,16 +430,16 @@ export async function processSingleConfiguration(
     backup,
     skillsEnabled,
     configuration.ruleFiles,
-    configuration.rulerDir,
+    configuration.skillerDir,
   );
 }
 
 /**
- * Adds Skillz MCP server to rulerMcpJson if skills exist and any agent needs it.
+ * Adds Skillz MCP server to skillerMcpJson if skills exist and any agent needs it.
  * Returns augmented MCP config or original if no changes needed.
  */
 async function addSkillzMcpServerIfNeeded(
-  rulerMcpJson: Record<string, unknown> | null,
+  skillerMcpJson: Record<string, unknown> | null,
   projectRoot: string,
   agents: IAgent[],
   verbose: boolean,
@@ -447,7 +451,7 @@ async function addSkillzMcpServerIfNeeded(
   );
 
   if (!hasAgentNeedingSkillz) {
-    return rulerMcpJson;
+    return skillerMcpJson;
   }
 
   // Check if .skillz directory exists
@@ -461,7 +465,7 @@ async function addSkillzMcpServerIfNeeded(
     const skillzMcp = buildSkillzMcpConfig(projectRoot);
 
     // Initialize empty config if null
-    const baseConfig = rulerMcpJson || { mcpServers: {} };
+    const baseConfig = skillerMcpJson || { mcpServers: {} };
     const mcpServers = (baseConfig.mcpServers as Record<string, unknown>) || {};
 
     logVerbose(
@@ -478,7 +482,7 @@ async function addSkillzMcpServerIfNeeded(
     };
   } catch {
     // No .skillz directory, return original config
-    return rulerMcpJson;
+    return skillerMcpJson;
   }
 }
 
@@ -486,7 +490,7 @@ async function addSkillzMcpServerIfNeeded(
  * Applies configurations to the selected agents (internal function).
  * @param agents Array of agents to process
  * @param concatenatedRules Concatenated rule content
- * @param rulerMcpJson MCP configuration JSON
+ * @param skillerMcpJson MCP configuration JSON
  * @param config Loaded configuration
  * @param projectRoot Root directory of the project
  * @param verbose Whether to enable verbose logging
@@ -496,7 +500,7 @@ async function addSkillzMcpServerIfNeeded(
 export async function applyConfigurationsToAgents(
   agents: IAgent[],
   concatenatedRules: string,
-  rulerMcpJson: Record<string, unknown> | null,
+  skillerMcpJson: Record<string, unknown> | null,
   config: LoadedConfig,
   projectRoot: string,
   verbose: boolean,
@@ -506,18 +510,18 @@ export async function applyConfigurationsToAgents(
   backup = true,
   skillsEnabled = true,
   ruleFiles?: { path: string; content: string }[],
-  rulerDir?: string,
+  skillerDir?: string,
 ): Promise<string[]> {
   const generatedPaths: string[] = [];
   let agentsMdWritten = false;
 
-  // Add Skillz MCP server to rulerMcpJson if skills are enabled
-  // This must happen before calling agent.applyRulerConfig() so that agents
+  // Add Skillz MCP server to skillerMcpJson if skills are enabled
+  // This must happen before calling agent.applySkillerConfig() so that agents
   // that handle MCP internally (e.g. Codex, Gemini) receive the Skillz server
-  let augmentedRulerMcpJson = rulerMcpJson;
+  let augmentedSkillerMcpJson = skillerMcpJson;
   if (skillsEnabled && !dryRun) {
-    augmentedRulerMcpJson = await addSkillzMcpServerIfNeeded(
-      rulerMcpJson,
+    augmentedSkillerMcpJson = await addSkillzMcpServerIfNeeded(
+      skillerMcpJson,
       projectRoot,
       agents,
       verbose,
@@ -562,7 +566,7 @@ export async function applyConfigurationsToAgents(
         }
       }
       let finalAgentConfig = agentConfig;
-      if (agent.getIdentifier() === 'augmentcode' && augmentedRulerMcpJson) {
+      if (agent.getIdentifier() === 'augmentcode' && augmentedSkillerMcpJson) {
         const resolvedStrategy =
           cliMcpStrategy ??
           agentConfig?.mcp?.strategy ??
@@ -579,14 +583,14 @@ export async function applyConfigurationsToAgents(
       }
 
       if (!skipApplyForThisAgent) {
-        await agent.applyRulerConfig(
+        await agent.applySkillerConfig(
           concatenatedRules,
           projectRoot,
-          augmentedRulerMcpJson,
+          augmentedSkillerMcpJson,
           finalAgentConfig,
           backup,
           ruleFiles,
-          rulerDir,
+          skillerDir,
           config.rules?.merge_strategy,
         );
 
@@ -594,8 +598,8 @@ export async function applyConfigurationsToAgents(
         if (
           agent.getIdentifier() === 'cursor' &&
           config.rules?.merge_strategy === 'cursor' &&
-          rulerDir &&
-          path.basename(rulerDir) === '.claude'
+          skillerDir &&
+          path.basename(skillerDir) === '.claude'
         ) {
           const cursorRulesPath = path.join(projectRoot, '.cursor', 'rules');
           generatedPaths.push(cursorRulesPath);
@@ -608,7 +612,7 @@ export async function applyConfigurationsToAgents(
       agent,
       agentConfig,
       config,
-      augmentedRulerMcpJson,
+      augmentedSkillerMcpJson,
       projectRoot,
       generatedPaths,
       verbose,
@@ -627,7 +631,7 @@ async function handleMcpConfiguration(
   agent: IAgent,
   agentConfig: IAgentConfig | undefined,
   config: LoadedConfig,
-  rulerMcpJson: Record<string, unknown> | null,
+  skillerMcpJson: Record<string, unknown> | null,
   projectRoot: string,
   generatedPaths: string[],
   verbose: boolean,
@@ -653,8 +657,8 @@ async function handleMcpConfiguration(
     return;
   }
 
-  let filteredMcpJson = rulerMcpJson
-    ? filterMcpConfigForAgent(rulerMcpJson, agent)
+  let filteredMcpJson = skillerMcpJson
+    ? filterMcpConfigForAgent(skillerMcpJson, agent)
     : null;
 
   // Remove Skillz MCP server for agents with native skills support
@@ -1081,7 +1085,7 @@ export async function updateGitignore(
       } else {
         await updateGitignoreUtil(projectRoot, uniquePaths);
         logInfo(
-          `Updated .gitignore with ${uniquePaths.length} unique path(s) in the Ruler block.`,
+          `Updated .gitignore with ${uniquePaths.length} unique path(s) in the Skiller block.`,
           dryRun,
         );
       }

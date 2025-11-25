@@ -15,7 +15,7 @@ class MockSinglePathAgent implements IAgent {
     return 'Mock Single Path Agent';
   }
 
-  async applyRulerConfig(): Promise<void> {
+  async applySkillerConfig(): Promise<void> {
     // Mock implementation
   }
 
@@ -33,7 +33,7 @@ class MockMultiPathAgent implements IAgent {
     return 'Mock Multi Path Agent';
   }
 
-  async applyRulerConfig(): Promise<void> {
+  async applySkillerConfig(): Promise<void> {
     // Mock implementation
   }
 
@@ -50,7 +50,7 @@ describe('getAgentOutputPaths', () => {
   let tmpDir: string;
 
   beforeEach(async () => {
-    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ruler-agent-utils-'));
+    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'skiller-agent-utils-'));
   });
 
   afterEach(async () => {
@@ -158,7 +158,7 @@ describe('getAgentOutputPaths', () => {
           return 'Mock No Instructions Agent';
         }
 
-        async applyRulerConfig(): Promise<void> {
+        async applySkillerConfig(): Promise<void> {
           // Mock implementation
         }
 
@@ -189,7 +189,7 @@ describe('getAgentOutputPaths', () => {
           return 'Mock No Config Agent';
         }
 
-        async applyRulerConfig(): Promise<void> {
+        async applySkillerConfig(): Promise<void> {
           // Mock implementation
         }
 
@@ -238,7 +238,7 @@ describe('getAgentOutputPaths', () => {
           return 'Mock Empty Paths Agent';
         }
 
-        async applyRulerConfig(): Promise<void> {
+        async applySkillerConfig(): Promise<void> {
           // Mock implementation
         }
 

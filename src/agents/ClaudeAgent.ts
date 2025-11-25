@@ -28,10 +28,10 @@ export class ClaudeAgent extends AbstractAgent {
    * Override to write @filename references instead of concatenated content.
    * This allows Claude Code to auto-include file contents on-demand.
    */
-  async applyRulerConfig(
+  async applySkillerConfig(
     _concatenatedRules: string,
     projectRoot: string,
-    _rulerMcpJson: Record<string, unknown> | null,
+    _skillerMcpJson: Record<string, unknown> | null,
     agentConfig?: IAgentConfig,
     backup = true,
     ruleFiles?: { path: string; content: string }[],

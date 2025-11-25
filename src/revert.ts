@@ -4,7 +4,7 @@ import * as FileSystemUtils from './core/FileSystemUtils';
 import { loadConfig } from './core/ConfigLoader';
 import { IAgent } from './agents/IAgent';
 import { allAgents } from './agents';
-import { createRulerError, logVerbose, actionPrefix } from './constants';
+import { createSkillerError, logVerbose, actionPrefix } from './constants';
 import {
   revertAgentConfiguration,
   cleanUpAuxiliaryFiles,
@@ -17,7 +17,7 @@ const agents: IAgent[] = allAgents;
 export { allAgents };
 
 /**
- * Reverts ruler configurations for selected AI agents.
+ * Reverts skiller configurations for selected AI agents.
  */
 export async function revertAllAgentConfigs(
   projectRoot: string,
@@ -39,14 +39,17 @@ export async function revertAllAgentConfigs(
     configPath,
   });
 
-  const rulerDir = await FileSystemUtils.findRulerDir(projectRoot, !localOnly);
-  if (!rulerDir) {
-    throw createRulerError(
-      `.ruler directory not found`,
+  const skillerDir = await FileSystemUtils.findSkillerDir(
+    projectRoot,
+    !localOnly,
+  );
+  if (!skillerDir) {
+    throw createSkillerError(
+      `.claude directory not found`,
       `Searched from: ${projectRoot}`,
     );
   }
-  logVerbose(`Found .ruler directory at: ${rulerDir}`, verbose);
+  logVerbose(`Found .claude directory at: ${skillerDir}`, verbose);
 
   // Normalize per-agent config keys to agent identifiers
   config.agentConfigs = mapRawAgentConfigs(config.agentConfigs, agents);
@@ -172,7 +175,7 @@ export async function revertAllAgentConfigs(
 }
 
 /**
- * Removes the ruler-managed block from .gitignore file.
+ * Removes the skiller-managed block from .gitignore file.
  */
 async function cleanGitignore(
   projectRoot: string,
@@ -189,21 +192,21 @@ async function cleanGitignore(
   }
 
   const content = await fs.readFile(gitignorePath, 'utf8');
-  const startMarker = '# START Ruler Generated Files';
-  const endMarker = '# END Ruler Generated Files';
+  const startMarker = '# START Skiller Generated Files';
+  const endMarker = '# END Skiller Generated Files';
 
   const startIndex = content.indexOf(startMarker);
   const endIndex = content.indexOf(endMarker);
 
   if (startIndex === -1 || endIndex === -1) {
-    logVerbose('No ruler-managed block found in .gitignore', verbose);
+    logVerbose('No skiller-managed block found in .gitignore', verbose);
     return false;
   }
 
   const prefix = actionPrefix(dryRun);
 
   if (dryRun) {
-    logVerbose(`${prefix} Would remove ruler block from .gitignore`, verbose);
+    logVerbose(`${prefix} Would remove skiller block from .gitignore`, verbose);
   } else {
     const beforeBlock = content.substring(0, startIndex);
     const afterBlock = content.substring(endIndex + endMarker.length);
@@ -216,7 +219,7 @@ async function cleanGitignore(
       logVerbose(`${prefix} Removed empty .gitignore file`, verbose);
     } else {
       await fs.writeFile(gitignorePath, newContent);
-      logVerbose(`${prefix} Removed ruler block from .gitignore`, verbose);
+      logVerbose(`${prefix} Removed skiller block from .gitignore`, verbose);
     }
   }
 

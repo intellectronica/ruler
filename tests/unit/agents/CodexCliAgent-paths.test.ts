@@ -7,7 +7,7 @@ describe('CodexCliAgent - MCP Config Path Tracking', () => {
   let tmpDir: string;
 
   beforeEach(async () => {
-    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ruler-codex-test-'));
+    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'skiller-codex-test-'));
   });
 
   afterEach(async () => {
@@ -26,7 +26,7 @@ describe('CodexCliAgent - MCP Config Path Tracking', () => {
 
   it('should create both AGENTS.md and .codex/config.toml when MCP is enabled', async () => {
     const agent = new CodexCliAgent();
-    const rulerMcpJson = {
+    const skillerMcpJson = {
       mcpServers: {
         filesystem: {
           command: 'npx',
@@ -35,10 +35,10 @@ describe('CodexCliAgent - MCP Config Path Tracking', () => {
       }
     };
     
-    await agent.applyRulerConfig(
+    await agent.applySkillerConfig(
       '# Test Rules\nThis is a test configuration.',
       tmpDir,
-      rulerMcpJson
+      skillerMcpJson
     );
     
     // Check that both files were created
@@ -60,7 +60,7 @@ describe('CodexCliAgent - MCP Config Path Tracking', () => {
   it('should respect outputPathConfig override', async () => {
     const agent = new CodexCliAgent();
     const customConfigPath = path.join(tmpDir, 'custom', 'codex.toml');
-    const rulerMcpJson = {
+    const skillerMcpJson = {
       mcpServers: {
         filesystem: {
           command: 'npx',
@@ -69,10 +69,10 @@ describe('CodexCliAgent - MCP Config Path Tracking', () => {
       }
     };
     
-    await agent.applyRulerConfig(
+    await agent.applySkillerConfig(
       '# Test Rules',
       tmpDir,
-      rulerMcpJson,
+      skillerMcpJson,
       { outputPathConfig: customConfigPath }
     );
     

@@ -17,7 +17,7 @@ describe('KiloCode MCP Integration', () => {
   let tmpDir: string;
 
   beforeEach(async () => {
-    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ruler-kilocode-mcp-'));
+    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'skiller-kilocode-mcp-'));
   });
 
   afterEach(async () => {

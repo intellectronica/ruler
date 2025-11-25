@@ -52,15 +52,18 @@ export async function writeVSCodeSettings(
 }
 
 /**
- * Transform ruler MCP config to Augment MCP server array format
+ * Transform skiller MCP config to Augment MCP server array format
  */
-export function transformRulerToAugmentMcp(
-  rulerMcpJson: Record<string, unknown>,
+export function transformSkillerToAugmentMcp(
+  skillerMcpJson: Record<string, unknown>,
 ): AugmentMcpServer[] {
   const servers: AugmentMcpServer[] = [];
 
-  if (rulerMcpJson.mcpServers && typeof rulerMcpJson.mcpServers === 'object') {
-    const mcpServers = rulerMcpJson.mcpServers as Record<
+  if (
+    skillerMcpJson.mcpServers &&
+    typeof skillerMcpJson.mcpServers === 'object'
+  ) {
+    const mcpServers = skillerMcpJson.mcpServers as Record<
       string,
       {
         command: string;

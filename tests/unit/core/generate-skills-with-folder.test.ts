@@ -20,8 +20,8 @@ describe('Generate Skills from Rules with Folder Support', () => {
     );
 
     // Create .claude directory structure
-    const claudeDir = path.join(projectRoot, '.claude');
-    const rulesDir = path.join(claudeDir, 'rules');
+    const skillerDir = path.join(projectRoot, '.claude');
+    const rulesDir = path.join(skillerDir, 'rules');
 
     // Create folder with same name as .mdc file
     const docxRulesDir = path.join(rulesDir, 'docx');
@@ -59,10 +59,10 @@ Use the script.sh helper when processing DOCX files.
     );
 
     // Generate skills
-    await generateSkillsFromRules(projectRoot, claudeDir, false, false);
+    await generateSkillsFromRules(projectRoot, skillerDir, false, false);
 
     // Verify SKILL.md was generated
-    const skillDir = path.join(claudeDir, 'skills', 'docx');
+    const skillDir = path.join(skillerDir, 'skills', 'docx');
     const skillFile = path.join(skillDir, 'SKILL.md');
     const skillContent = await fs.readFile(skillFile, 'utf8');
 
@@ -102,8 +102,8 @@ Use the script.sh helper when processing DOCX files.
     );
 
     // Create .claude directory structure
-    const claudeDir = path.join(projectRoot, '.claude');
-    const rulesDir = path.join(claudeDir, 'rules');
+    const skillerDir = path.join(projectRoot, '.claude');
+    const rulesDir = path.join(skillerDir, 'rules');
 
     // Create .mdc file directly in rules (not in a subfolder)
     await fs.mkdir(rulesDir, { recursive: true });
@@ -120,10 +120,10 @@ alwaysApply: false
     await fs.writeFile(path.join(rulesDir, 'other-file.txt'), 'other content');
 
     // Generate skills
-    await generateSkillsFromRules(projectRoot, claudeDir, false, false);
+    await generateSkillsFromRules(projectRoot, skillerDir, false, false);
 
     // Verify SKILL.md was generated
-    const skillDir = path.join(claudeDir, 'skills', 'simple');
+    const skillDir = path.join(skillerDir, 'skills', 'simple');
     const skillFile = path.join(skillDir, 'SKILL.md');
     await expect(fs.access(skillFile)).resolves.not.toThrow();
 
@@ -140,8 +140,8 @@ alwaysApply: false
     );
 
     // Create .claude directory structure with nested folders
-    const claudeDir = path.join(projectRoot, '.claude');
-    const rulesDir = path.join(claudeDir, 'rules');
+    const skillerDir = path.join(projectRoot, '.claude');
+    const rulesDir = path.join(skillerDir, 'rules');
 
     // Create nested structure: rules/backend/api/api.mdc
     const apiRulesDir = path.join(rulesDir, 'backend', 'api');
@@ -163,10 +163,10 @@ alwaysApply: false
     );
 
     // Generate skills
-    await generateSkillsFromRules(projectRoot, claudeDir, false, false);
+    await generateSkillsFromRules(projectRoot, skillerDir, false, false);
 
     // Verify SKILL.md was generated
-    const skillDir = path.join(claudeDir, 'skills', 'api');
+    const skillDir = path.join(skillerDir, 'skills', 'api');
     const skillFile = path.join(skillDir, 'SKILL.md');
     await expect(fs.access(skillFile)).resolves.not.toThrow();
 

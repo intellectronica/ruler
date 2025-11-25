@@ -30,15 +30,15 @@ export class RooCodeAgent implements IAgent {
     };
   }
 
-  async applyRulerConfig(
+  async applySkillerConfig(
     concatenatedRules: string,
     projectRoot: string,
-    rulerMcpJson: Record<string, unknown> | null,
+    skillerMcpJson: Record<string, unknown> | null,
     agentConfig?: IAgentConfig,
     backup = true,
   ): Promise<void> {
     // First perform idempotent AGENTS.md write via composed AgentsMdAgent
-    await this.agentsMdAgent.applyRulerConfig(
+    await this.agentsMdAgent.applySkillerConfig(
       concatenatedRules,
       projectRoot,
       null,
@@ -79,11 +79,11 @@ export class RooCodeAgent implements IAgent {
       existingConfig = {};
     }
 
-    // Merge MCP servers if we have ruler config
-    if (rulerMcpJson?.mcpServers) {
+    // Merge MCP servers if we have skiller config
+    if (skillerMcpJson?.mcpServers) {
       const existingServers =
         (existingConfig.mcpServers as Record<string, unknown>) || {};
-      const newServers = rulerMcpJson.mcpServers as Record<string, unknown>;
+      const newServers = skillerMcpJson.mcpServers as Record<string, unknown>;
 
       // Shallow merge: new servers override existing with same name
       finalMcpConfig = {

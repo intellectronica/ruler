@@ -1,7 +1,7 @@
-import * as path from 'path';
 import { promises as fs } from 'fs';
+import * as path from 'path';
 import { AgentsMdAgent } from './AgentsMdAgent';
-import { IAgentConfig } from './IAgent';
+import type { IAgentConfig } from './IAgent';
 
 /**
  * Zed editor agent adapter.
@@ -17,20 +17,20 @@ export class ZedAgent extends AgentsMdAgent {
     return 'Zed';
   }
 
-  async applyRulerConfig(
+  async applySkillerConfig(
     concatenatedRules: string,
     projectRoot: string,
-    rulerMcpJson: Record<string, unknown> | null,
+    skillerMcpJson: Record<string, unknown> | null,
     agentConfig?: IAgentConfig,
   ): Promise<void> {
     // First, perform idempotent AGENTS.md write via base class
-    await super.applyRulerConfig(concatenatedRules, projectRoot, null, {
+    await super.applySkillerConfig(concatenatedRules, projectRoot, null, {
       outputPath: agentConfig?.outputPath,
     });
 
     // Handle MCP server configuration if enabled and provided
     const mcpEnabled = agentConfig?.mcp?.enabled ?? true;
-    if (mcpEnabled && rulerMcpJson) {
+    if (mcpEnabled && skillerMcpJson) {
       const zedSettingsPath = path.join(projectRoot, '.zed', 'settings.json');
 
       // Read existing settings
@@ -57,7 +57,7 @@ export class ZedAgent extends AgentsMdAgent {
 
         // Extract incoming MCP servers and transform them for Zed format
         const incomingServers =
-          (rulerMcpJson.mcpServers as Record<string, unknown>) || {};
+          (skillerMcpJson.mcpServers as Record<string, unknown>) || {};
 
         const transformedServers: Record<string, unknown> = {};
         for (const [serverName, serverConfig] of Object.entries(
@@ -78,7 +78,7 @@ export class ZedAgent extends AgentsMdAgent {
             unknown
           >) || {};
         const incomingServers =
-          (rulerMcpJson.mcpServers as Record<string, unknown>) || {};
+          (skillerMcpJson.mcpServers as Record<string, unknown>) || {};
 
         // Transform incoming servers for Zed format
         const transformedIncomingServers: Record<string, unknown> = {};
@@ -121,13 +121,13 @@ export class ZedAgent extends AgentsMdAgent {
   }
 
   /**
-   * Transform MCP server configuration from ruler format to Zed format.
+   * Transform MCP server configuration from skiller format to Zed format.
    * Converts "type": "stdio" to "source": "custom" and preserves other fields.
    */
   private transformMcpServerForZed(
-    rulerServer: Record<string, unknown>,
+    skillerServer: Record<string, unknown>,
   ): Record<string, unknown> {
-    const transformedServer = { ...rulerServer };
+    const transformedServer = { ...skillerServer };
 
     // Remove "type" field if present
     delete transformedServer.type;

@@ -18,19 +18,19 @@ export class CursorAgent extends AgentsMdAgent {
     return 'Cursor';
   }
 
-  async applyRulerConfig(
+  async applySkillerConfig(
     concatenatedRules: string,
     projectRoot: string,
-    _rulerMcpJson: Record<string, unknown> | null,
+    _skillerMcpJson: Record<string, unknown> | null,
     agentConfig?: IAgentConfig,
     backup = true,
     _ruleFiles?: { path: string; content: string }[],
-    rulerDir?: string,
+    skillerDir?: string,
     mergeStrategy?: 'all' | 'cursor',
   ): Promise<void> {
     // Write AGENTS.md via base class
     // Cursor natively reads AGENTS.md from the project root
-    await super.applyRulerConfig(
+    await super.applySkillerConfig(
       concatenatedRules,
       projectRoot,
       null,
@@ -41,10 +41,10 @@ export class CursorAgent extends AgentsMdAgent {
     );
 
     // Copy .claude/rules to .cursor/rules when using cursor merge strategy
-    if (mergeStrategy === 'cursor' && rulerDir) {
-      const rulerDirName = path.basename(rulerDir);
-      if (rulerDirName === '.claude') {
-        const sourceRulesDir = path.join(rulerDir, 'rules');
+    if (mergeStrategy === 'cursor' && skillerDir) {
+      const skillerDirName = path.basename(skillerDir);
+      if (skillerDirName === '.claude') {
+        const sourceRulesDir = path.join(skillerDir, 'rules');
         const targetRulesDir = path.join(projectRoot, '.cursor', 'rules');
 
         // Check if source rules directory exists

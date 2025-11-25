@@ -15,7 +15,7 @@ interface RemoteServerEntry {
   api_key?: string;
 }
 
-interface RulerMcpServer {
+interface SkillerMcpServer {
   command?: string;
   args?: string[];
   env?: Record<string, string>;
@@ -23,8 +23,8 @@ interface RulerMcpServer {
   headers?: Record<string, string>;
 }
 
-function isRulerMcpServer(value: unknown): value is RulerMcpServer {
-  const server = value as RulerMcpServer;
+function isSkillerMcpServer(value: unknown): value is SkillerMcpServer {
+  const server = value as SkillerMcpServer;
   return (
     server &&
     (typeof server.command === 'string' || typeof server.url === 'string')
@@ -94,20 +94,20 @@ function normalizeRemoteServerArray(
 }
 
 export async function propagateMcpToOpenHands(
-  rulerMcpData: Record<string, unknown> | null,
+  skillerMcpData: Record<string, unknown> | null,
   openHandsConfigPath: string,
   backup = true,
 ): Promise<void> {
-  const rulerMcp: Record<string, unknown> = rulerMcpData || {};
+  const skillerMcp: Record<string, unknown> = skillerMcpData || {};
 
-  // Always use the legacy Ruler MCP config format as input (top-level "mcpServers" key)
-  const rulerServers = rulerMcp.mcpServers || {};
+  // Always use the legacy Skiller MCP config format as input (top-level "mcpServers" key)
+  const skillerServers = skillerMcp.mcpServers || {};
 
   // Return early if no servers to process
   if (
-    !rulerServers ||
-    typeof rulerServers !== 'object' ||
-    Object.keys(rulerServers).length === 0
+    !skillerServers ||
+    typeof skillerServers !== 'object' ||
+    Object.keys(skillerServers).length === 0
   ) {
     return;
   }
@@ -156,8 +156,8 @@ export async function propagateMcpToOpenHands(
     existingShttpServers.set(url, entry);
   });
 
-  for (const [name, serverDef] of Object.entries(rulerServers)) {
-    if (isRulerMcpServer(serverDef)) {
+  for (const [name, serverDef] of Object.entries(skillerServers)) {
+    if (isSkillerMcpServer(serverDef)) {
       if (serverDef.command) {
         // Stdio server
         const { command, args, env } = serverDef;

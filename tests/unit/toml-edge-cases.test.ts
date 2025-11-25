@@ -8,7 +8,7 @@ describe('TOML Edge Cases', () => {
   let agent: CodexCliAgent;
 
   beforeEach(async () => {
-    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ruler-toml-edge-test-'));
+    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'skiller-toml-edge-test-'));
     agent = new CodexCliAgent();
   });
 
@@ -18,7 +18,7 @@ describe('TOML Edge Cases', () => {
 
   it('should handle special characters in MCP server values', async () => {
     // Test data with edge case values that could break manual TOML serialization
-    const rulerMcp = {
+    const skillerMcp = {
       mcpServers: {
         'special-chars': {
           command: 'echo "quoted command"',
@@ -52,10 +52,10 @@ describe('TOML Edge Cases', () => {
     };
 
     // Apply the configuration
-    await agent.applyRulerConfig(
+    await agent.applySkillerConfig(
       '# Test rules',
       tmpDir,
-      rulerMcp,
+      skillerMcp,
       { mcp: { strategy: 'merge' } },
       false
     );
@@ -111,7 +111,7 @@ describe('TOML Edge Cases', () => {
   });
 
   it('should handle empty and minimal configurations', async () => {
-    const rulerMcp = {
+    const skillerMcp = {
       mcpServers: {
         'minimal': {
           command: 'minimal-cmd'
@@ -120,10 +120,10 @@ describe('TOML Edge Cases', () => {
       }
     };
 
-    await agent.applyRulerConfig(
+    await agent.applySkillerConfig(
       '# Minimal test',
       tmpDir, 
-      rulerMcp,
+      skillerMcp,
       { mcp: { strategy: 'merge' } },
       false
     );
@@ -141,7 +141,7 @@ describe('TOML Edge Cases', () => {
   });
 
   it('should handle server names with special characters', async () => {
-    const rulerMcp = {
+    const skillerMcp = {
       mcpServers: {
         'server-with-dashes': {
           command: 'cmd1'
@@ -155,10 +155,10 @@ describe('TOML Edge Cases', () => {
       }
     };
 
-    await agent.applyRulerConfig(
+    await agent.applySkillerConfig(
       '# Special name test',
       tmpDir,
-      rulerMcp,
+      skillerMcp,
       { mcp: { strategy: 'merge' } },
       false
     );

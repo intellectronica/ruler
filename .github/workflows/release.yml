@@ -7,7 +7,7 @@ on:
 jobs:
   release:
     # Basic security: the release job can only be executed from this repo and from the main branch (not a remote thing)
-    if: ${{ github.repository == 'udecode/ruler' && contains('refs/heads/main',github.ref)}}
+    if: ${{ github.repository == 'udecode/skiller' && contains('refs/heads/main',github.ref)}}
     name: Release and changelog
     runs-on: ubuntu-latest
     steps:

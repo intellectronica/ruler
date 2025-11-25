@@ -14,7 +14,7 @@ class MockAgent implements IAgent {
     return this.name;
   }
   
-  async applyRulerConfig(): Promise<void> {
+  async applySkillerConfig(): Promise<void> {
     // Mock implementation
   }
   

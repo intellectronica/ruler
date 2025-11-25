@@ -1,26 +1,26 @@
 import * as path from 'path';
-import { IAgent, IAgentConfig } from './agents/IAgent';
 import { allAgents } from './agents';
-import { McpStrategy } from './types';
+import type { IAgent, IAgentConfig } from './agents/IAgent';
 import { logVerbose, logWarn } from './constants';
+import { resolveSelectedAgents } from './core/agent-selection';
 import {
+  type HierarchicalSkillerConfiguration,
+  loadNestedConfigurations,
   loadSingleConfiguration,
   processHierarchicalConfigurations,
   processSingleConfiguration,
   updateGitignore,
-  loadNestedConfigurations,
-  HierarchicalRulerConfiguration,
 } from './core/apply-engine';
-import { type LoadedConfig } from './core/ConfigLoader';
+import type { LoadedConfig } from './core/ConfigLoader';
 import { mapRawAgentConfigs } from './core/config-utils';
-import { resolveSelectedAgents } from './core/agent-selection';
+import type { McpStrategy } from './types';
 
 const agents: IAgent[] = allAgents;
 
 export { allAgents };
 
 /**
- * Resolves skills enabled state based on precedence: CLI flag > ruler.toml > default (enabled)
+ * Resolves skills enabled state based on precedence: CLI flag > skiller.toml > default (enabled)
  */
 function resolveSkillsEnabled(
   cliFlag: boolean | undefined,
@@ -49,11 +49,11 @@ function resolveBackupEnabled(
 }
 
 /**
- * Applies ruler configurations for all supported AI agents.
+ * Applies skiller configurations for all supported AI agents.
  * @param projectRoot Root directory of the project
  */
 /**
- * Applies ruler configurations for selected AI agents.
+ * Applies skiller configurations for selected AI agents.
  * @param projectRoot Root directory of the project
  * @param includedAgents Optional list of agent name filters (case-insensitive substrings)
  */
@@ -93,7 +93,7 @@ export async function applyAllAgentConfigs(
     );
 
     if (hierarchicalConfigs.length === 0) {
-      throw new Error('No .ruler directories found');
+      throw new Error('No .claude directories found');
     }
 
     logWarn(
@@ -111,7 +111,7 @@ export async function applyAllAgentConfigs(
     rootConfig.cliAgents = includedAgents;
 
     logVerbose(
-      `Loaded ${hierarchicalConfigs.length} .ruler directory configurations`,
+      `Loaded ${hierarchicalConfigs.length} .claude directory configurations`,
       verbose,
     );
     logVerbose(
@@ -129,50 +129,50 @@ export async function applyAllAgentConfigs(
       verbose,
     );
 
-    // Propagate skills if enabled - do this for each nested directory
+    // Propagate skills (or cleanup if disabled) - do this for each nested directory
     const skillsEnabledResolved = resolveSkillsEnabled(
       skillsEnabled,
       rootConfig.skills?.enabled,
     );
-    if (skillsEnabledResolved) {
-      const { propagateSkills, generateSkillsFromRules } = await import(
-        './core/SkillsProcessor'
-      );
+    const { propagateSkills, generateSkillsFromRules } = await import(
+      './core/SkillsProcessor'
+    );
 
-      // Generate skills from .mdc files if enabled
+    // Generate skills from .mdc files if enabled
+    if (skillsEnabledResolved) {
       const generateFromRules = rootConfig.skills?.generate_from_rules ?? false;
       if (generateFromRules) {
         for (const configEntry of hierarchicalConfigs) {
-          const nestedRoot = path.dirname(configEntry.rulerDir);
+          const nestedRoot = path.dirname(configEntry.skillerDir);
           logVerbose(
             `Generating skills from .mdc files for nested directory: ${nestedRoot}`,
             verbose,
           );
           await generateSkillsFromRules(
             nestedRoot,
-            configEntry.rulerDir,
+            configEntry.skillerDir,
             verbose,
             dryRun,
           );
         }
       }
+    }
 
-      // Propagate skills for each nested .ruler directory
-      for (const configEntry of hierarchicalConfigs) {
-        const nestedRoot = path.dirname(configEntry.rulerDir);
-        logVerbose(
-          `Propagating skills for nested directory: ${nestedRoot}`,
-          verbose,
-        );
-        await propagateSkills(
-          nestedRoot,
-          selectedAgents,
-          skillsEnabledResolved,
-          verbose,
-          dryRun,
-          configEntry.rulerDir,
-        );
-      }
+    // Propagate skills for each nested .claude directory (or cleanup if disabled)
+    for (const configEntry of hierarchicalConfigs) {
+      const nestedRoot = path.dirname(configEntry.skillerDir);
+      logVerbose(
+        `Propagating skills for nested directory: ${nestedRoot}`,
+        verbose,
+      );
+      await propagateSkills(
+        nestedRoot,
+        selectedAgents,
+        skillsEnabledResolved,
+        verbose,
+        dryRun,
+        configEntry.skillerDir,
+      );
     }
 
     // Resolve backup setting: CLI > Config > Default (true)
@@ -206,7 +206,7 @@ export async function applyAllAgentConfigs(
       verbose,
     );
     logVerbose(
-      `Found .ruler directory with ${singleConfig.concatenatedRules.length} characters of rules`,
+      `Found .claude directory with ${singleConfig.concatenatedRules.length} characters of rules`,
       verbose,
     );
 
@@ -218,38 +218,39 @@ export async function applyAllAgentConfigs(
       verbose,
     );
 
-    // Propagate skills if enabled
+    // Propagate skills (or cleanup if disabled)
     const skillsEnabledResolved = resolveSkillsEnabled(
       skillsEnabled,
       singleConfig.config.skills?.enabled,
     );
-    if (skillsEnabledResolved) {
-      const { propagateSkills, generateSkillsFromRules } = await import(
-        './core/SkillsProcessor'
-      );
+    const { propagateSkills, generateSkillsFromRules } = await import(
+      './core/SkillsProcessor'
+    );
 
-      // Generate skills from .mdc files if enabled
+    // Generate skills from .mdc files if enabled
+    if (skillsEnabledResolved) {
       const generateFromRules =
         singleConfig.config.skills?.generate_from_rules ?? false;
       if (generateFromRules) {
         logVerbose('Generating skills from .mdc files', verbose);
         await generateSkillsFromRules(
           projectRoot,
-          singleConfig.rulerDir,
+          singleConfig.skillerDir,
           verbose,
           dryRun,
         );
       }
-
-      await propagateSkills(
-        projectRoot,
-        selectedAgents,
-        skillsEnabledResolved,
-        verbose,
-        dryRun,
-        singleConfig.rulerDir,
-      );
     }
+
+    // Always call propagateSkills - it handles cleanup when disabled
+    await propagateSkills(
+      projectRoot,
+      selectedAgents,
+      skillsEnabledResolved,
+      verbose,
+      dryRun,
+      singleConfig.skillerDir,
+    );
 
     // Resolve backup setting: CLI > Config > Default (true)
     const backupResolved = resolveBackupEnabled(
@@ -307,9 +308,9 @@ function normalizeAgentConfigs(
 }
 
 function selectRootConfiguration(
-  configurations: HierarchicalRulerConfiguration[],
+  configurations: HierarchicalSkillerConfiguration[],
   projectRoot: string,
-): HierarchicalRulerConfiguration {
+): HierarchicalSkillerConfiguration {
   if (configurations.length === 0) {
     throw new Error('No hierarchical configurations available');
   }
@@ -320,7 +321,7 @@ function selectRootConfiguration(
 
   for (let i = 0; i < configurations.length; i++) {
     const entry = configurations[i];
-    const normalizedDir = path.resolve(entry.rulerDir);
+    const normalizedDir = path.resolve(entry.skillerDir);
 
     if (!normalizedDir.startsWith(normalizedProjectRoot)) {
       continue;

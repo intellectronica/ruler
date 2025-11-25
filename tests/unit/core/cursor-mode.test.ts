@@ -7,7 +7,7 @@ describe('Cursor Mode', () => {
   let testDir: string;
 
   beforeEach(async () => {
-    testDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ruler-cursor-test-'));
+    testDir = await fs.mkdtemp(path.join(os.tmpdir(), 'skiller-cursor-test-'));
   });
 
   afterEach(async () => {

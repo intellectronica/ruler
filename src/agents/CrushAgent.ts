@@ -57,10 +57,10 @@ export class CrushAgent implements IAgent {
     return transformedServers;
   }
 
-  async applyRulerConfig(
+  async applySkillerConfig(
     concatenatedRules: string,
     projectRoot: string,
-    rulerMcpJson: Record<string, unknown> | null,
+    skillerMcpJson: Record<string, unknown> | null,
     agentConfig?: IAgentConfig,
   ): Promise<void> {
     const outputPaths = this.getDefaultOutputPath(projectRoot);
@@ -77,7 +77,7 @@ export class CrushAgent implements IAgent {
       const existingMcpConfig = JSON.parse(await fs.readFile(mcpPath, 'utf-8'));
       if (existingMcpConfig && typeof existingMcpConfig === 'object') {
         const transformedServers = this.transformMcpServersForCrush(
-          (rulerMcpJson?.mcpServers ?? {}) as Record<string, unknown>,
+          (skillerMcpJson?.mcpServers ?? {}) as Record<string, unknown>,
         );
         finalMcpConfig = {
           ...existingMcpConfig,
@@ -86,18 +86,18 @@ export class CrushAgent implements IAgent {
             ...transformedServers,
           },
         };
-      } else if (rulerMcpJson) {
+      } else if (skillerMcpJson) {
         const transformedServers = this.transformMcpServersForCrush(
-          (rulerMcpJson?.mcpServers ?? {}) as Record<string, unknown>,
+          (skillerMcpJson?.mcpServers ?? {}) as Record<string, unknown>,
         );
         finalMcpConfig = {
           mcp: transformedServers,
         };
       }
     } catch {
-      if (rulerMcpJson) {
+      if (skillerMcpJson) {
         const transformedServers = this.transformMcpServersForCrush(
-          (rulerMcpJson?.mcpServers ?? {}) as Record<string, unknown>,
+          (skillerMcpJson?.mcpServers ?? {}) as Record<string, unknown>,
         );
         finalMcpConfig = {
           mcp: transformedServers,

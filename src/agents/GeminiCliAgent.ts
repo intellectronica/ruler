@@ -12,14 +12,14 @@ export class GeminiCliAgent extends AgentsMdAgent {
     return 'Gemini CLI';
   }
 
-  async applyRulerConfig(
+  async applySkillerConfig(
     concatenatedRules: string,
     projectRoot: string,
-    rulerMcpJson: Record<string, unknown> | null,
+    skillerMcpJson: Record<string, unknown> | null,
     agentConfig?: IAgentConfig,
   ): Promise<void> {
     // First, perform idempotent write of AGENTS.md via base class
-    await super.applyRulerConfig(concatenatedRules, projectRoot, null, {
+    await super.applySkillerConfig(concatenatedRules, projectRoot, null, {
       outputPath: agentConfig?.outputPath,
     });
 
@@ -42,13 +42,13 @@ export class GeminiCliAgent extends AgentsMdAgent {
 
     // Handle MCP server configuration if provided
     const mcpEnabled = agentConfig?.mcp?.enabled ?? true;
-    if (mcpEnabled && rulerMcpJson) {
+    if (mcpEnabled && skillerMcpJson) {
       const strategy = agentConfig?.mcp?.strategy ?? 'merge';
 
       if (strategy === 'overwrite') {
         // For overwrite, preserve existing settings except MCP servers
         const incomingServers =
-          (rulerMcpJson.mcpServers as Record<string, unknown>) || {};
+          (skillerMcpJson.mcpServers as Record<string, unknown>) || {};
         updated[this.getMcpServerKey()] = incomingServers;
       } else {
         // For merge strategy, merge with existing MCP servers
@@ -58,7 +58,7 @@ export class GeminiCliAgent extends AgentsMdAgent {
             unknown
           >) || {};
         const incomingServers =
-          (rulerMcpJson.mcpServers as Record<string, unknown>) || {};
+          (skillerMcpJson.mcpServers as Record<string, unknown>) || {};
         const mergedServers = { ...baseServers, ...incomingServers };
         updated[this.getMcpServerKey()] = mergedServers;
       }

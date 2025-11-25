@@ -30,19 +30,19 @@ export interface IAgent {
   getName(): string;
 
   /**
-   * Applies the concatenated ruler rules to the agent's configuration.
+   * Applies the concatenated skiller rules to the agent's configuration.
    * @param concatenatedRules The combined rules text
    * @param projectRoot The root directory of the project
    * @param ruleFiles Optional array of source rule files (for agents that support @filename references)
    */
-  applyRulerConfig(
+  applySkillerConfig(
     concatenatedRules: string,
     projectRoot: string,
-    rulerMcpJson: Record<string, unknown> | null,
+    skillerMcpJson: Record<string, unknown> | null,
     agentConfig?: IAgentConfig,
     backup?: boolean,
     ruleFiles?: { path: string; content: string }[],
-    rulerDir?: string,
+    skillerDir?: string,
     mergeStrategy?: 'all' | 'cursor',
   ): Promise<void>;
 

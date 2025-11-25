@@ -40,7 +40,7 @@ describe('OpenCodeAgent', () => {
   it('should create opencode.json with schema and empty MCP when no MCP config provided', async () => {
     mockedFs.readFile.mockRejectedValue(new Error('File not found'));
 
-    await agent.applyRulerConfig('rules', '/root', null);
+    await agent.applySkillerConfig('rules', '/root', null);
 
     expect(mockedFs.writeFile).toHaveBeenCalledWith('/root/AGENTS.md', 'rules');
     expect(mockedFs.writeFile).toHaveBeenCalledWith(
@@ -64,7 +64,7 @@ describe('OpenCodeAgent', () => {
 
     mockedFs.readFile.mockRejectedValue(new Error('File not found'));
 
-    await agent.applyRulerConfig('rules', '/root', mcpConfig);
+    await agent.applySkillerConfig('rules', '/root', mcpConfig);
 
     expect(mockedFs.writeFile).toHaveBeenCalledWith('/root/AGENTS.md', 'rules');
     expect(mockedFs.writeFile).toHaveBeenCalledWith(
@@ -81,7 +81,7 @@ describe('OpenCodeAgent', () => {
     );
   });
 
-  it('should apply ruler config to custom paths from agent config', async () => {
+  it('should apply skiller config to custom paths from agent config', async () => {
     const mcpConfig = {
       mcpServers: {
         'test-server': {
@@ -93,7 +93,7 @@ describe('OpenCodeAgent', () => {
 
     mockedFs.readFile.mockRejectedValue(new Error('File not found'));
 
-    await agent.applyRulerConfig('rules', '/root', mcpConfig, {
+    await agent.applySkillerConfig('rules', '/root', mcpConfig, {
       outputPathInstructions: 'CUSTOM.md',
       outputPathConfig: 'custom-opencode.json'
     });

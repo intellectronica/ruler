@@ -11,7 +11,7 @@ import {
   SkillsConfig,
   RulesConfig,
 } from '../types';
-import { createRulerError } from '../constants';
+import { createSkillerError } from '../constants';
 
 interface ErrnoException extends Error {
   code?: string;
@@ -34,7 +34,7 @@ const agentConfigSchema = z
   })
   .optional();
 
-const rulerConfigSchema = z.object({
+const skillerConfigSchema = z.object({
   default_agents: z.array(z.string()).optional(),
   root_folder: z.string().optional(),
   agents: z.record(z.string(), agentConfigSchema).optional(),
@@ -92,7 +92,7 @@ function stripSymbols(obj: unknown): unknown {
 }
 
 /**
- * Configuration for a specific agent as defined in ruler.toml.
+ * Configuration for a specific agent as defined in skiller.toml.
  */
 export interface IAgentConfig {
   enabled?: boolean;
@@ -104,12 +104,12 @@ export interface IAgentConfig {
 }
 
 /**
- * Parsed ruler configuration values.
+ * Parsed skiller configuration values.
  */
 export interface LoadedConfig {
   /** Agents to run by default, as specified by default_agents. */
   defaultAgents?: string[];
-  /** Root folder name (e.g., ".ruler" or ".claude"). */
+  /** Root folder name (e.g., ".claude"). */
   rootFolder?: string;
   /** Per-agent configuration overrides. */
   agentConfigs: Record<string, IAgentConfig>;
@@ -125,14 +125,14 @@ export interface LoadedConfig {
   skills?: SkillsConfig;
   /** Rules configuration section for filtering markdown files. */
   rules?: RulesConfig;
-  /** Whether to enable nested rule loading from nested .ruler directories. */
+  /** Whether to enable nested rule loading from nested .claude directories. */
   nested?: boolean;
   /** Whether the nested option was explicitly provided in the config. */
   nestedDefined?: boolean;
 }
 
 /**
- * Options for loading the ruler configuration.
+ * Options for loading the skiller configuration.
  */
 export interface ConfigOptions {
   projectRoot: string;
@@ -143,7 +143,7 @@ export interface ConfigOptions {
 }
 
 /**
- * Loads and parses the ruler TOML configuration file, applying defaults.
+ * Loads and parses the skiller TOML configuration file, applying defaults.
  * If the file is missing or invalid, returns empty/default config.
  */
 export async function loadConfig(
@@ -155,23 +155,16 @@ export async function loadConfig(
   if (configPath) {
     configFile = path.resolve(configPath);
   } else {
-    // Try local .ruler/ruler.toml first
-    const localConfigFile = path.join(projectRoot, '.ruler', 'ruler.toml');
+    // Try local .claude/skiller.toml first
+    const localConfigFile = path.join(projectRoot, '.claude', 'skiller.toml');
     try {
       await fs.access(localConfigFile);
       configFile = localConfigFile;
     } catch {
-      // If .ruler config doesn't exist, try .claude/ruler.toml
-      const claudeConfigFile = path.join(projectRoot, '.claude', 'ruler.toml');
-      try {
-        await fs.access(claudeConfigFile);
-        configFile = claudeConfigFile;
-      } catch {
-        // If neither local config exists, try global config
-        const xdgConfigDir =
-          process.env.XDG_CONFIG_HOME || path.join(os.homedir(), '.config');
-        configFile = path.join(xdgConfigDir, 'ruler', 'ruler.toml');
-      }
+      // If local config doesn't exist, try global config
+      const xdgConfigDir =
+        process.env.XDG_CONFIG_HOME || path.join(os.homedir(), '.config');
+      configFile = path.join(xdgConfigDir, 'skiller', 'skiller.toml');
     }
   }
   let raw: Record<string, unknown> = {};
@@ -182,20 +175,20 @@ export async function loadConfig(
     raw = stripSymbols(parsed) as Record<string, unknown>;
 
     // Validate the configuration with zod
-    const validationResult = rulerConfigSchema.safeParse(raw);
+    const validationResult = skillerConfigSchema.safeParse(raw);
     if (!validationResult.success) {
-      throw createRulerError(
+      throw createSkillerError(
         'Invalid configuration file format',
         `File: ${configFile}, Errors: ${validationResult.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join(', ')}`,
       );
     }
   } catch (err) {
     if (err instanceof Error && (err as ErrnoException).code !== 'ENOENT') {
-      if (err.message.includes('[ruler]')) {
+      if (err.message.includes('[skiller]')) {
         throw err; // Re-throw validation errors
       }
       console.warn(
-        `[ruler] Warning: could not read config file at ${configFile}: ${err.message}`,
+        `[skiller] Warning: could not read config file at ${configFile}: ${err.message}`,
       );
     }
     raw = {};

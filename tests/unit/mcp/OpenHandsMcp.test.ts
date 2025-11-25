@@ -6,12 +6,12 @@ import { propagateMcpToOpenHands } from '../../../src/mcp/propagateOpenHandsMcp'
 
 describe('propagateMcpToOpenHands', () => {
   let tmpDir: string;
-  let rulerMcpPath: string;
+  let skillerMcpPath: string;
   let openHandsConfigPath: string;
 
   beforeEach(async () => {
     tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'oh-mcp-test-'));
-    rulerMcpPath = path.join(tmpDir, 'ruler-mcp.json');
+    skillerMcpPath = path.join(tmpDir, 'skiller-mcp.json');
     openHandsConfigPath = path.join(tmpDir, 'config.toml');
   });
   afterEach(async () => {
@@ -19,11 +19,11 @@ describe('propagateMcpToOpenHands', () => {
   });
 
   it('should create a new config.toml with stdio_servers', async () => {
-    const rulerMcp = {
+    const skillerMcp = {
       mcpServers: { fetch: { command: 'uvx', args: ['mcp-fetch'] } },
     };
 
-    await propagateMcpToOpenHands(rulerMcp, openHandsConfigPath);
+    await propagateMcpToOpenHands(skillerMcp, openHandsConfigPath);
 
     const content = await fs.readFile(openHandsConfigPath, 'utf8');
     const parsed = parseTOML(content);
@@ -38,7 +38,7 @@ describe('propagateMcpToOpenHands', () => {
   });
 
   it('should merge servers into an existing config.toml', async () => {
-    const rulerMcp = {
+    const skillerMcp = {
       mcpServers: { git: { command: 'npx', args: ['mcp-git'] } },
     };
 
@@ -50,7 +50,7 @@ stdio_servers = [
     `;
     await fs.writeFile(openHandsConfigPath, existingToml);
 
-    await propagateMcpToOpenHands(rulerMcp, openHandsConfigPath);
+    await propagateMcpToOpenHands(skillerMcp, openHandsConfigPath);
 
     const content = await fs.readFile(openHandsConfigPath, 'utf8');
     const parsed = parseTOML(content);
@@ -69,7 +69,7 @@ stdio_servers = [
   });
 
   it('should not add duplicate servers', async () => {
-    const rulerMcp = {
+    const skillerMcp = {
       mcpServers: { fs: { command: 'uvx', args: ['mcp-fs-new'] } },
     };
 
@@ -81,13 +81,13 @@ stdio_servers = [
     `;
     await fs.writeFile(openHandsConfigPath, existingToml);
 
-    await propagateMcpToOpenHands(rulerMcp, openHandsConfigPath);
+    await propagateMcpToOpenHands(skillerMcp, openHandsConfigPath);
 
     const content = await fs.readFile(openHandsConfigPath, 'utf8');
     const parsed = parseTOML(content);
     const mcp: any = parsed.mcp;
     expect(mcp.stdio_servers).toHaveLength(1);
-    // The existing server should be overwritten by the new one from ruler
+    // The existing server should be overwritten by the new one from skiller
     expect(mcp.stdio_servers[0]).toEqual({
       name: 'fs',
       command: 'uvx',
@@ -97,13 +97,13 @@ stdio_servers = [
 
   it('should propagate env variables for stdio servers', async () => {
     const serverEnv = { TEST_VAR: 'value', ANOTHER: '123' };
-    const rulerMcp = {
+    const skillerMcp = {
       mcpServers: {
         fetch: { command: 'uvx', args: ['mcp-fetch'], env: serverEnv },
       },
     };
 
-    await propagateMcpToOpenHands(rulerMcp, openHandsConfigPath);
+    await propagateMcpToOpenHands(skillerMcp, openHandsConfigPath);
 
     const contentWithEnv = await fs.readFile(openHandsConfigPath, 'utf8');
     const parsedWithEnv: any = parseTOML(contentWithEnv);
@@ -113,8 +113,8 @@ stdio_servers = [
     );
   });
 
-  it('should handle malformed rulerMcp data gracefully', async () => {
-    const rulerMcp = {
+  it('should handle malformed skillerMcp data gracefully', async () => {
+    const skillerMcp = {
       mcpServers: {
         // 'command' is missing
         fetch: { args: ['mcp-fetch'] },
@@ -125,7 +125,7 @@ stdio_servers = [
       },
     };
 
-    await propagateMcpToOpenHands(rulerMcp, openHandsConfigPath);
+    await propagateMcpToOpenHands(skillerMcp, openHandsConfigPath);
 
     const content = await fs.readFile(openHandsConfigPath, 'utf8');
     const parsed = parseTOML(content);
@@ -135,43 +135,43 @@ stdio_servers = [
     expect(mcp.stdio_servers).toHaveLength(0);
   });
 
-  it('should handle null rulerMcp data gracefully', async () => {
+  it('should handle null skillerMcp data gracefully', async () => {
     await propagateMcpToOpenHands(null, openHandsConfigPath);
 
     // Should not create config file when data is null
     try {
       await fs.access(openHandsConfigPath);
       // If file exists, it should be empty or not contain MCP config
-      fail('File should not be created when rulerMcp is null');
+      fail('File should not be created when skillerMcp is null');
     } catch (error) {
       // Expected - file should not exist
     }
   });
 
-  it('should handle empty rulerMcp data gracefully', async () => {
-    const rulerMcp = {};
+  it('should handle empty skillerMcp data gracefully', async () => {
+    const skillerMcp = {};
 
-    await propagateMcpToOpenHands(rulerMcp, openHandsConfigPath);
+    await propagateMcpToOpenHands(skillerMcp, openHandsConfigPath);
 
     // Should not create config file when data is empty
     try {
       await fs.access(openHandsConfigPath);
       // If file exists, it should be empty or not contain MCP config
-      fail('File should not be created when rulerMcp is empty');
+      fail('File should not be created when skillerMcp is empty');
     } catch (error) {
       // Expected - file should not exist
     }
   });
 
   it('should propagate remote servers to shttp_servers by default', async () => {
-    const rulerMcp = {
+    const skillerMcp = {
       mcpServers: { 
         api: { url: 'https://api.example.com/mcp' },
         search: { url: 'https://search.example.com' }
       },
     };
 
-    await propagateMcpToOpenHands(rulerMcp, openHandsConfigPath);
+    await propagateMcpToOpenHands(skillerMcp, openHandsConfigPath);
 
     const content = await fs.readFile(openHandsConfigPath, 'utf8');
     const parsed = parseTOML(content);
@@ -184,14 +184,14 @@ stdio_servers = [
   });
 
   it('should classify URLs with /sse path as sse_servers', async () => {
-    const rulerMcp = {
+    const skillerMcp = {
       mcpServers: { 
         sse_api: { url: 'https://api.example.com/sse/mcp' },
         realtime: { url: 'https://realtime.example.com/mcp/sse' }
       },
     };
 
-    await propagateMcpToOpenHands(rulerMcp, openHandsConfigPath);
+    await propagateMcpToOpenHands(skillerMcp, openHandsConfigPath);
 
     const content = await fs.readFile(openHandsConfigPath, 'utf8');
     const parsed = parseTOML(content);
@@ -204,7 +204,7 @@ stdio_servers = [
   });
 
   it('should extract api_key from Authorization Bearer header when it is the only header', async () => {
-    const rulerMcp = {
+    const skillerMcp = {
       mcpServers: { 
         auth_api: { 
           url: 'https://secure.example.com/mcp',
@@ -213,7 +213,7 @@ stdio_servers = [
       },
     };
 
-    await propagateMcpToOpenHands(rulerMcp, openHandsConfigPath);
+    await propagateMcpToOpenHands(skillerMcp, openHandsConfigPath);
 
     const content = await fs.readFile(openHandsConfigPath, 'utf8');
     const parsed = parseTOML(content);
@@ -227,7 +227,7 @@ stdio_servers = [
   });
 
   it('should fallback to simple URL when headers contain non-auth headers', async () => {
-    const rulerMcp = {
+    const skillerMcp = {
       mcpServers: { 
         complex_api: { 
           url: 'https://complex.example.com/mcp',
@@ -240,7 +240,7 @@ stdio_servers = [
       },
     };
 
-    await propagateMcpToOpenHands(rulerMcp, openHandsConfigPath);
+    await propagateMcpToOpenHands(skillerMcp, openHandsConfigPath);
 
     const content = await fs.readFile(openHandsConfigPath, 'utf8');
     const parsed = parseTOML(content);
@@ -252,7 +252,7 @@ stdio_servers = [
   });
 
   it('should merge remote servers with existing OpenHands config', async () => {
-    const rulerMcp = {
+    const skillerMcp = {
       mcpServers: { 
         new_api: { url: 'https://new.example.com/mcp' }
       },
@@ -272,7 +272,7 @@ args = ["mcp-fs"]
     `;
     await fs.writeFile(openHandsConfigPath, existingToml);
 
-    await propagateMcpToOpenHands(rulerMcp, openHandsConfigPath);
+    await propagateMcpToOpenHands(skillerMcp, openHandsConfigPath);
 
     const content = await fs.readFile(openHandsConfigPath, 'utf8');
     const parsed = parseTOML(content);
@@ -290,7 +290,7 @@ args = ["mcp-fs"]
   });
 
   it('should handle mixed stdio and remote servers', async () => {
-    const rulerMcp = {
+    const skillerMcp = {
       mcpServers: { 
         fs: { command: 'npx', args: ['mcp-fs'] },
         api: { url: 'https://api.example.com/mcp' },
@@ -298,7 +298,7 @@ args = ["mcp-fs"]
       },
     };
 
-    await propagateMcpToOpenHands(rulerMcp, openHandsConfigPath);
+    await propagateMcpToOpenHands(skillerMcp, openHandsConfigPath);
 
     const content = await fs.readFile(openHandsConfigPath, 'utf8');
     const parsed = parseTOML(content);
@@ -319,7 +319,7 @@ args = ["mcp-fs"]
   });
 
   it('should overwrite remote servers with same URL', async () => {
-    const rulerMcp = {
+    const skillerMcp = {
       mcpServers: { 
         updated_api: { 
           url: 'https://api.example.com/mcp',
@@ -334,7 +334,7 @@ url = "https://api.example.com/mcp"
     `;
     await fs.writeFile(openHandsConfigPath, existingToml);
 
-    await propagateMcpToOpenHands(rulerMcp, openHandsConfigPath);
+    await propagateMcpToOpenHands(skillerMcp, openHandsConfigPath);
 
     const content = await fs.readFile(openHandsConfigPath, 'utf8');
     const parsed = parseTOML(content);

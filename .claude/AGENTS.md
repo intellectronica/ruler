@@ -1,10 +1,10 @@
-# Ruler
+# Skiller
 
 ## Documentation
 
 ### README.md Fork Features Section
 
-The fork features section at the top of README.md documents `@udecode/ruler` fork additions:
+The fork features section at the top of README.md documents `skiller` additions:
 
 - **Stay concise**: Bullet points only, no verbose explanations
 - **Be factual**: No marketing language or unnecessary justifications
@@ -36,13 +36,13 @@ The fork features section at the top of README.md documents `@udecode/ruler` for
   - `npm test`
   - `npm run build`
 - IMPORTANT: Before committing, always use Prettier to ensure that the code is formatted correctly.
-- IMPORTANT: When committing yourself with `git commit`, always pass `--author="AI <ruler+ai@okigu.com>"` so that your commits can be easily identified.
+- IMPORTANT: When committing yourself with `git commit`, always pass `--author="AI <skiller+ai@okigu.com>"` so that your commits can be easily identified.
 
 ## Documentation
 
 ### README.md Fork Features Section
 
-The fork features section at the top of README.md documents `@udecode/ruler` fork additions:
+The fork features section at the top of README.md documents `skiller` additions:
 
 - **Stay concise**: Bullet points only, no verbose explanations
 - **Be factual**: No marketing language or unnecessary justifications

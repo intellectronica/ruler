@@ -18,15 +18,15 @@ export class AiderAgent implements IAgent {
     return 'Aider';
   }
 
-  async applyRulerConfig(
+  async applySkillerConfig(
     concatenatedRules: string,
     projectRoot: string,
-    rulerMcpJson: Record<string, unknown> | null,
+    skillerMcpJson: Record<string, unknown> | null,
     agentConfig?: IAgentConfig,
     backup = true,
   ): Promise<void> {
     // First perform idempotent AGENTS.md write via composed AgentsMdAgent
-    await this.agentsMdAgent.applyRulerConfig(
+    await this.agentsMdAgent.applySkillerConfig(
       concatenatedRules,
       projectRoot,
       null,

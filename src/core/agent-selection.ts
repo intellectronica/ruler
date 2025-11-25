@@ -1,6 +1,6 @@
 import { IAgent } from '../agents/IAgent';
 import { LoadedConfig } from './ConfigLoader';
-import { createRulerError } from '../constants';
+import { createSkillerError } from '../constants';
 
 /**
  * Resolves which agents should be selected based on configuration.
@@ -35,7 +35,7 @@ export function resolveSelectedAgents(
     );
 
     if (invalidAgents.length > 0) {
-      throw createRulerError(
+      throw createSkillerError(
         `Invalid agent specified: ${invalidAgents.join(', ')}`,
         `Valid agents are: ${[...validAgentIdentifiers].join(', ')}`,
       );
@@ -66,7 +66,7 @@ export function resolveSelectedAgents(
     );
 
     if (invalidAgents.length > 0) {
-      throw createRulerError(
+      throw createSkillerError(
         `Invalid agent specified in default_agents: ${invalidAgents.join(', ')}`,
         `Valid agents are: ${[...validAgentIdentifiers].join(', ')}`,
       );

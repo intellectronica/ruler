@@ -18,10 +18,10 @@ export class OpenCodeAgent implements IAgent {
     };
   }
 
-  async applyRulerConfig(
+  async applySkillerConfig(
     concatenatedRules: string,
     projectRoot: string,
-    rulerMcpJson: Record<string, unknown> | null,
+    skillerMcpJson: Record<string, unknown> | null,
     agentConfig?: IAgentConfig,
   ): Promise<void> {
     const outputPaths = this.getDefaultOutputPath(projectRoot);
@@ -50,20 +50,20 @@ export class OpenCodeAgent implements IAgent {
           ...existingMcpConfig,
           mcp: {
             ...(existingMcpConfig.mcp || {}),
-            ...((rulerMcpJson?.mcpServers ?? {}) as Record<string, unknown>),
+            ...((skillerMcpJson?.mcpServers ?? {}) as Record<string, unknown>),
           },
         };
-      } else if (rulerMcpJson) {
+      } else if (skillerMcpJson) {
         finalMcpConfig = {
           $schema: 'https://opencode.ai/config.json',
-          mcp: (rulerMcpJson?.mcpServers ?? {}) as Record<string, unknown>,
+          mcp: (skillerMcpJson?.mcpServers ?? {}) as Record<string, unknown>,
         };
       }
     } catch {
-      if (rulerMcpJson) {
+      if (skillerMcpJson) {
         finalMcpConfig = {
           $schema: 'https://opencode.ai/config.json',
-          mcp: (rulerMcpJson?.mcpServers ?? {}) as Record<string, unknown>,
+          mcp: (skillerMcpJson?.mcpServers ?? {}) as Record<string, unknown>,
         };
       }
     }

@@ -23,15 +23,15 @@ export class CopilotAgent implements IAgent {
     return this.agentsMdAgent.getDefaultOutputPath(projectRoot);
   }
 
-  async applyRulerConfig(
+  async applySkillerConfig(
     concatenatedRules: string,
     projectRoot: string,
-    rulerMcpJson: Record<string, unknown> | null,
+    skillerMcpJson: Record<string, unknown> | null,
     agentConfig?: IAgentConfig,
     backup = true,
   ): Promise<void> {
     // Write to AGENTS.md using the existing AgentsMdAgent infrastructure
-    await this.agentsMdAgent.applyRulerConfig(
+    await this.agentsMdAgent.applySkillerConfig(
       concatenatedRules,
       projectRoot,
       null, // No MCP config needed for the instructions file

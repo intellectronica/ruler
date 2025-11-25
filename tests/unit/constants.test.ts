@@ -6,12 +6,12 @@ describe('constants', () => {
   });
 
   describe('actionPrefix', () => {
-    it('returns [ruler:dry-run] when dry is true', () => {
-      expect(actionPrefix(true)).toBe('[ruler:dry-run]');
+    it('returns [skiller:dry-run] when dry is true', () => {
+      expect(actionPrefix(true)).toBe('[skiller:dry-run]');
     });
 
-    it('returns [ruler] when dry is false', () => {
-      expect(actionPrefix(false)).toBe('[ruler]');
+    it('returns [skiller] when dry is false', () => {
+      expect(actionPrefix(false)).toBe('[skiller]');
     });
   });
 });

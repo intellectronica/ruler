@@ -1,19 +1,19 @@
+import { parse as parseTOML } from '@iarna/toml';
 import { promises as fs } from 'fs';
 import * as path from 'path';
-import { parse as parseTOML } from '@iarna/toml';
-import { sha256, stableJson } from './hash';
-import { concatenateRules } from './RuleProcessor';
 import * as FileSystemUtils from './FileSystemUtils';
 import { matchesPattern, normalizePattern } from './FileSystemUtils';
-import {
-  RulerUnifiedConfig,
-  ConfigMeta,
-  TomlConfig,
-  RulesBundle,
-  McpBundle,
+import { sha256, stableJson } from './hash';
+import { concatenateRules } from './RuleProcessor';
+import type {
   ConfigDiagnostic,
-  RuleFile,
+  ConfigMeta,
+  McpBundle,
   McpServerDef,
+  RuleFile,
+  SkillerUnifiedConfig,
+  RulesBundle,
+  TomlConfig,
 } from './UnifiedConfigTypes';
 
 export interface UnifiedLoadOptions {
@@ -26,15 +26,15 @@ export interface UnifiedLoadOptions {
 
 export async function loadUnifiedConfig(
   options: UnifiedLoadOptions,
-): Promise<RulerUnifiedConfig> {
-  // Resolve the effective .ruler directory (local or global), mirroring the main loader behavior
-  const resolvedRulerDir =
-    (await FileSystemUtils.findRulerDir(options.projectRoot, true)) ||
-    path.join(options.projectRoot, '.ruler');
+): Promise<SkillerUnifiedConfig> {
+  // Resolve the effective .claude directory (local or global), mirroring the main loader behavior
+  const resolvedSkillerDir =
+    (await FileSystemUtils.findSkillerDir(options.projectRoot, true)) ||
+    path.join(options.projectRoot, '.claude');
 
   const meta: ConfigMeta = {
     projectRoot: options.projectRoot,
-    rulerDir: resolvedRulerDir,
+    skillerDir: resolvedSkillerDir,
     loadedAt: new Date(),
     version: '0.0.0-dev',
   };
@@ -45,7 +45,7 @@ export async function loadUnifiedConfig(
   let tomlRaw: unknown = {};
   const tomlFile = options.configPath
     ? path.resolve(options.configPath)
-    : path.join(meta.rulerDir, 'ruler.toml');
+    : path.join(meta.skillerDir, 'skiller.toml');
   try {
     const text = await fs.readFile(tomlFile, 'utf8');
     tomlRaw = text.trim() ? parseTOML(text) : {};
@@ -55,7 +55,7 @@ export async function loadUnifiedConfig(
       diagnostics.push({
         severity: 'warning',
         code: 'TOML_READ_ERROR',
-        message: 'Failed to read ruler.toml',
+        message: 'Failed to read skiller.toml',
         file: tomlFile,
         detail: (err as Error).message,
       });
@@ -130,7 +130,9 @@ export async function loadUnifiedConfig(
   // Collect rule markdown files
   let ruleFiles: RuleFile[] = [];
   try {
-    const dirEntries = await fs.readdir(meta.rulerDir, { withFileTypes: true });
+    const dirEntries = await fs.readdir(meta.skillerDir, {
+      withFileTypes: true,
+    });
     let mdFiles = dirEntries
       .filter(
         (e) =>
@@ -138,7 +140,7 @@ export async function loadUnifiedConfig(
           (e.name.toLowerCase().endsWith('.md') ||
             e.name.toLowerCase().endsWith('.mdc')),
       )
-      .map((e) => path.join(meta.rulerDir, e.name));
+      .map((e) => path.join(meta.skillerDir, e.name));
 
     // Apply include/exclude filters
     if (rulesInclude || rulesExclude) {
@@ -147,8 +149,8 @@ export async function loadUnifiedConfig(
       const normalizedExclude = rulesExclude?.map(normalizePattern);
 
       mdFiles = mdFiles.filter((file) => {
-        // Get relative path from rulerDir for pattern matching
-        const relativePath = path.relative(meta.rulerDir, file);
+        // Get relative path from skillerDir for pattern matching
+        const relativePath = path.relative(meta.skillerDir, file);
         // Normalize to forward slashes for consistent pattern matching
         const normalizedPath = relativePath.replace(/\\/g, '/');
 
@@ -207,14 +209,14 @@ export async function loadUnifiedConfig(
       severity: 'warning',
       code: 'RULES_READ_ERROR',
       message: 'Failed reading rule files',
-      file: meta.rulerDir,
+      file: meta.skillerDir,
       detail: (err as Error).message,
     });
   }
 
   const concatenated = concatenateRules(
     ruleFiles.map((f) => ({ path: f.path, content: f.content })),
-    path.dirname(meta.rulerDir),
+    path.dirname(meta.skillerDir),
   );
   const rules: RulesBundle = {
     files: ruleFiles,
@@ -320,7 +322,7 @@ export async function loadUnifiedConfig(
 
   // MCP normalization - merge JSON and TOML
   let mcp: McpBundle | null = null;
-  const mcpFile = path.join(meta.rulerDir, 'mcp.json');
+  const mcpFile = path.join(meta.skillerDir, 'mcp.json');
   const jsonMcpServers: Record<string, McpServerDef> = {};
   let mcpJsonExists = false;
 
@@ -340,7 +342,7 @@ export async function loadUnifiedConfig(
       severity: 'warning',
       code: 'MCP_JSON_DEPRECATED',
       message:
-        'mcp.json detected: please migrate MCP servers to ruler.toml [mcp_servers.*] sections',
+        'mcp.json detected: please migrate MCP servers to skiller.toml [mcp_servers.*] sections',
       file: mcpFile,
     });
   }
@@ -425,7 +427,7 @@ export async function loadUnifiedConfig(
     };
   }
 
-  const config: RulerUnifiedConfig = {
+  const config: SkillerUnifiedConfig = {
     meta,
     toml,
     rules,

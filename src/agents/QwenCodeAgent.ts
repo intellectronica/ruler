@@ -12,14 +12,14 @@ export class QwenCodeAgent extends AgentsMdAgent {
     return 'Qwen Code';
   }
 
-  async applyRulerConfig(
+  async applySkillerConfig(
     concatenatedRules: string,
     projectRoot: string,
-    _rulerMcpJson: Record<string, unknown> | null,
+    _skillerMcpJson: Record<string, unknown> | null,
     agentConfig?: IAgentConfig,
   ): Promise<void> {
     // First, perform idempotent write of AGENTS.md via base class
-    await super.applyRulerConfig(concatenatedRules, projectRoot, null, {
+    await super.applySkillerConfig(concatenatedRules, projectRoot, null, {
       outputPath: agentConfig?.outputPath,
     });
 

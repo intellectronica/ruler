@@ -8,7 +8,7 @@ describe('OpenCode MCP Integration', () => {
   let tmpDir: string;
 
   beforeEach(async () => {
-    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ruler-opencode-mcp-'));
+    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'skiller-opencode-mcp-'));
   });
 
   afterEach(async () => {
@@ -38,10 +38,10 @@ describe('OpenCode MCP Integration', () => {
       expect(content.mcp['my-server'].command).toBe('test-command');
     });
 
-    it('transforms ruler MCP config to OpenCode format for local servers', async () => {
+    it('transforms skiller MCP config to OpenCode format for local servers', async () => {
       const openCodePath = path.join(tmpDir, 'opencode.json');
 
-      const rulerMcp = {
+      const skillerMcp = {
         mcpServers: {
           'my-local-server': {
             command: 'bun',
@@ -53,7 +53,7 @@ describe('OpenCode MCP Integration', () => {
         },
       };
 
-      await propagateMcpToOpenCode(rulerMcp, openCodePath);
+      await propagateMcpToOpenCode(skillerMcp, openCodePath);
 
       const result = JSON.parse(await fs.readFile(openCodePath, 'utf8'));
 
@@ -68,10 +68,10 @@ describe('OpenCode MCP Integration', () => {
       });
     });
 
-    it('transforms ruler MCP config to OpenCode format for remote servers', async () => {
+    it('transforms skiller MCP config to OpenCode format for remote servers', async () => {
       const openCodePath = path.join(tmpDir, 'opencode.json');
 
-      const rulerMcp = {
+      const skillerMcp = {
         mcpServers: {
           'my-remote-server': {
             url: 'https://my-mcp-server.com',
@@ -82,7 +82,7 @@ describe('OpenCode MCP Integration', () => {
         },
       };
 
-      await propagateMcpToOpenCode(rulerMcp, openCodePath);
+      await propagateMcpToOpenCode(skillerMcp, openCodePath);
 
       const result = JSON.parse(await fs.readFile(openCodePath, 'utf8'));
 
@@ -114,8 +114,8 @@ describe('OpenCode MCP Integration', () => {
       };
       await fs.writeFile(openCodePath, JSON.stringify(existingConfig));
 
-      // Create ruler MCP config
-      const rulerMcp = {
+      // Create skiller MCP config
+      const skillerMcp = {
         mcpServers: {
           'new-server': {
             command: 'new-command',
@@ -123,7 +123,7 @@ describe('OpenCode MCP Integration', () => {
         },
       };
 
-      await propagateMcpToOpenCode(rulerMcp, openCodePath);
+      await propagateMcpToOpenCode(skillerMcp, openCodePath);
 
       const result = JSON.parse(await fs.readFile(openCodePath, 'utf8'));
 
@@ -140,7 +140,7 @@ describe('OpenCode MCP Integration', () => {
       });
     });
 
-    it('creates minimal opencode.json when no ruler MCP config exists', async () => {
+    it('creates minimal opencode.json when no skiller MCP config exists', async () => {
       const openCodePath = path.join(tmpDir, 'opencode.json');
 
       // Call propagation with null MCP data
@@ -153,13 +153,13 @@ describe('OpenCode MCP Integration', () => {
       expect(result.mcp).toEqual({});
     });
 
-    it('creates minimal opencode.json when ruler MCP config is empty', async () => {
+    it('creates minimal opencode.json when skiller MCP config is empty', async () => {
       const openCodePath = path.join(tmpDir, 'opencode.json');
 
-      // Create empty ruler MCP config
-      const rulerMcp = {};
+      // Create empty skiller MCP config
+      const skillerMcp = {};
 
-      await propagateMcpToOpenCode(rulerMcp, openCodePath);
+      await propagateMcpToOpenCode(skillerMcp, openCodePath);
 
       // Should create minimal opencode.json
       const result = JSON.parse(await fs.readFile(openCodePath, 'utf8'));

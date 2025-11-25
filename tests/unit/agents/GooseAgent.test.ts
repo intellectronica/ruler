@@ -31,7 +31,7 @@ describe('GooseAgent', () => {
 
   it('should write rules to .goosehints file', async () => {
     const rules = 'Test instructions for Goose';
-    await agent.applyRulerConfig(rules, tmpDir, null);
+    await agent.applySkillerConfig(rules, tmpDir, null);
     
     const hintsPath = path.join(tmpDir, '.goosehints');
     const content = await fs.readFile(hintsPath, 'utf8');
@@ -52,7 +52,7 @@ describe('GooseAgent', () => {
       }
     };
     
-    await agent.applyRulerConfig(rules, tmpDir, mcpConfig);
+    await agent.applySkillerConfig(rules, tmpDir, mcpConfig);
     
     // Should only create .goosehints file
     const hintsPath = path.join(tmpDir, '.goosehints');

@@ -1,141 +1,163 @@
-import { promises as fs } from 'fs';
-import * as path from 'path';
-import * as os from 'os';
-import { applyAllAgentConfigs } from '../src/lib';
+import { promises as fs } from "fs";
+import * as path from "path";
+import * as os from "os";
+import { applyAllAgentConfigs } from "../src/lib";
 
-describe('Duplication Fix Tests', () => {
-  let tempDir: string;
+describe("Duplication Fix Tests", () => {
+	let tempDir: string;
 
-  beforeEach(async () => {
-    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ruler-duplication-test-'));
-  });
+	beforeEach(async () => {
+		tempDir = await fs.mkdtemp(
+			path.join(os.tmpdir(), "skiller-duplication-test-"),
+		);
+	});
 
-  afterEach(async () => {
-    await fs.rm(tempDir, { recursive: true, force: true });
-  });
+	afterEach(async () => {
+		await fs.rm(tempDir, { recursive: true, force: true });
+	});
 
-  it('should not duplicate content on consecutive applies for all agents', async () => {
-    // Create .ruler directory and instructions file
-    const rulerDir = path.join(tempDir, '.ruler');
-    await fs.mkdir(rulerDir);
-    
-    const instructionsContent = `# Default Agent Instructions
+	it("should not duplicate content on consecutive applies for all agents", async () => {
+		// Create .claude directory and instructions file
+		const skillerDir = path.join(tempDir, ".claude");
+		await fs.mkdir(skillerDir);
+		// Create skiller.toml to make it a valid skiller directory
+		await fs.writeFile(path.join(skillerDir, "skiller.toml"), "");
+
+		const instructionsContent = `# Default Agent Instructions
 
 These are the default instructions for the agent.
 `;
-    
-    await fs.writeFile(path.join(rulerDir, 'instructions.md'), instructionsContent);
 
-    // Test agents that the user mentioned having issues with
-    const agentsToTest = ['codex', 'windsurf', 'copilot', 'gemini', 'cursor'];
-    
-    for (const agentName of agentsToTest) {
-      console.log(`Testing agent: ${agentName}`);
-      
-      // Clean up any previous agent files
-      const agentFiles = await fs.readdir(tempDir);
-      for (const file of agentFiles) {
-        if (file !== '.ruler') {
-          await fs.rm(path.join(tempDir, file), { recursive: true, force: true });
-        }
-      }
-      
-      // First apply
-      await applyAllAgentConfigs(
-        tempDir, // projectRoot
-        [agentName], // includedAgents
-        undefined, // configPath
-        false, // cliMcpEnabled
-        undefined, // cliMcpStrategy
-        false, // cliGitignoreEnabled
-        false, // verbose
-        false, // dryRun
-        false, // localOnly
-        false, // nested
-      );
+		await fs.writeFile(
+			path.join(skillerDir, "instructions.md"),
+			instructionsContent,
+		);
 
-      // Debug: Check what files were created
-      console.log(`Files in ${tempDir} after first apply:`, await fs.readdir(tempDir, { recursive: true }));
+		// Test agents that the user mentioned having issues with
+		const agentsToTest = ["codex", "windsurf", "copilot", "gemini", "cursor"];
 
-      // Read the generated files after first apply
-      const agentsMdPath = path.join(tempDir, 'AGENTS.md');
-      let agentsMdContent1 = '';
-      try {
-        agentsMdContent1 = await fs.readFile(agentsMdPath, 'utf8');
-      } catch (error) {
-        console.log(`Could not read AGENTS.md: ${error}`);
-        // Skip this agent if AGENTS.md wasn't created
-        continue;
-      }
-      
-      // Find the agent-specific output file
-      let agentOutputPath: string | null = null;
-      let agentOutputContent1 = '';
-      
-      if (agentName === 'windsurf') {
-        agentOutputPath = path.join(tempDir, '.windsurf', 'rules', 'ruler_windsurf_instructions.md');
-      } else if (agentName === 'codex') {
-        agentOutputPath = path.join(tempDir, '.codex', 'instructions.md');
-      } else if (agentName === 'copilot') {
-        agentOutputPath = path.join(tempDir, 'AGENTS.md');
-      } else if (agentName === 'cursor') {
-        agentOutputPath = path.join(tempDir, '.cursorrules');
-      } else if (agentName === 'gemini') {
-        agentOutputPath = path.join(tempDir, '.gemini', 'instructions.md');
-      }
-      
-      if (agentOutputPath) {
-        try {
-          agentOutputContent1 = await fs.readFile(agentOutputPath, 'utf8');
-        } catch (error) {
-          console.log(`Could not read ${agentOutputPath}: ${error}`);
-        }
-      }
+		for (const agentName of agentsToTest) {
+			console.log(`Testing agent: ${agentName}`);
 
-      // Second apply (this is where duplication should NOT happen)
-      await applyAllAgentConfigs(
-        tempDir, // projectRoot
-        [agentName], // includedAgents
-        undefined, // configPath
-        false, // cliMcpEnabled
-        undefined, // cliMcpStrategy
-        false, // cliGitignoreEnabled
-        false, // verbose
-        false, // dryRun
-        false, // localOnly
-        false, // nested
-      );
+			// Clean up any previous agent files
+			const agentFiles = await fs.readdir(tempDir);
+			for (const file of agentFiles) {
+				if (file !== ".claude") {
+					await fs.rm(path.join(tempDir, file), {
+						recursive: true,
+						force: true,
+					});
+				}
+			}
 
-      // Read the generated files after second apply
-      const agentsMdContent2 = await fs.readFile(agentsMdPath, 'utf8');
-      
-      let agentOutputContent2 = '';
-      if (agentOutputPath) {
-        try {
-          agentOutputContent2 = await fs.readFile(agentOutputPath, 'utf8');
-        } catch (error) {
-          console.log(`Could not read ${agentOutputPath}: ${error}`);
-        }
-      }
+			// First apply
+			await applyAllAgentConfigs(
+				tempDir, // projectRoot
+				[agentName], // includedAgents
+				undefined, // configPath
+				false, // cliMcpEnabled
+				undefined, // cliMcpStrategy
+				false, // cliGitignoreEnabled
+				false, // verbose
+				false, // dryRun
+				false, // localOnly
+				false, // nested
+			);
 
-      // Check that AGENTS.md has the generated marker
-      expect(agentsMdContent1).toMatch(/^<!-- Generated by Ruler -->/);
-      expect(agentsMdContent2).toMatch(/^<!-- Generated by Ruler -->/);
+			// Debug: Check what files were created
+			console.log(
+				`Files in ${tempDir} after first apply:`,
+				await fs.readdir(tempDir, { recursive: true }),
+			);
 
-      // Check that content is identical between first and second apply
-      expect(agentsMdContent2).toBe(agentsMdContent1);
-      
-      if (agentOutputPath && agentOutputContent1 && agentOutputContent2) {
-        expect(agentOutputContent2).toBe(agentOutputContent1);
-        
-        // Check that there's no duplication in the content
-        // Count occurrences of the instruction content
-        const instructionOccurrences1 = (agentOutputContent1.match(/# Default Agent Instructions/g) || []).length;
-        const instructionOccurrences2 = (agentOutputContent2.match(/# Default Agent Instructions/g) || []).length;
-        
-        expect(instructionOccurrences1).toBe(1);
-        expect(instructionOccurrences2).toBe(1);
-      }
-    }
-  }, 60000); // 60 second timeout for this test
+			// Read the generated files after first apply
+			const agentsMdPath = path.join(tempDir, "AGENTS.md");
+			let agentsMdContent1 = "";
+			try {
+				agentsMdContent1 = await fs.readFile(agentsMdPath, "utf8");
+			} catch (error) {
+				console.log(`Could not read AGENTS.md: ${error}`);
+				// Skip this agent if AGENTS.md wasn't created
+				continue;
+			}
+
+			// Find the agent-specific output file
+			let agentOutputPath: string | null = null;
+			let agentOutputContent1 = "";
+
+			if (agentName === "windsurf") {
+				agentOutputPath = path.join(
+					tempDir,
+					".windsurf",
+					"rules",
+					"skiller_windsurf_instructions.md",
+				);
+			} else if (agentName === "codex") {
+				agentOutputPath = path.join(tempDir, ".codex", "instructions.md");
+			} else if (agentName === "copilot") {
+				agentOutputPath = path.join(tempDir, "AGENTS.md");
+			} else if (agentName === "cursor") {
+				agentOutputPath = path.join(tempDir, ".cursorrules");
+			} else if (agentName === "gemini") {
+				agentOutputPath = path.join(tempDir, ".gemini", "instructions.md");
+			}
+
+			if (agentOutputPath) {
+				try {
+					agentOutputContent1 = await fs.readFile(agentOutputPath, "utf8");
+				} catch (error) {
+					console.log(`Could not read ${agentOutputPath}: ${error}`);
+				}
+			}
+
+			// Second apply (this is where duplication should NOT happen)
+			await applyAllAgentConfigs(
+				tempDir, // projectRoot
+				[agentName], // includedAgents
+				undefined, // configPath
+				false, // cliMcpEnabled
+				undefined, // cliMcpStrategy
+				false, // cliGitignoreEnabled
+				false, // verbose
+				false, // dryRun
+				false, // localOnly
+				false, // nested
+			);
+
+			// Read the generated files after second apply
+			const agentsMdContent2 = await fs.readFile(agentsMdPath, "utf8");
+
+			let agentOutputContent2 = "";
+			if (agentOutputPath) {
+				try {
+					agentOutputContent2 = await fs.readFile(agentOutputPath, "utf8");
+				} catch (error) {
+					console.log(`Could not read ${agentOutputPath}: ${error}`);
+				}
+			}
+
+			// Check that AGENTS.md has the generated marker
+			expect(agentsMdContent1).toMatch(/^<!-- Generated by Skiller -->/);
+			expect(agentsMdContent2).toMatch(/^<!-- Generated by Skiller -->/);
+
+			// Check that content is identical between first and second apply
+			expect(agentsMdContent2).toBe(agentsMdContent1);
+
+			if (agentOutputPath && agentOutputContent1 && agentOutputContent2) {
+				expect(agentOutputContent2).toBe(agentOutputContent1);
+
+				// Check that there's no duplication in the content
+				// Count occurrences of the instruction content
+				const instructionOccurrences1 = (
+					agentOutputContent1.match(/# Default Agent Instructions/g) || []
+				).length;
+				const instructionOccurrences2 = (
+					agentOutputContent2.match(/# Default Agent Instructions/g) || []
+				).length;
+
+				expect(instructionOccurrences1).toBe(1);
+				expect(instructionOccurrences2).toBe(1);
+			}
+		}
+	}, 60000); // 60 second timeout for this test
 });

@@ -15,7 +15,7 @@ export class KiroAgent extends AbstractAgent {
       projectRoot,
       '.kiro',
       'steering',
-      'ruler_kiro_instructions.md',
+      'skiller_kiro_instructions.md',
     );
   }
 }

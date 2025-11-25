@@ -8,7 +8,7 @@ describe('GitignoreUtils', () => {
   let tmpDir: string;
 
   beforeEach(async () => {
-    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ruler-gitignore-'));
+    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'skiller-gitignore-'));
   });
 
   afterEach(async () => {
@@ -16,15 +16,15 @@ describe('GitignoreUtils', () => {
   });
 
   describe('updateGitignore', () => {
-    it('creates .gitignore with Ruler block when file does not exist', async () => {
+    it('creates .gitignore with Skiller block when file does not exist', async () => {
       const paths = ['CLAUDE.md', 'AGENTS.md'];
       const gitignorePath = path.join(tmpDir, '.gitignore');
 
       await updateGitignore(tmpDir, paths);
 
       const content = await fs.readFile(gitignorePath, 'utf8');
-      expect(content).toContain('# START Ruler Generated Files');
-      expect(content).toContain('# END Ruler Generated Files');
+      expect(content).toContain('# START Skiller Generated Files');
+      expect(content).toContain('# END Skiller Generated Files');
       expect(content).toContain('/CLAUDE.md');
       expect(content).toContain('/AGENTS.md');
     });
@@ -35,8 +35,8 @@ describe('GitignoreUtils', () => {
       await updateGitignore(tmpDir, []);
       
       const content = await fs.readFile(gitignorePath, 'utf8');
-      expect(content).toContain('# START Ruler Generated Files');
-      expect(content).toContain('# END Ruler Generated Files');
+      expect(content).toContain('# START Skiller Generated Files');
+      expect(content).toContain('# END Skiller Generated Files');
       expect(content.split('\n').length).toBe(4); // header, blank, footer, final newline
     });
 
@@ -48,9 +48,9 @@ describe('GitignoreUtils', () => {
       await updateGitignore(tmpDir, paths);
       
       const content = await fs.readFile(gitignorePath, 'utf8');
-      expect(content).toContain('# START Ruler Generated Files');
+      expect(content).toContain('# START Skiller Generated Files');
       expect(content).toContain('/CLAUDE.md');
-      expect(content).toContain('# END Ruler Generated Files');
+      expect(content).toContain('# END Skiller Generated Files');
     });
 
     it('updates existing .gitignore with other content', async () => {
@@ -63,18 +63,18 @@ describe('GitignoreUtils', () => {
       const content = await fs.readFile(gitignorePath, 'utf8');
       expect(content).toContain('node_modules/');
       expect(content).toContain('*.log');
-      expect(content).toContain('# START Ruler Generated Files');
+      expect(content).toContain('# START Skiller Generated Files');
       expect(content).toContain('/CLAUDE.md');
-      expect(content).toContain('# END Ruler Generated Files');
+      expect(content).toContain('# END Skiller Generated Files');
     });
 
-    it('replaces existing Ruler block with new paths', async () => {
+    it('replaces existing Skiller block with new paths', async () => {
       const paths = ['CLAUDE.md', 'AGENTS.md'];
       const gitignorePath = path.join(tmpDir, '.gitignore');
       const initialContent = `node_modules/
-# START Ruler Generated Files
-.cursor/rules/ruler_cursor_instructions.mdc
-# END Ruler Generated Files
+# START Skiller Generated Files
+.cursor/rules/skiller_cursor_instructions.mdc
+# END Skiller Generated Files
 *.log`;
       await fs.writeFile(gitignorePath, initialContent);
       
@@ -85,10 +85,10 @@ describe('GitignoreUtils', () => {
       expect(content).toContain('*.log');
       expect(content).toContain('/CLAUDE.md');
       expect(content).toContain('/AGENTS.md');
-      expect(content).not.toContain('.cursor/rules/ruler_cursor_instructions.mdc');
+      expect(content).not.toContain('.cursor/rules/skiller_cursor_instructions.mdc');
     });
 
-    it('sorts paths alphabetically within Ruler block', async () => {
+    it('sorts paths alphabetically within Skiller block', async () => {
       const paths = ['z-file.md', 'a-file.md', 'b-file.md'];
       const gitignorePath = path.join(tmpDir, '.gitignore');
       
@@ -96,14 +96,14 @@ describe('GitignoreUtils', () => {
       
       const content = await fs.readFile(gitignorePath, 'utf8');
       const lines = content.split('\n');
-      const startIndex = lines.findIndex(line => line === '# START Ruler Generated Files');
-      const endIndex = lines.findIndex(line => line === '# END Ruler Generated Files');
-      const rulerLines = lines.slice(startIndex + 1, endIndex).filter(line => line.trim());
+      const startIndex = lines.findIndex(line => line === '# START Skiller Generated Files');
+      const endIndex = lines.findIndex(line => line === '# END Skiller Generated Files');
+      const skillerLines = lines.slice(startIndex + 1, endIndex).filter(line => line.trim());
       
-      expect(rulerLines).toEqual(['/a-file.md', '/b-file.md', '/z-file.md']);
+      expect(skillerLines).toEqual(['/a-file.md', '/b-file.md', '/z-file.md']);
     });
 
-    it('maintains idempotency - no duplicates in Ruler block', async () => {
+    it('maintains idempotency - no duplicates in Skiller block', async () => {
       const paths = ['CLAUDE.md', 'AGENTS.md'];
       const gitignorePath = path.join(tmpDir, '.gitignore');
       
@@ -120,7 +120,7 @@ describe('GitignoreUtils', () => {
       expect(agentsMatches).toBe(1);
     });
 
-    it('adds root-anchored paths even when unanchored versions exist outside Ruler block', async () => {
+    it('adds root-anchored paths even when unanchored versions exist outside Skiller block', async () => {
       const paths = ['CLAUDE.md', 'AGENTS.md'];
       const gitignorePath = path.join(tmpDir, '.gitignore');
       const initialContent = `node_modules/
@@ -133,11 +133,11 @@ CLAUDE.md
       const content = await fs.readFile(gitignorePath, 'utf8');
       const claudeMatches = (content.match(/CLAUDE\.md/g) || []).length;
       
-      // Should appear twice: once unanchored (existing) and once anchored (Ruler block)
+      // Should appear twice: once unanchored (existing) and once anchored (Skiller block)
       expect(claudeMatches).toBe(2);
       expect(content).toContain('CLAUDE.md');     // Unanchored existing
-      expect(content).toContain('/CLAUDE.md');    // Anchored in Ruler block
-      expect(content).toContain('/AGENTS.md');    // Anchored in Ruler block
+      expect(content).toContain('/CLAUDE.md');    // Anchored in Skiller block
+      expect(content).toContain('/AGENTS.md');    // Anchored in Skiller block
     });
 
     it('converts paths to POSIX format', async () => {
@@ -166,16 +166,16 @@ CLAUDE.md
       expect(content).not.toContain(tmpDir);
     });
 
-    it('handles multiple Ruler blocks by updating the first one', async () => {
+    it('handles multiple Skiller blocks by updating the first one', async () => {
       const paths = ['CLAUDE.md'];
       const gitignorePath = path.join(tmpDir, '.gitignore');
-      const initialContent = `# START Ruler Generated Files
+      const initialContent = `# START Skiller Generated Files
 old-file.md
-# END Ruler Generated Files
+# END Skiller Generated Files
 some-other-content
-# START Ruler Generated Files
+# START Skiller Generated Files
 duplicate-block.md
-# END Ruler Generated Files`;
+# END Skiller Generated Files`;
       await fs.writeFile(gitignorePath, initialContent);
       
       await updateGitignore(tmpDir, paths);

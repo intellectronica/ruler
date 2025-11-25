@@ -8,7 +8,7 @@ import {
 
 /**
  * Abstract base class for agents that write to a single configuration file.
- * Implements common logic for applying ruler configuration.
+ * Implements common logic for applying skiller configuration.
  */
 export abstract class AbstractAgent implements IAgent {
   /**
@@ -27,22 +27,22 @@ export abstract class AbstractAgent implements IAgent {
   abstract getDefaultOutputPath(projectRoot: string): string;
 
   /**
-   * Applies the concatenated ruler rules to the agent's configuration.
+   * Applies the concatenated skiller rules to the agent's configuration.
    * This implementation handles the common pattern of:
    * 1. Determining the output path
    * 2. Ensuring the parent directory exists
    * 3. Backing up the existing file
    * 4. Writing the new content
    */
-  async applyRulerConfig(
+  async applySkillerConfig(
     concatenatedRules: string,
     projectRoot: string,
-    _rulerMcpJson: Record<string, unknown> | null,
+    _skillerMcpJson: Record<string, unknown> | null,
     agentConfig?: IAgentConfig,
     backup = true,
     /* eslint-disable @typescript-eslint/no-unused-vars */
     _ruleFiles?: { path: string; content: string }[],
-    _rulerDir?: string,
+    _skillerDir?: string,
     _mergeStrategy?: 'all' | 'cursor',
     /* eslint-enable @typescript-eslint/no-unused-vars */
   ): Promise<void> {
