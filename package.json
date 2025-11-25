@@ -1,13 +1,12 @@
 {
 	"name": "skiller",
-	"version": "0.5.4",
+	"version": "0.5.5",
 	"description": "Skiller — apply the same rules to all coding agents",
 	"main": "dist/lib.js",
 	"publishConfig": {
 		"access": "public"
 	},
 	"scripts": {
-		"postinstall": "npx skiller@latest apply",
 		"lint": "eslint \"src/**/*.{ts,tsx}\"",
 		"lint:fix": "eslint \"src/**/*.{ts,tsx}\" --fix",
 		"format": "prettier --write \"src/**/*.{ts,tsx,json,md}\"",
