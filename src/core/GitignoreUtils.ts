@@ -51,7 +51,11 @@ export async function updateGitignore(
       return relative.replace(/\\/g, '/'); // Convert to POSIX format
     })
     .filter((p) => {
-      // Never include any path that resides inside a .claude directory (inputs, not outputs)
+      // Allow .claude/skills (generated output) but exclude other .claude/* paths (inputs)
+      if (p === '.claude/skills' || p === '/.claude/skills') {
+        return true;
+      }
+      // Never include any other path that resides inside a .claude directory (inputs, not outputs)
       return !p.includes('/.claude/') && !p.startsWith('.claude/');
     })
     .map((p) => {
