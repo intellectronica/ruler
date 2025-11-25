@@ -47,45 +47,42 @@ export interface SkillsGitignoreOptions {
 
 /**
  * Gets the paths that skills will generate, for gitignore purposes.
- * Returns empty array if skills directory doesn't exist.
+ * When generateFromRules is true, always includes .claude/skills even if it doesn't exist yet.
  */
 export async function getSkillsGitignorePaths(
   projectRoot: string,
   options: SkillsGitignoreOptions = {},
 ): Promise<string[]> {
-  const claudeSkillsDir = path.join(projectRoot, CLAUDE_SKILLS_PATH);
-
-  // Check if skills directory exists
-  let skillsExist = false;
-
-  try {
-    await fs.access(claudeSkillsDir);
-    skillsExist = true;
-  } catch {
-    return [];
-  }
-
-  if (!skillsExist) {
-    return [];
-  }
-
   const paths: string[] = [];
 
   // Gitignore .claude/skills if:
-  // 1. generate_from_rules is explicitly true in config, OR
-  // 2. .claude/rules directory exists (skills are generated from rules)
+  // 1. generate_from_rules is explicitly true in config (always gitignore, even if dir doesn't exist)
+  // 2. OR .claude/rules directory exists (skills are generated from rules)
+  // 3. OR .claude/skills exists AND .claude/rules exists (legacy check)
   if (options.generateFromRules) {
-    // Config says skills are generated from rules
+    // Config says skills are generated from rules - always gitignore
     paths.push(path.join(projectRoot, CLAUDE_SKILLS_PATH));
   } else {
-    // Check if .claude/rules exists (fallback for when config not passed)
-    const claudeRulesDir = path.join(projectRoot, '.claude', 'rules');
+    // Check if .claude/skills exists
+    const claudeSkillsDir = path.join(projectRoot, CLAUDE_SKILLS_PATH);
+    let skillsExist = false;
     try {
-      await fs.access(claudeRulesDir);
-      // .claude/rules exists, so .claude/skills is generated
-      paths.push(path.join(projectRoot, CLAUDE_SKILLS_PATH));
+      await fs.access(claudeSkillsDir);
+      skillsExist = true;
     } catch {
-      // .claude/rules doesn't exist, so .claude/skills is versioned (don't gitignore)
+      // Skills directory doesn't exist
+    }
+
+    if (skillsExist) {
+      // Check if .claude/rules exists (fallback for when config not passed)
+      const claudeRulesDir = path.join(projectRoot, '.claude', 'rules');
+      try {
+        await fs.access(claudeRulesDir);
+        // .claude/rules exists, so .claude/skills is generated
+        paths.push(path.join(projectRoot, CLAUDE_SKILLS_PATH));
+      } catch {
+        // .claude/rules doesn't exist, so .claude/skills is versioned (don't gitignore)
+      }
     }
   }
 

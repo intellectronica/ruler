@@ -109,6 +109,27 @@ describe("Skills Gitignore Paths", () => {
 		expect(paths).toContain(path.join(projectRoot, ".skillz"));
 	});
 
+	it("gitignores .claude/skills when generate_from_rules is true even if directory does not exist", async () => {
+		const { projectRoot } = testProject;
+		const { getSkillsGitignorePaths } = await import(
+			"../../../src/core/SkillsProcessor"
+		);
+
+		// Only create .claude directory, NOT .claude/skills
+		const skillerDir = path.join(projectRoot, ".claude");
+		await fs.mkdir(skillerDir, { recursive: true });
+
+		// Pass generate_from_rules option
+		const paths = await getSkillsGitignorePaths(projectRoot, {
+			generateFromRules: true,
+		});
+
+		// Should include .claude/skills because generate_from_rules is true, even though dir doesn't exist
+		expect(paths).toContain(path.join(projectRoot, ".claude", "skills"));
+		// Should always include .skillz
+		expect(paths).toContain(path.join(projectRoot, ".skillz"));
+	});
+
 	it("does not gitignore .claude/skills when generate_from_rules is false and no .claude/rules", async () => {
 		const { projectRoot } = testProject;
 		const { getSkillsGitignorePaths } = await import(
