@@ -280,7 +280,10 @@ export async function applyAllAgentConfigs(
   if (skillsEnabledForGitignore) {
     // Skills enabled by default or explicitly
     const { getSkillsGitignorePaths } = await import('./core/SkillsProcessor');
-    const skillsPaths = await getSkillsGitignorePaths(projectRoot);
+    const generateFromRules = loadedConfig.skills?.generate_from_rules ?? false;
+    const skillsPaths = await getSkillsGitignorePaths(projectRoot, {
+      generateFromRules,
+    });
     allGeneratedPaths = [...generatedPaths, ...skillsPaths];
   }
 

@@ -143,6 +143,7 @@ issue-body.md
 
 # START Skiller Generated Files
 /.codex/config.toml
+/.cursor/rules
 /AGENTS.md
 /CLAUDE.md
 # END Skiller Generated Files

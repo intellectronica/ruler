@@ -38,11 +38,20 @@ export async function discoverSkills(
 }
 
 /**
+ * Options for getSkillsGitignorePaths.
+ */
+export interface SkillsGitignoreOptions {
+  /** If true, .claude/skills is considered generated and should be gitignored. */
+  generateFromRules?: boolean;
+}
+
+/**
  * Gets the paths that skills will generate, for gitignore purposes.
  * Returns empty array if skills directory doesn't exist.
  */
 export async function getSkillsGitignorePaths(
   projectRoot: string,
+  options: SkillsGitignoreOptions = {},
 ): Promise<string[]> {
   const claudeSkillsDir = path.join(projectRoot, CLAUDE_SKILLS_PATH);
 
@@ -62,15 +71,22 @@ export async function getSkillsGitignorePaths(
 
   const paths: string[] = [];
 
-  // When using .claude/skills, check if it's generated from .claude/rules
-  // If .claude/rules exists, then .claude/skills is generated and should be gitignored
-  const claudeRulesDir = path.join(projectRoot, '.claude', 'rules');
-  try {
-    await fs.access(claudeRulesDir);
-    // .claude/rules exists, so .claude/skills is generated
+  // Gitignore .claude/skills if:
+  // 1. generate_from_rules is explicitly true in config, OR
+  // 2. .claude/rules directory exists (skills are generated from rules)
+  if (options.generateFromRules) {
+    // Config says skills are generated from rules
     paths.push(path.join(projectRoot, CLAUDE_SKILLS_PATH));
-  } catch {
-    // .claude/rules doesn't exist, so .claude/skills is versioned (don't gitignore)
+  } else {
+    // Check if .claude/rules exists (fallback for when config not passed)
+    const claudeRulesDir = path.join(projectRoot, '.claude', 'rules');
+    try {
+      await fs.access(claudeRulesDir);
+      // .claude/rules exists, so .claude/skills is generated
+      paths.push(path.join(projectRoot, CLAUDE_SKILLS_PATH));
+    } catch {
+      // .claude/rules doesn't exist, so .claude/skills is versioned (don't gitignore)
+    }
   }
 
   // Always gitignore .skillz (for MCP agents)

@@ -84,4 +84,52 @@ describe("Skills Gitignore Paths", () => {
 		// Should always include .skillz
 		expect(paths).toContain(path.join(projectRoot, ".skillz"));
 	});
+
+	it("gitignores .claude/skills when generate_from_rules is true even without .claude/rules", async () => {
+		const { projectRoot } = testProject;
+		const { getSkillsGitignorePaths } = await import(
+			"../../../src/core/SkillsProcessor"
+		);
+
+		// Create .claude/skills WITHOUT .claude/rules
+		const skillerDir = path.join(projectRoot, ".claude");
+		const skillsDir = path.join(skillerDir, "skills");
+
+		await fs.mkdir(skillsDir, { recursive: true });
+		await fs.writeFile(path.join(skillsDir, "test"), "# Test skill");
+
+		// Pass generate_from_rules option
+		const paths = await getSkillsGitignorePaths(projectRoot, {
+			generateFromRules: true,
+		});
+
+		// Should include .claude/skills because generate_from_rules is true
+		expect(paths).toContain(path.join(projectRoot, ".claude", "skills"));
+		// Should always include .skillz
+		expect(paths).toContain(path.join(projectRoot, ".skillz"));
+	});
+
+	it("does not gitignore .claude/skills when generate_from_rules is false and no .claude/rules", async () => {
+		const { projectRoot } = testProject;
+		const { getSkillsGitignorePaths } = await import(
+			"../../../src/core/SkillsProcessor"
+		);
+
+		// Create .claude/skills WITHOUT .claude/rules
+		const skillerDir = path.join(projectRoot, ".claude");
+		const skillsDir = path.join(skillerDir, "skills");
+
+		await fs.mkdir(skillsDir, { recursive: true });
+		await fs.writeFile(path.join(skillsDir, "test"), "# Test skill");
+
+		// Pass generate_from_rules as false
+		const paths = await getSkillsGitignorePaths(projectRoot, {
+			generateFromRules: false,
+		});
+
+		// Should NOT include .claude/skills because generate_from_rules is false
+		expect(paths).not.toContain(path.join(projectRoot, ".claude", "skills"));
+		// Should always include .skillz
+		expect(paths).toContain(path.join(projectRoot, ".skillz"));
+	});
 });

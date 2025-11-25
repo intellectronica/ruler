@@ -673,10 +673,15 @@ async function handleMcpConfiguration(
         unknown
       >;
       delete mcpServers[SKILLZ_MCP_SERVER_NAME];
-      filteredMcpJson = {
-        ...filteredMcpJson,
-        mcpServers,
-      };
+      // If no servers remain after removal, set to null to skip file generation
+      if (Object.keys(mcpServers).length === 0) {
+        filteredMcpJson = null;
+      } else {
+        filteredMcpJson = {
+          ...filteredMcpJson,
+          mcpServers,
+        };
+      }
       logVerboseInfo(
         `Removed Skillz MCP server for ${agent.getName()} (has native skills support)`,
         verbose,
@@ -728,7 +733,15 @@ async function handleMcpConfiguration(
     }
   }
 
-  if (!filteredMcpJson) {
+  // Skip if no MCP config or if mcpServers is empty
+  const hasServers =
+    filteredMcpJson &&
+    filteredMcpJson.mcpServers &&
+    typeof filteredMcpJson.mcpServers === 'object' &&
+    Object.keys(filteredMcpJson.mcpServers as Record<string, unknown>).length >
+      0;
+
+  if (!hasServers) {
     logVerbose(
       `No compatible MCP servers found for ${agent.getName()} - skipping MCP configuration`,
       verbose,
@@ -739,7 +752,7 @@ async function handleMcpConfiguration(
   await updateGitignoreForMcpFile(dest, projectRoot, generatedPaths, backup);
   await applyMcpConfiguration(
     agent,
-    filteredMcpJson,
+    filteredMcpJson!, // Safe: hasServers check above ensures this is non-null
     dest,
     agentConfig,
     config,
