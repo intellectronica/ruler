@@ -131,7 +131,7 @@ This is your central hub for all AI agent instructions:
   3. Legacy `.ruler/instructions.md` (only if `.ruler/AGENTS.md` absent; no longer emits a deprecation warning)
   4. Remaining discovered `.md` files under `.ruler/` (and subdirectories) in sorted order
 - **Rule Files (`*.md`)**: Discovered recursively from `.ruler/` or `$XDG_CONFIG_HOME/ruler` and concatenated in the order above
-- **Concatenation Marker**: Each file's content is prepended with `--- Source: <relative_path_to_md_file> ---` for traceability
+- **Concatenation Marker**: Each file's content is prepended with `<!-- Source: <relative_path_to_md_file> -->` for traceability
 - **`ruler.toml`**: Master configuration for Ruler's behavior, agent selection, and output paths
 - **`mcp.json`**: Shared MCP server settings
 
