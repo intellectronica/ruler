@@ -66,6 +66,7 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | Cline            | `.clinerules`                                    | -                                                |
 | Crush            | `CRUSH.md`                                       | `.crush.json`                                    |
 | Amp              | `AGENTS.md`                                      | -                                                |
+| Antigravity      | `.agent/rules/ruler.md`                          | -                                                |
 | Amazon Q CLI     | `.amazonq/rules/ruler_q_rules.md`                | `.amazonq/mcp.json`                              |
 | Aider            | `AGENTS.md`, `.aider.conf.yml`                   | `.mcp.json`                                      |
 | Firebase Studio  | `.idx/airules.md`                                | `.idx/mcp.json`                                  |
