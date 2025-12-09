@@ -1,6 +1,7 @@
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import { SKILLS_DIR } from '../constants';
 
 /**
  * Gets the XDG config directory path, falling back to ~/.config if XDG_CONFIG_HOME is not set.
@@ -71,6 +72,11 @@ export async function readMarkdownFiles(
     for (const entry of entries) {
       const fullPath = path.join(dir, entry.name);
       if (entry.isDirectory()) {
+        // Skip .ruler/skills; skills are propagated separately and should not be concatenated
+        const isSkillsDir = dir === rulerDir && entry.name === SKILLS_DIR;
+        if (isSkillsDir) {
+          continue;
+        }
         await walk(fullPath);
       } else if (entry.isFile() && entry.name.endsWith('.md')) {
         const content = await fs.readFile(fullPath, 'utf8');
