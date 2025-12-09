@@ -73,7 +73,10 @@ export async function readMarkdownFiles(
       const fullPath = path.join(dir, entry.name);
       if (entry.isDirectory()) {
         // Skip .ruler/skills; skills are propagated separately and should not be concatenated
-        const isSkillsDir = dir === rulerDir && entry.name === SKILLS_DIR;
+        const relativeFromRoot = path.relative(rulerDir, fullPath);
+        const isSkillsDir =
+          relativeFromRoot === SKILLS_DIR ||
+          relativeFromRoot.startsWith(`${SKILLS_DIR}${path.sep}`);
         if (isSkillsDir) {
           continue;
         }
