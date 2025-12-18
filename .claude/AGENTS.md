@@ -30,6 +30,7 @@ The fork features section at the top of README.md documents `skiller` additions:
 
 ### Branches and Pull Requests
 
+- Repository: `udecode/skiller` (NOT `udecode/ruler` or `intellectronica/ruler`)
 - Unless specifically instructed otherwise, all changes should be made in a feature branch and submitted as a pull request for review.
 - Pull requests should be descriptive and clearly explain the changes being made, including the rationale behind the change, the functional changes, the specific files and modules affected.
 - Before declaring a pull request ready for review, you must ensure that all the CI tests pass. These include:
