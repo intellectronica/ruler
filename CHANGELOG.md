@@ -1,5 +1,14 @@
 # skiller
 
+## 0.6.0
+
+### Minor Changes
+
+- [#9](https://github.com/udecode/skiller/pull/9) [`2bd6738`](https://github.com/udecode/skiller/commit/2bd67383827b1e4b3e5d227acb324ffd9b974477) Thanks [@zbeyens](https://github.com/zbeyens)! - Add `prune` option to `[skills]` config for handling orphaned skills
+  - `prune = true`: Auto-delete orphaned skills (skills in `.claude/skills/` not generated from any `.mdc` rule)
+  - `prune = false`: Keep orphaned skills without prompting
+  - `prune` undefined: Interactive prompt asking to delete, with recommendation to set config
+
 ## 0.4.3
 
 ### Patch Changes
