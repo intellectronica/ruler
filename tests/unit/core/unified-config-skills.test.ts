@@ -57,4 +57,47 @@ enabled = true
 		expect(unified.toml.skills).toBeDefined();
 		expect(unified.toml.skills?.enabled).toBe(true);
 	});
+
+	test("parses skills.prune = true", async () => {
+		await fs.writeFile(
+			tomlPath,
+			`
+[skills]
+prune = true
+`,
+		);
+
+		const unified = await loadUnifiedConfig({ projectRoot: tmpRoot });
+		expect(unified.toml.skills).toBeDefined();
+		expect(unified.toml.skills?.prune).toBe(true);
+	});
+
+	test("parses skills.prune = false", async () => {
+		await fs.writeFile(
+			tomlPath,
+			`
+[skills]
+prune = false
+`,
+		);
+
+		const unified = await loadUnifiedConfig({ projectRoot: tmpRoot });
+		expect(unified.toml.skills).toBeDefined();
+		expect(unified.toml.skills?.prune).toBe(false);
+	});
+
+	test("leaves prune undefined when not specified", async () => {
+		await fs.writeFile(
+			tomlPath,
+			`
+[skills]
+enabled = true
+generate_from_rules = true
+`,
+		);
+
+		const unified = await loadUnifiedConfig({ projectRoot: tmpRoot });
+		expect(unified.toml.skills).toBeDefined();
+		expect(unified.toml.skills?.prune).toBeUndefined();
+	});
 });

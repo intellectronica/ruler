@@ -32,6 +32,8 @@ export interface SkillsConfig {
   enabled?: boolean;
   /** Generate skills from .mdc rule files with frontmatter. */
   generate_from_rules?: boolean;
+  /** Prune orphaned skills not generated from rules. true=auto-delete, false=keep, undefined=prompt. */
+  prune?: boolean;
 }
 
 /** Merge strategy for rules: 'all' merges all files, 'cursor' uses Cursor-style MDC format. */
