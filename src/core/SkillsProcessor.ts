@@ -1,5 +1,6 @@
 import * as path from 'path';
 import * as fs from 'fs/promises';
+import * as readline from 'readline';
 import { SkillInfo } from '../types';
 import {
   CLAUDE_SKILLS_PATH,
@@ -151,14 +152,144 @@ async function findMdcFiles(dir: string): Promise<string[]> {
 }
 
 /**
+ * Prompts the user via readline to confirm deletion of orphaned skills.
+ * Returns true if user confirms, false otherwise.
+ */
+async function promptForPrune(orphanedSkills: string[]): Promise<boolean> {
+  // If not running in a TTY (e.g., CI/CD), skip prompting
+  if (!process.stdin.isTTY) {
+    logWarn(
+      `Found ${orphanedSkills.length} orphaned skill(s) but not in interactive mode. Set prune = true/false in skiller.toml to handle automatically.`,
+      false,
+    );
+    return false;
+  }
+
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  return new Promise((resolve) => {
+    console.log(
+      `\nFound ${orphanedSkills.length} orphaned skill(s) not generated from rules:`,
+    );
+    orphanedSkills.forEach((skill) => console.log(`  - ${skill}`));
+    console.log('');
+
+    rl.question('Delete these orphaned skills? [y/N]: ', (answer) => {
+      rl.close();
+      const confirmed =
+        answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes';
+      if (confirmed) {
+        console.log('');
+      } else {
+        console.log(
+          "\nTip: Add 'prune = true' or 'prune = false' to [skills] in skiller.toml to avoid this prompt.\n",
+        );
+      }
+      resolve(confirmed);
+    });
+  });
+}
+
+/**
+ * Prunes orphaned skills (skills that exist in .claude/skills but are not generated from any .mdc file).
+ * @param skillsDir Path to the skills directory
+ * @param generatedSkillNames Set of skill names that were generated from .mdc files
+ * @param prune Prune setting: true=auto-delete, false=keep, undefined=prompt
+ * @param verbose Whether to log verbose output
+ * @param dryRun Whether to perform a dry run
+ */
+async function pruneOrphanedSkills(
+  skillsDir: string,
+  generatedSkillNames: Set<string>,
+  prune: boolean | undefined,
+  verbose: boolean,
+  dryRun: boolean,
+): Promise<void> {
+  // Check if skills directory exists
+  try {
+    await fs.access(skillsDir);
+  } catch {
+    // No skills directory, nothing to prune
+    return;
+  }
+
+  // Get all existing skill directories
+  const entries = await fs.readdir(skillsDir, { withFileTypes: true });
+  const existingSkillDirs = entries
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name);
+
+  // Find orphaned skills (exist but not in generatedSkillNames)
+  const orphanedSkills = existingSkillDirs.filter(
+    (name) => !generatedSkillNames.has(name),
+  );
+
+  if (orphanedSkills.length === 0) {
+    logVerboseInfo('No orphaned skills found', verbose, dryRun);
+    return;
+  }
+
+  // Determine whether to delete based on prune setting
+  let shouldDelete = false;
+
+  if (prune === true) {
+    // Auto-delete
+    shouldDelete = true;
+    logVerboseInfo(
+      `Auto-pruning ${orphanedSkills.length} orphaned skill(s) (prune = true)`,
+      verbose,
+      dryRun,
+    );
+  } else if (prune === false) {
+    // Keep orphans
+    logVerboseInfo(
+      `Keeping ${orphanedSkills.length} orphaned skill(s) (prune = false)`,
+      verbose,
+      dryRun,
+    );
+    return;
+  } else {
+    // prune is undefined - prompt user
+    shouldDelete = await promptForPrune(orphanedSkills);
+    if (!shouldDelete) {
+      return;
+    }
+  }
+
+  // Delete orphaned skills
+  for (const skillName of orphanedSkills) {
+    const skillPath = path.join(skillsDir, skillName);
+    if (dryRun) {
+      logVerboseInfo(
+        `DRY RUN: Would remove orphaned skill ${skillName}`,
+        verbose,
+        dryRun,
+      );
+    } else {
+      await fs.rm(skillPath, { recursive: true, force: true });
+      logVerboseInfo(`Removed orphaned skill ${skillName}`, verbose, dryRun);
+    }
+  }
+}
+
+/**
  * Generates skills from .mdc rule files with frontmatter.
  * Creates skill files in the skills directory with @filename references to the original .mdc files.
+ * @param projectRoot Root directory of the project
+ * @param skillerDir Path to the skiller directory (.claude)
+ * @param verbose Whether to log verbose output
+ * @param dryRun Whether to perform a dry run
+ * @param prune Prune setting: true=auto-delete orphans, false=keep orphans, undefined=prompt
  */
 export async function generateSkillsFromRules(
   projectRoot: string,
   skillerDir: string,
   verbose: boolean,
   dryRun: boolean,
+  prune?: boolean,
 ): Promise<void> {
   // Determine skills directory based on skillerDir
   const skillsDir = path.join(skillerDir, 'skills');
@@ -173,6 +304,7 @@ export async function generateSkillsFromRules(
 
   let generatedCount = 0;
   const skillsToRemove: string[] = [];
+  const generatedSkillNames = new Set<string>();
 
   for (const mdcFile of mdcFiles) {
     // Read file content
@@ -287,6 +419,7 @@ ${fileReference}
     }
 
     generatedCount++;
+    generatedSkillNames.add(fileName);
   }
 
   if (generatedCount > 0) {
@@ -327,6 +460,15 @@ ${fileReference}
       }
     }
   }
+
+  // Prune orphaned skills if prune setting is configured
+  await pruneOrphanedSkills(
+    skillsDir,
+    generatedSkillNames,
+    prune,
+    verbose,
+    dryRun,
+  );
 }
 
 /**

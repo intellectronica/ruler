@@ -142,6 +142,7 @@ export async function applyAllAgentConfigs(
     if (skillsEnabledResolved) {
       const generateFromRules = rootConfig.skills?.generate_from_rules ?? false;
       if (generateFromRules) {
+        const pruneConfig = rootConfig.skills?.prune;
         for (const configEntry of hierarchicalConfigs) {
           const nestedRoot = path.dirname(configEntry.skillerDir);
           logVerbose(
@@ -153,6 +154,7 @@ export async function applyAllAgentConfigs(
             configEntry.skillerDir,
             verbose,
             dryRun,
+            pruneConfig,
           );
         }
       }
@@ -233,11 +235,13 @@ export async function applyAllAgentConfigs(
         singleConfig.config.skills?.generate_from_rules ?? false;
       if (generateFromRules) {
         logVerbose('Generating skills from .mdc files', verbose);
+        const pruneConfig = singleConfig.config.skills?.prune;
         await generateSkillsFromRules(
           projectRoot,
           singleConfig.skillerDir,
           verbose,
           dryRun,
+          pruneConfig,
         );
       }
     }

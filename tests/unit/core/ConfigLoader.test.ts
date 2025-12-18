@@ -123,6 +123,56 @@ describe("ConfigLoader", () => {
 		expect(config.cliAgents).toEqual(overrides);
 	});
 
+	describe("skills configuration", () => {
+		it("parses [skills] section with prune = true", async () => {
+			const content = `
+        [skills]
+        prune = true
+      `;
+			await fs.writeFile(path.join(skillerDir, "skiller.toml"), content);
+			const config = await loadConfig({ projectRoot: tmpDir });
+			expect(config.skills).toBeDefined();
+			expect(config.skills?.prune).toBe(true);
+		});
+
+		it("parses [skills] section with prune = false", async () => {
+			const content = `
+        [skills]
+        prune = false
+      `;
+			await fs.writeFile(path.join(skillerDir, "skiller.toml"), content);
+			const config = await loadConfig({ projectRoot: tmpDir });
+			expect(config.skills).toBeDefined();
+			expect(config.skills?.prune).toBe(false);
+		});
+
+		it("leaves prune undefined when not specified", async () => {
+			const content = `
+        [skills]
+        enabled = true
+      `;
+			await fs.writeFile(path.join(skillerDir, "skiller.toml"), content);
+			const config = await loadConfig({ projectRoot: tmpDir });
+			expect(config.skills).toBeDefined();
+			expect(config.skills?.prune).toBeUndefined();
+		});
+
+		it("parses all skills options together", async () => {
+			const content = `
+        [skills]
+        enabled = true
+        generate_from_rules = true
+        prune = true
+      `;
+			await fs.writeFile(path.join(skillerDir, "skiller.toml"), content);
+			const config = await loadConfig({ projectRoot: tmpDir });
+			expect(config.skills).toBeDefined();
+			expect(config.skills?.enabled).toBe(true);
+			expect(config.skills?.generate_from_rules).toBe(true);
+			expect(config.skills?.prune).toBe(true);
+		});
+	});
+
 	describe("gitignore configuration", () => {
 		it("parses [gitignore] section with enabled = true", async () => {
 			const content = `
