@@ -55,4 +55,8 @@ export class CopilotAgent implements IAgent {
   supportsMcpRemote(): boolean {
     return true;
   }
+
+  supportsNativeSkills(): boolean {
+    return true;
+  }
 }

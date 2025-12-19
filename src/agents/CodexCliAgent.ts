@@ -158,4 +158,8 @@ export class CodexCliAgent implements IAgent {
   supportsMcpRemote(): boolean {
     return false; // Codex CLI only supports STDIO based on PR description
   }
+
+  supportsNativeSkills(): boolean {
+    return true;
+  }
 }
