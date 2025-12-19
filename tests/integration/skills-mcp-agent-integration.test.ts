@@ -37,7 +37,7 @@ describe('Skills MCP Agent Integration', () => {
       );
     });
 
-    it('adds Skillz MCP server to Codex CLI config', async () => {
+    it('adds skills to .codex/skills for Codex CLI (native skills)', async () => {
       await applyAllAgentConfigs(
         tmpDir,
         ['codex'],
@@ -53,17 +53,19 @@ describe('Skills MCP Agent Integration', () => {
         true, // skills enabled
       );
 
-      // Check that .codex/config.toml exists and contains skillz server
-      const codexConfigPath = path.join(tmpDir, '.codex', 'config.toml');
-      const configContent = await fs.readFile(codexConfigPath, 'utf8');
-      const config = parseTOML(configContent);
+      // Check that .codex/skills exists and contains the test skill
+      const codexSkillsPath = path.join(tmpDir, '.codex', 'skills');
+      const testSkillPath = path.join(codexSkillsPath, 'test-skill');
+      const skillMdPath = path.join(testSkillPath, SKILL_MD_FILENAME);
 
-      expect(config).toHaveProperty('mcp_servers');
-      expect(config.mcp_servers).toHaveProperty('skillz');
-      const skillzServer = config.mcp_servers.skillz as any;
-      expect(skillzServer.command).toBe('uvx');
-      expect(skillzServer.args).toContain('skillz@latest');
-      expect(skillzServer.args[1]).toContain('.skillz');
+      // Verify the skill directory and file exist
+      await expect(fs.access(codexSkillsPath)).resolves.toBeUndefined();
+      await expect(fs.access(testSkillPath)).resolves.toBeUndefined();
+      await expect(fs.access(skillMdPath)).resolves.toBeUndefined();
+
+      // Verify skill content was copied
+      const skillContent = await fs.readFile(skillMdPath, 'utf8');
+      expect(skillContent).toBe('# Test Skill');
     });
 
     it('adds Skillz MCP server to Gemini CLI config', async () => {
@@ -94,7 +96,7 @@ describe('Skills MCP Agent Integration', () => {
       expect(settings.mcpServers.skillz.args[1]).toContain('.skillz');
     });
 
-    it('adds Skillz MCP server to Copilot MCP config', async () => {
+    it('adds skills to .claude/skills for Copilot (native skills)', async () => {
       await applyAllAgentConfigs(
         tmpDir,
         ['copilot'],
@@ -110,16 +112,19 @@ describe('Skills MCP Agent Integration', () => {
         true, // skills enabled
       );
 
-      // Check that .vscode/mcp.json exists and contains skillz server
-      const mcpPath = path.join(tmpDir, '.vscode', 'mcp.json');
-      const mcpContent = await fs.readFile(mcpPath, 'utf8');
-      const mcp = JSON.parse(mcpContent);
+      // Check that .claude/skills exists and contains the test skill
+      const claudeSkillsPath = path.join(tmpDir, '.claude', 'skills');
+      const testSkillPath = path.join(claudeSkillsPath, 'test-skill');
+      const skillMdPath = path.join(testSkillPath, SKILL_MD_FILENAME);
 
-      expect(mcp).toHaveProperty('servers');
-      expect(mcp.servers).toHaveProperty('skillz');
-      expect(mcp.servers.skillz.command).toBe('uvx');
-      expect(mcp.servers.skillz.args).toContain('skillz@latest');
-      expect(mcp.servers.skillz.args[1]).toContain('.skillz');
+      // Verify the skill directory and file exist
+      await expect(fs.access(claudeSkillsPath)).resolves.toBeUndefined();
+      await expect(fs.access(testSkillPath)).resolves.toBeUndefined();
+      await expect(fs.access(skillMdPath)).resolves.toBeUndefined();
+
+      // Verify skill content was copied
+      const skillContent = await fs.readFile(skillMdPath, 'utf8');
+      expect(skillContent).toBe('# Test Skill');
     });
 
     it('does not add Skillz server when skills are disabled', async () => {
@@ -163,7 +168,7 @@ describe('Skills MCP Agent Integration', () => {
       }
     });
 
-    it('adds Skillz server even when there are existing MCP servers', async () => {
+    it('adds skills to native directories even when there are existing MCP servers', async () => {
       // Override beforeEach setup - need to create ruler.toml first
       const rulerDir = path.join(tmpDir, '.ruler');
 
@@ -204,14 +209,14 @@ args = ["server.js"]
         true, // skills enabled
       );
 
-      const codexConfigPath = path.join(tmpDir, '.codex', 'config.toml');
-      const configContent = await fs.readFile(codexConfigPath, 'utf8');
-      const config = parseTOML(configContent);
+      // Check that .codex/skills exists and contains the test skill (native skills)
+      const codexSkillsPath = path.join(tmpDir, '.codex', 'skills');
+      const testSkillPath = path.join(codexSkillsPath, 'test-skill');
+      const skillMdPath = path.join(testSkillPath, SKILL_MD_FILENAME);
 
-      // Should have skillz server (existing-server may or may not be there depending on filtering)
-      expect(config.mcp_servers).toHaveProperty('skillz');
-      expect(config.mcp_servers.skillz.command).toBe('uvx');
-      expect(config.mcp_servers.skillz.args).toContain('skillz@latest');
+      await expect(fs.access(codexSkillsPath)).resolves.toBeUndefined();
+      await expect(fs.access(testSkillPath)).resolves.toBeUndefined();
+      await expect(fs.access(skillMdPath)).resolves.toBeUndefined();
     });
 
     it('works for multiple agents simultaneously', async () => {
@@ -230,22 +235,25 @@ args = ["server.js"]
         true, // skills enabled
       );
 
-      // All three agents should have skillz server
-      const codexConfigPath = path.join(tmpDir, '.codex', 'config.toml');
+      // Codex and Copilot should have native skills, Gemini should have Skillz MCP server
+      const codexSkillsPath = path.join(tmpDir, '.codex', 'skills');
+      const claudeSkillsPath = path.join(tmpDir, '.claude', 'skills');
       const geminiSettingsPath = path.join(tmpDir, '.gemini', 'settings.json');
-      const copilotMcpPath = path.join(tmpDir, '.vscode', 'mcp.json');
 
-      const codexContent = await fs.readFile(codexConfigPath, 'utf8');
+      // Check Codex has native skills
+      await expect(
+        fs.access(path.join(codexSkillsPath, 'test-skill', SKILL_MD_FILENAME)),
+      ).resolves.toBeUndefined();
+
+      // Check Copilot has native skills
+      await expect(
+        fs.access(path.join(claudeSkillsPath, 'test-skill', SKILL_MD_FILENAME)),
+      ).resolves.toBeUndefined();
+
+      // Check Gemini has Skillz MCP server
       const geminiContent = await fs.readFile(geminiSettingsPath, 'utf8');
-      const copilotContent = await fs.readFile(copilotMcpPath, 'utf8');
-
-      const codexConfig = parseTOML(codexContent);
       const geminiSettings = JSON.parse(geminiContent);
-      const copilotMcp = JSON.parse(copilotContent);
-
-      expect(codexConfig.mcp_servers).toHaveProperty('skillz');
       expect(geminiSettings.mcpServers).toHaveProperty('skillz');
-      expect(copilotMcp.servers).toHaveProperty('skillz');
     });
   });
 });
