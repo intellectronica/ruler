@@ -5,6 +5,8 @@ import {
   RULER_SKILLS_PATH,
   CLAUDE_SKILLS_PATH,
   CODEX_SKILLS_PATH,
+  OPENCODE_SKILLS_PATH,
+  GOOSE_SKILLS_PATH,
   SKILLZ_DIR,
   SKILLZ_MCP_SERVER_NAME,
   logWarn,
@@ -51,13 +53,19 @@ export async function getSkillsGitignorePaths(
   }
 
   // Import here to avoid circular dependency
-  const { CLAUDE_SKILLS_PATH, CODEX_SKILLS_PATH, SKILLZ_DIR } = await import(
-    '../constants'
-  );
+  const {
+    CLAUDE_SKILLS_PATH,
+    CODEX_SKILLS_PATH,
+    OPENCODE_SKILLS_PATH,
+    GOOSE_SKILLS_PATH,
+    SKILLZ_DIR,
+  } = await import('../constants');
 
   return [
     path.join(projectRoot, CLAUDE_SKILLS_PATH),
     path.join(projectRoot, CODEX_SKILLS_PATH),
+    path.join(projectRoot, OPENCODE_SKILLS_PATH),
+    path.join(projectRoot, GOOSE_SKILLS_PATH),
     path.join(projectRoot, SKILLZ_DIR),
   ];
 }
@@ -90,7 +98,7 @@ function warnOnceExperimentalAndUv(verbose: boolean, dryRun: boolean): void {
 }
 
 /**
- * Cleans up skills directories (.claude/skills, .codex/skills and .skillz) when skills are disabled.
+ * Cleans up skills directories when skills are disabled.
  * This ensures that stale skills from previous runs don't persist when skills are turned off.
  */
 async function cleanupSkillsDirectories(
@@ -100,6 +108,8 @@ async function cleanupSkillsDirectories(
 ): Promise<void> {
   const claudeSkillsPath = path.join(projectRoot, CLAUDE_SKILLS_PATH);
   const codexSkillsPath = path.join(projectRoot, CODEX_SKILLS_PATH);
+  const opencodeSkillsPath = path.join(projectRoot, OPENCODE_SKILLS_PATH);
+  const gooseSkillsPath = path.join(projectRoot, GOOSE_SKILLS_PATH);
   const skillzPath = path.join(projectRoot, SKILLZ_DIR);
 
   // Clean up .claude/skills
@@ -136,6 +146,48 @@ async function cleanupSkillsDirectories(
       await fs.rm(codexSkillsPath, { recursive: true, force: true });
       logVerboseInfo(
         `Removed ${CODEX_SKILLS_PATH} (skills disabled)`,
+        verbose,
+        dryRun,
+      );
+    }
+  } catch {
+    // Directory doesn't exist, nothing to clean
+  }
+
+  // Clean up .opencode/skill
+  try {
+    await fs.access(opencodeSkillsPath);
+    if (dryRun) {
+      logVerboseInfo(
+        `DRY RUN: Would remove ${OPENCODE_SKILLS_PATH}`,
+        verbose,
+        dryRun,
+      );
+    } else {
+      await fs.rm(opencodeSkillsPath, { recursive: true, force: true });
+      logVerboseInfo(
+        `Removed ${OPENCODE_SKILLS_PATH} (skills disabled)`,
+        verbose,
+        dryRun,
+      );
+    }
+  } catch {
+    // Directory doesn't exist, nothing to clean
+  }
+
+  // Clean up .agents/skills
+  try {
+    await fs.access(gooseSkillsPath);
+    if (dryRun) {
+      logVerboseInfo(
+        `DRY RUN: Would remove ${GOOSE_SKILLS_PATH}`,
+        verbose,
+        dryRun,
+      );
+    } else {
+      await fs.rm(gooseSkillsPath, { recursive: true, force: true });
+      logVerboseInfo(
+        `Removed ${GOOSE_SKILLS_PATH} (skills disabled)`,
         verbose,
         dryRun,
       );
@@ -243,6 +295,20 @@ export async function propagateSkills(
       dryRun,
     );
     await propagateSkillsForCodex(projectRoot, { dryRun });
+
+    logVerboseInfo(
+      `Copying skills to ${OPENCODE_SKILLS_PATH} for OpenCode`,
+      verbose,
+      dryRun,
+    );
+    await propagateSkillsForOpenCode(projectRoot, { dryRun });
+
+    logVerboseInfo(
+      `Copying skills to ${GOOSE_SKILLS_PATH} for Goose`,
+      verbose,
+      dryRun,
+    );
+    await propagateSkillsForGoose(projectRoot, { dryRun });
   }
 
   // Copy to .skillz directory if needed
@@ -359,6 +425,122 @@ export async function propagateSkillsForCodex(
 
     // Rename temp to target
     await fs.rename(tempDir, codexSkillsPath);
+  } catch (error) {
+    // Clean up temp directory on error
+    try {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    } catch {
+      // Ignore cleanup errors
+    }
+    throw error;
+  }
+
+  return [];
+}
+
+/**
+ * Propagates skills for OpenCode by copying .ruler/skills to .opencode/skill.
+ * Uses atomic replace to ensure safe overwriting of existing skills.
+ * Returns dry-run steps if dryRun is true, otherwise returns empty array.
+ */
+export async function propagateSkillsForOpenCode(
+  projectRoot: string,
+  options: { dryRun: boolean },
+): Promise<string[]> {
+  const skillsDir = path.join(projectRoot, RULER_SKILLS_PATH);
+  const opencodeSkillsPath = path.join(projectRoot, OPENCODE_SKILLS_PATH);
+  const opencodeDir = path.dirname(opencodeSkillsPath);
+
+  // Check if source skills directory exists
+  try {
+    await fs.access(skillsDir);
+  } catch {
+    // No skills directory - return empty
+    return [];
+  }
+
+  if (options.dryRun) {
+    return [`Copy skills from ${RULER_SKILLS_PATH} to ${OPENCODE_SKILLS_PATH}`];
+  }
+
+  // Ensure .opencode directory exists
+  await fs.mkdir(opencodeDir, { recursive: true });
+
+  // Use atomic replace: copy to temp, then rename
+  const tempDir = path.join(opencodeDir, `skill.tmp-${Date.now()}`);
+
+  try {
+    // Copy to temp directory
+    await copySkillsDirectory(skillsDir, tempDir);
+
+    // Atomically replace the target
+    // First, remove existing target if it exists
+    try {
+      await fs.rm(opencodeSkillsPath, { recursive: true, force: true });
+    } catch {
+      // Target didn't exist, that's fine
+    }
+
+    // Rename temp to target
+    await fs.rename(tempDir, opencodeSkillsPath);
+  } catch (error) {
+    // Clean up temp directory on error
+    try {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    } catch {
+      // Ignore cleanup errors
+    }
+    throw error;
+  }
+
+  return [];
+}
+
+/**
+ * Propagates skills for Goose by copying .ruler/skills to .agents/skills.
+ * Uses atomic replace to ensure safe overwriting of existing skills.
+ * Returns dry-run steps if dryRun is true, otherwise returns empty array.
+ */
+export async function propagateSkillsForGoose(
+  projectRoot: string,
+  options: { dryRun: boolean },
+): Promise<string[]> {
+  const skillsDir = path.join(projectRoot, RULER_SKILLS_PATH);
+  const gooseSkillsPath = path.join(projectRoot, GOOSE_SKILLS_PATH);
+  const gooseDir = path.dirname(gooseSkillsPath);
+
+  // Check if source skills directory exists
+  try {
+    await fs.access(skillsDir);
+  } catch {
+    // No skills directory - return empty
+    return [];
+  }
+
+  if (options.dryRun) {
+    return [`Copy skills from ${RULER_SKILLS_PATH} to ${GOOSE_SKILLS_PATH}`];
+  }
+
+  // Ensure .agents directory exists
+  await fs.mkdir(gooseDir, { recursive: true });
+
+  // Use atomic replace: copy to temp, then rename
+  const tempDir = path.join(gooseDir, `skills.tmp-${Date.now()}`);
+
+  try {
+    // Copy to temp directory
+    await copySkillsDirectory(skillsDir, tempDir);
+
+    // Atomically replace the target
+    // First, remove existing target if it exists
+    try {
+      await fs.rm(gooseSkillsPath, { recursive: true, force: true });
+    } catch {
+      // Target didn't exist, that's fine
+    }
+
+    // Rename temp to target
+    await fs.rename(tempDir, gooseSkillsPath);
   } catch (error) {
     // Clean up temp directory on error
     try {

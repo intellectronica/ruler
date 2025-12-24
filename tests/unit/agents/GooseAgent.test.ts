@@ -67,4 +67,8 @@ describe('GooseAgent', () => {
   it('should return empty string for MCP server key since MCP is not supported', () => {
     expect(agent.getMcpServerKey()).toBe('');
   });
+
+  it('should support native skills', () => {
+    expect(agent.supportsNativeSkills()).toBe(true);
+  });
 });
