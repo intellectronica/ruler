@@ -557,15 +557,20 @@ export CODEX_HOME="$(pwd)/.codex"
 
 ## Skills Support (Experimental)
 
-**⚠️ Experimental Feature**: Skills support is currently experimental and requires `uv` (the Python package manager) to be installed on your system for MCP-based agent integration.
+**⚠️ Experimental Feature**: Skills support is currently experimental and requires `uv` (the Python package manager) to be installed on your system for MCP-based agent integration (agents without native skills support).
 
-Ruler can manage and propagate Claude Code-compatible skills to supported AI agents. Skills are stored in `.ruler/skills/` and are automatically distributed to compatible agents when you run `ruler apply`.
+Ruler can manage and propagate skills to supported AI agents. Skills are stored in `.ruler/skills/` and are automatically distributed to compatible agents when you run `ruler apply`.
 
 ### How It Works
 
 Skills are specialized knowledge packages that extend AI agent capabilities with domain-specific expertise, workflows, or tool integrations. Ruler discovers skills in your `.ruler/skills/` directory and propagates them to compatible agents:
 
-- **Claude Code agents**: Skills are copied to `.claude/skills/` in their native format
+- **Agents with native skills support**: Skills are copied directly to each agent's native skills directory:
+  - **Claude Code**: `.claude/skills/`
+  - **GitHub Copilot**: `.claude/skills/` (shared with Claude Code)
+  - **OpenAI Codex CLI**: `.codex/skills/`
+  - **OpenCode**: `.opencode/skill/`
+  - **Goose**: `.agents/skills/`
 - **Other MCP-compatible agents**: Skills are copied to `.skillz/` and a Skillz MCP server is automatically configured via `uvx`
 
 ### Skills Directory Structure
@@ -615,11 +620,13 @@ enabled = true  # or false to disable
 
 ### Skillz MCP Server
 
-For agents that support MCP but don't have native skills support (all agents except Claude Code), Ruler automatically:
+For agents that support MCP but don't have native skills support, Ruler automatically:
 
 1. Copies skills to `.skillz/` directory
 2. Configures a Skillz MCP server in the agent's configuration
 3. Uses `uvx` to launch the server with the absolute path to `.skillz`
+
+Agents using native skills support (Claude Code, GitHub Copilot, OpenAI Codex CLI, OpenCode, and Goose) **do not** use the Skillz MCP server and instead use their own native skills directories.
 
 Example auto-generated MCP server configuration:
 
@@ -633,15 +640,18 @@ args = ["skillz@latest", "/absolute/path/to/project/.skillz"]
 
 When skills support is enabled and gitignore integration is active, Ruler automatically adds:
 
-- `.claude/skills/` (for Claude Code agents)
-- `.skillz/` (for MCP-based agents)
+- `.claude/skills/` (for Claude Code and GitHub Copilot)
+- `.codex/skills/` (for OpenAI Codex CLI)
+- `.opencode/skill/` (for OpenCode)
+- `.agents/skills/` (for Goose)
+- `.skillz/` (for other MCP-based agents)
 
 to your `.gitignore` file within the managed Ruler block.
 
 ### Requirements
 
-- **For Claude Code**: No additional requirements
-- **For MCP agents**: `uv` must be installed and available in your PATH
+- **For agents with native skills support** (Claude Code, GitHub Copilot, OpenAI Codex CLI, OpenCode, Goose): No additional requirements
+- **For other MCP agents**: `uv` must be installed and available in your PATH
   ```bash
   # Install uv if needed
   curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -688,7 +698,10 @@ EOF
 ruler apply
 
 # 3. Skills are now available to compatible agents:
-#    - Claude Code: .claude/skills/my-skill/
+#    - Claude Code & GitHub Copilot: .claude/skills/my-skill/
+#    - OpenAI Codex CLI: .codex/skills/my-skill/
+#    - OpenCode: .opencode/skill/my-skill/
+#    - Goose: .agents/skills/my-skill/
 #    - Other MCP agents: .skillz/my-skill/ + Skillz MCP server configured
 ```
 

@@ -22,4 +22,8 @@ export class GooseAgent extends AbstractAgent {
     // Goose doesn't support MCP configuration via local config files
     return '';
   }
+
+  supportsNativeSkills(): boolean {
+    return true;
+  }
 }

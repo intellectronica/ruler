@@ -37,6 +37,10 @@ describe('OpenCodeAgent', () => {
     expect(agent.supportsMcpRemote()).toBe(true);
   });
 
+  it('should support native skills', () => {
+    expect(agent.supportsNativeSkills()).toBe(true);
+  });
+
   it('should create opencode.json with schema and empty MCP when no MCP config provided', async () => {
     mockedFs.readFile.mockRejectedValue(new Error('File not found'));
 
