@@ -212,8 +212,7 @@ export class MistralVibeAgent implements IAgent {
   }
 
   supportsNativeSkills(): boolean {
-    // Mistral Vibe uses ~/.vibe/tools/ for custom tools globally
-    // It doesn't have project-local native skills support
-    return false;
+    // Mistral Vibe supports native skills in .vibe/skills/
+    return true;
   }
 }
