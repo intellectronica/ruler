@@ -84,6 +84,7 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | Warp             | `WARP.md`                                        | -                                                |
 | Kiro             | `.kiro/steering/ruler_kiro_instructions.md`      | `.kiro/settings/mcp.json`                        |
 | Firebender       | `firebender.json`                                | `firebender.json` (rules and MCP in same file)   |
+| Mistral Vibe     | `AGENTS.md`                                      | `.vibe/config.toml`                              |
 
 ## Getting Started
 
@@ -319,7 +320,7 @@ ruler revert [options]
 | Option                         | Description                                                                                                                                                                                                                                                                   |
 | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `--project-root <path>`        | Path to your project's root (default: current directory)                                                                                                                                                                                                                      |
-| `--agents <agent1,agent2,...>` | Comma-separated list of agent names to revert (agentsmd, aider, amazonqcli, amp, antigravity, augmentcode, claude, cline, codex, copilot, crush, cursor, firebase, firebender, gemini-cli, goose, jules, junie, kilocode, kiro, opencode, openhands, qwen, roo, trae, warp, windsurf, zed) |
+| `--agents <agent1,agent2,...>` | Comma-separated list of agent names to revert (agentsmd, aider, amazonqcli, amp, antigravity, augmentcode, claude, cline, codex, copilot, crush, cursor, firebase, firebender, gemini-cli, goose, jules, junie, kilocode, kiro, mistral, opencode, openhands, qwen, roo, trae, warp, windsurf, zed) |
 | `--config <path>`              | Path to a custom `ruler.toml` configuration file                                                                                                                                                                                                                              |
 | `--keep-backups`               | Keep backup files (.bak) after restoration (default: false)                                                                                                                                                                                                                   |
 | `--dry-run`                    | Preview changes without actually reverting files                                                                                                                                                                                                                              |
