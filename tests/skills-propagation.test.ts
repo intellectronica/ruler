@@ -400,6 +400,72 @@ describe('Skills Discovery and Validation', () => {
     });
   });
 
+  describe('propagateSkillsForVibe', () => {
+    it('copies .ruler/skills to .vibe/skills preserving structure', async () => {
+      const { propagateSkillsForVibe } = await import(
+        '../src/core/SkillsProcessor'
+      );
+      const skillsDir = path.join(tmpDir, '.ruler', 'skills');
+      const skill1 = path.join(skillsDir, 'skill1');
+
+      await fs.mkdir(skill1, { recursive: true });
+      await fs.writeFile(path.join(skill1, SKILL_MD_FILENAME), '# Skill 1');
+
+      await propagateSkillsForVibe(tmpDir, { dryRun: false });
+
+      const vibeSkillsDir = path.join(tmpDir, '.vibe', 'skills');
+      const copiedSkill = path.join(vibeSkillsDir, 'skill1', SKILL_MD_FILENAME);
+      expect(await fs.readFile(copiedSkill, 'utf8')).toBe('# Skill 1');
+    });
+
+    it('creates .vibe directory if it does not exist', async () => {
+      const { propagateSkillsForVibe } = await import(
+        '../src/core/SkillsProcessor'
+      );
+      const skillsDir = path.join(tmpDir, '.ruler', 'skills');
+      const skill1 = path.join(skillsDir, 'skill1');
+
+      await fs.mkdir(skill1, { recursive: true });
+      await fs.writeFile(path.join(skill1, SKILL_MD_FILENAME), '# Skill 1');
+
+      await propagateSkillsForVibe(tmpDir, { dryRun: false });
+
+      const vibeDir = path.join(tmpDir, '.vibe');
+      const stats = await fs.stat(vibeDir);
+      expect(stats.isDirectory()).toBe(true);
+    });
+
+    it('includes operations in dry-run preview without executing', async () => {
+      const { propagateSkillsForVibe } = await import(
+        '../src/core/SkillsProcessor'
+      );
+      const skillsDir = path.join(tmpDir, '.ruler', 'skills');
+      const skill1 = path.join(skillsDir, 'skill1');
+
+      await fs.mkdir(skill1, { recursive: true });
+      await fs.writeFile(path.join(skill1, SKILL_MD_FILENAME), '# Skill 1');
+
+      const steps = await propagateSkillsForVibe(tmpDir, { dryRun: true });
+
+      expect(steps.length).toBeGreaterThan(0);
+      expect(steps.some((step) => step.includes('.vibe/skills'))).toBe(true);
+
+      // Should not have actually copied
+      const vibeSkillsDir = path.join(tmpDir, '.vibe', 'skills');
+      await expect(fs.access(vibeSkillsDir)).rejects.toThrow();
+    });
+
+    it('no-ops gracefully when .ruler/skills does not exist', async () => {
+      const { propagateSkillsForVibe } = await import(
+        '../src/core/SkillsProcessor'
+      );
+
+      const steps = await propagateSkillsForVibe(tmpDir, { dryRun: true });
+
+      expect(steps).toHaveLength(0);
+    });
+  });
+
   describe('propagateSkills - cleanup when disabled', () => {
     it('removes skills directories when skills are disabled', async () => {
       const { propagateSkills } = await import('../src/core/SkillsProcessor');
@@ -407,16 +473,19 @@ describe('Skills Discovery and Validation', () => {
       const claudeSkillsDir = path.join(tmpDir, '.claude', 'skills');
       const opencodeSkillsDir = path.join(tmpDir, '.opencode', 'skill');
       const gooseSkillsDir = path.join(tmpDir, '.agents', 'skills');
+      const vibeSkillsDir = path.join(tmpDir, '.vibe', 'skills');
       const skillzDir = path.join(tmpDir, '.skillz');
 
       // Create existing skills directories (as if they were from previous run)
       const claudeOldSkill = path.join(claudeSkillsDir, 'old-skill');
       const opencodeOldSkill = path.join(opencodeSkillsDir, 'old-skill');
       const gooseOldSkill = path.join(gooseSkillsDir, 'old-skill');
+      const vibeOldSkill = path.join(vibeSkillsDir, 'old-skill');
       const skillzOldSkill = path.join(skillzDir, 'old-skill');
       await fs.mkdir(claudeOldSkill, { recursive: true });
       await fs.mkdir(opencodeOldSkill, { recursive: true });
       await fs.mkdir(gooseOldSkill, { recursive: true });
+      await fs.mkdir(vibeOldSkill, { recursive: true });
       await fs.mkdir(skillzOldSkill, { recursive: true });
       await fs.writeFile(
         path.join(claudeOldSkill, SKILL_MD_FILENAME),
@@ -431,6 +500,10 @@ describe('Skills Discovery and Validation', () => {
         '# Old Skill',
       );
       await fs.writeFile(
+        path.join(vibeOldSkill, SKILL_MD_FILENAME),
+        '# Old Skill',
+      );
+      await fs.writeFile(
         path.join(skillzOldSkill, SKILL_MD_FILENAME),
         '# Old Skill',
       );
@@ -439,6 +512,7 @@ describe('Skills Discovery and Validation', () => {
       await expect(fs.access(claudeSkillsDir)).resolves.toBeUndefined();
       await expect(fs.access(opencodeSkillsDir)).resolves.toBeUndefined();
       await expect(fs.access(gooseSkillsDir)).resolves.toBeUndefined();
+      await expect(fs.access(vibeSkillsDir)).resolves.toBeUndefined();
       await expect(fs.access(skillzDir)).resolves.toBeUndefined();
 
       // Run propagateSkills with skillsEnabled = false
@@ -448,6 +522,7 @@ describe('Skills Discovery and Validation', () => {
       await expect(fs.access(claudeSkillsDir)).rejects.toThrow();
       await expect(fs.access(opencodeSkillsDir)).rejects.toThrow();
       await expect(fs.access(gooseSkillsDir)).rejects.toThrow();
+      await expect(fs.access(vibeSkillsDir)).rejects.toThrow();
       await expect(fs.access(skillzDir)).rejects.toThrow();
     });
 

@@ -7,6 +7,7 @@ import {
   CODEX_SKILLS_PATH,
   OPENCODE_SKILLS_PATH,
   GOOSE_SKILLS_PATH,
+  VIBE_SKILLS_PATH,
   SKILLZ_DIR,
   SKILLZ_MCP_SERVER_NAME,
   logWarn,
@@ -58,6 +59,7 @@ export async function getSkillsGitignorePaths(
     CODEX_SKILLS_PATH,
     OPENCODE_SKILLS_PATH,
     GOOSE_SKILLS_PATH,
+    VIBE_SKILLS_PATH,
     SKILLZ_DIR,
   } = await import('../constants');
 
@@ -66,6 +68,7 @@ export async function getSkillsGitignorePaths(
     path.join(projectRoot, CODEX_SKILLS_PATH),
     path.join(projectRoot, OPENCODE_SKILLS_PATH),
     path.join(projectRoot, GOOSE_SKILLS_PATH),
+    path.join(projectRoot, VIBE_SKILLS_PATH),
     path.join(projectRoot, SKILLZ_DIR),
   ];
 }
@@ -110,6 +113,7 @@ async function cleanupSkillsDirectories(
   const codexSkillsPath = path.join(projectRoot, CODEX_SKILLS_PATH);
   const opencodeSkillsPath = path.join(projectRoot, OPENCODE_SKILLS_PATH);
   const gooseSkillsPath = path.join(projectRoot, GOOSE_SKILLS_PATH);
+  const vibeSkillsPath = path.join(projectRoot, VIBE_SKILLS_PATH);
   const skillzPath = path.join(projectRoot, SKILLZ_DIR);
 
   // Clean up .claude/skills
@@ -188,6 +192,27 @@ async function cleanupSkillsDirectories(
       await fs.rm(gooseSkillsPath, { recursive: true, force: true });
       logVerboseInfo(
         `Removed ${GOOSE_SKILLS_PATH} (skills disabled)`,
+        verbose,
+        dryRun,
+      );
+    }
+  } catch {
+    // Directory doesn't exist, nothing to clean
+  }
+
+  // Clean up .vibe/skills
+  try {
+    await fs.access(vibeSkillsPath);
+    if (dryRun) {
+      logVerboseInfo(
+        `DRY RUN: Would remove ${VIBE_SKILLS_PATH}`,
+        verbose,
+        dryRun,
+      );
+    } else {
+      await fs.rm(vibeSkillsPath, { recursive: true, force: true });
+      logVerboseInfo(
+        `Removed ${VIBE_SKILLS_PATH} (skills disabled)`,
         verbose,
         dryRun,
       );
@@ -309,6 +334,13 @@ export async function propagateSkills(
       dryRun,
     );
     await propagateSkillsForGoose(projectRoot, { dryRun });
+
+    logVerboseInfo(
+      `Copying skills to ${VIBE_SKILLS_PATH} for Mistral Vibe`,
+      verbose,
+      dryRun,
+    );
+    await propagateSkillsForVibe(projectRoot, { dryRun });
   }
 
   // Copy to .skillz directory if needed
@@ -541,6 +573,64 @@ export async function propagateSkillsForGoose(
 
     // Rename temp to target
     await fs.rename(tempDir, gooseSkillsPath);
+  } catch (error) {
+    // Clean up temp directory on error
+    try {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    } catch {
+      // Ignore cleanup errors
+    }
+    throw error;
+  }
+
+  return [];
+}
+
+/**
+ * Propagates skills for Mistral Vibe by copying .ruler/skills to .vibe/skills.
+ * Uses atomic replace to ensure safe overwriting of existing skills.
+ * Returns dry-run steps if dryRun is true, otherwise returns empty array.
+ */
+export async function propagateSkillsForVibe(
+  projectRoot: string,
+  options: { dryRun: boolean },
+): Promise<string[]> {
+  const skillsDir = path.join(projectRoot, RULER_SKILLS_PATH);
+  const vibeSkillsPath = path.join(projectRoot, VIBE_SKILLS_PATH);
+  const vibeDir = path.dirname(vibeSkillsPath);
+
+  // Check if source skills directory exists
+  try {
+    await fs.access(skillsDir);
+  } catch {
+    // No skills directory - return empty
+    return [];
+  }
+
+  if (options.dryRun) {
+    return [`Copy skills from ${RULER_SKILLS_PATH} to ${VIBE_SKILLS_PATH}`];
+  }
+
+  // Ensure .vibe directory exists
+  await fs.mkdir(vibeDir, { recursive: true });
+
+  // Use atomic replace: copy to temp, then rename
+  const tempDir = path.join(vibeDir, `skills.tmp-${Date.now()}`);
+
+  try {
+    // Copy to temp directory
+    await copySkillsDirectory(skillsDir, tempDir);
+
+    // Atomically replace the target
+    // First, remove existing target if it exists
+    try {
+      await fs.rm(vibeSkillsPath, { recursive: true, force: true });
+    } catch {
+      // Target didn't exist, that's fine
+    }
+
+    // Rename temp to target
+    await fs.rename(tempDir, vibeSkillsPath);
   } catch (error) {
     // Clean up temp directory on error
     try {

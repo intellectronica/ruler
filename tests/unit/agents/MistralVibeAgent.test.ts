@@ -47,8 +47,8 @@ describe('MistralVibeAgent', () => {
       expect(agent.supportsMcpRemote()).toBe(true);
     });
 
-    it('does not support native skills', () => {
-      expect(agent.supportsNativeSkills()).toBe(false);
+    it('supports native skills', () => {
+      expect(agent.supportsNativeSkills()).toBe(true);
     });
   });
 
