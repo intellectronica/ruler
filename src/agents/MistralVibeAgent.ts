@@ -160,7 +160,6 @@ export class MistralVibeAgent implements IAgent {
       } else {
         // For merge strategy, merge by server name
         const existingServers = updatedConfig.mcp_servers || [];
-        const existingServerNames = new Set(existingServers.map((s) => s.name));
 
         // Keep existing servers that aren't being overwritten by ruler
         const mergedServers = existingServers.filter(
@@ -174,6 +173,7 @@ export class MistralVibeAgent implements IAgent {
       }
 
       // Convert to TOML and write
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const tomlContent = stringify(updatedConfig as any);
       await writeGeneratedFile(configPath, tomlContent);
     }
