@@ -28,6 +28,7 @@ import { TraeAgent } from './TraeAgent';
 import { AmazonQCliAgent } from './AmazonQCliAgent';
 import { FirebenderAgent } from './FirebenderAgent';
 import { AntigravityAgent } from './AntigravityAgent';
+import { MistralVibeAgent } from './MistralVibeAgent';
 
 export { AbstractAgent };
 
@@ -60,6 +61,7 @@ export const allAgents: IAgent[] = [
   new AmazonQCliAgent(),
   new FirebenderAgent(),
   new AntigravityAgent(),
+  new MistralVibeAgent(),
 ];
 
 /**
