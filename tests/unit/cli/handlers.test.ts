@@ -337,6 +337,36 @@ describe('CLI Handlers', () => {
       exitSpy.mockRestore();
       errorSpy.mockRestore();
     });
+
+    it('should fail fast when running from inside a .ruler directory', async () => {
+      const exitSpy = jest
+        .spyOn(process, 'exit')
+        .mockImplementation((code?: string | number | null | undefined) => {
+          throw new Error(`process.exit: ${code}`);
+        });
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      const argv = {
+        'project-root': '/mock/project/.ruler',
+        mcp: true,
+        'mcp-overwrite': false,
+        verbose: false,
+        'dry-run': false,
+        'local-only': false,
+        nested: false,
+        backup: true,
+      };
+
+      await expect(applyHandler(argv)).rejects.toThrow('process.exit: 1');
+
+      expect(errorSpy).toHaveBeenCalledWith(
+        '[ruler] Cannot run from inside a .ruler directory. Please run from your project root.',
+      );
+      expect(applyAllAgentConfigs).not.toHaveBeenCalled();
+
+      exitSpy.mockRestore();
+      errorSpy.mockRestore();
+    });
   });
 
   describe('initHandler', () => {
@@ -555,6 +585,33 @@ describe('CLI Handlers', () => {
 
       expect(errorSpy).toHaveBeenCalledWith('[ruler] Test error');
       expect(exitSpy).toHaveBeenCalledWith(1);
+
+      exitSpy.mockRestore();
+      errorSpy.mockRestore();
+    });
+
+    it('should fail fast when running revert from inside a .ruler directory', async () => {
+      const exitSpy = jest
+        .spyOn(process, 'exit')
+        .mockImplementation((code?: string | number | null | undefined) => {
+          throw new Error(`process.exit: ${code}`);
+        });
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      const argv = {
+        'project-root': '/mock/project/.ruler/subdir',
+        'keep-backups': false,
+        verbose: false,
+        'dry-run': false,
+        'local-only': false,
+      };
+
+      await expect(revertHandler(argv)).rejects.toThrow('process.exit: 1');
+
+      expect(errorSpy).toHaveBeenCalledWith(
+        '[ruler] Cannot run from inside a .ruler directory. Please run from your project root.',
+      );
+      expect(revertAllAgentConfigs).not.toHaveBeenCalled();
 
       exitSpy.mockRestore();
       errorSpy.mockRestore();
