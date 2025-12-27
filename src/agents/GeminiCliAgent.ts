@@ -45,11 +45,31 @@ export class GeminiCliAgent extends AgentsMdAgent {
     if (mcpEnabled && rulerMcpJson) {
       const strategy = agentConfig?.mcp?.strategy ?? 'merge';
 
+      // Gemini CLI (since v0.21.0) no longer accepts the "type" field in MCP server entries.
+      // Following the MCP spec update from Nov 25, 2025, the transport type is now inferred
+      // from the presence of specific keys (command/args -> stdio, url -> sse/http).
+      // Strip 'type' field from all incoming servers before merging.
+      const stripTypeField = (
+        servers: Record<string, unknown>,
+      ): Record<string, unknown> => {
+        const cleaned: Record<string, unknown> = {};
+        for (const [name, def] of Object.entries(servers)) {
+          if (def && typeof def === 'object') {
+            const copy = { ...(def as Record<string, unknown>) };
+            delete copy.type;
+            cleaned[name] = copy;
+          } else {
+            cleaned[name] = def;
+          }
+        }
+        return cleaned;
+      };
+
       if (strategy === 'overwrite') {
         // For overwrite, preserve existing settings except MCP servers
         const incomingServers =
           (rulerMcpJson.mcpServers as Record<string, unknown>) || {};
-        updated[this.getMcpServerKey()] = incomingServers;
+        updated[this.getMcpServerKey()] = stripTypeField(incomingServers);
       } else {
         // For merge strategy, merge with existing MCP servers
         const baseServers =
@@ -60,7 +80,7 @@ export class GeminiCliAgent extends AgentsMdAgent {
         const incomingServers =
           (rulerMcpJson.mcpServers as Record<string, unknown>) || {};
         const mergedServers = { ...baseServers, ...incomingServers };
-        updated[this.getMcpServerKey()] = mergedServers;
+        updated[this.getMcpServerKey()] = stripTypeField(mergedServers);
       }
     }
 

@@ -946,7 +946,32 @@ async function applyStandardMcpConfiguration(
       return out;
     };
 
-    const toWrite = sanitizeForFirebase(merged);
+    // Gemini CLI (since v0.21.0) no longer accepts the "type" field in MCP server entries.
+    // Following the MCP spec update from Nov 25, 2025, the transport type is now inferred
+    // from the presence of specific keys (command/args -> stdio, url -> sse/http).
+    // Sanitize merged config by stripping 'type' from each server when targeting Gemini.
+    const sanitizeForGemini = (
+      obj: Record<string, unknown>,
+    ): Record<string, unknown> => {
+      if (agent.getIdentifier() !== 'gemini-cli') return obj;
+      const out: Record<string, unknown> = { ...obj };
+      const servers = (out[serverKey] as Record<string, unknown>) || {};
+      const cleanedServers: Record<string, unknown> = {};
+      for (const [name, def] of Object.entries(servers)) {
+        if (def && typeof def === 'object') {
+          const copy = { ...(def as Record<string, unknown>) };
+          delete (copy as Record<string, unknown>).type;
+          cleanedServers[name] = copy;
+        } else {
+          cleanedServers[name] = def;
+        }
+      }
+      out[serverKey] = cleanedServers;
+      return out;
+    };
+
+    let toWrite = sanitizeForFirebase(merged);
+    toWrite = sanitizeForGemini(toWrite);
 
     // Only backup and write if content would actually change (idempotent)
     const currentContent = JSON.stringify(existing, null, 2);
