@@ -37,11 +37,23 @@ export interface RevertArgs {
   'local-only': boolean;
 }
 
+function assertNotInsideRulerDir(projectRoot: string): void {
+  const normalized = path.resolve(projectRoot);
+  const segments = normalized.split(path.sep);
+  if (segments.includes('.ruler')) {
+    console.error(
+      `${ERROR_PREFIX} Cannot run from inside a .ruler directory. Please run from your project root.`,
+    );
+    process.exit(1);
+  }
+}
+
 /**
  * Handler for the 'apply' command.
  */
 export async function applyHandler(argv: ApplyArgs): Promise<void> {
   const projectRoot = argv['project-root'];
+  assertNotInsideRulerDir(projectRoot);
   const agents = argv.agents
     ? argv.agents.split(',').map((a) => a.trim())
     : undefined;
@@ -202,6 +214,7 @@ export async function initHandler(argv: InitArgs): Promise<void> {
  */
 export async function revertHandler(argv: RevertArgs): Promise<void> {
   const projectRoot = argv['project-root'];
+  assertNotInsideRulerDir(projectRoot);
   const agents = argv.agents
     ? argv.agents.split(',').map((a) => a.trim())
     : undefined;
