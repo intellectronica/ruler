@@ -1,6 +1,6 @@
 {
 	"name": "skiller",
-	"version": "0.6.1",
+	"version": "0.6.0",
 	"description": "Skiller — apply the same rules to all coding agents",
 	"main": "dist/lib.js",
 	"publishConfig": {
