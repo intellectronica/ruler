@@ -1,5 +1,22 @@
 # skiller
 
+## 0.6.1
+
+### Patch Changes
+
+- [`56e32a5`](https://github.com/udecode/skiller/commit/56e32a55772db0f19cf21e9c8cb907b6d7c9228a) Thanks [@zbeyens](https://github.com/zbeyens)! - Add `${VAR}` environment variable expansion in MCP server env config
+
+  You can now reference environment variables in your `skiller.toml` env values:
+
+  ```toml
+  [mcp_servers.linear]
+  command = "npx"
+  args = ["-y", "github:obra/streamlinear"]
+  env = { LINEAR_API_KEY = "${LINEAR_API_KEY}" }
+  ```
+
+  The `${VAR}` syntax is expanded from `process.env` at config load time. Undefined variables are replaced with empty strings.
+
 ## 0.6.0
 
 ### Minor Changes
