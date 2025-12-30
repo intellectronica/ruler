@@ -16,7 +16,7 @@
 		"test:coverage": "jest --coverage",
 		"test:integration": "jest tests/e2e/skiller.integration.test.ts --verbose",
 		"build": "tsc",
-		"release": "pnpm build && pnpm changeset version"
+		"release": "pnpm build && pnpm changeset publish"
 	},
 	"repository": {
 		"type": "git",
