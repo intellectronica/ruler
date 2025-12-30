@@ -16,6 +16,25 @@ import type {
   TomlConfig,
 } from './UnifiedConfigTypes';
 
+/**
+ * Expand environment variables in a string.
+ * Supports ${VAR} syntax, replacing with process.env[VAR] or empty string if not found.
+ */
+function expandEnvVars(value: string): string {
+  return value.replace(/\$\{([^}]+)\}/g, (_, key) => process.env[key] || '');
+}
+
+/**
+ * Expand environment variables in all values of a Record<string, string>.
+ */
+function expandEnvRecord(
+  record: Record<string, string>,
+): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(record).map(([k, v]) => [k, expandEnvVars(v)]),
+  );
+}
+
 export interface UnifiedLoadOptions {
   projectRoot: string;
   configPath?: string;
@@ -246,13 +265,14 @@ export async function loadUnifiedConfig(
           server.args = serverDef.args.map(String);
         }
 
-        // Parse env
+        // Parse env with ${VAR} expansion
         if (serverDef.env && typeof serverDef.env === 'object') {
-          server.env = Object.fromEntries(
+          const rawEnv = Object.fromEntries(
             Object.entries(serverDef.env).filter(
               ([, v]) => typeof v === 'string',
             ),
           ) as Record<string, string>;
+          server.env = expandEnvRecord(rawEnv);
         }
 
         // Parse URL and headers
@@ -387,9 +407,10 @@ export async function loadUnifiedConfig(
           if (Array.isArray(def.command)) server.command = def.command[0];
           if (Array.isArray(def.args)) server.args = def.args.map(String);
           if (def.env && typeof def.env === 'object') {
-            server.env = Object.fromEntries(
+            const rawEnv = Object.fromEntries(
               Object.entries(def.env).filter(([, v]) => typeof v === 'string'),
             ) as Record<string, string>;
+            server.env = expandEnvRecord(rawEnv);
           }
           if (typeof def.url === 'string') server.url = def.url;
           if (def.headers && typeof def.headers === 'object') {
