@@ -317,15 +317,15 @@ ruler revert [options]
 
 ### Options
 
-| Option                         | Description                                                                                                                                                                                                                                                                   |
-| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--project-root <path>`        | Path to your project's root (default: current directory)                                                                                                                                                                                                                      |
+| Option                         | Description                                                                                                                                                                                                                                                                                         |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--project-root <path>`        | Path to your project's root (default: current directory)                                                                                                                                                                                                                                            |
 | `--agents <agent1,agent2,...>` | Comma-separated list of agent names to revert (agentsmd, aider, amazonqcli, amp, antigravity, augmentcode, claude, cline, codex, copilot, crush, cursor, firebase, firebender, gemini-cli, goose, jules, junie, kilocode, kiro, mistral, opencode, openhands, qwen, roo, trae, warp, windsurf, zed) |
-| `--config <path>`              | Path to a custom `ruler.toml` configuration file                                                                                                                                                                                                                              |
-| `--keep-backups`               | Keep backup files (.bak) after restoration (default: false)                                                                                                                                                                                                                   |
-| `--dry-run`                    | Preview changes without actually reverting files                                                                                                                                                                                                                              |
-| `--verbose` / `-v`             | Display detailed output during execution                                                                                                                                                                                                                                      |
-| `--local-only`                 | Only search for local .ruler directories, ignore global config                                                                                                                                                                                                                |
+| `--config <path>`              | Path to a custom `ruler.toml` configuration file                                                                                                                                                                                                                                                    |
+| `--keep-backups`               | Keep backup files (.bak) after restoration (default: false)                                                                                                                                                                                                                                         |
+| `--dry-run`                    | Preview changes without actually reverting files                                                                                                                                                                                                                                                    |
+| `--verbose` / `-v`             | Display detailed output during execution                                                                                                                                                                                                                                                            |
+| `--local-only`                 | Only search for local .ruler directories, ignore global config                                                                                                                                                                                                                                      |
 
 ### Common Examples
 
@@ -572,6 +572,7 @@ Skills are specialized knowledge packages that extend AI agent capabilities with
   - **OpenAI Codex CLI**: `.codex/skills/`
   - **OpenCode**: `.opencode/skill/`
   - **Goose**: `.agents/skills/`
+  - **Mistral Vibe**: `.vibe/skills/`
 - **Other MCP-compatible agents**: Skills are copied to `.skillz/` and a Skillz MCP server is automatically configured via `uvx`
 
 ### Skills Directory Structure
@@ -627,7 +628,7 @@ For agents that support MCP but don't have native skills support, Ruler automati
 2. Configures a Skillz MCP server in the agent's configuration
 3. Uses `uvx` to launch the server with the absolute path to `.skillz`
 
-Agents using native skills support (Claude Code, GitHub Copilot, OpenAI Codex CLI, OpenCode, and Goose) **do not** use the Skillz MCP server and instead use their own native skills directories.
+Agents using native skills support (Claude Code, GitHub Copilot, OpenAI Codex CLI, OpenCode, Goose, and Mistral Vibe) **do not** use the Skillz MCP server and instead use their own native skills directories.
 
 Example auto-generated MCP server configuration:
 
@@ -645,13 +646,14 @@ When skills support is enabled and gitignore integration is active, Ruler automa
 - `.codex/skills/` (for OpenAI Codex CLI)
 - `.opencode/skill/` (for OpenCode)
 - `.agents/skills/` (for Goose)
+- `.vibe/skills/` (for Mistral Vibe)
 - `.skillz/` (for other MCP-based agents)
 
 to your `.gitignore` file within the managed Ruler block.
 
 ### Requirements
 
-- **For agents with native skills support** (Claude Code, GitHub Copilot, OpenAI Codex CLI, OpenCode, Goose): No additional requirements
+- **For agents with native skills support** (Claude Code, GitHub Copilot, OpenAI Codex CLI, OpenCode, Goose, Mistral Vibe): No additional requirements
 - **For other MCP agents**: `uv` must be installed and available in your PATH
   ```bash
   # Install uv if needed
@@ -703,6 +705,7 @@ ruler apply
 #    - OpenAI Codex CLI: .codex/skills/my-skill/
 #    - OpenCode: .opencode/skill/my-skill/
 #    - Goose: .agents/skills/my-skill/
+#    - Mistral Vibe: .vibe/skills/my-skill/
 #    - Other MCP agents: .skillz/my-skill/ + Skillz MCP server configured
 ```
 
