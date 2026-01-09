@@ -1,7 +1,7 @@
 /**
  * Interface defining an AI agent configuration adapter.
  */
-import { McpConfig } from '../types';
+import { HooksConfig, McpConfig } from '../types';
 /**
  * Configuration overrides for a specific agent.
  */
@@ -16,6 +16,8 @@ export interface IAgentConfig {
   outputPathConfig?: string;
   /** MCP propagation config for this agent. */
   mcp?: McpConfig;
+  /** Hooks propagation config for this agent. */
+  hooks?: HooksConfig;
 }
 
 export interface IAgent {

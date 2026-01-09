@@ -2,6 +2,7 @@
  * Types for Model Context Protocol (MCP) server configuration.
  */
 export type McpStrategy = 'merge' | 'overwrite';
+export type HooksStrategy = 'merge' | 'overwrite';
 
 /** MCP configuration for an agent or global. */
 export interface McpConfig {
@@ -9,6 +10,18 @@ export interface McpConfig {
   enabled?: boolean;
   /** Merge strategy: 'merge' to merge servers, 'overwrite' to replace config. */
   strategy?: McpStrategy;
+}
+
+/** Hooks configuration for an agent. */
+export interface HooksConfig {
+  /** Enable or disable hook propagation. */
+  enabled?: boolean;
+  /** Merge strategy: 'merge' to append hooks, 'overwrite' to replace hooks. */
+  strategy?: HooksStrategy;
+  /** Path to the hooks source JSON file. */
+  source?: string;
+  /** Override for the agent hooks output path. */
+  outputPath?: string;
 }
 
 /** Global MCP configuration section (same as agent-specific config). */

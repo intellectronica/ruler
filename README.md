@@ -49,6 +49,7 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 - **Automatic Distribution**: Ruler applies these rules to configuration files of supported AI agents
 - **Targeted Agent Configuration**: Fine-tune which agents are affected and their specific output paths via `ruler.toml`
 - **MCP Server Propagation**: Manage and distribute Model Context Protocol (MCP) server settings
+- **Hooks Propagation**: Manage and distribute hook definitions for agents that support hooks (Claude Code, Gemini CLI, Windsurf)
 - **`.gitignore` Automation**: Keeps generated agent config files out of version control automatically
 - **Simple CLI**: Easy-to-use commands for initialising and applying configurations
 
@@ -58,11 +59,11 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | ---------------- | ------------------------------------------------ | ------------------------------------------------ |
 | AGENTS.md        | `AGENTS.md`                                      | (pseudo-agent ensuring root `AGENTS.md` exists)  |
 | GitHub Copilot   | `AGENTS.md`                                      | `.vscode/mcp.json`                               |
-| Claude Code      | `CLAUDE.md`                                      | `.mcp.json`                                      |
+| Claude Code      | `CLAUDE.md`                                      | `.mcp.json`; hooks: `.claude/settings.json`      |
 | OpenAI Codex CLI | `AGENTS.md`                                      | `.codex/config.toml`                             |
 | Jules            | `AGENTS.md`                                      | -                                                |
 | Cursor           | `AGENTS.md`                                      | `.cursor/mcp.json`                               |
-| Windsurf         | `AGENTS.md`                                      | `.windsurf/mcp_config.json`                      |
+| Windsurf         | `AGENTS.md`                                      | `.windsurf/mcp_config.json`; hooks: `.windsurf/hooks.json` |
 | Cline            | `.clinerules`                                    | -                                                |
 | Crush            | `CRUSH.md`                                       | `.crush.json`                                    |
 | Amp              | `AGENTS.md`                                      | -                                                |
@@ -71,7 +72,7 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | Aider            | `AGENTS.md`, `.aider.conf.yml`                   | `.mcp.json`                                      |
 | Firebase Studio  | `.idx/airules.md`                                | `.idx/mcp.json`                                  |
 | Open Hands       | `.openhands/microagents/repo.md`                 | `config.toml`                                    |
-| Gemini CLI       | `AGENTS.md`                                      | `.gemini/settings.json`                          |
+| Gemini CLI       | `AGENTS.md`                                      | `.gemini/settings.json` (MCP + hooks)            |
 | Junie            | `.junie/guidelines.md`                           | -                                                |
 | AugmentCode      | `.augment/rules/ruler_augment_instructions.md`   | -                                                |
 | Kilo Code        | `.kilocode/rules/ruler_kilocode_instructions.md` | `.kilocode/mcp.json`                             |
@@ -453,6 +454,43 @@ output_path = ".kilocode/rules/ruler_kilocode_instructions.md"
 [agents.warp]
 enabled = true
 output_path = "WARP.md"
+```
+
+### Hooks Configuration (Agent-Specific)
+
+Hooks are configured per agent using the `[agents.<agent>.hooks]` section.
+Provide a JSON source file containing either a top-level `hooks` object or the hooks object directly.
+
+```toml
+[agents.claude.hooks]
+enabled = true
+merge_strategy = "merge"
+source = ".ruler/hooks/claude.json"
+
+[agents.gemini-cli.hooks]
+enabled = true
+merge_strategy = "merge"
+source = ".ruler/hooks/gemini.json"
+
+[agents.windsurf.hooks]
+enabled = true
+merge_strategy = "overwrite"
+source = ".ruler/hooks/windsurf.json"
+```
+
+Example hook file:
+
+```json
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "bash",
+        "hooks": [{ "type": "command", "command": "echo hook" }]
+      }
+    ]
+  }
+}
 ```
 
 ### Configuration Precedence
