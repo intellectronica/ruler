@@ -35,6 +35,10 @@ describe('AmpAgent', () => {
     expect(agent.getMcpServerKey()).toBe('');
   });
 
+  it('should support native skills', () => {
+    expect(agent.supportsNativeSkills()).toBe(true);
+  });
+
   it('should return the correct default output path', () => {
     const base = path.join(os.tmpdir(), 'amp-agent-path-test');
     expect(agent.getDefaultOutputPath(base)).toBe(path.join(base, 'AGENTS.md'));

@@ -570,11 +570,16 @@ Skills are specialized knowledge packages that extend AI agent capabilities with
 - **Agents with native skills support**: Skills are copied directly to each agent's native skills directory:
   - **Claude Code**: `.claude/skills/`
   - **GitHub Copilot**: `.claude/skills/` (shared with Claude Code)
+  - **Kilo Code**: `.claude/skills/` (shared with Claude Code)
   - **OpenAI Codex CLI**: `.codex/skills/`
   - **OpenCode**: `.opencode/skill/`
   - **Pi Coding Agent**: `.pi/skills/`
   - **Goose**: `.agents/skills/`
+  - **Amp**: `.agents/skills/` (shared with Goose)
   - **Mistral Vibe**: `.vibe/skills/`
+  - **Roo Code**: `.roo/skills/`
+  - **Gemini CLI**: `.gemini/skills/`
+  - **Cursor**: `.cursor/skills/`
 - **Other MCP-compatible agents**: Skills are copied to `.skillz/` and a Skillz MCP server is automatically configured via `uvx`
 
 ### Skills Directory Structure
@@ -630,7 +635,7 @@ For agents that support MCP but don't have native skills support, Ruler automati
 2. Configures a Skillz MCP server in the agent's configuration
 3. Uses `uvx` to launch the server with the absolute path to `.skillz`
 
-Agents using native skills support (Claude Code, GitHub Copilot, OpenAI Codex CLI, OpenCode, Pi Coding Agent, Goose, and Mistral Vibe) **do not** use the Skillz MCP server and instead use their own native skills directories.
+Agents using native skills support (Claude Code, GitHub Copilot, Kilo Code, OpenAI Codex CLI, OpenCode, Pi Coding Agent, Goose, Amp, Mistral Vibe, Roo Code, Gemini CLI, and Cursor) **do not** use the Skillz MCP server and instead use their own native skills directories.
 
 Example auto-generated MCP server configuration:
 
@@ -644,19 +649,22 @@ args = ["skillz@latest", "/absolute/path/to/project/.skillz"]
 
 When skills support is enabled and gitignore integration is active, Ruler automatically adds:
 
-- `.claude/skills/` (for Claude Code and GitHub Copilot)
+- `.claude/skills/` (for Claude Code, GitHub Copilot, and Kilo Code)
 - `.codex/skills/` (for OpenAI Codex CLI)
 - `.opencode/skill/` (for OpenCode)
 - `.pi/skills/` (for Pi Coding Agent)
-- `.agents/skills/` (for Goose)
+- `.agents/skills/` (for Goose and Amp)
 - `.vibe/skills/` (for Mistral Vibe)
+- `.roo/skills/` (for Roo Code)
+- `.gemini/skills/` (for Gemini CLI)
+- `.cursor/skills/` (for Cursor)
 - `.skillz/` (for other MCP-based agents)
 
 to your `.gitignore` file within the managed Ruler block.
 
 ### Requirements
 
-- **For agents with native skills support** (Claude Code, GitHub Copilot, OpenAI Codex CLI, OpenCode, Pi Coding Agent, Goose, Mistral Vibe): No additional requirements
+- **For agents with native skills support** (Claude Code, GitHub Copilot, Kilo Code, OpenAI Codex CLI, OpenCode, Pi Coding Agent, Goose, Amp, Mistral Vibe, Roo Code, Gemini CLI, Cursor): No additional requirements
 - **For other MCP agents**: `uv` must be installed and available in your PATH
   ```bash
   # Install uv if needed
@@ -704,12 +712,15 @@ EOF
 ruler apply
 
 # 3. Skills are now available to compatible agents:
-#    - Claude Code & GitHub Copilot: .claude/skills/my-skill/
+#    - Claude Code, GitHub Copilot & Kilo Code: .claude/skills/my-skill/
 #    - OpenAI Codex CLI: .codex/skills/my-skill/
 #    - OpenCode: .opencode/skill/my-skill/
 #    - Pi Coding Agent: .pi/skills/my-skill/
-#    - Goose: .agents/skills/my-skill/
+#    - Goose & Amp: .agents/skills/my-skill/
 #    - Mistral Vibe: .vibe/skills/my-skill/
+#    - Roo Code: .roo/skills/my-skill/
+#    - Gemini CLI: .gemini/skills/my-skill/
+#    - Cursor: .cursor/skills/my-skill/
 #    - Other MCP agents: .skillz/my-skill/ + Skillz MCP server configured
 ```
 

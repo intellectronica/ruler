@@ -106,4 +106,11 @@ describe('KiloCodeAgent', () => {
       expect(agent.getMcpServerKey()).toBe('mcpServers');
     });
   });
+
+  describe('Native Skills Support', () => {
+    it('supports native skills', () => {
+      const agent = new KiloCodeAgent();
+      expect(agent.supportsNativeSkills()).toBe(true);
+    });
+  });
 });
