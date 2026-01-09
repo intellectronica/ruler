@@ -7,6 +7,11 @@ import { updateGitignore as updateGitignoreUtil } from './GitignoreUtils';
 import { IAgent } from '../agents/IAgent';
 import { mergeMcp } from '../mcp/merge';
 import { getNativeMcpPath, readNativeMcp, writeNativeMcp } from '../paths/mcp';
+import {
+  getNativeHooksPath,
+  readNativeHooks,
+  writeNativeHooks,
+} from '../paths/hooks';
 import { propagateMcpToOpenHands } from '../mcp/propagateOpenHandsMcp';
 import { propagateMcpToOpenCode } from '../mcp/propagateOpenCodeMcp';
 import { getAgentOutputPaths } from '../agents/agent-utils';
@@ -18,7 +23,7 @@ import {
   logInfo,
   logWarn,
 } from '../constants';
-import { McpStrategy } from '../types';
+import { HooksStrategy, McpStrategy } from '../types';
 
 /**
  * Configuration data loaded from the ruler setup
@@ -184,6 +189,7 @@ function cloneLoadedConfig(config: LoadedConfig): LoadedConfig {
     clonedAgentConfigs[agent] = {
       ...agentConfig,
       mcp: agentConfig.mcp ? { ...agentConfig.mcp } : undefined,
+      hooks: agentConfig.hooks ? { ...agentConfig.hooks } : undefined,
     };
   }
 
@@ -570,6 +576,16 @@ export async function applyConfigurationsToAgents(
       backup,
       skillsEnabled,
     );
+
+    await handleHooksConfiguration(
+      agent,
+      agentConfig,
+      projectRoot,
+      generatedPaths,
+      verbose,
+      dryRun,
+      backup,
+    );
   }
 
   return generatedPaths;
@@ -672,6 +688,195 @@ async function handleMcpConfiguration(
     verbose,
     backup,
   );
+}
+
+async function handleHooksConfiguration(
+  agent: IAgent,
+  agentConfig: IAgentConfig | undefined,
+  projectRoot: string,
+  generatedPaths: string[],
+  verbose: boolean,
+  dryRun: boolean,
+  backup = true,
+): Promise<void> {
+  const hooksConfig = agentConfig?.hooks;
+  if (!hooksConfig) {
+    return;
+  }
+
+  const hooksEnabled = hooksConfig.enabled ?? true;
+  if (!hooksEnabled) {
+    return;
+  }
+
+  const sourcePath = hooksConfig.source;
+  if (!sourcePath) {
+    logWarn(
+      `Hooks enabled for ${agent.getName()} but no source file configured`,
+      dryRun,
+    );
+    return;
+  }
+
+  const dest =
+    hooksConfig.outputPath ??
+    (await getNativeHooksPath(agent.getName(), projectRoot));
+
+  if (!dest) {
+    logVerbose(
+      `Agent ${agent.getName()} does not support hooks - skipping hooks configuration`,
+      verbose,
+    );
+    return;
+  }
+
+  // Prevent writing hooks configs outside the project root
+  if (!dest.startsWith(projectRoot)) {
+    logVerbose(
+      `Skipping hooks config for ${agent.getName()} because target path is outside project: ${dest}`,
+      verbose,
+    );
+    return;
+  }
+
+  const hooksSource = await readHooksSource(sourcePath, verbose, dryRun);
+  if (!hooksSource) {
+    return;
+  }
+
+  await updateGitignoreForHooksFile(dest, projectRoot, generatedPaths, backup);
+  await applyHooksConfiguration(
+    agent,
+    hooksSource,
+    dest,
+    hooksConfig.strategy ?? 'merge',
+    dryRun,
+    verbose,
+    backup,
+  );
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function extractHooksDefinition(
+  raw: Record<string, unknown>,
+): Record<string, unknown> | null {
+  if ('hooks' in raw) {
+    return isRecord(raw.hooks) ? (raw.hooks as Record<string, unknown>) : null;
+  }
+  return raw;
+}
+
+async function readHooksSource(
+  sourcePath: string,
+  verbose: boolean,
+  dryRun: boolean,
+): Promise<Record<string, unknown> | null> {
+  try {
+    const raw = await fs.readFile(sourcePath, 'utf8');
+    const parsed = JSON.parse(raw) as unknown;
+    if (!isRecord(parsed)) {
+      logWarn(`Hooks source is not a JSON object: ${sourcePath}`, dryRun);
+      return null;
+    }
+    const hooks = extractHooksDefinition(parsed);
+    if (!hooks) {
+      logWarn(
+        `Hooks source missing valid "hooks" object: ${sourcePath}`,
+        dryRun,
+      );
+      return null;
+    }
+    return hooks;
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    logWarn(`Failed to read hooks source at ${sourcePath}: ${message}`, dryRun);
+    logVerbose(
+      `Error reading hooks source at ${sourcePath}: ${message}`,
+      verbose,
+    );
+    return null;
+  }
+}
+
+function mergeHooks(
+  existingHooks: Record<string, unknown>,
+  incomingHooks: Record<string, unknown>,
+): Record<string, unknown> {
+  const merged: Record<string, unknown> = { ...existingHooks };
+  for (const [hookName, incomingValue] of Object.entries(incomingHooks)) {
+    const existingValue = existingHooks[hookName];
+    if (Array.isArray(existingValue) && Array.isArray(incomingValue)) {
+      merged[hookName] = [...existingValue, ...incomingValue];
+    } else {
+      merged[hookName] = incomingValue;
+    }
+  }
+  return merged;
+}
+
+async function applyHooksConfiguration(
+  agent: IAgent,
+  hooksSource: Record<string, unknown>,
+  dest: string,
+  strategy: HooksStrategy,
+  dryRun: boolean,
+  verbose: boolean,
+  backup = true,
+): Promise<void> {
+  const existing = await readNativeHooks(dest);
+  const existingHooks = isRecord(existing.hooks)
+    ? (existing.hooks as Record<string, unknown>)
+    : {};
+  const nextHooks =
+    strategy === 'overwrite'
+      ? hooksSource
+      : mergeHooks(existingHooks, hooksSource);
+
+  const shouldSetHooks =
+    Object.keys(nextHooks).length > 0 || isRecord(existing.hooks);
+  const updated = shouldSetHooks ? { ...existing, hooks: nextHooks } : existing;
+
+  const currentContent = JSON.stringify(existing, null, 2);
+  const newContent = JSON.stringify(updated, null, 2);
+
+  if (currentContent === newContent) {
+    logVerbose(
+      `Hooks config for ${agent.getName()} is already up to date - skipping backup and write`,
+      verbose,
+    );
+    return;
+  }
+
+  if (dryRun) {
+    logVerbose(
+      `DRY RUN: Would apply hooks config for ${agent.getName()} at ${dest}`,
+      verbose,
+    );
+    return;
+  }
+
+  if (backup) {
+    await FileSystemUtils.backupFile(dest);
+  }
+  await writeNativeHooks(dest, updated);
+}
+
+async function updateGitignoreForHooksFile(
+  dest: string,
+  projectRoot: string,
+  generatedPaths: string[],
+  backup = true,
+): Promise<void> {
+  if (dest.startsWith(projectRoot)) {
+    const relativeDest = path.relative(projectRoot, dest);
+    generatedPaths.push(relativeDest);
+    if (backup) {
+      generatedPaths.push(`${relativeDest}.bak`);
+    }
+  }
 }
 
 async function updateGitignoreForMcpFile(

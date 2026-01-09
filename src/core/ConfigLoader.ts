@@ -8,6 +8,7 @@ import {
   GlobalMcpConfig,
   GitignoreConfig,
   SkillsConfig,
+  HooksConfig,
 } from '../types';
 import { createRulerError } from '../constants';
 
@@ -22,6 +23,15 @@ const mcpConfigSchema = z
   })
   .optional();
 
+const hooksConfigSchema = z
+  .object({
+    enabled: z.boolean().optional(),
+    merge_strategy: z.enum(['merge', 'overwrite']).optional(),
+    source: z.string().optional(),
+    output_path: z.string().optional(),
+  })
+  .optional();
+
 const agentConfigSchema = z
   .object({
     enabled: z.boolean().optional(),
@@ -29,6 +39,7 @@ const agentConfigSchema = z
     output_path_instructions: z.string().optional(),
     output_path_config: z.string().optional(),
     mcp: mcpConfigSchema,
+    hooks: hooksConfigSchema,
   })
   .optional();
 
@@ -86,6 +97,8 @@ export interface IAgentConfig {
   outputPathConfig?: string;
   /** MCP propagation config for this agent. */
   mcp?: McpConfig;
+  /** Hooks propagation config for this agent. */
+  hooks?: HooksConfig;
 }
 
 /**
@@ -217,6 +230,26 @@ export async function loadConfig(
           }
         }
         cfg.mcp = mcpCfg;
+      }
+      if (sectionObj.hooks && typeof sectionObj.hooks === 'object') {
+        const h = sectionObj.hooks as Record<string, unknown>;
+        const hooksCfg: HooksConfig = {};
+        if (typeof h.enabled === 'boolean') {
+          hooksCfg.enabled = h.enabled;
+        }
+        if (typeof h.merge_strategy === 'string') {
+          const hs = h.merge_strategy;
+          if (hs === 'merge' || hs === 'overwrite') {
+            hooksCfg.strategy = hs;
+          }
+        }
+        if (typeof h.source === 'string') {
+          hooksCfg.source = path.resolve(projectRoot, h.source);
+        }
+        if (typeof h.output_path === 'string') {
+          hooksCfg.outputPath = path.resolve(projectRoot, h.output_path);
+        }
+        cfg.hooks = hooksCfg;
       }
       agentConfigs[name] = cfg;
     }

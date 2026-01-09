@@ -4,6 +4,7 @@ import { IAgent } from '../agents/IAgent';
 import { IAgentConfig } from './ConfigLoader';
 import { getAgentOutputPaths } from '../agents/agent-utils';
 import { getNativeMcpPath } from '../paths/mcp';
+import { getNativeHooksPath } from '../paths/hooks';
 import { logVerbose, actionPrefix } from '../constants';
 import {
   readVSCodeSettings,
@@ -267,6 +268,7 @@ async function removeEmptyDirectories(
   dryRun: boolean,
 ): Promise<number> {
   const rulerCreatedDirs = [
+    '.claude',
     '.github',
     '.cursor',
     '.windsurf',
@@ -505,6 +507,42 @@ export async function revertAgentConfiguration(
       } else {
         const mcpRemoved = await removeGeneratedFile(mcpPath, verbose, dryRun);
         if (mcpRemoved) {
+          result.removed++;
+        }
+      }
+    }
+  }
+
+  // Handle hooks files
+  const hooksPath = await getNativeHooksPath(agent.getName(), projectRoot);
+  if (hooksPath && hooksPath.startsWith(projectRoot)) {
+    if (hooksPath === mcpPath) {
+      logVerbose(
+        `Skipping hooks handling for ${agent.getName()} because hooks share MCP config file`,
+        verbose,
+      );
+    } else {
+      const hooksRestored = await restoreFromBackup(hooksPath, verbose, dryRun);
+      if (hooksRestored) {
+        result.restored++;
+
+        if (!keepBackups) {
+          const hooksBackupRemoved = await removeBackupFile(
+            hooksPath,
+            verbose,
+            dryRun,
+          );
+          if (hooksBackupRemoved) {
+            result.backupsRemoved++;
+          }
+        }
+      } else {
+        const hooksRemoved = await removeGeneratedFile(
+          hooksPath,
+          verbose,
+          dryRun,
+        );
+        if (hooksRemoved) {
           result.removed++;
         }
       }

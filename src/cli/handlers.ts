@@ -180,6 +180,13 @@ export async function initHandler(argv: InitArgs): Promise<void> {
 # [agents.gemini-cli]
 # enabled = true
 
+# --- Hooks (Agent-Specific) ---
+# Hooks are configured per agent via [agents.<agent>.hooks]
+# [agents.claude.hooks]
+# enabled = true
+# merge_strategy = "merge"
+# source = ".ruler/hooks/claude.json"
+
 # --- MCP Servers ---
 # Define Model Context Protocol servers here. Two examples:
 # 1. A stdio server (local executable)
