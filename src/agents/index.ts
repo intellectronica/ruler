@@ -29,6 +29,7 @@ import { AmazonQCliAgent } from './AmazonQCliAgent';
 import { FirebenderAgent } from './FirebenderAgent';
 import { AntigravityAgent } from './AntigravityAgent';
 import { MistralVibeAgent } from './MistralVibeAgent';
+import { PiAgent } from './PiAgent';
 
 export { AbstractAgent };
 
@@ -62,6 +63,7 @@ export const allAgents: IAgent[] = [
   new FirebenderAgent(),
   new AntigravityAgent(),
   new MistralVibeAgent(),
+  new PiAgent(),
 ];
 
 /**

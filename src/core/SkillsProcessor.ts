@@ -6,6 +6,7 @@ import {
   CLAUDE_SKILLS_PATH,
   CODEX_SKILLS_PATH,
   OPENCODE_SKILLS_PATH,
+  PI_SKILLS_PATH,
   GOOSE_SKILLS_PATH,
   VIBE_SKILLS_PATH,
   SKILLZ_DIR,
@@ -58,6 +59,7 @@ export async function getSkillsGitignorePaths(
     CLAUDE_SKILLS_PATH,
     CODEX_SKILLS_PATH,
     OPENCODE_SKILLS_PATH,
+    PI_SKILLS_PATH,
     GOOSE_SKILLS_PATH,
     VIBE_SKILLS_PATH,
     SKILLZ_DIR,
@@ -67,6 +69,7 @@ export async function getSkillsGitignorePaths(
     path.join(projectRoot, CLAUDE_SKILLS_PATH),
     path.join(projectRoot, CODEX_SKILLS_PATH),
     path.join(projectRoot, OPENCODE_SKILLS_PATH),
+    path.join(projectRoot, PI_SKILLS_PATH),
     path.join(projectRoot, GOOSE_SKILLS_PATH),
     path.join(projectRoot, VIBE_SKILLS_PATH),
     path.join(projectRoot, SKILLZ_DIR),
@@ -112,6 +115,7 @@ async function cleanupSkillsDirectories(
   const claudeSkillsPath = path.join(projectRoot, CLAUDE_SKILLS_PATH);
   const codexSkillsPath = path.join(projectRoot, CODEX_SKILLS_PATH);
   const opencodeSkillsPath = path.join(projectRoot, OPENCODE_SKILLS_PATH);
+  const piSkillsPath = path.join(projectRoot, PI_SKILLS_PATH);
   const gooseSkillsPath = path.join(projectRoot, GOOSE_SKILLS_PATH);
   const vibeSkillsPath = path.join(projectRoot, VIBE_SKILLS_PATH);
   const skillzPath = path.join(projectRoot, SKILLZ_DIR);
@@ -171,6 +175,27 @@ async function cleanupSkillsDirectories(
       await fs.rm(opencodeSkillsPath, { recursive: true, force: true });
       logVerboseInfo(
         `Removed ${OPENCODE_SKILLS_PATH} (skills disabled)`,
+        verbose,
+        dryRun,
+      );
+    }
+  } catch {
+    // Directory doesn't exist, nothing to clean
+  }
+
+  // Clean up .pi/skills
+  try {
+    await fs.access(piSkillsPath);
+    if (dryRun) {
+      logVerboseInfo(
+        `DRY RUN: Would remove ${PI_SKILLS_PATH}`,
+        verbose,
+        dryRun,
+      );
+    } else {
+      await fs.rm(piSkillsPath, { recursive: true, force: true });
+      logVerboseInfo(
+        `Removed ${PI_SKILLS_PATH} (skills disabled)`,
         verbose,
         dryRun,
       );
@@ -327,6 +352,13 @@ export async function propagateSkills(
       dryRun,
     );
     await propagateSkillsForOpenCode(projectRoot, { dryRun });
+
+    logVerboseInfo(
+      `Copying skills to ${PI_SKILLS_PATH} for Pi Coding Agent`,
+      verbose,
+      dryRun,
+    );
+    await propagateSkillsForPi(projectRoot, { dryRun });
 
     logVerboseInfo(
       `Copying skills to ${GOOSE_SKILLS_PATH} for Goose`,
@@ -515,6 +547,64 @@ export async function propagateSkillsForOpenCode(
 
     // Rename temp to target
     await fs.rename(tempDir, opencodeSkillsPath);
+  } catch (error) {
+    // Clean up temp directory on error
+    try {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    } catch {
+      // Ignore cleanup errors
+    }
+    throw error;
+  }
+
+  return [];
+}
+
+/**
+ * Propagates skills for Pi Coding Agent by copying .ruler/skills to .pi/skills.
+ * Uses atomic replace to ensure safe overwriting of existing skills.
+ * Returns dry-run steps if dryRun is true, otherwise returns empty array.
+ */
+export async function propagateSkillsForPi(
+  projectRoot: string,
+  options: { dryRun: boolean },
+): Promise<string[]> {
+  const skillsDir = path.join(projectRoot, RULER_SKILLS_PATH);
+  const piSkillsPath = path.join(projectRoot, PI_SKILLS_PATH);
+  const piDir = path.dirname(piSkillsPath);
+
+  // Check if source skills directory exists
+  try {
+    await fs.access(skillsDir);
+  } catch {
+    // No skills directory - return empty
+    return [];
+  }
+
+  if (options.dryRun) {
+    return [`Copy skills from ${RULER_SKILLS_PATH} to ${PI_SKILLS_PATH}`];
+  }
+
+  // Ensure .pi directory exists
+  await fs.mkdir(piDir, { recursive: true });
+
+  // Use atomic replace: copy to temp, then rename
+  const tempDir = path.join(piDir, `skills.tmp-${Date.now()}`);
+
+  try {
+    // Copy to temp directory
+    await copySkillsDirectory(skillsDir, tempDir);
+
+    // Atomically replace the target
+    // First, remove existing target if it exists
+    try {
+      await fs.rm(piSkillsPath, { recursive: true, force: true });
+    } catch {
+      // Target didn't exist, that's fine
+    }
+
+    // Rename temp to target
+    await fs.rename(tempDir, piSkillsPath);
   } catch (error) {
     // Clean up temp directory on error
     try {
