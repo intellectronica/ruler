@@ -99,5 +99,12 @@ describe('CursorAgent', () => {
       expect(agent.supportsMcpRemote()).toBe(true);
     });
   });
+
+  describe('Native Skills Support', () => {
+    it('supports native skills', () => {
+      const agent = new CursorAgent();
+      expect(agent.supportsNativeSkills()).toBe(true);
+    });
+  });
 });
 

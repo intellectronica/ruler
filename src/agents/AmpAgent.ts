@@ -8,4 +8,8 @@ export class AmpAgent extends AgentsMdAgent {
   getName(): string {
     return 'Amp';
   }
+
+  supportsNativeSkills(): boolean {
+    return true;
+  }
 }

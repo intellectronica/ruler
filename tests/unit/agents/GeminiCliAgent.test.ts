@@ -19,6 +19,11 @@ describe('GeminiCliAgent', () => {
     expect(agent.getMcpServerKey()).toBe('mcpServers');
   });
 
+  it('should support native skills', () => {
+    const agent = new GeminiCliAgent();
+    expect(agent.supportsNativeSkills()).toBe(true);
+  });
+
   it('writes AGENTS.md and sets contextFileName in .gemini/settings.json', async () => {
     const { projectRoot } = await setupTestProject({
       '.ruler/AGENTS.md': 'Rule A',

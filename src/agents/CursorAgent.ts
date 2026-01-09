@@ -46,4 +46,8 @@ export class CursorAgent extends AgentsMdAgent {
   supportsMcpRemote(): boolean {
     return true;
   }
+
+  supportsNativeSkills(): boolean {
+    return true;
+  }
 }

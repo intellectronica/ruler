@@ -68,7 +68,7 @@ describe('Skills MCP Agent Integration', () => {
       expect(skillContent).toBe('# Test Skill');
     });
 
-    it('adds Skillz MCP server to Gemini CLI config', async () => {
+    it('adds skills to .gemini/skills for Gemini CLI (native skills)', async () => {
       await applyAllAgentConfigs(
         tmpDir,
         ['gemini-cli'],
@@ -84,16 +84,19 @@ describe('Skills MCP Agent Integration', () => {
         true, // skills enabled
       );
 
-      // Check that .gemini/settings.json exists and contains skillz server
-      const geminiSettingsPath = path.join(tmpDir, '.gemini', 'settings.json');
-      const settingsContent = await fs.readFile(geminiSettingsPath, 'utf8');
-      const settings = JSON.parse(settingsContent);
+      // Check that .gemini/skills exists and contains the test skill
+      const geminiSkillsPath = path.join(tmpDir, '.gemini', 'skills');
+      const testSkillPath = path.join(geminiSkillsPath, 'test-skill');
+      const skillMdPath = path.join(testSkillPath, SKILL_MD_FILENAME);
 
-      expect(settings).toHaveProperty('mcpServers');
-      expect(settings.mcpServers).toHaveProperty('skillz');
-      expect(settings.mcpServers.skillz.command).toBe('uvx');
-      expect(settings.mcpServers.skillz.args).toContain('skillz@latest');
-      expect(settings.mcpServers.skillz.args[1]).toContain('.skillz');
+      // Verify the skill directory and file exist
+      await expect(fs.access(geminiSkillsPath)).resolves.toBeUndefined();
+      await expect(fs.access(testSkillPath)).resolves.toBeUndefined();
+      await expect(fs.access(skillMdPath)).resolves.toBeUndefined();
+
+      // Verify skill content was copied
+      const skillContent = await fs.readFile(skillMdPath, 'utf8');
+      expect(skillContent).toBe('# Test Skill');
     });
 
     it('adds skills to .claude/skills for Copilot (native skills)', async () => {
@@ -235,10 +238,10 @@ args = ["server.js"]
         true, // skills enabled
       );
 
-      // Codex and Copilot should have native skills, Gemini should have Skillz MCP server
+      // All agents should have native skills
       const codexSkillsPath = path.join(tmpDir, '.codex', 'skills');
       const claudeSkillsPath = path.join(tmpDir, '.claude', 'skills');
-      const geminiSettingsPath = path.join(tmpDir, '.gemini', 'settings.json');
+      const geminiSkillsPath = path.join(tmpDir, '.gemini', 'skills');
 
       // Check Codex has native skills
       await expect(
@@ -250,10 +253,10 @@ args = ["server.js"]
         fs.access(path.join(claudeSkillsPath, 'test-skill', SKILL_MD_FILENAME)),
       ).resolves.toBeUndefined();
 
-      // Check Gemini has Skillz MCP server
-      const geminiContent = await fs.readFile(geminiSettingsPath, 'utf8');
-      const geminiSettings = JSON.parse(geminiContent);
-      expect(geminiSettings.mcpServers).toHaveProperty('skillz');
+      // Check Gemini has native skills
+      await expect(
+        fs.access(path.join(geminiSkillsPath, 'test-skill', SKILL_MD_FILENAME)),
+      ).resolves.toBeUndefined();
     });
   });
 });

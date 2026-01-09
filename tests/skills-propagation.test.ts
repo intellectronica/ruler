@@ -532,6 +532,212 @@ describe('Skills Discovery and Validation', () => {
     });
   });
 
+  describe('propagateSkillsForRoo', () => {
+    it('copies .ruler/skills to .roo/skills preserving structure', async () => {
+      const { propagateSkillsForRoo } = await import(
+        '../src/core/SkillsProcessor'
+      );
+      const skillsDir = path.join(tmpDir, '.ruler', 'skills');
+      const skill1 = path.join(skillsDir, 'skill1');
+
+      await fs.mkdir(skill1, { recursive: true });
+      await fs.writeFile(path.join(skill1, SKILL_MD_FILENAME), '# Skill 1');
+
+      await propagateSkillsForRoo(tmpDir, { dryRun: false });
+
+      const rooSkillsDir = path.join(tmpDir, '.roo', 'skills');
+      const copiedSkill = path.join(rooSkillsDir, 'skill1', SKILL_MD_FILENAME);
+      expect(await fs.readFile(copiedSkill, 'utf8')).toBe('# Skill 1');
+    });
+
+    it('creates .roo directory if it does not exist', async () => {
+      const { propagateSkillsForRoo } = await import(
+        '../src/core/SkillsProcessor'
+      );
+      const skillsDir = path.join(tmpDir, '.ruler', 'skills');
+      const skill1 = path.join(skillsDir, 'skill1');
+
+      await fs.mkdir(skill1, { recursive: true });
+      await fs.writeFile(path.join(skill1, SKILL_MD_FILENAME), '# Skill 1');
+
+      await propagateSkillsForRoo(tmpDir, { dryRun: false });
+
+      const rooDir = path.join(tmpDir, '.roo');
+      const stats = await fs.stat(rooDir);
+      expect(stats.isDirectory()).toBe(true);
+    });
+
+    it('includes operations in dry-run preview without executing', async () => {
+      const { propagateSkillsForRoo } = await import(
+        '../src/core/SkillsProcessor'
+      );
+      const skillsDir = path.join(tmpDir, '.ruler', 'skills');
+      const skill1 = path.join(skillsDir, 'skill1');
+
+      await fs.mkdir(skill1, { recursive: true });
+      await fs.writeFile(path.join(skill1, SKILL_MD_FILENAME), '# Skill 1');
+
+      const steps = await propagateSkillsForRoo(tmpDir, { dryRun: true });
+
+      expect(steps.length).toBeGreaterThan(0);
+      expect(steps.some((step) => step.includes('.roo/skills'))).toBe(true);
+
+      // Should not have actually copied
+      const rooSkillsDir = path.join(tmpDir, '.roo', 'skills');
+      await expect(fs.access(rooSkillsDir)).rejects.toThrow();
+    });
+
+    it('no-ops gracefully when .ruler/skills does not exist', async () => {
+      const { propagateSkillsForRoo } = await import(
+        '../src/core/SkillsProcessor'
+      );
+
+      const steps = await propagateSkillsForRoo(tmpDir, { dryRun: true });
+
+      expect(steps).toHaveLength(0);
+    });
+  });
+
+  describe('propagateSkillsForGemini', () => {
+    it('copies .ruler/skills to .gemini/skills preserving structure', async () => {
+      const { propagateSkillsForGemini } = await import(
+        '../src/core/SkillsProcessor'
+      );
+      const skillsDir = path.join(tmpDir, '.ruler', 'skills');
+      const skill1 = path.join(skillsDir, 'skill1');
+
+      await fs.mkdir(skill1, { recursive: true });
+      await fs.writeFile(path.join(skill1, SKILL_MD_FILENAME), '# Skill 1');
+
+      await propagateSkillsForGemini(tmpDir, { dryRun: false });
+
+      const geminiSkillsDir = path.join(tmpDir, '.gemini', 'skills');
+      const copiedSkill = path.join(
+        geminiSkillsDir,
+        'skill1',
+        SKILL_MD_FILENAME,
+      );
+      expect(await fs.readFile(copiedSkill, 'utf8')).toBe('# Skill 1');
+    });
+
+    it('creates .gemini directory if it does not exist', async () => {
+      const { propagateSkillsForGemini } = await import(
+        '../src/core/SkillsProcessor'
+      );
+      const skillsDir = path.join(tmpDir, '.ruler', 'skills');
+      const skill1 = path.join(skillsDir, 'skill1');
+
+      await fs.mkdir(skill1, { recursive: true });
+      await fs.writeFile(path.join(skill1, SKILL_MD_FILENAME), '# Skill 1');
+
+      await propagateSkillsForGemini(tmpDir, { dryRun: false });
+
+      const geminiDir = path.join(tmpDir, '.gemini');
+      const stats = await fs.stat(geminiDir);
+      expect(stats.isDirectory()).toBe(true);
+    });
+
+    it('includes operations in dry-run preview without executing', async () => {
+      const { propagateSkillsForGemini } = await import(
+        '../src/core/SkillsProcessor'
+      );
+      const skillsDir = path.join(tmpDir, '.ruler', 'skills');
+      const skill1 = path.join(skillsDir, 'skill1');
+
+      await fs.mkdir(skill1, { recursive: true });
+      await fs.writeFile(path.join(skill1, SKILL_MD_FILENAME), '# Skill 1');
+
+      const steps = await propagateSkillsForGemini(tmpDir, { dryRun: true });
+
+      expect(steps.length).toBeGreaterThan(0);
+      expect(steps.some((step) => step.includes('.gemini/skills'))).toBe(true);
+
+      // Should not have actually copied
+      const geminiSkillsDir = path.join(tmpDir, '.gemini', 'skills');
+      await expect(fs.access(geminiSkillsDir)).rejects.toThrow();
+    });
+
+    it('no-ops gracefully when .ruler/skills does not exist', async () => {
+      const { propagateSkillsForGemini } = await import(
+        '../src/core/SkillsProcessor'
+      );
+
+      const steps = await propagateSkillsForGemini(tmpDir, { dryRun: true });
+
+      expect(steps).toHaveLength(0);
+    });
+  });
+
+  describe('propagateSkillsForCursor', () => {
+    it('copies .ruler/skills to .cursor/skills preserving structure', async () => {
+      const { propagateSkillsForCursor } = await import(
+        '../src/core/SkillsProcessor'
+      );
+      const skillsDir = path.join(tmpDir, '.ruler', 'skills');
+      const skill1 = path.join(skillsDir, 'skill1');
+
+      await fs.mkdir(skill1, { recursive: true });
+      await fs.writeFile(path.join(skill1, SKILL_MD_FILENAME), '# Skill 1');
+
+      await propagateSkillsForCursor(tmpDir, { dryRun: false });
+
+      const cursorSkillsDir = path.join(tmpDir, '.cursor', 'skills');
+      const copiedSkill = path.join(
+        cursorSkillsDir,
+        'skill1',
+        SKILL_MD_FILENAME,
+      );
+      expect(await fs.readFile(copiedSkill, 'utf8')).toBe('# Skill 1');
+    });
+
+    it('creates .cursor directory if it does not exist', async () => {
+      const { propagateSkillsForCursor } = await import(
+        '../src/core/SkillsProcessor'
+      );
+      const skillsDir = path.join(tmpDir, '.ruler', 'skills');
+      const skill1 = path.join(skillsDir, 'skill1');
+
+      await fs.mkdir(skill1, { recursive: true });
+      await fs.writeFile(path.join(skill1, SKILL_MD_FILENAME), '# Skill 1');
+
+      await propagateSkillsForCursor(tmpDir, { dryRun: false });
+
+      const cursorDir = path.join(tmpDir, '.cursor');
+      const stats = await fs.stat(cursorDir);
+      expect(stats.isDirectory()).toBe(true);
+    });
+
+    it('includes operations in dry-run preview without executing', async () => {
+      const { propagateSkillsForCursor } = await import(
+        '../src/core/SkillsProcessor'
+      );
+      const skillsDir = path.join(tmpDir, '.ruler', 'skills');
+      const skill1 = path.join(skillsDir, 'skill1');
+
+      await fs.mkdir(skill1, { recursive: true });
+      await fs.writeFile(path.join(skill1, SKILL_MD_FILENAME), '# Skill 1');
+
+      const steps = await propagateSkillsForCursor(tmpDir, { dryRun: true });
+
+      expect(steps.length).toBeGreaterThan(0);
+      expect(steps.some((step) => step.includes('.cursor/skills'))).toBe(true);
+
+      // Should not have actually copied
+      const cursorSkillsDir = path.join(tmpDir, '.cursor', 'skills');
+      await expect(fs.access(cursorSkillsDir)).rejects.toThrow();
+    });
+
+    it('no-ops gracefully when .ruler/skills does not exist', async () => {
+      const { propagateSkillsForCursor } = await import(
+        '../src/core/SkillsProcessor'
+      );
+
+      const steps = await propagateSkillsForCursor(tmpDir, { dryRun: true });
+
+      expect(steps).toHaveLength(0);
+    });
+  });
+
   describe('propagateSkills - cleanup when disabled', () => {
     it('removes skills directories when skills are disabled', async () => {
       const { propagateSkills } = await import('../src/core/SkillsProcessor');
@@ -541,6 +747,9 @@ describe('Skills Discovery and Validation', () => {
       const piSkillsDir = path.join(tmpDir, '.pi', 'skills');
       const gooseSkillsDir = path.join(tmpDir, '.agents', 'skills');
       const vibeSkillsDir = path.join(tmpDir, '.vibe', 'skills');
+      const rooSkillsDir = path.join(tmpDir, '.roo', 'skills');
+      const geminiSkillsDir = path.join(tmpDir, '.gemini', 'skills');
+      const cursorSkillsDir = path.join(tmpDir, '.cursor', 'skills');
       const skillzDir = path.join(tmpDir, '.skillz');
 
       // Create existing skills directories (as if they were from previous run)
@@ -549,12 +758,18 @@ describe('Skills Discovery and Validation', () => {
       const piOldSkill = path.join(piSkillsDir, 'old-skill');
       const gooseOldSkill = path.join(gooseSkillsDir, 'old-skill');
       const vibeOldSkill = path.join(vibeSkillsDir, 'old-skill');
+      const rooOldSkill = path.join(rooSkillsDir, 'old-skill');
+      const geminiOldSkill = path.join(geminiSkillsDir, 'old-skill');
+      const cursorOldSkill = path.join(cursorSkillsDir, 'old-skill');
       const skillzOldSkill = path.join(skillzDir, 'old-skill');
       await fs.mkdir(claudeOldSkill, { recursive: true });
       await fs.mkdir(opencodeOldSkill, { recursive: true });
       await fs.mkdir(piOldSkill, { recursive: true });
       await fs.mkdir(gooseOldSkill, { recursive: true });
       await fs.mkdir(vibeOldSkill, { recursive: true });
+      await fs.mkdir(rooOldSkill, { recursive: true });
+      await fs.mkdir(geminiOldSkill, { recursive: true });
+      await fs.mkdir(cursorOldSkill, { recursive: true });
       await fs.mkdir(skillzOldSkill, { recursive: true });
       await fs.writeFile(
         path.join(claudeOldSkill, SKILL_MD_FILENAME),
@@ -577,6 +792,18 @@ describe('Skills Discovery and Validation', () => {
         '# Old Skill',
       );
       await fs.writeFile(
+        path.join(rooOldSkill, SKILL_MD_FILENAME),
+        '# Old Skill',
+      );
+      await fs.writeFile(
+        path.join(geminiOldSkill, SKILL_MD_FILENAME),
+        '# Old Skill',
+      );
+      await fs.writeFile(
+        path.join(cursorOldSkill, SKILL_MD_FILENAME),
+        '# Old Skill',
+      );
+      await fs.writeFile(
         path.join(skillzOldSkill, SKILL_MD_FILENAME),
         '# Old Skill',
       );
@@ -587,6 +814,9 @@ describe('Skills Discovery and Validation', () => {
       await expect(fs.access(piSkillsDir)).resolves.toBeUndefined();
       await expect(fs.access(gooseSkillsDir)).resolves.toBeUndefined();
       await expect(fs.access(vibeSkillsDir)).resolves.toBeUndefined();
+      await expect(fs.access(rooSkillsDir)).resolves.toBeUndefined();
+      await expect(fs.access(geminiSkillsDir)).resolves.toBeUndefined();
+      await expect(fs.access(cursorSkillsDir)).resolves.toBeUndefined();
       await expect(fs.access(skillzDir)).resolves.toBeUndefined();
 
       // Run propagateSkills with skillsEnabled = false
@@ -598,6 +828,9 @@ describe('Skills Discovery and Validation', () => {
       await expect(fs.access(piSkillsDir)).rejects.toThrow();
       await expect(fs.access(gooseSkillsDir)).rejects.toThrow();
       await expect(fs.access(vibeSkillsDir)).rejects.toThrow();
+      await expect(fs.access(rooSkillsDir)).rejects.toThrow();
+      await expect(fs.access(geminiSkillsDir)).rejects.toThrow();
+      await expect(fs.access(cursorSkillsDir)).rejects.toThrow();
       await expect(fs.access(skillzDir)).rejects.toThrow();
     });
 

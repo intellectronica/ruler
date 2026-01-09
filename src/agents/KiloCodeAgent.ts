@@ -34,4 +34,8 @@ export class KiloCodeAgent extends AbstractAgent {
   supportsMcpRemote(): boolean {
     return true;
   }
+
+  supportsNativeSkills(): boolean {
+    return true;
+  }
 }

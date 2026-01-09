@@ -100,4 +100,8 @@ export class GeminiCliAgent extends AgentsMdAgent {
   supportsMcpRemote(): boolean {
     return true;
   }
+
+  supportsNativeSkills(): boolean {
+    return true;
+  }
 }
