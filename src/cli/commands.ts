@@ -77,6 +77,11 @@ export function run(): void {
             type: 'boolean',
             description:
               'Enable/disable skills support (experimental, default: enabled)',
+          })
+          .option('hooks', {
+            type: 'boolean',
+            description:
+              'Enable/disable hooks support (default: enabled when hooks source exists)',
           });
       },
       applyHandler,

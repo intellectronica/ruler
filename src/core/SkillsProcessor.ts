@@ -8,6 +8,7 @@ import {
   OPENCODE_SKILLS_PATH,
   GOOSE_SKILLS_PATH,
   VIBE_SKILLS_PATH,
+  PI_SKILLS_PATH,
   SKILLZ_DIR,
   SKILLZ_MCP_SERVER_NAME,
   logWarn,
@@ -60,6 +61,7 @@ export async function getSkillsGitignorePaths(
     OPENCODE_SKILLS_PATH,
     GOOSE_SKILLS_PATH,
     VIBE_SKILLS_PATH,
+    PI_SKILLS_PATH,
     SKILLZ_DIR,
   } = await import('../constants');
 
@@ -69,6 +71,7 @@ export async function getSkillsGitignorePaths(
     path.join(projectRoot, OPENCODE_SKILLS_PATH),
     path.join(projectRoot, GOOSE_SKILLS_PATH),
     path.join(projectRoot, VIBE_SKILLS_PATH),
+    path.join(projectRoot, PI_SKILLS_PATH),
     path.join(projectRoot, SKILLZ_DIR),
   ];
 }
@@ -114,6 +117,7 @@ async function cleanupSkillsDirectories(
   const opencodeSkillsPath = path.join(projectRoot, OPENCODE_SKILLS_PATH);
   const gooseSkillsPath = path.join(projectRoot, GOOSE_SKILLS_PATH);
   const vibeSkillsPath = path.join(projectRoot, VIBE_SKILLS_PATH);
+  const piSkillsPath = path.join(projectRoot, PI_SKILLS_PATH);
   const skillzPath = path.join(projectRoot, SKILLZ_DIR);
 
   // Clean up .claude/skills
@@ -213,6 +217,27 @@ async function cleanupSkillsDirectories(
       await fs.rm(vibeSkillsPath, { recursive: true, force: true });
       logVerboseInfo(
         `Removed ${VIBE_SKILLS_PATH} (skills disabled)`,
+        verbose,
+        dryRun,
+      );
+    }
+  } catch {
+    // Directory doesn't exist, nothing to clean
+  }
+
+  // Clean up .pi/skills
+  try {
+    await fs.access(piSkillsPath);
+    if (dryRun) {
+      logVerboseInfo(
+        `DRY RUN: Would remove ${PI_SKILLS_PATH}`,
+        verbose,
+        dryRun,
+      );
+    } else {
+      await fs.rm(piSkillsPath, { recursive: true, force: true });
+      logVerboseInfo(
+        `Removed ${PI_SKILLS_PATH} (skills disabled)`,
         verbose,
         dryRun,
       );
@@ -341,6 +366,13 @@ export async function propagateSkills(
       dryRun,
     );
     await propagateSkillsForVibe(projectRoot, { dryRun });
+
+    logVerboseInfo(
+      `Copying skills to ${PI_SKILLS_PATH} for Pi Coding Agent`,
+      verbose,
+      dryRun,
+    );
+    await propagateSkillsForPi(projectRoot, { dryRun });
   }
 
   // Copy to .skillz directory if needed
@@ -631,6 +663,64 @@ export async function propagateSkillsForVibe(
 
     // Rename temp to target
     await fs.rename(tempDir, vibeSkillsPath);
+  } catch (error) {
+    // Clean up temp directory on error
+    try {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    } catch {
+      // Ignore cleanup errors
+    }
+    throw error;
+  }
+
+  return [];
+}
+
+/**
+ * Propagates skills for Pi by copying .ruler/skills to .pi/skills.
+ * Uses atomic replace to ensure safe overwriting of existing skills.
+ * Returns dry-run steps if dryRun is true, otherwise returns empty array.
+ */
+export async function propagateSkillsForPi(
+  projectRoot: string,
+  options: { dryRun: boolean },
+): Promise<string[]> {
+  const skillsDir = path.join(projectRoot, RULER_SKILLS_PATH);
+  const piSkillsPath = path.join(projectRoot, PI_SKILLS_PATH);
+  const piDir = path.dirname(piSkillsPath);
+
+  // Check if source skills directory exists
+  try {
+    await fs.access(skillsDir);
+  } catch {
+    // No skills directory - return empty
+    return [];
+  }
+
+  if (options.dryRun) {
+    return [`Copy skills from ${RULER_SKILLS_PATH} to ${PI_SKILLS_PATH}`];
+  }
+
+  // Ensure .pi directory exists
+  await fs.mkdir(piDir, { recursive: true });
+
+  // Use atomic replace: copy to temp, then rename
+  const tempDir = path.join(piDir, `skills.tmp-${Date.now()}`);
+
+  try {
+    // Copy to temp directory
+    await copySkillsDirectory(skillsDir, tempDir);
+
+    // Atomically replace the target
+    // First, remove existing target if it exists
+    try {
+      await fs.rm(piSkillsPath, { recursive: true, force: true });
+    } catch {
+      // Target didn't exist, that's fine
+    }
+
+    // Rename temp to target
+    await fs.rename(tempDir, piSkillsPath);
   } catch (error) {
     // Clean up temp directory on error
     try {

@@ -24,6 +24,16 @@ export interface HooksConfig {
   outputPath?: string;
 }
 
+/** Global hooks configuration section. */
+export interface GlobalHooksConfig {
+  /** Enable or disable hook propagation. */
+  enabled?: boolean;
+  /** Merge strategy: 'merge' to append hooks, 'overwrite' to replace hooks. */
+  strategy?: HooksStrategy;
+  /** Path to the hooks source JSON file. */
+  source?: string;
+}
+
 /** Global MCP configuration section (same as agent-specific config). */
 export type GlobalMcpConfig = McpConfig;
 

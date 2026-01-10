@@ -198,6 +198,7 @@ function cloneLoadedConfig(config: LoadedConfig): LoadedConfig {
     agentConfigs: clonedAgentConfigs,
     cliAgents: config.cliAgents ? [...config.cliAgents] : undefined,
     mcp: config.mcp ? { ...config.mcp } : undefined,
+    hooks: config.hooks ? { ...config.hooks } : undefined,
     gitignore: config.gitignore ? { ...config.gitignore } : undefined,
     nested: config.nested,
     nestedDefined: config.nestedDefined,
@@ -335,6 +336,7 @@ export async function processHierarchicalConfigurations(
   cliMcpStrategy?: McpStrategy,
   backup = true,
   skillsEnabled = true,
+  hooksEnabled = true,
 ): Promise<string[]> {
   const allGeneratedPaths: string[] = [];
 
@@ -357,6 +359,7 @@ export async function processHierarchicalConfigurations(
       cliMcpStrategy,
       backup,
       skillsEnabled,
+      hooksEnabled,
     );
     const normalizedPaths = paths.map((p) =>
       path.isAbsolute(p) ? p : path.join(rulerRoot, p),
@@ -389,6 +392,7 @@ export async function processSingleConfiguration(
   cliMcpStrategy?: McpStrategy,
   backup = true,
   skillsEnabled = true,
+  hooksEnabled = true,
 ): Promise<string[]> {
   return await applyConfigurationsToAgents(
     agents,
@@ -402,6 +406,7 @@ export async function processSingleConfiguration(
     cliMcpStrategy,
     backup,
     skillsEnabled,
+    hooksEnabled,
   );
 }
 
@@ -479,9 +484,11 @@ export async function applyConfigurationsToAgents(
   cliMcpStrategy?: McpStrategy,
   backup = true,
   skillsEnabled = true,
+  hooksEnabled = true,
 ): Promise<string[]> {
   const generatedPaths: string[] = [];
   let agentsMdWritten = false;
+  const hooksCache = new Map<string, Record<string, unknown> | null>();
 
   // Add Skillz MCP server to rulerMcpJson if skills are enabled
   // This must happen before calling agent.applyRulerConfig() so that agents
@@ -580,11 +587,14 @@ export async function applyConfigurationsToAgents(
     await handleHooksConfiguration(
       agent,
       agentConfig,
+      config,
       projectRoot,
       generatedPaths,
       verbose,
       dryRun,
+      hooksEnabled,
       backup,
+      hooksCache,
     );
   }
 
@@ -693,33 +703,27 @@ async function handleMcpConfiguration(
 async function handleHooksConfiguration(
   agent: IAgent,
   agentConfig: IAgentConfig | undefined,
+  config: LoadedConfig,
   projectRoot: string,
   generatedPaths: string[],
   verbose: boolean,
   dryRun: boolean,
+  hooksEnabled = true,
   backup = true,
+  hooksCache?: Map<string, Record<string, unknown> | null>,
 ): Promise<void> {
   const hooksConfig = agentConfig?.hooks;
-  if (!hooksConfig) {
+  const hooksEnabledForAgent = hooksEnabled && (hooksConfig?.enabled ?? true);
+  if (!hooksEnabledForAgent) {
     return;
   }
 
-  const hooksEnabled = hooksConfig.enabled ?? true;
-  if (!hooksEnabled) {
-    return;
-  }
-
-  const sourcePath = hooksConfig.source;
-  if (!sourcePath) {
-    logWarn(
-      `Hooks enabled for ${agent.getName()} but no source file configured`,
-      dryRun,
-    );
-    return;
-  }
+  const defaultSourcePath = path.join(projectRoot, '.ruler', 'hooks.json');
+  const configuredSource = hooksConfig?.source ?? config.hooks?.source;
+  const sourcePath = configuredSource ?? defaultSourcePath;
 
   const dest =
-    hooksConfig.outputPath ??
+    hooksConfig?.outputPath ??
     (await getNativeHooksPath(agent.getName(), projectRoot));
 
   if (!dest) {
@@ -728,6 +732,14 @@ async function handleHooksConfiguration(
       verbose,
     );
     return;
+  }
+
+  if (!configuredSource) {
+    try {
+      await fs.access(sourcePath);
+    } catch {
+      return;
+    }
   }
 
   // Prevent writing hooks configs outside the project root
@@ -739,7 +751,12 @@ async function handleHooksConfiguration(
     return;
   }
 
-  const hooksSource = await readHooksSource(sourcePath, verbose, dryRun);
+  const hooksSource = await readHooksSourceCached(
+    sourcePath,
+    verbose,
+    dryRun,
+    hooksCache,
+  );
   if (!hooksSource) {
     return;
   }
@@ -749,7 +766,7 @@ async function handleHooksConfiguration(
     agent,
     hooksSource,
     dest,
-    hooksConfig.strategy ?? 'merge',
+    hooksConfig?.strategy ?? config.hooks?.strategy ?? 'merge',
     dryRun,
     verbose,
     backup,
@@ -799,6 +816,23 @@ async function readHooksSource(
     );
     return null;
   }
+}
+
+async function readHooksSourceCached(
+  sourcePath: string,
+  verbose: boolean,
+  dryRun: boolean,
+  cache?: Map<string, Record<string, unknown> | null>,
+): Promise<Record<string, unknown> | null> {
+  if (!cache) {
+    return await readHooksSource(sourcePath, verbose, dryRun);
+  }
+  if (cache.has(sourcePath)) {
+    return cache.get(sourcePath) ?? null;
+  }
+  const hooksSource = await readHooksSource(sourcePath, verbose, dryRun);
+  cache.set(sourcePath, hooksSource);
+  return hooksSource;
 }
 
 function mergeHooks(

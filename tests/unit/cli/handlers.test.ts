@@ -64,7 +64,9 @@ describe('CLI Handlers', () => {
         false,
         false,
         false,
-        true, undefined,
+        true,
+        undefined,
+        undefined,
       );
     });
 
@@ -93,7 +95,9 @@ describe('CLI Handlers', () => {
         false,
         false,
         false,
-        true, undefined,
+        true,
+        undefined,
+        undefined,
       );
     });
 
@@ -123,7 +127,9 @@ describe('CLI Handlers', () => {
         false,
         false,
         false,
-        true, undefined,
+        true,
+        undefined,
+        undefined,
       );
     });
 
@@ -152,7 +158,9 @@ describe('CLI Handlers', () => {
         false,
         false,
         false,
-        true, undefined,
+        true,
+        undefined,
+        undefined,
       );
     });
 
@@ -181,7 +189,9 @@ describe('CLI Handlers', () => {
         false,
         false,
         true, // nested should be true from CLI
-        true, undefined,
+        true,
+        undefined,
+        undefined,
       );
       // loadConfig should not be called when CLI explicitly sets nested
       expect(loadConfig).not.toHaveBeenCalled();
@@ -225,7 +235,9 @@ describe('CLI Handlers', () => {
         false,
         false,
         true, // nested should be true from TOML
-        true, undefined,
+        true,
+        undefined,
+        undefined,
       );
     });
 
@@ -263,7 +275,9 @@ describe('CLI Handlers', () => {
         false,
         false,
         false, // nested should default to false
-        true, undefined,
+        true,
+        undefined,
+        undefined,
       );
     });
 
@@ -303,7 +317,9 @@ describe('CLI Handlers', () => {
         false,
         false,
         true, // nested should be true from CLI, ignoring TOML
-        true, undefined,
+        true,
+        undefined,
+        undefined,
       );
     });
 

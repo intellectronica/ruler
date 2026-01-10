@@ -78,6 +78,62 @@ source = ".ruler/hooks/claude.json"
     expect(settings.hooks.Stop).toHaveLength(1);
   });
 
+  it('uses global hooks configuration when agent config is missing', async () => {
+    const { projectRoot: root } = await setupTestProject({
+      '.ruler/AGENTS.md': '# Rules',
+      '.ruler/ruler.toml': `
+[hooks]
+enabled = true
+merge_strategy = "merge"
+source = ".ruler/hooks.json"
+`,
+      '.ruler/hooks.json': JSON.stringify(
+        {
+          hooks: {
+            PostToolUse: [
+              {
+                matcher: 'bash',
+                hooks: [{ type: 'command', command: 'echo global' }],
+              },
+            ],
+          },
+        },
+        null,
+        2,
+      ),
+      '.claude/settings.json': JSON.stringify(
+        {
+          theme: 'dark',
+        },
+        null,
+        2,
+      ),
+    });
+
+    projectRoot = root;
+
+    await applyAllAgentConfigs(
+      projectRoot,
+      ['claude'],
+      undefined,
+      true,
+      undefined,
+      undefined,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+    );
+
+    const settingsPath = path.join(projectRoot, '.claude', 'settings.json');
+    const settings = JSON.parse(await fs.readFile(settingsPath, 'utf8'));
+
+    expect(settings.theme).toBe('dark');
+    expect(settings.hooks.PostToolUse).toHaveLength(1);
+  });
+
   it('overwrites hooks when merge_strategy is overwrite', async () => {
     const { projectRoot: root } = await setupTestProject({
       '.ruler/AGENTS.md': '# Rules',

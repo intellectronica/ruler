@@ -14,6 +14,7 @@ import {
   RuleFile,
   McpServerDef,
 } from './UnifiedConfigTypes';
+import { GlobalHooksConfig } from '../types';
 
 export interface UnifiedLoadOptions {
   projectRoot: string;
@@ -94,6 +95,28 @@ export async function loadUnifiedConfig(
     }
   }
 
+  // Parse hooks configuration
+  let hooksConfig: GlobalHooksConfig | undefined;
+  if (tomlRaw && typeof tomlRaw === 'object') {
+    const hooksSection = (tomlRaw as Record<string, unknown>).hooks;
+    if (hooksSection && typeof hooksSection === 'object') {
+      const hooksObj = hooksSection as Record<string, unknown>;
+      hooksConfig = {};
+      if (typeof hooksObj.enabled === 'boolean') {
+        hooksConfig.enabled = hooksObj.enabled;
+      }
+      if (typeof hooksObj.merge_strategy === 'string') {
+        const strat = hooksObj.merge_strategy;
+        if (strat === 'merge' || strat === 'overwrite') {
+          hooksConfig.strategy = strat;
+        }
+      }
+      if (typeof hooksObj.source === 'string') {
+        hooksConfig.source = hooksObj.source;
+      }
+    }
+  }
+
   const toml: TomlConfig = {
     raw: tomlRaw,
     schemaVersion: 1,
@@ -101,6 +124,7 @@ export async function loadUnifiedConfig(
     defaultAgents,
     nested,
     skills: skillsConfig,
+    hooks: hooksConfig,
   };
 
   // Collect rule markdown files

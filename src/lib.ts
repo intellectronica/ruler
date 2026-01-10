@@ -34,6 +34,20 @@ function resolveSkillsEnabled(
 }
 
 /**
+ * Resolves hooks enabled state based on precedence: CLI flag > ruler.toml > default (enabled)
+ */
+function resolveHooksEnabled(
+  cliFlag: boolean | undefined,
+  configSetting: boolean | undefined,
+): boolean {
+  return cliFlag !== undefined
+    ? cliFlag
+    : configSetting !== undefined
+      ? configSetting
+      : true; // default to enabled
+}
+
+/**
  * Applies ruler configurations for all supported AI agents.
  * @param projectRoot Root directory of the project
  */
@@ -55,6 +69,7 @@ export async function applyAllAgentConfigs(
   nested = false,
   backup = true,
   skillsEnabled?: boolean,
+  hooksEnabled?: boolean,
 ): Promise<void> {
   // Load configuration and rules
   logVerbose(
@@ -119,6 +134,10 @@ export async function applyAllAgentConfigs(
       skillsEnabled,
       rootConfig.skills?.enabled,
     );
+    const hooksEnabledResolved = resolveHooksEnabled(
+      hooksEnabled,
+      rootConfig.hooks?.enabled,
+    );
     if (skillsEnabledResolved) {
       const { propagateSkills } = await import('./core/SkillsProcessor');
       // Propagate skills for each nested .ruler directory
@@ -147,6 +166,7 @@ export async function applyAllAgentConfigs(
       cliMcpStrategy,
       backup,
       skillsEnabledResolved,
+      hooksEnabledResolved,
     );
   } else {
     const singleConfig = await loadSingleConfiguration(
@@ -191,6 +211,11 @@ export async function applyAllAgentConfigs(
       );
     }
 
+    const hooksEnabledResolved = resolveHooksEnabled(
+      hooksEnabled,
+      singleConfig.config.hooks?.enabled,
+    );
+
     generatedPaths = await processSingleConfiguration(
       selectedAgents,
       singleConfig,
@@ -201,6 +226,7 @@ export async function applyAllAgentConfigs(
       cliMcpStrategy,
       backup,
       skillsEnabledResolved,
+      hooksEnabledResolved,
     );
   }
 

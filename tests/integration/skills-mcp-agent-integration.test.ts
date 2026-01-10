@@ -127,6 +127,37 @@ describe('Skills MCP Agent Integration', () => {
       expect(skillContent).toBe('# Test Skill');
     });
 
+    it('adds skills to .pi/skills for Pi Coding Agent (native skills)', async () => {
+      await applyAllAgentConfigs(
+        tmpDir,
+        ['pi'],
+        undefined,
+        true,
+        undefined,
+        undefined,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true, // skills enabled
+      );
+
+      // Check that .pi/skills exists and contains the test skill
+      const piSkillsPath = path.join(tmpDir, '.pi', 'skills');
+      const testSkillPath = path.join(piSkillsPath, 'test-skill');
+      const skillMdPath = path.join(testSkillPath, SKILL_MD_FILENAME);
+
+      // Verify the skill directory and file exist
+      await expect(fs.access(piSkillsPath)).resolves.toBeUndefined();
+      await expect(fs.access(testSkillPath)).resolves.toBeUndefined();
+      await expect(fs.access(skillMdPath)).resolves.toBeUndefined();
+
+      // Verify skill content was copied
+      const skillContent = await fs.readFile(skillMdPath, 'utf8');
+      expect(skillContent).toBe('# Test Skill');
+    });
+
     it('does not add Skillz server when skills are disabled', async () => {
       await applyAllAgentConfigs(
         tmpDir,

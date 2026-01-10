@@ -43,7 +43,18 @@ describe('Dynamic CLI Help Agent List', () => {
     const result = getAgentIdentifiersForCliHelp();
     
     // These agents were missing from the hardcoded list but should be included
-    const newAgents = ['amazonqcli', 'kiro', 'warp', 'roo', 'augmentcode', 'jules', 'junie', 'goose', 'openhands'];
+    const newAgents = [
+      'amazonqcli',
+      'kiro',
+      'warp',
+      'roo',
+      'augmentcode',
+      'jules',
+      'junie',
+      'goose',
+      'openhands',
+      'pi',
+    ];
     
     for (const agent of newAgents) {
       expect(result).toContain(agent);

@@ -73,6 +73,7 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | Firebase Studio  | `.idx/airules.md`                                | `.idx/mcp.json`                                  |
 | Open Hands       | `.openhands/microagents/repo.md`                 | `config.toml`                                    |
 | Gemini CLI       | `AGENTS.md`                                      | `.gemini/settings.json` (MCP + hooks)            |
+| Pi Coding Agent  | `AGENTS.md`                                      | native skills: `.pi/skills`                      |
 | Junie            | `.junie/guidelines.md`                           | -                                                |
 | AugmentCode      | `.augment/rules/ruler_augment_instructions.md`   | -                                                |
 | Kilo Code        | `.kilocode/rules/ruler_kilocode_instructions.md` | `.kilocode/mcp.json`                             |
@@ -232,6 +233,10 @@ The `apply` command looks for `.ruler/` in the current directory tree, reading t
 | `--mcp` / `--with-mcp`         | Enable applying MCP server configurations (default: true).             |
 | `--no-mcp`                     | Disable applying MCP server configurations.                            |
 | `--mcp-overwrite`              | Overwrite native MCP config instead of merging.                        |
+| `--hooks`                      | Enable hooks propagation (default: enabled when hooks source exists).  |
+| `--no-hooks`                   | Disable hooks propagation.                                             |
+| `--skills`                     | Enable skills propagation (default: enabled).                          |
+| `--no-skills`                  | Disable skills propagation.                                            |
 | `--gitignore`                  | Enable automatic .gitignore updates (default: true).                   |
 | `--no-gitignore`               | Disable automatic .gitignore updates.                                  |
 | `--nested`                     | Enable nested rule loading (default: inherit from config or disabled). |
@@ -321,7 +326,7 @@ ruler revert [options]
 | Option                         | Description                                                                                                                                                                                                                                                                                         |
 | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `--project-root <path>`        | Path to your project's root (default: current directory)                                                                                                                                                                                                                                            |
-| `--agents <agent1,agent2,...>` | Comma-separated list of agent names to revert (agentsmd, aider, amazonqcli, amp, antigravity, augmentcode, claude, cline, codex, copilot, crush, cursor, firebase, firebender, gemini-cli, goose, jules, junie, kilocode, kiro, mistral, opencode, openhands, qwen, roo, trae, warp, windsurf, zed) |
+| `--agents <agent1,agent2,...>` | Comma-separated list of agent names to revert (agentsmd, aider, amazonqcli, amp, antigravity, augmentcode, claude, cline, codex, copilot, crush, cursor, firebase, firebender, gemini-cli, goose, jules, junie, kilocode, kiro, mistral, opencode, openhands, pi, qwen, roo, trae, warp, windsurf, zed) |
 | `--config <path>`              | Path to a custom `ruler.toml` configuration file                                                                                                                                                                                                                                                    |
 | `--keep-backups`               | Keep backup files (.bak) after restoration (default: false)                                                                                                                                                                                                                                         |
 | `--dry-run`                    | Preview changes without actually reverting files                                                                                                                                                                                                                                                    |
@@ -379,6 +384,15 @@ default_agents = ["copilot", "claude", "aider"]
 enabled = true
 # Global merge strategy: 'merge' or 'overwrite' (default: 'merge')
 merge_strategy = "merge"
+
+# --- Global Hooks Configuration ---
+[hooks]
+# Enable/disable hooks propagation globally (default: enabled when hooks source exists)
+enabled = true
+# Hooks merge strategy: 'merge' or 'overwrite' (default: 'merge')
+merge_strategy = "merge"
+# Hooks source file (JSON)
+source = ".ruler/hooks.json"
 
 # --- MCP Server Definitions ---
 [mcp_servers.filesystem]
@@ -456,25 +470,23 @@ enabled = true
 output_path = "WARP.md"
 ```
 
-### Hooks Configuration (Agent-Specific)
+### Hooks Configuration
 
-Hooks are configured per agent using the `[agents.<agent>.hooks]` section.
+Hooks can be configured globally (single source of truth) and optionally overridden per agent.
+Ruler looks for `.ruler/hooks.json` by default when hooks are enabled.
 Provide a JSON source file containing either a top-level `hooks` object or the hooks object directly.
 
 ```toml
-[agents.claude.hooks]
+[hooks]
 enabled = true
 merge_strategy = "merge"
-source = ".ruler/hooks/claude.json"
+source = ".ruler/hooks.json"
 
-[agents.gemini-cli.hooks]
-enabled = true
-merge_strategy = "merge"
-source = ".ruler/hooks/gemini.json"
+# Per-agent overrides (optional)
+[agents.claude.hooks]
+merge_strategy = "overwrite"
 
 [agents.windsurf.hooks]
-enabled = true
-merge_strategy = "overwrite"
 source = ".ruler/hooks/windsurf.json"
 ```
 
@@ -495,7 +507,7 @@ Example hook file:
 
 ### Configuration Precedence
 
-1. **CLI flags** (e.g., `--agents`, `--no-mcp`, `--mcp-overwrite`, `--no-gitignore`)
+1. **CLI flags** (e.g., `--agents`, `--no-mcp`, `--no-hooks`, `--no-skills`, `--mcp-overwrite`, `--no-gitignore`)
 2. **Settings in `ruler.toml`** (`default_agents`, specific agent settings, global sections)
 3. **Ruler's built-in defaults** (all agents enabled, standard output paths, MCP enabled with 'merge')
 
@@ -611,6 +623,7 @@ Skills are specialized knowledge packages that extend AI agent capabilities with
   - **OpenCode**: `.opencode/skill/`
   - **Goose**: `.agents/skills/`
   - **Mistral Vibe**: `.vibe/skills/`
+  - **Pi Coding Agent**: `.pi/skills/`
 - **Other MCP-compatible agents**: Skills are copied to `.skillz/` and a Skillz MCP server is automatically configured via `uvx`
 
 ### Skills Directory Structure
@@ -666,7 +679,7 @@ For agents that support MCP but don't have native skills support, Ruler automati
 2. Configures a Skillz MCP server in the agent's configuration
 3. Uses `uvx` to launch the server with the absolute path to `.skillz`
 
-Agents using native skills support (Claude Code, GitHub Copilot, OpenAI Codex CLI, OpenCode, Goose, and Mistral Vibe) **do not** use the Skillz MCP server and instead use their own native skills directories.
+Agents using native skills support (Claude Code, GitHub Copilot, OpenAI Codex CLI, OpenCode, Goose, Mistral Vibe, and Pi Coding Agent) **do not** use the Skillz MCP server and instead use their own native skills directories.
 
 Example auto-generated MCP server configuration:
 
@@ -685,13 +698,14 @@ When skills support is enabled and gitignore integration is active, Ruler automa
 - `.opencode/skill/` (for OpenCode)
 - `.agents/skills/` (for Goose)
 - `.vibe/skills/` (for Mistral Vibe)
+- `.pi/skills/` (for Pi Coding Agent)
 - `.skillz/` (for other MCP-based agents)
 
 to your `.gitignore` file within the managed Ruler block.
 
 ### Requirements
 
-- **For agents with native skills support** (Claude Code, GitHub Copilot, OpenAI Codex CLI, OpenCode, Goose, Mistral Vibe): No additional requirements
+- **For agents with native skills support** (Claude Code, GitHub Copilot, OpenAI Codex CLI, OpenCode, Goose, Mistral Vibe, Pi Coding Agent): No additional requirements
 - **For other MCP agents**: `uv` must be installed and available in your PATH
   ```bash
   # Install uv if needed
@@ -744,6 +758,7 @@ ruler apply
 #    - OpenCode: .opencode/skill/my-skill/
 #    - Goose: .agents/skills/my-skill/
 #    - Mistral Vibe: .vibe/skills/my-skill/
+#    - Pi Coding Agent: .pi/skills/my-skill/
 #    - Other MCP agents: .skillz/my-skill/ + Skillz MCP server configured
 ```
 

@@ -9,6 +9,7 @@ import {
   GitignoreConfig,
   SkillsConfig,
   HooksConfig,
+  GlobalHooksConfig,
 } from '../types';
 import { createRulerError } from '../constants';
 
@@ -32,6 +33,14 @@ const hooksConfigSchema = z
   })
   .optional();
 
+const globalHooksConfigSchema = z
+  .object({
+    enabled: z.boolean().optional(),
+    merge_strategy: z.enum(['merge', 'overwrite']).optional(),
+    source: z.string().optional(),
+  })
+  .optional();
+
 const agentConfigSchema = z
   .object({
     enabled: z.boolean().optional(),
@@ -46,6 +55,7 @@ const agentConfigSchema = z
 const rulerConfigSchema = z.object({
   default_agents: z.array(z.string()).optional(),
   agents: z.record(z.string(), agentConfigSchema).optional(),
+  hooks: globalHooksConfigSchema,
   mcp: z
     .object({
       enabled: z.boolean().optional(),
@@ -113,6 +123,8 @@ export interface LoadedConfig {
   cliAgents?: string[];
   /** Global MCP servers configuration section. */
   mcp?: GlobalMcpConfig;
+  /** Global hooks configuration section. */
+  hooks?: GlobalHooksConfig;
   /** Gitignore configuration section. */
   gitignore?: GitignoreConfig;
   /** Skills configuration section. */
@@ -290,6 +302,24 @@ export async function loadConfig(
     skillsConfig.enabled = rawSkillsSection.enabled;
   }
 
+  const rawHooksSection =
+    raw.hooks && typeof raw.hooks === 'object' && !Array.isArray(raw.hooks)
+      ? (raw.hooks as Record<string, unknown>)
+      : {};
+  const hooksConfig: GlobalHooksConfig = {};
+  if (typeof rawHooksSection.enabled === 'boolean') {
+    hooksConfig.enabled = rawHooksSection.enabled;
+  }
+  if (typeof rawHooksSection.merge_strategy === 'string') {
+    const strat = rawHooksSection.merge_strategy;
+    if (strat === 'merge' || strat === 'overwrite') {
+      hooksConfig.strategy = strat;
+    }
+  }
+  if (typeof rawHooksSection.source === 'string') {
+    hooksConfig.source = path.resolve(projectRoot, rawHooksSection.source);
+  }
+
   const nestedDefined = typeof raw.nested === 'boolean';
   const nested = nestedDefined ? (raw.nested as boolean) : false;
 
@@ -298,6 +328,7 @@ export async function loadConfig(
     agentConfigs,
     cliAgents,
     mcp: globalMcpConfig,
+    hooks: hooksConfig,
     gitignore: gitignoreConfig,
     skills: skillsConfig,
     nested,

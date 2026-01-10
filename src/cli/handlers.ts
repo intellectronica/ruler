@@ -20,6 +20,7 @@ export interface ApplyArgs {
   nested?: boolean;
   backup: boolean;
   skills?: boolean;
+  hooks?: boolean;
 }
 
 export interface InitArgs {
@@ -105,6 +106,14 @@ export async function applyHandler(argv: ApplyArgs): Promise<void> {
     skillsEnabled = undefined; // Let config/default decide
   }
 
+  // Determine hooks preference: CLI > TOML > Default (enabled)
+  let hooksEnabled: boolean | undefined;
+  if (argv.hooks !== undefined) {
+    hooksEnabled = argv.hooks;
+  } else {
+    hooksEnabled = undefined; // Let config/default decide
+  }
+
   try {
     await applyAllAgentConfigs(
       projectRoot,
@@ -119,6 +128,7 @@ export async function applyHandler(argv: ApplyArgs): Promise<void> {
       nested,
       backup,
       skillsEnabled,
+      hooksEnabled,
     );
     console.log('Ruler apply completed successfully.');
   } catch (err: unknown) {
@@ -180,12 +190,14 @@ export async function initHandler(argv: InitArgs): Promise<void> {
 # [agents.gemini-cli]
 # enabled = true
 
-# --- Hooks (Agent-Specific) ---
-# Hooks are configured per agent via [agents.<agent>.hooks]
-# [agents.claude.hooks]
+# --- Hooks (Global + Agent Overrides) ---
+# [hooks]
 # enabled = true
 # merge_strategy = "merge"
-# source = ".ruler/hooks/claude.json"
+# source = ".ruler/hooks.json"
+#
+# [agents.claude.hooks]
+# merge_strategy = "overwrite"
 
 # --- MCP Servers ---
 # Define Model Context Protocol servers here. Two examples:

@@ -174,4 +174,44 @@ describe('ConfigLoader', () => {
       expect(config.gitignore?.enabled).toBeUndefined();
     });
   });
+
+  describe('hooks configuration', () => {
+    it('parses [hooks] section with enabled and source', async () => {
+      const content = `
+        [hooks]
+        enabled = true
+        merge_strategy = "overwrite"
+        source = ".ruler/hooks.json"
+      `;
+      await fs.writeFile(path.join(rulerDir, 'ruler.toml'), content);
+      const config = await loadConfig({ projectRoot: tmpDir });
+      expect(config.hooks).toBeDefined();
+      expect(config.hooks?.enabled).toBe(true);
+      expect(config.hooks?.strategy).toBe('overwrite');
+      expect(config.hooks?.source).toBe(
+        path.resolve(tmpDir, '.ruler/hooks.json'),
+      );
+    });
+
+    it('parses agent hooks configuration', async () => {
+      const content = `
+        [agents.A.hooks]
+        enabled = true
+        merge_strategy = "merge"
+        source = "hooks/agent.json"
+        output_path = ".claude/settings.json"
+      `;
+      await fs.writeFile(path.join(rulerDir, 'ruler.toml'), content);
+      const config = await loadConfig({ projectRoot: tmpDir });
+      expect(config.agentConfigs.A.hooks).toBeDefined();
+      expect(config.agentConfigs.A.hooks?.enabled).toBe(true);
+      expect(config.agentConfigs.A.hooks?.strategy).toBe('merge');
+      expect(config.agentConfigs.A.hooks?.source).toBe(
+        path.resolve(tmpDir, 'hooks/agent.json'),
+      );
+      expect(config.agentConfigs.A.hooks?.outputPath).toBe(
+        path.resolve(tmpDir, '.claude/settings.json'),
+      );
+    });
+  });
 });

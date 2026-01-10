@@ -3,6 +3,7 @@ import {
   GitignoreConfig,
   SkillsConfig,
   McpStrategy,
+  GlobalHooksConfig,
 } from '../types';
 
 export interface RulerUnifiedConfig {
@@ -29,6 +30,7 @@ export interface TomlConfig {
   schemaVersion: number;
   defaultAgents?: string[];
   agents: Record<string, AgentTomlConfig>;
+  hooks?: GlobalHooksConfig;
   mcp?: McpToggleConfig;
   mcpServers?: Record<string, McpServerDef>;
   gitignore?: GitignoreConfig;

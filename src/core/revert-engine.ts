@@ -514,7 +514,9 @@ export async function revertAgentConfiguration(
   }
 
   // Handle hooks files
-  const hooksPath = await getNativeHooksPath(agent.getName(), projectRoot);
+  const hooksPath =
+    agentConfig?.hooks?.outputPath ??
+    (await getNativeHooksPath(agent.getName(), projectRoot));
   if (hooksPath && hooksPath.startsWith(projectRoot)) {
     if (hooksPath === mcpPath) {
       logVerbose(
