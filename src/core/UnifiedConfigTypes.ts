@@ -81,6 +81,7 @@ export interface McpServerDef {
   env?: Record<string, string>;
   url?: string;
   headers?: Record<string, string>;
+  timeout?: number;
 }
 
 export interface EffectiveAgentConfig {

@@ -536,6 +536,52 @@ command = "sub-cmd"
 
       expect(result).toContain(`${tmpDir}/.claude/config.json`);
     });
+
+    it('logs warning and strips MCP timeouts for agents without timeout support', async () => {
+      const logWarnSpy = jest.spyOn(Constants, 'logWarn');
+      const mockAgents = [new MockAgent('Claude Code', 'claude')];
+      const config: LoadedConfig = {
+        agentConfigs: {
+          claude: {
+            mcp: { enabled: true },
+          },
+        },
+      };
+      const rules = '# Test rules';
+      const mcpJson = {
+        mcpServers: {
+          timed: {
+            command: 'node',
+            args: ['server.js'],
+            timeout: 25,
+          },
+        },
+      };
+
+      await applyConfigurationsToAgents(
+        mockAgents,
+        rules,
+        mcpJson,
+        config,
+        tmpDir,
+        false,
+        false,
+        true,
+        undefined,
+        false,
+      );
+
+      const mcpPath = path.join(tmpDir, '.mcp.json');
+      const mcpContent = JSON.parse(await fs.readFile(mcpPath, 'utf8'));
+
+      expect(mcpContent.mcpServers.timed.timeout).toBeUndefined();
+      expect(logWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('timeout'),
+        false,
+      );
+
+      logWarnSpy.mockRestore();
+    });
   });
 
   describe('updateGitignore', () => {

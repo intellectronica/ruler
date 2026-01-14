@@ -66,6 +66,12 @@ export interface IAgent {
   supportsMcpRemote?(): boolean;
 
   /**
+   * Returns whether this agent supports MCP server timeout configuration.
+   * Defaults to false if not implemented.
+   */
+  supportsMcpTimeout?(): boolean;
+
+  /**
    * Returns whether this agent has native skills support (like Claude Code).
    * When true, skills are copied directly to the agent's skills directory.
    * Defaults to false if not implemented.

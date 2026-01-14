@@ -97,6 +97,31 @@ describe('OpenCode MCP Integration', () => {
       });
     });
 
+    it('preserves timeout values when transforming ruler MCP config', async () => {
+      const openCodePath = path.join(tmpDir, 'opencode.json');
+
+      const rulerMcp = {
+        mcpServers: {
+          'local-with-timeout': {
+            command: 'bun',
+            args: ['x', 'my-mcp-command'],
+            timeout: 120,
+          },
+          'remote-with-timeout': {
+            url: 'https://remote.example.com',
+            timeout: 45,
+          },
+        },
+      };
+
+      await propagateMcpToOpenCode(rulerMcp, openCodePath);
+
+      const result = JSON.parse(await fs.readFile(openCodePath, 'utf8'));
+
+      expect(result.mcp['local-with-timeout'].timeout).toBe(120);
+      expect(result.mcp['remote-with-timeout'].timeout).toBe(45);
+    });
+
     it('merges with existing OpenCode configuration', async () => {
       const openCodePath = path.join(tmpDir, 'opencode.json');
 

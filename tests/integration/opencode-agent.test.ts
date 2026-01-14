@@ -56,6 +56,7 @@ enabled = true
 [mcp_servers.test-server]
 command = "echo"
 args = ["hello"]
+timeout = 45
 `;
     await fs.writeFile(path.join(rulerDir, 'ruler.toml'), rulerToml);
 
@@ -72,6 +73,7 @@ args = ["hello"]
       type: 'local',
       command: ['echo', 'hello'],
       enabled: true,
+      timeout: 45,
     });
   });
 });

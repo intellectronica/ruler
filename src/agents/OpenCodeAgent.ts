@@ -80,6 +80,10 @@ export class OpenCodeAgent implements IAgent {
     return true;
   }
 
+  supportsMcpTimeout(): boolean {
+    return true;
+  }
+
   supportsNativeSkills(): boolean {
     return true;
   }

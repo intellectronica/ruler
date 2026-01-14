@@ -76,6 +76,14 @@ export abstract class AbstractAgent implements IAgent {
   }
 
   /**
+   * Returns whether this agent supports MCP server timeout configuration.
+   * Defaults to false if not overridden.
+   */
+  supportsMcpTimeout(): boolean {
+    return false;
+  }
+
+  /**
    * Returns whether this agent has native skills support.
    * Defaults to false if not overridden.
    */
