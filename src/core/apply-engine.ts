@@ -689,6 +689,49 @@ async function updateGitignoreForMcpFile(
   }
 }
 
+function sanitizeMcpTimeoutsForAgent(
+  agent: IAgent,
+  mcpJson: Record<string, unknown>,
+  dryRun: boolean,
+): Record<string, unknown> {
+  if (agent.supportsMcpTimeout?.()) {
+    return mcpJson;
+  }
+
+  if (!mcpJson.mcpServers || typeof mcpJson.mcpServers !== 'object') {
+    return mcpJson;
+  }
+
+  const servers = mcpJson.mcpServers as Record<string, unknown>;
+  const sanitizedServers: Record<string, unknown> = {};
+  const strippedTimeouts: string[] = [];
+
+  for (const [name, serverDef] of Object.entries(servers)) {
+    if (serverDef && typeof serverDef === 'object') {
+      const copy = { ...(serverDef as Record<string, unknown>) };
+      if ('timeout' in copy) {
+        delete copy.timeout;
+        strippedTimeouts.push(name);
+      }
+      sanitizedServers[name] = copy;
+    } else {
+      sanitizedServers[name] = serverDef;
+    }
+  }
+
+  if (strippedTimeouts.length > 0) {
+    logWarn(
+      `${agent.getName()} does not support MCP server timeout configuration; ignoring timeout for: ${strippedTimeouts.join(', ')}`,
+      dryRun,
+    );
+  }
+
+  return {
+    ...mcpJson,
+    mcpServers: sanitizedServers,
+  };
+}
+
 async function applyMcpConfiguration(
   agent: IAgent,
   filteredMcpJson: Record<string, unknown>,
@@ -710,9 +753,15 @@ async function applyMcpConfiguration(
     return;
   }
 
+  const agentMcpJson = sanitizeMcpTimeoutsForAgent(
+    agent,
+    filteredMcpJson,
+    dryRun,
+  );
+
   if (agent.getIdentifier() === 'openhands') {
     return await applyOpenHandsMcpConfiguration(
-      filteredMcpJson,
+      agentMcpJson,
       dest,
       dryRun,
       verbose,
@@ -722,7 +771,7 @@ async function applyMcpConfiguration(
 
   if (agent.getIdentifier() === 'opencode') {
     return await applyOpenCodeMcpConfiguration(
-      filteredMcpJson,
+      agentMcpJson,
       dest,
       dryRun,
       verbose,
@@ -746,7 +795,7 @@ async function applyMcpConfiguration(
 
   return await applyStandardMcpConfiguration(
     agent,
-    filteredMcpJson,
+    agentMcpJson,
     dest,
     agentConfig,
     config,

@@ -21,6 +21,7 @@ interface RulerMcpServer {
   env?: Record<string, string>;
   url?: string;
   headers?: Record<string, string>;
+  timeout?: number;
 }
 
 function isRulerMcpServer(value: unknown): value is RulerMcpServer {

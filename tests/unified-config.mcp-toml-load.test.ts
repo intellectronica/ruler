@@ -13,17 +13,20 @@ merge_strategy = "merge"
 [mcp_servers.filesystem]
 command = "npx"
 args = ["-y", "@modelcontextprotocol/server-filesystem", "/path/to/project"]
+timeout = 30
 
 [mcp_servers.remote_api]
 url = "https://api.example.com"
 headers = { Authorization = "Bearer secret" }
+timeout = 15
 `;
 
     const mcpJson = {
       mcpServers: {
         git: {
           command: 'uvx',
-          args: ['mcp-git']
+          args: ['mcp-git'],
+          timeout: 10
         }
       }
     };
@@ -52,21 +55,24 @@ headers = { Authorization = "Bearer secret" }
     expect(config.mcp.servers.filesystem).toEqual({
       type: 'stdio',
       command: 'npx',
-      args: ['-y', '@modelcontextprotocol/server-filesystem', '/path/to/project']
+      args: ['-y', '@modelcontextprotocol/server-filesystem', '/path/to/project'],
+      timeout: 30
     });
     
     expect(config.mcp.servers).toHaveProperty('remote_api');
     expect(config.mcp.servers.remote_api).toEqual({
       type: 'remote',
       url: 'https://api.example.com',
-      headers: { Authorization: 'Bearer secret' }
+      headers: { Authorization: 'Bearer secret' },
+      timeout: 15
     });
     
     expect(config.mcp.servers).toHaveProperty('git');
     expect(config.mcp.servers.git).toEqual({
       type: 'stdio',
       command: 'uvx',
-      args: ['mcp-git']
+      args: ['mcp-git'],
+      timeout: 10
     });
   });
 

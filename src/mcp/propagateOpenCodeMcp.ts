@@ -9,6 +9,7 @@ interface OpenCodeMcpServer {
   enabled: boolean;
   environment?: Record<string, string>;
   headers?: Record<string, string>;
+  timeout?: number;
 }
 
 interface OpenCodeConfig {
@@ -20,11 +21,13 @@ interface LocalServer {
   command: string | string[];
   args?: string[];
   env?: Record<string, string>;
+  timeout?: number;
 }
 
 interface RemoteServer {
   url: string;
   headers?: Record<string, string>;
+  timeout?: number;
 }
 
 function isLocalServer(value: unknown): value is LocalServer {
@@ -63,6 +66,9 @@ function transformToOpenCodeFormat(rulerMcp: RulerMcp): OpenCodeConfig {
       if (serverDef.headers) {
         openCodeServer.headers = serverDef.headers;
       }
+      if (typeof serverDef.timeout === 'number') {
+        openCodeServer.timeout = serverDef.timeout;
+      }
     } else if (isLocalServer(serverDef)) {
       openCodeServer.type = 'local';
       const command = Array.isArray(serverDef.command)
@@ -73,6 +79,9 @@ function transformToOpenCodeFormat(rulerMcp: RulerMcp): OpenCodeConfig {
 
       if (serverDef.env) {
         openCodeServer.environment = serverDef.env;
+      }
+      if (typeof serverDef.timeout === 'number') {
+        openCodeServer.timeout = serverDef.timeout;
       }
     } else {
       continue;

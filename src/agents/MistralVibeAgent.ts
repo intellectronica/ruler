@@ -35,6 +35,7 @@ interface RulerMcpServer {
   url?: string;
   headers?: Record<string, string>;
   env?: Record<string, string>;
+  timeout?: number;
 }
 
 interface RulerMcp {

@@ -195,6 +195,9 @@ export async function loadUnifiedConfig(
             ),
           ) as Record<string, string>;
         }
+        if (typeof serverDef.timeout === 'number') {
+          server.timeout = serverDef.timeout;
+        }
 
         // Validate server configuration
         const hasCommand = !!server.command;
@@ -327,6 +330,9 @@ export async function loadUnifiedConfig(
                 ([, v]) => typeof v === 'string',
               ),
             ) as Record<string, string>;
+          }
+          if (typeof def.timeout === 'number') {
+            server.timeout = def.timeout;
           }
           // Derive type
           if (server.url) server.type = 'remote';
