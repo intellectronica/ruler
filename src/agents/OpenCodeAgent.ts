@@ -1,6 +1,7 @@
 import { IAgent, IAgentConfig } from './IAgent';
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import { OPENCODE_SKILLS_PATH } from '../constants';
 
 export class OpenCodeAgent implements IAgent {
   getIdentifier(): string {
@@ -86,5 +87,9 @@ export class OpenCodeAgent implements IAgent {
 
   supportsNativeSkills(): boolean {
     return true;
+  }
+
+  getNativeSkillsPath(projectRoot: string): string {
+    return path.join(projectRoot, OPENCODE_SKILLS_PATH);
   }
 }

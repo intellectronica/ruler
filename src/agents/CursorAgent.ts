@@ -1,5 +1,7 @@
+import * as path from 'path';
 import { IAgentConfig } from './IAgent';
 import { AgentsMdAgent } from './AgentsMdAgent';
+import { CURSOR_SKILLS_PATH } from '../constants';
 
 /**
  * Cursor agent adapter.
@@ -49,5 +51,9 @@ export class CursorAgent extends AgentsMdAgent {
 
   supportsNativeSkills(): boolean {
     return true;
+  }
+
+  getNativeSkillsPath(projectRoot: string): string {
+    return path.join(projectRoot, CURSOR_SKILLS_PATH);
   }
 }

@@ -7,6 +7,7 @@ import {
   ensureDirExists,
   writeGeneratedFile,
 } from '../core/FileSystemUtils';
+import { ROO_SKILLS_PATH } from '../constants';
 
 /**
  * Agent for RooCode that writes to AGENTS.md and generates .roo/mcp.json
@@ -137,5 +138,9 @@ export class RooCodeAgent implements IAgent {
 
   supportsNativeSkills(): boolean {
     return true;
+  }
+
+  getNativeSkillsPath(projectRoot: string): string {
+    return path.join(projectRoot, ROO_SKILLS_PATH);
   }
 }

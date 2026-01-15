@@ -2,6 +2,7 @@ import { IAgentConfig } from './IAgent';
 import * as path from 'path';
 import { promises as fs } from 'fs';
 import { AgentsMdAgent } from './AgentsMdAgent';
+import { GEMINI_SKILLS_PATH } from '../constants';
 
 export class GeminiCliAgent extends AgentsMdAgent {
   getIdentifier(): string {
@@ -103,5 +104,9 @@ export class GeminiCliAgent extends AgentsMdAgent {
 
   supportsNativeSkills(): boolean {
     return true;
+  }
+
+  getNativeSkillsPath(projectRoot: string): string {
+    return path.join(projectRoot, GEMINI_SKILLS_PATH);
   }
 }

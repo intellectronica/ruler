@@ -64,56 +64,19 @@ export async function getSkillsGitignorePaths(
 
   // Add paths based on selected agents
   for (const agent of agents) {
-    const agentId = agent.getIdentifier();
-
-    if (agent.supportsNativeSkills?.()) {
-      // Map agent identifiers to their skills paths
-      // Some agents share the same skills path
-      let skillPath: string | null = null;
-      switch (agentId) {
-        case 'claude':
-        case 'copilot':
-        case 'kilocode':
-          skillPath = CLAUDE_SKILLS_PATH;
-          break;
-        case 'codex':
-          skillPath = CODEX_SKILLS_PATH;
-          break;
-        case 'opencode':
-          skillPath = OPENCODE_SKILLS_PATH;
-          break;
-        case 'pi':
-          skillPath = PI_SKILLS_PATH;
-          break;
-        case 'goose':
-        case 'amp':
-          skillPath = GOOSE_SKILLS_PATH;
-          break;
-        case 'mistral':
-          skillPath = VIBE_SKILLS_PATH;
-          break;
-        case 'roo':
-          skillPath = ROO_SKILLS_PATH;
-          break;
-        case 'gemini-cli':
-          skillPath = GEMINI_SKILLS_PATH;
-          break;
-        case 'cursor':
-          skillPath = CURSOR_SKILLS_PATH;
-          break;
-      }
-
-      if (skillPath && !addedPaths.has(skillPath)) {
-        paths.push(path.join(projectRoot, skillPath));
-        addedPaths.add(skillPath);
-      }
+    // Use the agent's getNativeSkillsPath method if available
+    const skillsPath = agent.getNativeSkillsPath?.(projectRoot);
+    if (skillsPath && !addedPaths.has(skillsPath)) {
+      paths.push(skillsPath);
+      addedPaths.add(skillsPath);
     }
 
     // Check if agent needs MCP (Skillz directory)
     if (agent.supportsMcpStdio?.() && !agent.supportsNativeSkills?.()) {
-      if (!addedPaths.has(SKILLZ_DIR)) {
-        paths.push(path.join(projectRoot, SKILLZ_DIR));
-        addedPaths.add(SKILLZ_DIR);
+      const skillzPath = path.join(projectRoot, SKILLZ_DIR);
+      if (!addedPaths.has(skillzPath)) {
+        paths.push(skillzPath);
+        addedPaths.add(skillzPath);
       }
     }
   }
@@ -376,6 +339,61 @@ async function cleanupSkillsDirectories(
 }
 
 /**
+ * Generic function to propagate skills to any target path.
+ * Uses atomic replace to ensure safe overwriting of existing skills.
+ */
+async function propagateSkillsToPath(
+  projectRoot: string,
+  targetPath: string,
+  options: { dryRun: boolean },
+): Promise<void> {
+  const skillsDir = path.join(projectRoot, RULER_SKILLS_PATH);
+  const targetDir = path.dirname(targetPath);
+
+  // Check if source skills directory exists
+  try {
+    await fs.access(skillsDir);
+  } catch {
+    // No skills directory - return
+    return;
+  }
+
+  if (options.dryRun) {
+    return;
+  }
+
+  // Ensure target parent directory exists
+  await fs.mkdir(targetDir, { recursive: true });
+
+  // Use atomic replace: copy to temp, then rename
+  const tempDir = path.join(targetDir, `skills.tmp-${Date.now()}`);
+
+  try {
+    // Copy to temp directory
+    await copySkillsDirectory(skillsDir, tempDir);
+
+    // Atomically replace the target
+    // First, remove existing target if it exists
+    try {
+      await fs.rm(targetPath, { recursive: true, force: true });
+    } catch {
+      // Target didn't exist, that's fine
+    }
+
+    // Rename temp to target
+    await fs.rename(tempDir, targetPath);
+  } catch (error) {
+    // Clean up temp directory on error
+    try {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    } catch {
+      // Ignore cleanup errors
+    }
+    throw error;
+  }
+}
+
+/**
  * Propagates skills for agents that need them.
  */
 export async function propagateSkills(
@@ -446,125 +464,15 @@ export async function propagateSkills(
   const propagatedPaths = new Set<string>();
 
   for (const agent of agents) {
-    if (!agent.supportsNativeSkills?.()) {
-      continue;
-    }
-
-    const agentId = agent.getIdentifier();
-
-    // Map agent identifiers to their propagation functions
-    // Some agents share the same skills path
-    switch (agentId) {
-      case 'claude':
-      case 'copilot':
-      case 'kilocode':
-        if (!propagatedPaths.has(CLAUDE_SKILLS_PATH)) {
-          logVerboseInfo(
-            `Copying skills to ${CLAUDE_SKILLS_PATH} for ${agent.getName()}`,
-            verbose,
-            dryRun,
-          );
-          await propagateSkillsForClaude(projectRoot, { dryRun });
-          propagatedPaths.add(CLAUDE_SKILLS_PATH);
-        }
-        break;
-      case 'codex':
-        if (!propagatedPaths.has(CODEX_SKILLS_PATH)) {
-          logVerboseInfo(
-            `Copying skills to ${CODEX_SKILLS_PATH} for ${agent.getName()}`,
-            verbose,
-            dryRun,
-          );
-          await propagateSkillsForCodex(projectRoot, { dryRun });
-          propagatedPaths.add(CODEX_SKILLS_PATH);
-        }
-        break;
-      case 'opencode':
-        if (!propagatedPaths.has(OPENCODE_SKILLS_PATH)) {
-          logVerboseInfo(
-            `Copying skills to ${OPENCODE_SKILLS_PATH} for ${agent.getName()}`,
-            verbose,
-            dryRun,
-          );
-          await propagateSkillsForOpenCode(projectRoot, { dryRun });
-          propagatedPaths.add(OPENCODE_SKILLS_PATH);
-        }
-        break;
-      case 'pi':
-        if (!propagatedPaths.has(PI_SKILLS_PATH)) {
-          logVerboseInfo(
-            `Copying skills to ${PI_SKILLS_PATH} for ${agent.getName()}`,
-            verbose,
-            dryRun,
-          );
-          await propagateSkillsForPi(projectRoot, { dryRun });
-          propagatedPaths.add(PI_SKILLS_PATH);
-        }
-        break;
-      case 'goose':
-      case 'amp':
-        if (!propagatedPaths.has(GOOSE_SKILLS_PATH)) {
-          logVerboseInfo(
-            `Copying skills to ${GOOSE_SKILLS_PATH} for ${agent.getName()}`,
-            verbose,
-            dryRun,
-          );
-          await propagateSkillsForGoose(projectRoot, { dryRun });
-          propagatedPaths.add(GOOSE_SKILLS_PATH);
-        }
-        break;
-      case 'mistral':
-        if (!propagatedPaths.has(VIBE_SKILLS_PATH)) {
-          logVerboseInfo(
-            `Copying skills to ${VIBE_SKILLS_PATH} for ${agent.getName()}`,
-            verbose,
-            dryRun,
-          );
-          await propagateSkillsForVibe(projectRoot, { dryRun });
-          propagatedPaths.add(VIBE_SKILLS_PATH);
-        }
-        break;
-      case 'roo':
-        if (!propagatedPaths.has(ROO_SKILLS_PATH)) {
-          logVerboseInfo(
-            `Copying skills to ${ROO_SKILLS_PATH} for ${agent.getName()}`,
-            verbose,
-            dryRun,
-          );
-          await propagateSkillsForRoo(projectRoot, { dryRun });
-          propagatedPaths.add(ROO_SKILLS_PATH);
-        }
-        break;
-      case 'gemini-cli':
-        if (!propagatedPaths.has(GEMINI_SKILLS_PATH)) {
-          logVerboseInfo(
-            `Copying skills to ${GEMINI_SKILLS_PATH} for ${agent.getName()}`,
-            verbose,
-            dryRun,
-          );
-          await propagateSkillsForGemini(projectRoot, { dryRun });
-          propagatedPaths.add(GEMINI_SKILLS_PATH);
-        }
-        break;
-      case 'cursor':
-        if (!propagatedPaths.has(CURSOR_SKILLS_PATH)) {
-          logVerboseInfo(
-            `Copying skills to ${CURSOR_SKILLS_PATH} for ${agent.getName()}`,
-            verbose,
-            dryRun,
-          );
-          await propagateSkillsForCursor(projectRoot, { dryRun });
-          propagatedPaths.add(CURSOR_SKILLS_PATH);
-        }
-        break;
-      default:
-        // Agent supports native skills but no specific propagation function
-        logVerboseInfo(
-          `Agent ${agent.getName()} supports native skills but no specific propagation path configured`,
-          verbose,
-          dryRun,
-        );
-        break;
+    const skillsPath = agent.getNativeSkillsPath?.(projectRoot);
+    if (skillsPath && !propagatedPaths.has(skillsPath)) {
+      logVerboseInfo(
+        `Copying skills to ${path.relative(projectRoot, skillsPath)} for ${agent.getName()}`,
+        verbose,
+        dryRun,
+      );
+      await propagateSkillsToPath(projectRoot, skillsPath, { dryRun });
+      propagatedPaths.add(skillsPath);
     }
   }
 

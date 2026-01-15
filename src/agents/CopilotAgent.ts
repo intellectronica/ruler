@@ -1,5 +1,7 @@
+import * as path from 'path';
 import { IAgent, IAgentConfig } from './IAgent';
 import { AgentsMdAgent } from './AgentsMdAgent';
+import { CLAUDE_SKILLS_PATH } from '../constants';
 
 /**
  * GitHub Copilot agent adapter.
@@ -58,5 +60,9 @@ export class CopilotAgent implements IAgent {
 
   supportsNativeSkills(): boolean {
     return true;
+  }
+
+  getNativeSkillsPath(projectRoot: string): string {
+    return path.join(projectRoot, CLAUDE_SKILLS_PATH);
   }
 }
