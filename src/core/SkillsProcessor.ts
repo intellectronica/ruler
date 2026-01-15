@@ -43,10 +43,12 @@ export async function discoverSkills(
 
 /**
  * Gets the paths that skills will generate, for gitignore purposes.
+ * Only returns paths for agents that are actually selected.
  * Returns empty array if skills directory doesn't exist.
  */
 export async function getSkillsGitignorePaths(
   projectRoot: string,
+  agents: IAgent[],
 ): Promise<string[]> {
   const skillsDir = path.join(projectRoot, RULER_SKILLS_PATH);
 
@@ -57,32 +59,66 @@ export async function getSkillsGitignorePaths(
     return [];
   }
 
-  // Import here to avoid circular dependency
-  const {
-    CLAUDE_SKILLS_PATH,
-    CODEX_SKILLS_PATH,
-    OPENCODE_SKILLS_PATH,
-    PI_SKILLS_PATH,
-    GOOSE_SKILLS_PATH,
-    VIBE_SKILLS_PATH,
-    ROO_SKILLS_PATH,
-    GEMINI_SKILLS_PATH,
-    CURSOR_SKILLS_PATH,
-    SKILLZ_DIR,
-  } = await import('../constants');
+  const paths: string[] = [];
+  const addedPaths = new Set<string>();
 
-  return [
-    path.join(projectRoot, CLAUDE_SKILLS_PATH),
-    path.join(projectRoot, CODEX_SKILLS_PATH),
-    path.join(projectRoot, OPENCODE_SKILLS_PATH),
-    path.join(projectRoot, PI_SKILLS_PATH),
-    path.join(projectRoot, GOOSE_SKILLS_PATH),
-    path.join(projectRoot, VIBE_SKILLS_PATH),
-    path.join(projectRoot, ROO_SKILLS_PATH),
-    path.join(projectRoot, GEMINI_SKILLS_PATH),
-    path.join(projectRoot, CURSOR_SKILLS_PATH),
-    path.join(projectRoot, SKILLZ_DIR),
-  ];
+  // Add paths based on selected agents
+  for (const agent of agents) {
+    const agentId = agent.getIdentifier();
+
+    if (agent.supportsNativeSkills?.()) {
+      // Map agent identifiers to their skills paths
+      // Some agents share the same skills path
+      let skillPath: string | null = null;
+      switch (agentId) {
+        case 'claude':
+        case 'copilot':
+        case 'kilocode':
+          skillPath = CLAUDE_SKILLS_PATH;
+          break;
+        case 'codex':
+          skillPath = CODEX_SKILLS_PATH;
+          break;
+        case 'opencode':
+          skillPath = OPENCODE_SKILLS_PATH;
+          break;
+        case 'pi':
+          skillPath = PI_SKILLS_PATH;
+          break;
+        case 'goose':
+        case 'amp':
+          skillPath = GOOSE_SKILLS_PATH;
+          break;
+        case 'mistral':
+          skillPath = VIBE_SKILLS_PATH;
+          break;
+        case 'roo':
+          skillPath = ROO_SKILLS_PATH;
+          break;
+        case 'gemini-cli':
+          skillPath = GEMINI_SKILLS_PATH;
+          break;
+        case 'cursor':
+          skillPath = CURSOR_SKILLS_PATH;
+          break;
+      }
+
+      if (skillPath && !addedPaths.has(skillPath)) {
+        paths.push(path.join(projectRoot, skillPath));
+        addedPaths.add(skillPath);
+      }
+    }
+
+    // Check if agent needs MCP (Skillz directory)
+    if (agent.supportsMcpStdio?.() && !agent.supportsNativeSkills?.()) {
+      if (!addedPaths.has(SKILLZ_DIR)) {
+        paths.push(path.join(projectRoot, SKILLZ_DIR));
+        addedPaths.add(SKILLZ_DIR);
+      }
+    }
+  }
+
+  return paths;
 }
 
 /**
@@ -405,70 +441,131 @@ export async function propagateSkills(
     warnOnceExperimentalAndUv(verbose, dryRun);
   }
 
-  // Copy to Claude skills directory if needed
-  if (hasNativeSkillsAgent) {
-    logVerboseInfo(
-      `Copying skills to ${CLAUDE_SKILLS_PATH} for Claude Code, GitHub Copilot, and Kilo Code`,
-      verbose,
-      dryRun,
-    );
-    await propagateSkillsForClaude(projectRoot, { dryRun });
+  // Copy to agent-specific skills directories based on selected agents
+  // Track which paths we've already propagated to (some agents share paths)
+  const propagatedPaths = new Set<string>();
 
-    logVerboseInfo(
-      `Copying skills to ${CODEX_SKILLS_PATH} for OpenAI Codex CLI`,
-      verbose,
-      dryRun,
-    );
-    await propagateSkillsForCodex(projectRoot, { dryRun });
+  for (const agent of agents) {
+    if (!agent.supportsNativeSkills?.()) {
+      continue;
+    }
 
-    logVerboseInfo(
-      `Copying skills to ${OPENCODE_SKILLS_PATH} for OpenCode`,
-      verbose,
-      dryRun,
-    );
-    await propagateSkillsForOpenCode(projectRoot, { dryRun });
+    const agentId = agent.getIdentifier();
 
-    logVerboseInfo(
-      `Copying skills to ${PI_SKILLS_PATH} for Pi Coding Agent`,
-      verbose,
-      dryRun,
-    );
-    await propagateSkillsForPi(projectRoot, { dryRun });
-
-    logVerboseInfo(
-      `Copying skills to ${GOOSE_SKILLS_PATH} for Goose and Amp`,
-      verbose,
-      dryRun,
-    );
-    await propagateSkillsForGoose(projectRoot, { dryRun });
-
-    logVerboseInfo(
-      `Copying skills to ${VIBE_SKILLS_PATH} for Mistral Vibe`,
-      verbose,
-      dryRun,
-    );
-    await propagateSkillsForVibe(projectRoot, { dryRun });
-
-    logVerboseInfo(
-      `Copying skills to ${ROO_SKILLS_PATH} for Roo Code`,
-      verbose,
-      dryRun,
-    );
-    await propagateSkillsForRoo(projectRoot, { dryRun });
-
-    logVerboseInfo(
-      `Copying skills to ${GEMINI_SKILLS_PATH} for Gemini CLI`,
-      verbose,
-      dryRun,
-    );
-    await propagateSkillsForGemini(projectRoot, { dryRun });
-
-    logVerboseInfo(
-      `Copying skills to ${CURSOR_SKILLS_PATH} for Cursor`,
-      verbose,
-      dryRun,
-    );
-    await propagateSkillsForCursor(projectRoot, { dryRun });
+    // Map agent identifiers to their propagation functions
+    // Some agents share the same skills path
+    switch (agentId) {
+      case 'claude':
+      case 'copilot':
+      case 'kilocode':
+        if (!propagatedPaths.has(CLAUDE_SKILLS_PATH)) {
+          logVerboseInfo(
+            `Copying skills to ${CLAUDE_SKILLS_PATH} for ${agent.getName()}`,
+            verbose,
+            dryRun,
+          );
+          await propagateSkillsForClaude(projectRoot, { dryRun });
+          propagatedPaths.add(CLAUDE_SKILLS_PATH);
+        }
+        break;
+      case 'codex':
+        if (!propagatedPaths.has(CODEX_SKILLS_PATH)) {
+          logVerboseInfo(
+            `Copying skills to ${CODEX_SKILLS_PATH} for ${agent.getName()}`,
+            verbose,
+            dryRun,
+          );
+          await propagateSkillsForCodex(projectRoot, { dryRun });
+          propagatedPaths.add(CODEX_SKILLS_PATH);
+        }
+        break;
+      case 'opencode':
+        if (!propagatedPaths.has(OPENCODE_SKILLS_PATH)) {
+          logVerboseInfo(
+            `Copying skills to ${OPENCODE_SKILLS_PATH} for ${agent.getName()}`,
+            verbose,
+            dryRun,
+          );
+          await propagateSkillsForOpenCode(projectRoot, { dryRun });
+          propagatedPaths.add(OPENCODE_SKILLS_PATH);
+        }
+        break;
+      case 'pi':
+        if (!propagatedPaths.has(PI_SKILLS_PATH)) {
+          logVerboseInfo(
+            `Copying skills to ${PI_SKILLS_PATH} for ${agent.getName()}`,
+            verbose,
+            dryRun,
+          );
+          await propagateSkillsForPi(projectRoot, { dryRun });
+          propagatedPaths.add(PI_SKILLS_PATH);
+        }
+        break;
+      case 'goose':
+      case 'amp':
+        if (!propagatedPaths.has(GOOSE_SKILLS_PATH)) {
+          logVerboseInfo(
+            `Copying skills to ${GOOSE_SKILLS_PATH} for ${agent.getName()}`,
+            verbose,
+            dryRun,
+          );
+          await propagateSkillsForGoose(projectRoot, { dryRun });
+          propagatedPaths.add(GOOSE_SKILLS_PATH);
+        }
+        break;
+      case 'mistral':
+        if (!propagatedPaths.has(VIBE_SKILLS_PATH)) {
+          logVerboseInfo(
+            `Copying skills to ${VIBE_SKILLS_PATH} for ${agent.getName()}`,
+            verbose,
+            dryRun,
+          );
+          await propagateSkillsForVibe(projectRoot, { dryRun });
+          propagatedPaths.add(VIBE_SKILLS_PATH);
+        }
+        break;
+      case 'roo':
+        if (!propagatedPaths.has(ROO_SKILLS_PATH)) {
+          logVerboseInfo(
+            `Copying skills to ${ROO_SKILLS_PATH} for ${agent.getName()}`,
+            verbose,
+            dryRun,
+          );
+          await propagateSkillsForRoo(projectRoot, { dryRun });
+          propagatedPaths.add(ROO_SKILLS_PATH);
+        }
+        break;
+      case 'gemini-cli':
+        if (!propagatedPaths.has(GEMINI_SKILLS_PATH)) {
+          logVerboseInfo(
+            `Copying skills to ${GEMINI_SKILLS_PATH} for ${agent.getName()}`,
+            verbose,
+            dryRun,
+          );
+          await propagateSkillsForGemini(projectRoot, { dryRun });
+          propagatedPaths.add(GEMINI_SKILLS_PATH);
+        }
+        break;
+      case 'cursor':
+        if (!propagatedPaths.has(CURSOR_SKILLS_PATH)) {
+          logVerboseInfo(
+            `Copying skills to ${CURSOR_SKILLS_PATH} for ${agent.getName()}`,
+            verbose,
+            dryRun,
+          );
+          await propagateSkillsForCursor(projectRoot, { dryRun });
+          propagatedPaths.add(CURSOR_SKILLS_PATH);
+        }
+        break;
+      default:
+        // Agent supports native skills but no specific propagation function
+        logVerboseInfo(
+          `Agent ${agent.getName()} supports native skills but no specific propagation path configured`,
+          verbose,
+          dryRun,
+        );
+        break;
+    }
   }
 
   // Copy to .skillz directory if needed

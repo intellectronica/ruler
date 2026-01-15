@@ -862,4 +862,205 @@ describe('Skills Discovery and Validation', () => {
       ).resolves.toBeUndefined();
     });
   });
+
+  describe('propagateSkills - agent-specific propagation', () => {
+    it('only propagates skills to selected agents', async () => {
+      const { propagateSkills } = await import('../src/core/SkillsProcessor');
+      const { ClaudeAgent } = await import('../src/agents/ClaudeAgent');
+
+      // Create skills directory
+      const skillsDir = path.join(tmpDir, '.ruler', 'skills');
+      const skill1 = path.join(skillsDir, 'skill1');
+      await fs.mkdir(skill1, { recursive: true });
+      await fs.writeFile(path.join(skill1, SKILL_MD_FILENAME), '# Skill 1');
+
+      // Only select Claude agent
+      const claudeAgent = new ClaudeAgent();
+      await propagateSkills(tmpDir, [claudeAgent], true, false, false);
+
+      // Claude skills should exist
+      const claudeSkillsDir = path.join(tmpDir, '.claude', 'skills');
+      await expect(fs.access(claudeSkillsDir)).resolves.toBeUndefined();
+
+      // Other agent directories should NOT exist
+      const codexSkillsDir = path.join(tmpDir, '.codex', 'skills');
+      const piSkillsDir = path.join(tmpDir, '.pi', 'skills');
+      const rooSkillsDir = path.join(tmpDir, '.roo', 'skills');
+      const geminiSkillsDir = path.join(tmpDir, '.gemini', 'skills');
+      await expect(fs.access(codexSkillsDir)).rejects.toThrow();
+      await expect(fs.access(piSkillsDir)).rejects.toThrow();
+      await expect(fs.access(rooSkillsDir)).rejects.toThrow();
+      await expect(fs.access(geminiSkillsDir)).rejects.toThrow();
+    });
+
+    it('propagates to multiple selected agents', async () => {
+      const { propagateSkills } = await import('../src/core/SkillsProcessor');
+      const { ClaudeAgent } = await import('../src/agents/ClaudeAgent');
+      const { CodexCliAgent } = await import('../src/agents/CodexCliAgent');
+
+      // Create skills directory
+      const skillsDir = path.join(tmpDir, '.ruler', 'skills');
+      const skill1 = path.join(skillsDir, 'skill1');
+      await fs.mkdir(skill1, { recursive: true });
+      await fs.writeFile(path.join(skill1, SKILL_MD_FILENAME), '# Skill 1');
+
+      // Select Claude and Codex agents
+      const claudeAgent = new ClaudeAgent();
+      const codexAgent = new CodexCliAgent();
+      await propagateSkills(
+        tmpDir,
+        [claudeAgent, codexAgent],
+        true,
+        false,
+        false,
+      );
+
+      // Both should exist
+      const claudeSkillsDir = path.join(tmpDir, '.claude', 'skills');
+      const codexSkillsDir = path.join(tmpDir, '.codex', 'skills');
+      await expect(fs.access(claudeSkillsDir)).resolves.toBeUndefined();
+      await expect(fs.access(codexSkillsDir)).resolves.toBeUndefined();
+
+      // Others should NOT exist
+      const piSkillsDir = path.join(tmpDir, '.pi', 'skills');
+      const rooSkillsDir = path.join(tmpDir, '.roo', 'skills');
+      await expect(fs.access(piSkillsDir)).rejects.toThrow();
+      await expect(fs.access(rooSkillsDir)).rejects.toThrow();
+    });
+
+    it('does not duplicate paths when agents share skills directory', async () => {
+      const { propagateSkills } = await import('../src/core/SkillsProcessor');
+      const { ClaudeAgent } = await import('../src/agents/ClaudeAgent');
+      const { CopilotAgent } = await import('../src/agents/CopilotAgent');
+
+      // Create skills directory
+      const skillsDir = path.join(tmpDir, '.ruler', 'skills');
+      const skill1 = path.join(skillsDir, 'skill1');
+      await fs.mkdir(skill1, { recursive: true });
+      await fs.writeFile(path.join(skill1, SKILL_MD_FILENAME), '# Skill 1');
+
+      // Select both Claude and Copilot (they share .claude/skills)
+      const claudeAgent = new ClaudeAgent();
+      const copilotAgent = new CopilotAgent();
+      await propagateSkills(
+        tmpDir,
+        [claudeAgent, copilotAgent],
+        true,
+        false,
+        false,
+      );
+
+      // Claude skills should exist
+      const claudeSkillsDir = path.join(tmpDir, '.claude', 'skills');
+      await expect(fs.access(claudeSkillsDir)).resolves.toBeUndefined();
+
+      // Verify the skill was copied correctly (not corrupted by double copy)
+      const copiedSkill = path.join(claudeSkillsDir, 'skill1', SKILL_MD_FILENAME);
+      expect(await fs.readFile(copiedSkill, 'utf8')).toBe('# Skill 1');
+    });
+
+    it('does not propagate skills for agents without native skills support', async () => {
+      const { propagateSkills } = await import('../src/core/SkillsProcessor');
+      const { AiderAgent } = await import('../src/agents/AiderAgent');
+
+      // Create skills directory
+      const skillsDir = path.join(tmpDir, '.ruler', 'skills');
+      const skill1 = path.join(skillsDir, 'skill1');
+      await fs.mkdir(skill1, { recursive: true });
+      await fs.writeFile(path.join(skill1, SKILL_MD_FILENAME), '# Skill 1');
+
+      // Select Aider (which does not support native skills)
+      const aiderAgent = new AiderAgent();
+      await propagateSkills(tmpDir, [aiderAgent], true, false, false);
+
+      // No skills directories should be created
+      const claudeSkillsDir = path.join(tmpDir, '.claude', 'skills');
+      const codexSkillsDir = path.join(tmpDir, '.codex', 'skills');
+      await expect(fs.access(claudeSkillsDir)).rejects.toThrow();
+      await expect(fs.access(codexSkillsDir)).rejects.toThrow();
+    });
+  });
+
+  describe('getSkillsGitignorePaths - agent-specific paths', () => {
+    it('returns only paths for selected agents', async () => {
+      const { getSkillsGitignorePaths } = await import(
+        '../src/core/SkillsProcessor'
+      );
+      const { ClaudeAgent } = await import('../src/agents/ClaudeAgent');
+
+      // Create skills directory
+      const skillsDir = path.join(tmpDir, '.ruler', 'skills');
+      const skill1 = path.join(skillsDir, 'skill1');
+      await fs.mkdir(skill1, { recursive: true });
+      await fs.writeFile(path.join(skill1, SKILL_MD_FILENAME), '# Skill 1');
+
+      const claudeAgent = new ClaudeAgent();
+      const paths = await getSkillsGitignorePaths(tmpDir, [claudeAgent]);
+
+      expect(paths).toHaveLength(1);
+      expect(paths[0]).toContain('.claude');
+    });
+
+    it('returns paths for multiple selected agents', async () => {
+      const { getSkillsGitignorePaths } = await import(
+        '../src/core/SkillsProcessor'
+      );
+      const { ClaudeAgent } = await import('../src/agents/ClaudeAgent');
+      const { CodexCliAgent } = await import('../src/agents/CodexCliAgent');
+
+      // Create skills directory
+      const skillsDir = path.join(tmpDir, '.ruler', 'skills');
+      const skill1 = path.join(skillsDir, 'skill1');
+      await fs.mkdir(skill1, { recursive: true });
+      await fs.writeFile(path.join(skill1, SKILL_MD_FILENAME), '# Skill 1');
+
+      const claudeAgent = new ClaudeAgent();
+      const codexAgent = new CodexCliAgent();
+      const paths = await getSkillsGitignorePaths(tmpDir, [
+        claudeAgent,
+        codexAgent,
+      ]);
+
+      expect(paths).toHaveLength(2);
+      expect(paths.some((p) => p.includes('.claude'))).toBe(true);
+      expect(paths.some((p) => p.includes('.codex'))).toBe(true);
+    });
+
+    it('does not return duplicate paths for agents sharing skills directory', async () => {
+      const { getSkillsGitignorePaths } = await import(
+        '../src/core/SkillsProcessor'
+      );
+      const { ClaudeAgent } = await import('../src/agents/ClaudeAgent');
+      const { CopilotAgent } = await import('../src/agents/CopilotAgent');
+
+      // Create skills directory
+      const skillsDir = path.join(tmpDir, '.ruler', 'skills');
+      const skill1 = path.join(skillsDir, 'skill1');
+      await fs.mkdir(skill1, { recursive: true });
+      await fs.writeFile(path.join(skill1, SKILL_MD_FILENAME), '# Skill 1');
+
+      const claudeAgent = new ClaudeAgent();
+      const copilotAgent = new CopilotAgent();
+      const paths = await getSkillsGitignorePaths(tmpDir, [
+        claudeAgent,
+        copilotAgent,
+      ]);
+
+      // Should only have 1 path since both use .claude/skills
+      expect(paths).toHaveLength(1);
+      expect(paths[0]).toContain('.claude');
+    });
+
+    it('returns empty array when skills directory does not exist', async () => {
+      const { getSkillsGitignorePaths } = await import(
+        '../src/core/SkillsProcessor'
+      );
+      const { ClaudeAgent } = await import('../src/agents/ClaudeAgent');
+
+      const claudeAgent = new ClaudeAgent();
+      const paths = await getSkillsGitignorePaths(tmpDir, [claudeAgent]);
+
+      expect(paths).toHaveLength(0);
+    });
+  });
 });
