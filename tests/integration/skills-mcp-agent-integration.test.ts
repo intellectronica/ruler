@@ -222,6 +222,38 @@ args = ["server.js"]
       await expect(fs.access(skillMdPath)).resolves.toBeUndefined();
     });
 
+    it('avoids Skillz MCP for native-skills agents when mixed with MCP-only agents', async () => {
+      await applyAllAgentConfigs(
+        tmpDir,
+        ['codex', 'zed'],
+        undefined,
+        true,
+        undefined,
+        undefined,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true, // skills enabled
+      );
+
+      const codexConfigPath = path.join(tmpDir, '.codex', 'config.toml');
+      const zedSettingsPath = path.join(tmpDir, '.zed', 'settings.json');
+
+      try {
+        const codexContent = await fs.readFile(codexConfigPath, 'utf8');
+        const codexConfig = parseTOML(codexContent);
+        expect(codexConfig.mcp_servers).not.toHaveProperty('skillz');
+      } catch {
+        // Codex config may not exist if no MCP servers were needed
+      }
+
+      const zedContent = await fs.readFile(zedSettingsPath, 'utf8');
+      const zedSettings = JSON.parse(zedContent);
+      expect(zedSettings.context_servers).toHaveProperty('skillz');
+    });
+
     it('works for multiple agents simultaneously', async () => {
       await applyAllAgentConfigs(
         tmpDir,

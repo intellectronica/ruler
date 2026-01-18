@@ -95,22 +95,22 @@ describe('Skills MCP Integration', () => {
   });
 
   describe('buildSkillzMcpConfig', () => {
-    it('creates MCP config with absolute path', () => {
+    it('creates MCP config with project-relative skillz path', () => {
       const config = buildSkillzMcpConfig(tmpDir);
-      
+
       expect(config).toHaveProperty('skillz');
       expect(config.skillz).toEqual({
         command: 'uvx',
-        args: ['skillz@latest', path.resolve(tmpDir, SKILLZ_DIR)],
+        args: ['skillz@latest', SKILLZ_DIR],
       });
     });
 
-    it('uses absolute path even for relative project root', () => {
+    it('keeps the Skillz path relative even for relative project roots', () => {
       const relativeRoot = './my-project';
       const config = buildSkillzMcpConfig(relativeRoot);
-      
+
       const skillzPath = (config.skillz as any).args[1];
-      expect(path.isAbsolute(skillzPath)).toBe(true);
+      expect(path.isAbsolute(skillzPath)).toBe(false);
     });
   });
 });

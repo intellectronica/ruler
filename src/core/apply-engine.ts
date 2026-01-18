@@ -400,21 +400,17 @@ export async function processSingleConfiguration(
 }
 
 /**
- * Adds Skillz MCP server to rulerMcpJson if skills exist and any agent needs it.
+ * Adds Skillz MCP server to rulerMcpJson if skills exist and this agent needs it.
  * Returns augmented MCP config or original if no changes needed.
  */
 async function addSkillzMcpServerIfNeeded(
   rulerMcpJson: Record<string, unknown> | null,
   projectRoot: string,
-  agents: IAgent[],
+  agent: IAgent,
   verbose: boolean,
 ): Promise<Record<string, unknown> | null> {
-  // Check if any agent supports MCP stdio but not native skills
-  const hasAgentNeedingSkillz = agents.some(
-    (agent) => agent.supportsMcpStdio?.() && !agent.supportsNativeSkills?.(),
-  );
-
-  if (!hasAgentNeedingSkillz) {
+  // Check if this agent supports MCP stdio but not native skills
+  if (!agent.supportsMcpStdio?.() || agent.supportsNativeSkills?.()) {
     return rulerMcpJson;
   }
 
@@ -433,7 +429,7 @@ async function addSkillzMcpServerIfNeeded(
     const mcpServers = (baseConfig.mcpServers as Record<string, unknown>) || {};
 
     logVerbose(
-      'Adding Skillz MCP server to configuration for agents that need it',
+      `Adding Skillz MCP server to configuration for ${agent.getName()}`,
       verbose,
     );
 
@@ -477,23 +473,19 @@ export async function applyConfigurationsToAgents(
   const generatedPaths: string[] = [];
   let agentsMdWritten = false;
 
-  // Add Skillz MCP server to rulerMcpJson if skills are enabled
-  // This must happen before calling agent.applyRulerConfig() so that agents
-  // that handle MCP internally (e.g. Codex, Gemini) receive the Skillz server
-  let augmentedRulerMcpJson = rulerMcpJson;
-  if (skillsEnabled && !dryRun) {
-    augmentedRulerMcpJson = await addSkillzMcpServerIfNeeded(
-      rulerMcpJson,
-      projectRoot,
-      agents,
-      verbose,
-    );
-  }
-
   for (const agent of agents) {
     logInfo(`Applying rules for ${agent.getName()}...`, dryRun);
     logVerbose(`Processing agent: ${agent.getName()}`, verbose);
     const agentConfig = config.agentConfigs[agent.getIdentifier()];
+    const agentRulerMcpJson =
+      skillsEnabled && !dryRun
+        ? await addSkillzMcpServerIfNeeded(
+            rulerMcpJson,
+            projectRoot,
+            agent,
+            verbose,
+          )
+        : rulerMcpJson;
 
     // Collect output paths for .gitignore
     const outputPaths = getAgentOutputPaths(agent, projectRoot, agentConfig);
@@ -528,7 +520,7 @@ export async function applyConfigurationsToAgents(
         }
       }
       let finalAgentConfig = agentConfig;
-      if (agent.getIdentifier() === 'augmentcode' && augmentedRulerMcpJson) {
+      if (agent.getIdentifier() === 'augmentcode' && agentRulerMcpJson) {
         const resolvedStrategy =
           cliMcpStrategy ??
           agentConfig?.mcp?.strategy ??
@@ -548,7 +540,7 @@ export async function applyConfigurationsToAgents(
         await agent.applyRulerConfig(
           concatenatedRules,
           projectRoot,
-          augmentedRulerMcpJson,
+          agentRulerMcpJson,
           finalAgentConfig,
           backup,
         );
@@ -560,7 +552,7 @@ export async function applyConfigurationsToAgents(
       agent,
       agentConfig,
       config,
-      augmentedRulerMcpJson,
+      agentRulerMcpJson,
       projectRoot,
       generatedPaths,
       verbose,
