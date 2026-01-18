@@ -318,15 +318,15 @@ ruler revert [options]
 
 ### Options
 
-| Option                         | Description                                                                                                                                                                                                                                                                                         |
-| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--project-root <path>`        | Path to your project's root (default: current directory)                                                                                                                                                                                                                                            |
+| Option                         | Description                                                                                                                                                                                                                                                                                             |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--project-root <path>`        | Path to your project's root (default: current directory)                                                                                                                                                                                                                                                |
 | `--agents <agent1,agent2,...>` | Comma-separated list of agent names to revert (agentsmd, aider, amazonqcli, amp, antigravity, augmentcode, claude, cline, codex, copilot, crush, cursor, firebase, firebender, gemini-cli, goose, jules, junie, kilocode, kiro, mistral, opencode, openhands, pi, qwen, roo, trae, warp, windsurf, zed) |
-| `--config <path>`              | Path to a custom `ruler.toml` configuration file                                                                                                                                                                                                                                                    |
-| `--keep-backups`               | Keep backup files (.bak) after restoration (default: false)                                                                                                                                                                                                                                         |
-| `--dry-run`                    | Preview changes without actually reverting files                                                                                                                                                                                                                                                    |
-| `--verbose` / `-v`             | Display detailed output during execution                                                                                                                                                                                                                                                            |
-| `--local-only`                 | Only search for local .ruler directories, ignore global config                                                                                                                                                                                                                                      |
+| `--config <path>`              | Path to a custom `ruler.toml` configuration file                                                                                                                                                                                                                                                        |
+| `--keep-backups`               | Keep backup files (.bak) after restoration (default: false)                                                                                                                                                                                                                                             |
+| `--dry-run`                    | Preview changes without actually reverting files                                                                                                                                                                                                                                                        |
+| `--verbose` / `-v`             | Display detailed output during execution                                                                                                                                                                                                                                                                |
+| `--local-only`                 | Only search for local .ruler directories, ignore global config                                                                                                                                                                                                                                          |
 
 ### Common Examples
 
@@ -576,6 +576,7 @@ Skills are specialized knowledge packages that extend AI agent capabilities with
   - **Pi Coding Agent**: `.pi/skills/`
   - **Goose**: `.agents/skills/`
   - **Amp**: `.agents/skills/` (shared with Goose)
+  - **Antigravity**: `.agent/skills/`
   - **Mistral Vibe**: `.vibe/skills/`
   - **Roo Code**: `.roo/skills/`
   - **Gemini CLI**: `.gemini/skills/`
@@ -635,7 +636,7 @@ For agents that support MCP but don't have native skills support, Ruler automati
 2. Configures a Skillz MCP server in the agent's configuration
 3. Uses `uvx` to launch the server with the project-relative path to `.skillz`
 
-Agents using native skills support (Claude Code, GitHub Copilot, Kilo Code, OpenAI Codex CLI, OpenCode, Pi Coding Agent, Goose, Amp, Mistral Vibe, Roo Code, Gemini CLI, and Cursor) **do not** use the Skillz MCP server and instead use their own native skills directories.
+Agents using native skills support (Claude Code, GitHub Copilot, Kilo Code, OpenAI Codex CLI, OpenCode, Pi Coding Agent, Goose, Amp, Antigravity, Mistral Vibe, Roo Code, Gemini CLI, and Cursor) **do not** use the Skillz MCP server and instead use their own native skills directories.
 
 Example auto-generated MCP server configuration:
 
@@ -654,6 +655,7 @@ When skills support is enabled and gitignore integration is active, Ruler automa
 - `.opencode/skill/` (for OpenCode)
 - `.pi/skills/` (for Pi Coding Agent)
 - `.agents/skills/` (for Goose and Amp)
+- `.agent/skills/` (for Antigravity)
 - `.vibe/skills/` (for Mistral Vibe)
 - `.roo/skills/` (for Roo Code)
 - `.gemini/skills/` (for Gemini CLI)
@@ -664,7 +666,7 @@ to your `.gitignore` file within the managed Ruler block.
 
 ### Requirements
 
-- **For agents with native skills support** (Claude Code, GitHub Copilot, Kilo Code, OpenAI Codex CLI, OpenCode, Pi Coding Agent, Goose, Amp, Mistral Vibe, Roo Code, Gemini CLI, Cursor): No additional requirements
+- **For agents with native skills support** (Claude Code, GitHub Copilot, Kilo Code, OpenAI Codex CLI, OpenCode, Pi Coding Agent, Goose, Amp, Antigravity, Mistral Vibe, Roo Code, Gemini CLI, Cursor): No additional requirements
 - **For other MCP agents**: `uv` must be installed and available in your PATH
   ```bash
   # Install uv if needed
@@ -717,6 +719,7 @@ ruler apply
 #    - OpenCode: .opencode/skill/my-skill/
 #    - Pi Coding Agent: .pi/skills/my-skill/
 #    - Goose & Amp: .agents/skills/my-skill/
+#    - Antigravity: .agent/skills/my-skill/
 #    - Mistral Vibe: .vibe/skills/my-skill/
 #    - Roo Code: .roo/skills/my-skill/
 #    - Gemini CLI: .gemini/skills/my-skill/

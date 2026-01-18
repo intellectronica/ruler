@@ -12,6 +12,7 @@ import {
   ROO_SKILLS_PATH,
   GEMINI_SKILLS_PATH,
   CURSOR_SKILLS_PATH,
+  ANTIGRAVITY_SKILLS_PATH,
   SKILLZ_DIR,
   SKILLZ_MCP_SERVER_NAME,
   logWarn,
@@ -68,6 +69,7 @@ export async function getSkillsGitignorePaths(
     ROO_SKILLS_PATH,
     GEMINI_SKILLS_PATH,
     CURSOR_SKILLS_PATH,
+    ANTIGRAVITY_SKILLS_PATH,
     SKILLZ_DIR,
   } = await import('../constants');
 
@@ -81,6 +83,7 @@ export async function getSkillsGitignorePaths(
     path.join(projectRoot, ROO_SKILLS_PATH),
     path.join(projectRoot, GEMINI_SKILLS_PATH),
     path.join(projectRoot, CURSOR_SKILLS_PATH),
+    path.join(projectRoot, ANTIGRAVITY_SKILLS_PATH),
     path.join(projectRoot, SKILLZ_DIR),
   ];
 }
@@ -130,6 +133,7 @@ async function cleanupSkillsDirectories(
   const rooSkillsPath = path.join(projectRoot, ROO_SKILLS_PATH);
   const geminiSkillsPath = path.join(projectRoot, GEMINI_SKILLS_PATH);
   const cursorSkillsPath = path.join(projectRoot, CURSOR_SKILLS_PATH);
+  const antigravitySkillsPath = path.join(projectRoot, ANTIGRAVITY_SKILLS_PATH);
   const skillzPath = path.join(projectRoot, SKILLZ_DIR);
 
   // Clean up .claude/skills
@@ -321,6 +325,27 @@ async function cleanupSkillsDirectories(
     // Directory doesn't exist, nothing to clean
   }
 
+  // Clean up .agent/skills
+  try {
+    await fs.access(antigravitySkillsPath);
+    if (dryRun) {
+      logVerboseInfo(
+        `DRY RUN: Would remove ${ANTIGRAVITY_SKILLS_PATH}`,
+        verbose,
+        dryRun,
+      );
+    } else {
+      await fs.rm(antigravitySkillsPath, { recursive: true, force: true });
+      logVerboseInfo(
+        `Removed ${ANTIGRAVITY_SKILLS_PATH} (skills disabled)`,
+        verbose,
+        dryRun,
+      );
+    }
+  } catch {
+    // Directory doesn't exist, nothing to clean
+  }
+
   // Clean up .skillz
   try {
     await fs.access(skillzPath);
@@ -469,6 +494,13 @@ export async function propagateSkills(
       dryRun,
     );
     await propagateSkillsForCursor(projectRoot, { dryRun });
+
+    logVerboseInfo(
+      `Copying skills to ${ANTIGRAVITY_SKILLS_PATH} for Antigravity`,
+      verbose,
+      dryRun,
+    );
+    await propagateSkillsForAntigravity(projectRoot, { dryRun });
   }
 
   // Copy to .skillz directory if needed
@@ -991,6 +1023,66 @@ export async function propagateSkillsForCursor(
 
     // Rename temp to target
     await fs.rename(tempDir, cursorSkillsPath);
+  } catch (error) {
+    // Clean up temp directory on error
+    try {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    } catch {
+      // Ignore cleanup errors
+    }
+    throw error;
+  }
+
+  return [];
+}
+
+/**
+ * Propagates skills for Antigravity by copying .ruler/skills to .agent/skills.
+ * Uses atomic replace to ensure safe overwriting of existing skills.
+ * Returns dry-run steps if dryRun is true, otherwise returns empty array.
+ */
+export async function propagateSkillsForAntigravity(
+  projectRoot: string,
+  options: { dryRun: boolean },
+): Promise<string[]> {
+  const skillsDir = path.join(projectRoot, RULER_SKILLS_PATH);
+  const antigravitySkillsPath = path.join(projectRoot, ANTIGRAVITY_SKILLS_PATH);
+  const antigravityDir = path.dirname(antigravitySkillsPath);
+
+  // Check if source skills directory exists
+  try {
+    await fs.access(skillsDir);
+  } catch {
+    // No skills directory - return empty
+    return [];
+  }
+
+  if (options.dryRun) {
+    return [
+      `Copy skills from ${RULER_SKILLS_PATH} to ${ANTIGRAVITY_SKILLS_PATH}`,
+    ];
+  }
+
+  // Ensure .agent directory exists
+  await fs.mkdir(antigravityDir, { recursive: true });
+
+  // Use atomic replace: copy to temp, then rename
+  const tempDir = path.join(antigravityDir, `skills.tmp-${Date.now()}`);
+
+  try {
+    // Copy to temp directory
+    await copySkillsDirectory(skillsDir, tempDir);
+
+    // Atomically replace the target
+    // First, remove existing target if it exists
+    try {
+      await fs.rm(antigravitySkillsPath, { recursive: true, force: true });
+    } catch {
+      // Target didn't exist, that's fine
+    }
+
+    // Rename temp to target
+    await fs.rename(tempDir, antigravitySkillsPath);
   } catch (error) {
     // Clean up temp directory on error
     try {
