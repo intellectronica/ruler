@@ -93,7 +93,7 @@ export async function getSkillsGitignorePaths(
 let hasWarnedExperimental = false;
 
 /**
- * Warns once per process about experimental skills features.
+ * Warns once per process about experimental skills support.
  * Uses module-level state to prevent duplicate warnings within the same process.
  */
 function warnOnceExperimental(verbose: boolean, dryRun: boolean): void {

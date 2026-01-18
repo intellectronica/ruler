@@ -4,7 +4,7 @@ import * as os from 'os';
 import { applyAllAgentConfigs } from '../../src/lib';
 import { SKILL_MD_FILENAME } from '../../src/constants';
 
-describe('Skills MCP Agent Integration', () => {
+describe('Skills Agent Integration', () => {
   let tmpDir: string;
 
   beforeEach(async () => {
@@ -17,7 +17,7 @@ describe('Skills MCP Agent Integration', () => {
     await fs.rm(tmpDir, { recursive: true, force: true });
   });
 
-  describe('Skills propagation for agents handling MCP internally', () => {
+  describe('Skills propagation for native agents', () => {
     beforeEach(async () => {
       // Create .ruler directory with rules and skills
       const rulerDir = path.join(tmpDir, '.ruler');
