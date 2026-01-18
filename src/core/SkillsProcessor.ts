@@ -13,8 +13,6 @@ import {
   GEMINI_SKILLS_PATH,
   CURSOR_SKILLS_PATH,
   ANTIGRAVITY_SKILLS_PATH,
-  SKILLZ_DIR,
-  SKILLZ_MCP_SERVER_NAME,
   logWarn,
   logVerboseInfo,
 } from '../constants';
@@ -70,7 +68,6 @@ export async function getSkillsGitignorePaths(
     GEMINI_SKILLS_PATH,
     CURSOR_SKILLS_PATH,
     ANTIGRAVITY_SKILLS_PATH,
-    SKILLZ_DIR,
   } = await import('../constants');
 
   return [
@@ -84,7 +81,6 @@ export async function getSkillsGitignorePaths(
     path.join(projectRoot, GEMINI_SKILLS_PATH),
     path.join(projectRoot, CURSOR_SKILLS_PATH),
     path.join(projectRoot, ANTIGRAVITY_SKILLS_PATH),
-    path.join(projectRoot, SKILLZ_DIR),
   ];
 }
 
@@ -97,20 +93,16 @@ export async function getSkillsGitignorePaths(
 let hasWarnedExperimental = false;
 
 /**
- * Warns once per process about experimental skills features and uv requirement.
+ * Warns once per process about experimental skills features.
  * Uses module-level state to prevent duplicate warnings within the same process.
  */
-function warnOnceExperimentalAndUv(verbose: boolean, dryRun: boolean): void {
+function warnOnceExperimental(verbose: boolean, dryRun: boolean): void {
   if (hasWarnedExperimental) {
     return;
   }
   hasWarnedExperimental = true;
   logWarn(
     'Skills support is experimental and behavior may change in future releases.',
-    dryRun,
-  );
-  logWarn(
-    'Skills MCP server (Skillz) requires uv. Install: https://github.com/astral-sh/uv',
     dryRun,
   );
 }
@@ -134,7 +126,6 @@ async function cleanupSkillsDirectories(
   const geminiSkillsPath = path.join(projectRoot, GEMINI_SKILLS_PATH);
   const cursorSkillsPath = path.join(projectRoot, CURSOR_SKILLS_PATH);
   const antigravitySkillsPath = path.join(projectRoot, ANTIGRAVITY_SKILLS_PATH);
-  const skillzPath = path.join(projectRoot, SKILLZ_DIR);
 
   // Clean up .claude/skills
   try {
@@ -345,23 +336,6 @@ async function cleanupSkillsDirectories(
   } catch {
     // Directory doesn't exist, nothing to clean
   }
-
-  // Clean up .skillz
-  try {
-    await fs.access(skillzPath);
-    if (dryRun) {
-      logVerboseInfo(`DRY RUN: Would remove ${SKILLZ_DIR}`, verbose, dryRun);
-    } else {
-      await fs.rm(skillzPath, { recursive: true, force: true });
-      logVerboseInfo(
-        `Removed ${SKILLZ_DIR} (skills disabled)`,
-        verbose,
-        dryRun,
-      );
-    }
-  } catch {
-    // Directory doesn't exist, nothing to clean
-  }
 }
 
 /**
@@ -414,21 +388,32 @@ export async function propagateSkills(
 
   logVerboseInfo(`Discovered ${skills.length} skill(s)`, verbose, dryRun);
 
-  // Check if any agents need skills
   const hasNativeSkillsAgent = agents.some((a) => a.supportsNativeSkills?.());
-  const hasMcpAgent = agents.some(
-    (a) => a.supportsMcpStdio?.() && !a.supportsNativeSkills?.(),
+  const nonNativeAgents = agents.filter(
+    (agent) => !agent.supportsNativeSkills?.(),
   );
 
-  if (!hasNativeSkillsAgent && !hasMcpAgent) {
-    logVerboseInfo('No agents require skills support', verbose, dryRun);
+  if (nonNativeAgents.length > 0) {
+    const agentList = nonNativeAgents
+      .map((agent) => agent.getName())
+      .join(', ');
+    logWarn(
+      `Skills are configured, but the following agents do not support native skills and will be skipped: ${agentList}`,
+      dryRun,
+    );
+  }
+
+  if (!hasNativeSkillsAgent) {
+    logVerboseInfo(
+      'No agents support native skills, skipping skills propagation',
+      verbose,
+      dryRun,
+    );
     return;
   }
 
   // Warn about experimental features
-  if (hasMcpAgent) {
-    warnOnceExperimentalAndUv(verbose, dryRun);
-  }
+  warnOnceExperimental(verbose, dryRun);
 
   // Copy to Claude skills directory if needed
   if (hasNativeSkillsAgent) {
@@ -503,15 +488,7 @@ export async function propagateSkills(
     await propagateSkillsForAntigravity(projectRoot, { dryRun });
   }
 
-  // Copy to .skillz directory if needed
-  if (hasMcpAgent) {
-    logVerboseInfo(
-      `Copying skills to ${SKILLZ_DIR} for MCP agents`,
-      verbose,
-      dryRun,
-    );
-    await propagateSkillsForSkillz(projectRoot, { dryRun });
-  }
+  // No MCP-based propagation; only native skills are supported.
 }
 
 /**
@@ -1094,76 +1071,4 @@ export async function propagateSkillsForAntigravity(
   }
 
   return [];
-}
-
-/**
- * Propagates skills for MCP agents by copying .ruler/skills to .skillz.
- * Uses atomic replace to ensure safe overwriting of existing skills.
- * Returns dry-run steps if dryRun is true, otherwise returns empty array.
- */
-export async function propagateSkillsForSkillz(
-  projectRoot: string,
-  options: { dryRun: boolean },
-): Promise<string[]> {
-  const skillsDir = path.join(projectRoot, RULER_SKILLS_PATH);
-  const skillzPath = path.join(projectRoot, SKILLZ_DIR);
-
-  // Check if source skills directory exists
-  try {
-    await fs.access(skillsDir);
-  } catch {
-    // No skills directory - return empty
-    return [];
-  }
-
-  if (options.dryRun) {
-    return [
-      `Copy skills from ${RULER_SKILLS_PATH} to ${SKILLZ_DIR}`,
-      `Configure Skillz MCP server with path to ${SKILLZ_DIR}`,
-    ];
-  }
-
-  // Use atomic replace: copy to temp, then rename
-  const tempDir = path.join(projectRoot, `${SKILLZ_DIR}.tmp-${Date.now()}`);
-
-  try {
-    // Copy to temp directory
-    await copySkillsDirectory(skillsDir, tempDir);
-
-    // Atomically replace the target
-    // First, remove existing target if it exists
-    try {
-      await fs.rm(skillzPath, { recursive: true, force: true });
-    } catch {
-      // Target didn't exist, that's fine
-    }
-
-    // Rename temp to target
-    await fs.rename(tempDir, skillzPath);
-  } catch (error) {
-    // Clean up temp directory on error
-    try {
-      await fs.rm(tempDir, { recursive: true, force: true });
-    } catch {
-      // Ignore cleanup errors
-    }
-    throw error;
-  }
-
-  return [];
-}
-
-/**
- * Builds MCP config for Skillz server.
- */
-export function buildSkillzMcpConfig(
-  projectRoot: string,
-): Record<string, unknown> {
-  void projectRoot;
-  return {
-    [SKILLZ_MCP_SERVER_NAME]: {
-      command: 'uvx',
-      args: ['skillz@latest', SKILLZ_DIR],
-    },
-  };
 }
