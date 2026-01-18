@@ -1067,14 +1067,11 @@ export async function propagateSkillsForSkillz(
 export function buildSkillzMcpConfig(
   projectRoot: string,
 ): Record<string, unknown> {
-  const skillzPath = path.relative(
-    projectRoot,
-    path.resolve(projectRoot, SKILLZ_DIR),
-  );
+  void projectRoot;
   return {
     [SKILLZ_MCP_SERVER_NAME]: {
       command: 'uvx',
-      args: ['skillz@latest', skillzPath || SKILLZ_DIR],
+      args: ['skillz@latest', SKILLZ_DIR],
     },
   };
 }
