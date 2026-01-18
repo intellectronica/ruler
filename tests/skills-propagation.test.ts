@@ -825,7 +825,6 @@ describe('Skills Discovery and Validation', () => {
       const geminiSkillsDir = path.join(tmpDir, '.gemini', 'skills');
       const cursorSkillsDir = path.join(tmpDir, '.cursor', 'skills');
       const antigravitySkillsDir = path.join(tmpDir, '.agent', 'skills');
-      const skillzDir = path.join(tmpDir, '.skillz');
 
       // Create existing skills directories (as if they were from previous run)
       const claudeOldSkill = path.join(claudeSkillsDir, 'old-skill');
@@ -837,7 +836,6 @@ describe('Skills Discovery and Validation', () => {
       const geminiOldSkill = path.join(geminiSkillsDir, 'old-skill');
       const cursorOldSkill = path.join(cursorSkillsDir, 'old-skill');
       const antigravityOldSkill = path.join(antigravitySkillsDir, 'old-skill');
-      const skillzOldSkill = path.join(skillzDir, 'old-skill');
       await fs.mkdir(claudeOldSkill, { recursive: true });
       await fs.mkdir(opencodeOldSkill, { recursive: true });
       await fs.mkdir(piOldSkill, { recursive: true });
@@ -847,7 +845,6 @@ describe('Skills Discovery and Validation', () => {
       await fs.mkdir(geminiOldSkill, { recursive: true });
       await fs.mkdir(cursorOldSkill, { recursive: true });
       await fs.mkdir(antigravityOldSkill, { recursive: true });
-      await fs.mkdir(skillzOldSkill, { recursive: true });
       await fs.writeFile(
         path.join(claudeOldSkill, SKILL_MD_FILENAME),
         '# Old Skill',
@@ -884,10 +881,6 @@ describe('Skills Discovery and Validation', () => {
         path.join(antigravityOldSkill, SKILL_MD_FILENAME),
         '# Old Skill',
       );
-      await fs.writeFile(
-        path.join(skillzOldSkill, SKILL_MD_FILENAME),
-        '# Old Skill',
-      );
 
       // Verify directories exist before cleanup
       await expect(fs.access(claudeSkillsDir)).resolves.toBeUndefined();
@@ -899,7 +892,6 @@ describe('Skills Discovery and Validation', () => {
       await expect(fs.access(geminiSkillsDir)).resolves.toBeUndefined();
       await expect(fs.access(cursorSkillsDir)).resolves.toBeUndefined();
       await expect(fs.access(antigravitySkillsDir)).resolves.toBeUndefined();
-      await expect(fs.access(skillzDir)).resolves.toBeUndefined();
 
       // Run propagateSkills with skillsEnabled = false
       await propagateSkills(tmpDir, allAgents, false, false, false);
@@ -914,25 +906,21 @@ describe('Skills Discovery and Validation', () => {
       await expect(fs.access(geminiSkillsDir)).rejects.toThrow();
       await expect(fs.access(cursorSkillsDir)).rejects.toThrow();
       await expect(fs.access(antigravitySkillsDir)).rejects.toThrow();
-      await expect(fs.access(skillzDir)).rejects.toThrow();
     });
 
     it('logs cleanup in dry-run mode without actually removing directories', async () => {
       const { propagateSkills } = await import('../src/core/SkillsProcessor');
       const { allAgents } = await import('../src/lib');
       const claudeSkillsDir = path.join(tmpDir, '.claude', 'skills');
-      const skillzDir = path.join(tmpDir, '.skillz');
 
       // Create existing skills directories
       await fs.mkdir(claudeSkillsDir, { recursive: true });
-      await fs.mkdir(skillzDir, { recursive: true });
 
       // Run propagateSkills with skillsEnabled = false in dry-run mode
       await propagateSkills(tmpDir, allAgents, false, true, true);
 
       // Verify directories still exist (dry-run doesn't remove)
       await expect(fs.access(claudeSkillsDir)).resolves.toBeUndefined();
-      await expect(fs.access(skillzDir)).resolves.toBeUndefined();
     });
 
     it('handles cleanup gracefully when directories do not exist', async () => {

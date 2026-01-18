@@ -3,9 +3,8 @@ import * as fs from 'fs/promises';
 import * as os from 'os';
 import { applyAllAgentConfigs } from '../../src/lib';
 import { SKILL_MD_FILENAME } from '../../src/constants';
-import { parse as parseTOML } from '@iarna/toml';
 
-describe('Skills MCP Agent Integration', () => {
+describe('Skills Agent Integration', () => {
   let tmpDir: string;
 
   beforeEach(async () => {
@@ -18,7 +17,7 @@ describe('Skills MCP Agent Integration', () => {
     await fs.rm(tmpDir, { recursive: true, force: true });
   });
 
-  describe('Skillz MCP server for agents handling MCP internally', () => {
+  describe('Skills propagation for native agents', () => {
     beforeEach(async () => {
       // Create .ruler directory with rules and skills
       const rulerDir = path.join(tmpDir, '.ruler');
@@ -130,7 +129,7 @@ describe('Skills MCP Agent Integration', () => {
       expect(skillContent).toBe('# Test Skill');
     });
 
-    it('does not add Skillz server when skills are disabled', async () => {
+    it('does not create skills directories when skills are disabled', async () => {
       await applyAllAgentConfigs(
         tmpDir,
         ['codex', 'gemini-cli'],
@@ -146,29 +145,11 @@ describe('Skills MCP Agent Integration', () => {
         false, // skills disabled
       );
 
-      // Check that configs don't have skillz server
-      const codexConfigPath = path.join(tmpDir, '.codex', 'config.toml');
-      const geminiSettingsPath = path.join(tmpDir, '.gemini', 'settings.json');
+      const codexSkillsPath = path.join(tmpDir, '.codex', 'skills');
+      const geminiSkillsPath = path.join(tmpDir, '.gemini', 'skills');
 
-      // Codex config should not have skillz
-      try {
-        const codexContent = await fs.readFile(codexConfigPath, 'utf8');
-        const codexConfig = parseTOML(codexContent);
-        expect(codexConfig.mcp_servers).not.toHaveProperty('skillz');
-      } catch (err) {
-        // File might not exist if no MCP servers at all, which is fine
-      }
-
-      // Gemini config should not have skillz
-      try {
-        const geminiContent = await fs.readFile(geminiSettingsPath, 'utf8');
-        const geminiSettings = JSON.parse(geminiContent);
-        if (geminiSettings.mcpServers) {
-          expect(geminiSettings.mcpServers).not.toHaveProperty('skillz');
-        }
-      } catch (err) {
-        // File might not exist if no MCP servers at all, which is fine
-      }
+      await expect(fs.access(codexSkillsPath)).rejects.toThrow();
+      await expect(fs.access(geminiSkillsPath)).rejects.toThrow();
     });
 
     it('adds skills to native directories even when there are existing MCP servers', async () => {
@@ -222,36 +203,42 @@ args = ["server.js"]
       await expect(fs.access(skillMdPath)).resolves.toBeUndefined();
     });
 
-    it('avoids Skillz MCP for native-skills agents when mixed with MCP-only agents', async () => {
-      await applyAllAgentConfigs(
-        tmpDir,
-        ['codex', 'zed'],
-        undefined,
-        true,
-        undefined,
-        undefined,
-        false,
-        false,
-        false,
-        false,
-        true,
-        true, // skills enabled
-      );
-
-      const codexConfigPath = path.join(tmpDir, '.codex', 'config.toml');
-      const zedSettingsPath = path.join(tmpDir, '.zed', 'settings.json');
+    it('warns when mixing native and non-native skills agents', async () => {
+      const warnSpy = jest
+        .spyOn(console, 'warn')
+        .mockImplementation(() => undefined);
 
       try {
-        const codexContent = await fs.readFile(codexConfigPath, 'utf8');
-        const codexConfig = parseTOML(codexContent);
-        expect(codexConfig.mcp_servers).not.toHaveProperty('skillz');
-      } catch {
-        // Codex config may not exist if no MCP servers were needed
-      }
+        await applyAllAgentConfigs(
+          tmpDir,
+          ['codex', 'zed'],
+          undefined,
+          true,
+          undefined,
+          undefined,
+          false,
+          false,
+          false,
+          false,
+          true,
+          true, // skills enabled
+        );
 
-      const zedContent = await fs.readFile(zedSettingsPath, 'utf8');
-      const zedSettings = JSON.parse(zedContent);
-      expect(zedSettings.context_servers).toHaveProperty('skillz');
+        const codexSkillsPath = path.join(
+          tmpDir,
+          '.codex',
+          'skills',
+          'test-skill',
+        );
+
+        await expect(fs.access(codexSkillsPath)).resolves.toBeUndefined();
+        await expect(fs.access(path.join(tmpDir, '.skillz'))).rejects.toThrow();
+        expect(warnSpy).toHaveBeenCalledWith(
+          expect.stringContaining('do not support native skills'),
+        );
+      } finally {
+        warnSpy.mockRestore();
+      }
     });
 
     it('works for multiple agents simultaneously', async () => {
