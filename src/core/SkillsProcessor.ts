@@ -1027,7 +1027,7 @@ export async function propagateSkillsForSkillz(
   if (options.dryRun) {
     return [
       `Copy skills from ${RULER_SKILLS_PATH} to ${SKILLZ_DIR}`,
-      `Configure Skillz MCP server with absolute path to ${SKILLZ_DIR}`,
+      `Configure Skillz MCP server with path to ${SKILLZ_DIR}`,
     ];
   }
 
@@ -1067,11 +1067,11 @@ export async function propagateSkillsForSkillz(
 export function buildSkillzMcpConfig(
   projectRoot: string,
 ): Record<string, unknown> {
-  const skillzAbsPath = path.resolve(projectRoot, SKILLZ_DIR);
+  void projectRoot;
   return {
     [SKILLZ_MCP_SERVER_NAME]: {
       command: 'uvx',
-      args: ['skillz@latest', skillzAbsPath],
+      args: ['skillz@latest', SKILLZ_DIR],
     },
   };
 }

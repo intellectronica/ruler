@@ -633,7 +633,7 @@ For agents that support MCP but don't have native skills support, Ruler automati
 
 1. Copies skills to `.skillz/` directory
 2. Configures a Skillz MCP server in the agent's configuration
-3. Uses `uvx` to launch the server with the absolute path to `.skillz`
+3. Uses `uvx` to launch the server with the project-relative path to `.skillz`
 
 Agents using native skills support (Claude Code, GitHub Copilot, Kilo Code, OpenAI Codex CLI, OpenCode, Pi Coding Agent, Goose, Amp, Mistral Vibe, Roo Code, Gemini CLI, and Cursor) **do not** use the Skillz MCP server and instead use their own native skills directories.
 
@@ -642,7 +642,7 @@ Example auto-generated MCP server configuration:
 ```toml
 [mcp_servers.skillz]
 command = "uvx"
-args = ["skillz@latest", "/absolute/path/to/project/.skillz"]
+args = ["skillz@latest", ".skillz"]
 ```
 
 ### `.gitignore` Integration
