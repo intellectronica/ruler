@@ -27,7 +27,9 @@ describe('AntigravityAgent', () => {
   it('should have the correct default output path', () => {
     const agent = new AntigravityAgent();
     const projectRoot = '/test/project';
-    expect(agent.getDefaultOutputPath(projectRoot)).toBe(path.join(projectRoot, '.agent', 'rules', 'ruler.md'));
+    expect(agent.getDefaultOutputPath(projectRoot)).toBe(
+      path.join(projectRoot, '.agent', 'rules', 'ruler.md'),
+    );
   });
 
   it('should not support MCP stdio', () => {
@@ -40,9 +42,9 @@ describe('AntigravityAgent', () => {
     expect(agent.supportsMcpRemote()).toBe(false);
   });
 
-  it('should not support native skills', () => {
+  it('should support native skills', () => {
     const agent = new AntigravityAgent();
-    expect(agent.supportsNativeSkills()).toBe(false);
+    expect(agent.supportsNativeSkills()).toBe(true);
   });
 
   it('writes rules to .agent/rules/ruler.md file', async () => {
