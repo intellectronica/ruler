@@ -45,7 +45,7 @@ describe('End-to-End Ruler CLI', () => {
     await fs.rm(path.join(projectRoot, '.kilocode'), { recursive: true, force: true });
   });
 
-  it('generates configuration files for all agents', () => {
+  it('generates configuration files for all agents', async () => {
     const { projectRoot } = testProject;
     
     // Run the CLI
@@ -68,14 +68,8 @@ describe('End-to-End Ruler CLI', () => {
       'config.toml',
     );
     const juniePath = path.join(projectRoot, '.junie', 'guidelines.md');
-    const kilocodePath = path.join(
-      projectRoot,
-      '.kilocode',
-      'rules',
-      'ruler_kilocode_instructions.md',
-    );
 
-    return Promise.all([
+    await Promise.all([
       expect(fs.readFile(claudePath, 'utf8')).resolves.toContain('Rule B'),
       expect(fs.readFile(agentsMdPath, 'utf8')).resolves.toContain('Rule A'), // Used by Codex, Windsurf, Cursor, Aider, etc.
       expect(fs.readFile(clinePath, 'utf8')).resolves.toContain('Rule B'),
@@ -85,13 +79,10 @@ describe('End-to-End Ruler CLI', () => {
         fs.readFile(openHandsInstructionsPath, 'utf8'),
       ).resolves.toContain('Rule A'),
       expect(fs.readFile(juniePath, 'utf8')).resolves.toContain('Rule B'),
-      expect(fs.readFile(kilocodePath, 'utf8')).resolves.toContain('Rule A')
-    ])
-      .then(async () => {
-        const ohToml = await fs.readFile(openHandsConfigPath, 'utf8');
-        const ohParsed: any = parseTOML(ohToml);
-        expect(ohParsed.mcp.stdio_servers[0].name).toBe('example');
-      });
+    ]);
+    const ohToml = await fs.readFile(openHandsConfigPath, 'utf8');
+    const ohParsed: any = parseTOML(ohToml);
+    expect(ohParsed.mcp.stdio_servers[0].name).toBe('example');
   }, 30000);
 
   it('respects default_agents in config file', async () => {

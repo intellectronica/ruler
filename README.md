@@ -75,7 +75,7 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | Gemini CLI       | `AGENTS.md`                                      | `.gemini/settings.json`                          | `.gemini/skills/`                                 |
 | Junie            | `.junie/guidelines.md`                           | -                                                | -                                                 |
 | AugmentCode      | `.augment/rules/ruler_augment_instructions.md`   | -                                                | -                                                 |
-| Kilo Code        | `.kilocode/rules/ruler_kilocode_instructions.md` | `.kilocode/mcp.json`                             | `.claude/skills/`                                 |
+| Kilo Code        | `AGENTS.md`                                      | `.kilocode/mcp.json`                             | `.claude/skills/`                                 |
 | OpenCode         | `AGENTS.md`                                      | `opencode.json`                                  | `.opencode/skill/`                                |
 | Goose            | `.goosehints`                                    | -                                                | `.agents/skills/`                                 |
 | Qwen Code        | `AGENTS.md`                                      | `.qwen/settings.json`                            | -                                                 |
@@ -449,7 +449,7 @@ enabled = false
 
 [agents.kilocode]
 enabled = true
-output_path = ".kilocode/rules/ruler_kilocode_instructions.md"
+output_path = "AGENTS.md"
 
 [agents.warp]
 enabled = true
