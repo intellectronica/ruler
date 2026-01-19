@@ -91,6 +91,8 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 
 ### Installation
 
+Requires Node.js `^20.19.0 || ^22.12.0 || >=23`.
+
 **Global Installation (Recommended for CLI use):**
 
 ```bash
