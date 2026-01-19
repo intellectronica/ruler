@@ -42,8 +42,9 @@ describe('MCP Path Resolution', () => {
         'Kilo Code',
         'Kiro',
         'OpenCode',
+        'Factory Droid',
         'Zed',
-        'Firebase Studio'
+        'Firebase Studio',
       ];
 
       for (const agent of supportedAgents) {
@@ -98,6 +99,11 @@ describe('MCP Path Resolution', () => {
       it('Firebase Studio should use project-local path', async () => {
         const mcpPath = await getNativeMcpPath('Firebase Studio', projectRoot);
         expect(mcpPath).toBe(path.join(projectRoot, '.idx', 'mcp.json'));
+      });
+
+      it('Factory Droid should use project-local path', async () => {
+        const mcpPath = await getNativeMcpPath('Factory Droid', projectRoot);
+        expect(mcpPath).toBe(path.join(projectRoot, '.factory', 'mcp.json'));
       });
 
       it('Kiro should use project-local path', async () => {
