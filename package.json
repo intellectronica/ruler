@@ -36,7 +36,7 @@
   },
   "homepage": "https://ai.intellectronica.net/ruler",
   "engines": {
-    "node": ">=18"
+    "node": "^20.19.0 || ^22.12.0 || >=23"
   },
   "files": [
     "dist",
