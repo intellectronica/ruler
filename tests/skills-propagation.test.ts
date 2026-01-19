@@ -738,6 +738,76 @@ describe('Skills Discovery and Validation', () => {
     });
   });
 
+  describe('propagateSkillsForFactory', () => {
+    it('copies .ruler/skills to .factory/skills preserving structure', async () => {
+      const { propagateSkillsForFactory } = await import(
+        '../src/core/SkillsProcessor'
+      );
+      const skillsDir = path.join(tmpDir, '.ruler', 'skills');
+      const skill1 = path.join(skillsDir, 'skill1');
+
+      await fs.mkdir(skill1, { recursive: true });
+      await fs.writeFile(path.join(skill1, SKILL_MD_FILENAME), '# Skill 1');
+
+      await propagateSkillsForFactory(tmpDir, { dryRun: false });
+
+      const factorySkillsDir = path.join(tmpDir, '.factory', 'skills');
+      const copiedSkill = path.join(
+        factorySkillsDir,
+        'skill1',
+        SKILL_MD_FILENAME,
+      );
+      expect(await fs.readFile(copiedSkill, 'utf8')).toBe('# Skill 1');
+    });
+
+    it('creates .factory directory if it does not exist', async () => {
+      const { propagateSkillsForFactory } = await import(
+        '../src/core/SkillsProcessor'
+      );
+      const skillsDir = path.join(tmpDir, '.ruler', 'skills');
+      const skill1 = path.join(skillsDir, 'skill1');
+
+      await fs.mkdir(skill1, { recursive: true });
+      await fs.writeFile(path.join(skill1, SKILL_MD_FILENAME), '# Skill 1');
+
+      await propagateSkillsForFactory(tmpDir, { dryRun: false });
+
+      const factoryDir = path.join(tmpDir, '.factory');
+      const stats = await fs.stat(factoryDir);
+      expect(stats.isDirectory()).toBe(true);
+    });
+
+    it('includes operations in dry-run preview without executing', async () => {
+      const { propagateSkillsForFactory } = await import(
+        '../src/core/SkillsProcessor'
+      );
+      const skillsDir = path.join(tmpDir, '.ruler', 'skills');
+      const skill1 = path.join(skillsDir, 'skill1');
+
+      await fs.mkdir(skill1, { recursive: true });
+      await fs.writeFile(path.join(skill1, SKILL_MD_FILENAME), '# Skill 1');
+
+      const steps = await propagateSkillsForFactory(tmpDir, { dryRun: true });
+
+      expect(steps.length).toBeGreaterThan(0);
+      expect(steps.some((step) => step.includes('.factory/skills'))).toBe(true);
+
+      // Should not have actually copied
+      const factorySkillsDir = path.join(tmpDir, '.factory', 'skills');
+      await expect(fs.access(factorySkillsDir)).rejects.toThrow();
+    });
+
+    it('no-ops gracefully when .ruler/skills does not exist', async () => {
+      const { propagateSkillsForFactory } = await import(
+        '../src/core/SkillsProcessor'
+      );
+
+      const steps = await propagateSkillsForFactory(tmpDir, { dryRun: true });
+
+      expect(steps).toHaveLength(0);
+    });
+  });
+
   describe('propagateSkillsForAntigravity', () => {
     it('copies .ruler/skills to .agent/skills preserving structure', async () => {
       const { propagateSkillsForAntigravity } = await import(
@@ -824,6 +894,7 @@ describe('Skills Discovery and Validation', () => {
       const rooSkillsDir = path.join(tmpDir, '.roo', 'skills');
       const geminiSkillsDir = path.join(tmpDir, '.gemini', 'skills');
       const cursorSkillsDir = path.join(tmpDir, '.cursor', 'skills');
+      const factorySkillsDir = path.join(tmpDir, '.factory', 'skills');
       const antigravitySkillsDir = path.join(tmpDir, '.agent', 'skills');
 
       // Create existing skills directories (as if they were from previous run)
@@ -835,6 +906,7 @@ describe('Skills Discovery and Validation', () => {
       const rooOldSkill = path.join(rooSkillsDir, 'old-skill');
       const geminiOldSkill = path.join(geminiSkillsDir, 'old-skill');
       const cursorOldSkill = path.join(cursorSkillsDir, 'old-skill');
+      const factoryOldSkill = path.join(factorySkillsDir, 'old-skill');
       const antigravityOldSkill = path.join(antigravitySkillsDir, 'old-skill');
       await fs.mkdir(claudeOldSkill, { recursive: true });
       await fs.mkdir(opencodeOldSkill, { recursive: true });
@@ -844,6 +916,7 @@ describe('Skills Discovery and Validation', () => {
       await fs.mkdir(rooOldSkill, { recursive: true });
       await fs.mkdir(geminiOldSkill, { recursive: true });
       await fs.mkdir(cursorOldSkill, { recursive: true });
+      await fs.mkdir(factoryOldSkill, { recursive: true });
       await fs.mkdir(antigravityOldSkill, { recursive: true });
       await fs.writeFile(
         path.join(claudeOldSkill, SKILL_MD_FILENAME),
@@ -878,6 +951,10 @@ describe('Skills Discovery and Validation', () => {
         '# Old Skill',
       );
       await fs.writeFile(
+        path.join(factoryOldSkill, SKILL_MD_FILENAME),
+        '# Old Skill',
+      );
+      await fs.writeFile(
         path.join(antigravityOldSkill, SKILL_MD_FILENAME),
         '# Old Skill',
       );
@@ -891,6 +968,7 @@ describe('Skills Discovery and Validation', () => {
       await expect(fs.access(rooSkillsDir)).resolves.toBeUndefined();
       await expect(fs.access(geminiSkillsDir)).resolves.toBeUndefined();
       await expect(fs.access(cursorSkillsDir)).resolves.toBeUndefined();
+      await expect(fs.access(factorySkillsDir)).resolves.toBeUndefined();
       await expect(fs.access(antigravitySkillsDir)).resolves.toBeUndefined();
 
       // Run propagateSkills with skillsEnabled = false
@@ -905,6 +983,7 @@ describe('Skills Discovery and Validation', () => {
       await expect(fs.access(rooSkillsDir)).rejects.toThrow();
       await expect(fs.access(geminiSkillsDir)).rejects.toThrow();
       await expect(fs.access(cursorSkillsDir)).rejects.toThrow();
+      await expect(fs.access(factorySkillsDir)).rejects.toThrow();
       await expect(fs.access(antigravitySkillsDir)).rejects.toThrow();
     });
 

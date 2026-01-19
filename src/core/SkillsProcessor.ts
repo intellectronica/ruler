@@ -12,6 +12,7 @@ import {
   ROO_SKILLS_PATH,
   GEMINI_SKILLS_PATH,
   CURSOR_SKILLS_PATH,
+  FACTORY_SKILLS_PATH,
   ANTIGRAVITY_SKILLS_PATH,
   logWarn,
   logVerboseInfo,
@@ -67,6 +68,7 @@ export async function getSkillsGitignorePaths(
     ROO_SKILLS_PATH,
     GEMINI_SKILLS_PATH,
     CURSOR_SKILLS_PATH,
+    FACTORY_SKILLS_PATH,
     ANTIGRAVITY_SKILLS_PATH,
   } = await import('../constants');
 
@@ -80,6 +82,7 @@ export async function getSkillsGitignorePaths(
     path.join(projectRoot, ROO_SKILLS_PATH),
     path.join(projectRoot, GEMINI_SKILLS_PATH),
     path.join(projectRoot, CURSOR_SKILLS_PATH),
+    path.join(projectRoot, FACTORY_SKILLS_PATH),
     path.join(projectRoot, ANTIGRAVITY_SKILLS_PATH),
   ];
 }
@@ -125,6 +128,7 @@ async function cleanupSkillsDirectories(
   const rooSkillsPath = path.join(projectRoot, ROO_SKILLS_PATH);
   const geminiSkillsPath = path.join(projectRoot, GEMINI_SKILLS_PATH);
   const cursorSkillsPath = path.join(projectRoot, CURSOR_SKILLS_PATH);
+  const factorySkillsPath = path.join(projectRoot, FACTORY_SKILLS_PATH);
   const antigravitySkillsPath = path.join(projectRoot, ANTIGRAVITY_SKILLS_PATH);
 
   // Clean up .claude/skills
@@ -316,6 +320,27 @@ async function cleanupSkillsDirectories(
     // Directory doesn't exist, nothing to clean
   }
 
+  // Clean up .factory/skills
+  try {
+    await fs.access(factorySkillsPath);
+    if (dryRun) {
+      logVerboseInfo(
+        `DRY RUN: Would remove ${FACTORY_SKILLS_PATH}`,
+        verbose,
+        dryRun,
+      );
+    } else {
+      await fs.rm(factorySkillsPath, { recursive: true, force: true });
+      logVerboseInfo(
+        `Removed ${FACTORY_SKILLS_PATH} (skills disabled)`,
+        verbose,
+        dryRun,
+      );
+    }
+  } catch {
+    // Directory doesn't exist, nothing to clean
+  }
+
   // Clean up .agent/skills
   try {
     await fs.access(antigravitySkillsPath);
@@ -479,6 +504,13 @@ export async function propagateSkills(
       dryRun,
     );
     await propagateSkillsForCursor(projectRoot, { dryRun });
+
+    logVerboseInfo(
+      `Copying skills to ${FACTORY_SKILLS_PATH} for Factory Droid`,
+      verbose,
+      dryRun,
+    );
+    await propagateSkillsForFactory(projectRoot, { dryRun });
 
     logVerboseInfo(
       `Copying skills to ${ANTIGRAVITY_SKILLS_PATH} for Antigravity`,
@@ -1000,6 +1032,64 @@ export async function propagateSkillsForCursor(
 
     // Rename temp to target
     await fs.rename(tempDir, cursorSkillsPath);
+  } catch (error) {
+    // Clean up temp directory on error
+    try {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    } catch {
+      // Ignore cleanup errors
+    }
+    throw error;
+  }
+
+  return [];
+}
+
+/**
+ * Propagates skills for Factory Droid by copying .ruler/skills to .factory/skills.
+ * Uses atomic replace to ensure safe overwriting of existing skills.
+ * Returns dry-run steps if dryRun is true, otherwise returns empty array.
+ */
+export async function propagateSkillsForFactory(
+  projectRoot: string,
+  options: { dryRun: boolean },
+): Promise<string[]> {
+  const skillsDir = path.join(projectRoot, RULER_SKILLS_PATH);
+  const factorySkillsPath = path.join(projectRoot, FACTORY_SKILLS_PATH);
+  const factoryDir = path.dirname(factorySkillsPath);
+
+  // Check if source skills directory exists
+  try {
+    await fs.access(skillsDir);
+  } catch {
+    // No skills directory - return empty
+    return [];
+  }
+
+  if (options.dryRun) {
+    return [`Copy skills from ${RULER_SKILLS_PATH} to ${FACTORY_SKILLS_PATH}`];
+  }
+
+  // Ensure .factory directory exists
+  await fs.mkdir(factoryDir, { recursive: true });
+
+  // Use atomic replace: copy to temp, then rename
+  const tempDir = path.join(factoryDir, `skills.tmp-${Date.now()}`);
+
+  try {
+    // Copy to temp directory
+    await copySkillsDirectory(skillsDir, tempDir);
+
+    // Atomically replace the target
+    // First, remove existing target if it exists
+    try {
+      await fs.rm(factorySkillsPath, { recursive: true, force: true });
+    } catch {
+      // Target didn't exist, that's fine
+    }
+
+    // Rename temp to target
+    await fs.rename(tempDir, factorySkillsPath);
   } catch (error) {
     // Clean up temp directory on error
     try {

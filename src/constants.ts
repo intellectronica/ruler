@@ -64,5 +64,6 @@ export const VIBE_SKILLS_PATH = '.vibe/skills';
 export const ROO_SKILLS_PATH = '.roo/skills';
 export const GEMINI_SKILLS_PATH = '.gemini/skills';
 export const CURSOR_SKILLS_PATH = '.cursor/skills';
+export const FACTORY_SKILLS_PATH = '.factory/skills';
 export const ANTIGRAVITY_SKILLS_PATH = '.agent/skills';
 export const SKILL_MD_FILENAME = 'SKILL.md';

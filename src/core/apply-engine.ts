@@ -815,6 +815,45 @@ function transformMcpForKiloCode(
   return transformedMcp;
 }
 
+/**
+ * Transform MCP server types for Factory Droid compatibility.
+ * Factory Droid expects "http" for remote HTTP servers, not "remote".
+ */
+function transformMcpForFactoryDroid(
+  mcpJson: Record<string, unknown>,
+): Record<string, unknown> {
+  if (!mcpJson.mcpServers || typeof mcpJson.mcpServers !== 'object') {
+    return mcpJson;
+  }
+
+  const transformedMcp = { ...mcpJson };
+  const transformedServers: Record<string, unknown> = {};
+
+  for (const [name, serverDef] of Object.entries(
+    mcpJson.mcpServers as Record<string, unknown>,
+  )) {
+    if (serverDef && typeof serverDef === 'object') {
+      const server = serverDef as Record<string, unknown>;
+      const transformedServer = { ...server };
+
+      if (
+        server.type === 'remote' &&
+        server.url &&
+        typeof server.url === 'string'
+      ) {
+        transformedServer.type = 'http';
+      }
+
+      transformedServers[name] = transformedServer;
+    } else {
+      transformedServers[name] = serverDef;
+    }
+  }
+
+  transformedMcp.mcpServers = transformedServers;
+  return transformedMcp;
+}
+
 async function applyStandardMcpConfiguration(
   agent: IAgent,
   filteredMcpJson: Record<string, unknown>,
@@ -856,6 +895,8 @@ async function applyStandardMcpConfiguration(
       mcpToMerge = transformMcpForClaude(filteredMcpJson);
     } else if (agent.getIdentifier() === 'kilocode') {
       mcpToMerge = transformMcpForKiloCode(filteredMcpJson);
+    } else if (agent.getIdentifier() === 'factory') {
+      mcpToMerge = transformMcpForFactoryDroid(filteredMcpJson);
     }
 
     const existing = await readNativeMcp(dest);
