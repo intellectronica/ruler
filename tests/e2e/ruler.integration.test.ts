@@ -237,8 +237,7 @@ File: extra-rules.md
       'config.toml',
       '.openhands/microagents/repo.md',
       
-      // Kilo Code
-      '.kilocode/rules/ruler_kilocode_instructions.md',
+      // Kilo Code (uses AGENTS.md)
       '.kilocode/mcp.json',
       
       // Windsurf - now uses AGENTS.md (no separate file)
@@ -381,7 +380,6 @@ File: extra-rules.md
     const otherInstructionFiles = [
       '.augment/rules/ruler_augment_instructions.md',
       '.openhands/microagents/repo.md',
-      '.kilocode/rules/ruler_kilocode_instructions.md',
       // Windsurf now uses AGENTS.md (checked above in markdownRuleFiles)
       '.clinerules',
       '.goosehints',
