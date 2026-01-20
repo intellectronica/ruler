@@ -134,9 +134,11 @@ export async function applyAllAgentConfigs(
       skillsEnabled,
       rootConfig.skills?.enabled,
     );
-    const { propagateSkills, generateSkillsFromRules } = await import(
-      './core/SkillsProcessor'
-    );
+    const {
+      propagateSkills,
+      generateSkillsFromRules,
+      copySkillFoldersFromRules,
+    } = await import('./core/SkillsProcessor');
 
     // Generate skills from .mdc files if enabled
     if (skillsEnabledResolved) {
@@ -157,6 +159,15 @@ export async function applyAllAgentConfigs(
             pruneConfig,
           );
         }
+      }
+
+      // Copy skill folders from rules to skills
+      for (const configEntry of hierarchicalConfigs) {
+        await copySkillFoldersFromRules(
+          configEntry.skillerDir,
+          verbose,
+          dryRun,
+        );
       }
     }
 
@@ -225,9 +236,11 @@ export async function applyAllAgentConfigs(
       skillsEnabled,
       singleConfig.config.skills?.enabled,
     );
-    const { propagateSkills, generateSkillsFromRules } = await import(
-      './core/SkillsProcessor'
-    );
+    const {
+      propagateSkills,
+      generateSkillsFromRules,
+      copySkillFoldersFromRules,
+    } = await import('./core/SkillsProcessor');
 
     // Generate skills from .mdc files if enabled
     if (skillsEnabledResolved) {
@@ -244,6 +257,9 @@ export async function applyAllAgentConfigs(
           pruneConfig,
         );
       }
+
+      // Copy skill folders from rules to skills
+      await copySkillFoldersFromRules(singleConfig.skillerDir, verbose, dryRun);
     }
 
     // Always call propagateSkills - it handles cleanup when disabled

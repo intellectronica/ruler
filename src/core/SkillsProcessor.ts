@@ -4,12 +4,13 @@ import * as readline from 'readline';
 import { SkillInfo } from '../types';
 import {
   CLAUDE_SKILLS_PATH,
+  SKILL_MD_FILENAME,
   SKILLZ_DIR,
   SKILLZ_MCP_SERVER_NAME,
   logWarn,
   logVerboseInfo,
 } from '../constants';
-import { walkSkillsTree } from './SkillsUtils';
+import { walkSkillsTree, copySkillsDirectory } from './SkillsUtils';
 import type { IAgent } from '../agents/IAgent';
 import { parseFrontmatter } from './FrontmatterParser';
 
@@ -682,4 +683,97 @@ export function buildSkillzMcpConfig(
       args: ['skillz@latest', skillzAbsPath],
     },
   };
+}
+
+/**
+ * Recursively finds all folders containing SKILL.md in a directory.
+ */
+async function findSkillFoldersInRules(dir: string): Promise<string[]> {
+  const skillFolders: string[] = [];
+
+  try {
+    const entries = await fs.readdir(dir, { withFileTypes: true });
+
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+
+      const entryPath = path.join(dir, entry.name);
+
+      // Check if this folder contains SKILL.md
+      try {
+        await fs.access(path.join(entryPath, SKILL_MD_FILENAME));
+        skillFolders.push(entryPath);
+      } catch {
+        // No SKILL.md, check subdirectories recursively
+        const subFolders = await findSkillFoldersInRules(entryPath);
+        skillFolders.push(...subFolders);
+      }
+    }
+  } catch {
+    // Directory can't be read
+  }
+
+  return skillFolders;
+}
+
+/**
+ * Copies skill folders (folders containing SKILL.md) from .claude/rules to .claude/skills.
+ * This allows users to organize skills in the rules directory and have them automatically
+ * propagated to the skills directory during apply.
+ */
+export async function copySkillFoldersFromRules(
+  skillerDir: string,
+  verbose: boolean,
+  dryRun: boolean,
+): Promise<void> {
+  const rulesDir = path.join(skillerDir, 'rules');
+  const skillsDir = path.join(skillerDir, 'skills');
+
+  // Check if rules directory exists
+  try {
+    await fs.access(rulesDir);
+  } catch {
+    logVerboseInfo('No .claude/rules directory found', verbose, dryRun);
+    return;
+  }
+
+  // Find all folders containing SKILL.md recursively
+  const skillFolders = await findSkillFoldersInRules(rulesDir);
+
+  if (skillFolders.length === 0) {
+    logVerboseInfo(
+      'No skill folders (with SKILL.md) found in .claude/rules',
+      verbose,
+      dryRun,
+    );
+    return;
+  }
+
+  // Copy each skill folder to .claude/skills
+  for (const skillFolder of skillFolders) {
+    const folderName = path.basename(skillFolder);
+    const targetDir = path.join(skillsDir, folderName);
+
+    if (dryRun) {
+      logVerboseInfo(
+        `DRY RUN: Would copy skill folder ${folderName} from rules to skills`,
+        verbose,
+        dryRun,
+      );
+    } else {
+      await fs.mkdir(targetDir, { recursive: true });
+      await copySkillsDirectory(skillFolder, targetDir);
+      logVerboseInfo(
+        `Copied skill folder ${folderName} from rules to skills`,
+        verbose,
+        dryRun,
+      );
+    }
+  }
+
+  logVerboseInfo(
+    `Copied ${skillFolders.length} skill folder(s) from rules to skills`,
+    verbose,
+    dryRun,
+  );
 }
