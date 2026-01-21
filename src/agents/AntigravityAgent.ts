@@ -1,5 +1,6 @@
 import * as path from 'path';
 import { AbstractAgent } from './AbstractAgent';
+import { ANTIGRAVITY_SKILLS_PATH } from '../constants';
 
 /**
  * Antigravity agent adapter.
@@ -19,5 +20,9 @@ export class AntigravityAgent extends AbstractAgent {
 
   supportsNativeSkills(): boolean {
     return true;
+  }
+
+  getNativeSkillsPath(projectRoot: string): string {
+    return path.join(projectRoot, ANTIGRAVITY_SKILLS_PATH);
   }
 }

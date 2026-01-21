@@ -1,4 +1,6 @@
+import * as path from 'path';
 import { AgentsMdAgent } from './AgentsMdAgent';
+import { FACTORY_SKILLS_PATH } from '../constants';
 
 /**
  * Factory Droid agent adapter.
@@ -27,5 +29,9 @@ export class FactoryDroidAgent extends AgentsMdAgent {
 
   supportsNativeSkills(): boolean {
     return true;
+  }
+
+  getNativeSkillsPath(projectRoot: string): string {
+    return path.join(projectRoot, FACTORY_SKILLS_PATH);
   }
 }
