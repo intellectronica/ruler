@@ -1,12 +1,12 @@
 import * as path from 'path';
-import { AbstractAgent } from './AbstractAgent';
+import { AgentsMdAgent } from './AgentsMdAgent';
 import { CLAUDE_SKILLS_PATH } from '../constants';
 
 /**
  * Kilo Code agent adapter.
- * Generates ruler_kilocode_instructions.md configuration file in .kilocode/rules/ directory.
+ * Uses AGENTS.md for instructions and .kilocode/mcp.json for MCP configuration.
  */
-export class KiloCodeAgent extends AbstractAgent {
+export class KiloCodeAgent extends AgentsMdAgent {
   getIdentifier(): string {
     return 'kilocode';
   }
@@ -16,12 +16,7 @@ export class KiloCodeAgent extends AbstractAgent {
   }
 
   getDefaultOutputPath(projectRoot: string): string {
-    return path.join(
-      projectRoot,
-      '.kilocode',
-      'rules',
-      'ruler_kilocode_instructions.md',
-    );
+    return path.join(projectRoot, 'AGENTS.md');
   }
 
   getMcpServerKey(): string {

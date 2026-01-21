@@ -27,6 +27,7 @@ import { RooCodeAgent } from './RooCodeAgent';
 import { TraeAgent } from './TraeAgent';
 import { AmazonQCliAgent } from './AmazonQCliAgent';
 import { FirebenderAgent } from './FirebenderAgent';
+import { FactoryDroidAgent } from './FactoryDroidAgent';
 import { AntigravityAgent } from './AntigravityAgent';
 import { MistralVibeAgent } from './MistralVibeAgent';
 import { PiAgent } from './PiAgent';
@@ -61,6 +62,7 @@ export const allAgents: IAgent[] = [
   new TraeAgent(),
   new AmazonQCliAgent(),
   new FirebenderAgent(),
+  new FactoryDroidAgent(),
   new AntigravityAgent(),
   new MistralVibeAgent(),
   new PiAgent(),

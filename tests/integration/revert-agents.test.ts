@@ -52,14 +52,15 @@ describe('Revert Agent Integration', () => {
     });
 
     it('should handle KiloCode agent files and directories', async () => {
-      // Create KiloCode directory structure
-      await fs.mkdir(path.join(tmpDir, '.kilocode', 'rules'), { recursive: true });
-      await fs.writeFile(path.join(tmpDir, '.kilocode', 'rules', 'ruler_kilocode_instructions.md'), 'KiloCode instructions');
+      await fs.writeFile(path.join(tmpDir, 'AGENTS.md'), 'KiloCode instructions');
+      // Kilo Code still writes MCP settings under .kilocode/.
+      await fs.mkdir(path.join(tmpDir, '.kilocode'), { recursive: true });
       await fs.writeFile(path.join(tmpDir, '.kilocode', 'mcp.json'), '{"mcpServers": {}}');
 
       await revertAllAgentConfigs(tmpDir, ['kilocode'], undefined, false, false, false);
 
       await expect(fs.access(path.join(tmpDir, '.kilocode'))).rejects.toThrow();
+      await expect(fs.access(path.join(tmpDir, 'AGENTS.md'))).rejects.toThrow();
     });
   });
 

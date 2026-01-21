@@ -1,6 +1,6 @@
 {
   "name": "@intellectronica/ruler",
-  "version": "0.3.25",
+  "version": "0.3.28",
   "description": "Ruler — apply the same rules to all coding agents",
   "main": "dist/lib.js",
   "scripts": {
@@ -36,7 +36,7 @@
   },
   "homepage": "https://ai.intellectronica.net/ruler",
   "engines": {
-    "node": ">=18"
+    "node": "^20.19.0 || ^22.12.0 || >=23"
   },
   "files": [
     "dist",

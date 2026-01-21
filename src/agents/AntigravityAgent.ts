@@ -16,4 +16,8 @@ export class AntigravityAgent extends AbstractAgent {
   getDefaultOutputPath(projectRoot: string): string {
     return path.join(projectRoot, '.agent', 'rules', 'ruler.md');
   }
+
+  supportsNativeSkills(): boolean {
+    return true;
+  }
 }

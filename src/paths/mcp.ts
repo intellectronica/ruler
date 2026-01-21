@@ -52,6 +52,9 @@ export async function getNativeMcpPath(
     case 'Firebase Studio':
       candidates.push(path.join(projectRoot, '.idx', 'mcp.json'));
       break;
+    case 'Factory Droid':
+      candidates.push(path.join(projectRoot, '.factory', 'mcp.json'));
+      break;
     case 'Zed':
       // Only consider project-local Zed settings (avoid writing to user home directory)
       candidates.push(path.join(projectRoot, '.zed', 'settings.json'));
