@@ -1,5 +1,6 @@
 import * as path from 'path';
 import { AgentsMdAgent } from './AgentsMdAgent';
+import { CLAUDE_SKILLS_PATH } from '../constants';
 
 /**
  * Kilo Code agent adapter.
@@ -32,5 +33,9 @@ export class KiloCodeAgent extends AgentsMdAgent {
 
   supportsNativeSkills(): boolean {
     return true;
+  }
+
+  getNativeSkillsPath(projectRoot: string): string {
+    return path.join(projectRoot, CLAUDE_SKILLS_PATH);
   }
 }
