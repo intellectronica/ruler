@@ -5,7 +5,7 @@ import { AbstractAgent } from './AbstractAgent';
  * JetBrains AI Assistant agent adapter.
  * Writes rules to .aiassistant/rules/AGENTS.md.
  */
-export class JetbrainsAiAssistantAgent extends AbstractAgent {
+export class JetBrainsAiAssistantAgent extends AbstractAgent {
   getIdentifier(): string {
     return 'jetbrains-ai';
   }
