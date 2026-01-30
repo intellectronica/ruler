@@ -31,6 +31,7 @@ import { FactoryDroidAgent } from './FactoryDroidAgent';
 import { AntigravityAgent } from './AntigravityAgent';
 import { MistralVibeAgent } from './MistralVibeAgent';
 import { PiAgent } from './PiAgent';
+import { JetBrainsAiAssistantAgent } from './JetBrainsAiAssistantAgent';
 
 export { AbstractAgent };
 
@@ -66,6 +67,7 @@ export const allAgents: IAgent[] = [
   new AntigravityAgent(),
   new MistralVibeAgent(),
   new PiAgent(),
+  new JetBrainsAiAssistantAgent(),
 ];
 
 /**
