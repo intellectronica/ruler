@@ -87,6 +87,7 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | Firebender       | `firebender.json`                              | `firebender.json` (rules and MCP in same file)   | -                         |
 | Factory Droid    | `AGENTS.md`                                    | `.factory/mcp.json`                              | `.factory/skills/`        |
 | Mistral Vibe     | `AGENTS.md`                                    | `.vibe/config.toml`                              | `.vibe/skills/`           |
+| JetBrains AI Assistant | `.aiassistant/rules/AGENTS.md`           | -                                                | -                         |
 
 ## Getting Started
 

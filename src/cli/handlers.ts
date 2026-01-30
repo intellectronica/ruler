@@ -166,7 +166,7 @@ export async function initHandler(argv: InitArgs): Promise<void> {
 
 # --- Agent Specific Configurations ---
 # You can enable/disable agents and override their default output paths here.
-# Use lowercase agent identifiers: aider, amp, claude, cline, codex, copilot, cursor, kilocode, pi, windsurf
+# Use lowercase agent identifiers: aider, amp, claude, cline, codex, copilot, cursor, jetbrains-ai, kilocode, pi, windsurf
 
 # [agents.copilot]
 # enabled = true

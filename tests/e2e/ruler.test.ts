@@ -293,6 +293,7 @@ output_path = "custom-claude.md"`;
         // Generated agent files (root-anchored)
         '/AGENTS.md',
         '/CLAUDE.md',
+        '/.aiassistant/rules/AGENTS.md',
         // Specific backup patterns instead of *.bak
         '/.vscode/mcp.json.bak',
         '/AGENTS.md.bak',
