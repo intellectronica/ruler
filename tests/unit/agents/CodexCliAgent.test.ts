@@ -104,6 +104,33 @@ describe('CodexCliAgent MCP Handling', () => {
     expect(parsed.mcp_servers.ruler_server.env.API_KEY).toBe('test-key');
   });
 
+  it('writes remote MCP server entries', async () => {
+    const agent = new CodexCliAgent();
+    const remoteMcpJson = {
+      mcpServers: {
+        remote_server: {
+          url: 'https://example.com/mcp',
+          headers: { Authorization: 'Bearer token' },
+        },
+      },
+    };
+
+    await agent.applyRulerConfig('', tmpDir, remoteMcpJson, {
+      mcp: { enabled: true },
+    });
+
+    const configPath = path.join(tmpDir, '.codex', 'config.toml');
+    const resultStr = await fs.readFile(configPath, 'utf8');
+    const result = parseTOML(resultStr) as Record<string, any>;
+
+    expect(result.mcp_servers.remote_server.url).toBe(
+      'https://example.com/mcp',
+    );
+    expect(result.mcp_servers.remote_server.headers.Authorization).toBe(
+      'Bearer token',
+    );
+  });
+
   it('still writes instructions file alongside config', async () => {
     const agent = new CodexCliAgent();
     const instructionsPath = path.join(tmpDir, 'AGENTS.md');
