@@ -1,6 +1,5 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import * as toml from 'toml';
 import { setupTestProject, teardownTestProject, runRuler } from './harness';
 
 describe('remote-to-stdio-transformation', () => {
@@ -35,37 +34,39 @@ Authorization = "Bearer TOKEN123"
     await teardownTestProject(testProject.projectRoot);
   });
 
-  it('transforms remote servers to stdio servers for CodexCli agent', async () => {
+  it('transforms remote servers to stdio servers for Firebase agent', async () => {
     const { projectRoot } = testProject;
 
-    // Run ruler apply for CodexCli agent (stdio-only)
-    runRuler('apply --agents codex', projectRoot);
+    // Run ruler apply for Firebase agent (stdio-only)
+    runRuler('apply --agents firebase', projectRoot);
 
     // Check the generated config
-    const configPath = path.join(projectRoot, '.codex', 'config.toml');
+    const configPath = path.join(projectRoot, '.idx', 'mcp.json');
     const content = await fs.readFile(configPath, 'utf8');
+    const parsed = JSON.parse(content);
 
-    // Verify the TOML contains the expected transformations
-    expect(content).toContain('[mcp_servers.filesystem]');
-    expect(content).toContain('command = "npx"');
-    // Check for array contents flexibly (spaces around brackets are valid TOML formatting)
-    expect(content).toMatch(
-      /args\s*=\s*\[\s*"-y",?\s*"server-filesystem",?\s*"\/tmp"\s*\]/,
-    );
+    // Verify the JSON contains the expected transformations
+    const servers = parsed.mcpServers as Record<string, any>;
+    expect(servers.filesystem.command).toBe('npx');
+    expect(servers.filesystem.args).toEqual(['-y', 'server-filesystem', '/tmp']);
 
-    expect(content).toContain('[mcp_servers.remote_api]');
-    expect(content).toMatch(
-      /args\s*=\s*\[\s*"-y",?\s*"mcp-remote@latest",?\s*"https:\/\/api\.example\.com\/mcp"\s*\]/,
-    );
+    expect(servers.remote_api.command).toBe('npx');
+    expect(servers.remote_api.args).toEqual([
+      '-y',
+      'mcp-remote@latest',
+      'https://api.example.com/mcp',
+    ]);
 
-    expect(content).toContain('[mcp_servers.remote_with_headers]');
-    expect(content).toMatch(
-      /args\s*=\s*\[\s*"-y",?\s*"mcp-remote@latest",?\s*"https:\/\/example\.com\/mcp"\s*\]/,
-    );
-    // @iarna/toml formats nested objects as separate tables
-    expect(content).toContain('[mcp_servers.remote_with_headers.headers]');
-    expect(content).toContain('Authorization = "Bearer TOKEN123"');
-    expect(content).toContain('X-API-Version = "v1"');
+    expect(servers.remote_with_headers.command).toBe('npx');
+    expect(servers.remote_with_headers.args).toEqual([
+      '-y',
+      'mcp-remote@latest',
+      'https://example.com/mcp',
+    ]);
+    expect(servers.remote_with_headers.headers).toEqual({
+      Authorization: 'Bearer TOKEN123',
+      'X-API-Version': 'v1',
+    });
   });
 
   it('does not transform remote servers for agents that support both stdio and remote', async () => {

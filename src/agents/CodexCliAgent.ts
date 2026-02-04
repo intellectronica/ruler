@@ -7,9 +7,10 @@ import { writeGeneratedFile } from '../core/FileSystemUtils';
 import { DEFAULT_RULES_FILENAME } from '../constants';
 
 interface McpServer {
-  command: string;
+  command?: string;
   args?: string[];
   env?: Record<string, string>;
+  url?: string;
   headers?: Record<string, string>; // Support headers from transformed remote servers
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any; // Allow additional properties from transformation
@@ -114,9 +115,13 @@ export class CodexCliAgent implements IAgent {
       // Add the ruler servers
       for (const [serverName, serverConfig] of Object.entries(rulerServers)) {
         // Create a properly formatted MCP server entry
-        const mcpServer: McpServer = {
-          command: serverConfig.command,
-        };
+        const mcpServer: McpServer = {};
+        if (serverConfig.command) {
+          mcpServer.command = serverConfig.command;
+        }
+        if (serverConfig.url) {
+          mcpServer.url = serverConfig.url;
+        }
         if (serverConfig.args) {
           mcpServer.args = serverConfig.args;
         }
@@ -151,12 +156,16 @@ export class CodexCliAgent implements IAgent {
     };
   }
 
+  getMcpServerKey(): string {
+    return 'mcp_servers';
+  }
+
   supportsMcpStdio(): boolean {
     return true;
   }
 
   supportsMcpRemote(): boolean {
-    return false; // Codex CLI only supports STDIO based on PR description
+    return true;
   }
 
   supportsNativeSkills(): boolean {

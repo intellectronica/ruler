@@ -1,5 +1,6 @@
 import * as path from 'path';
 import { promises as fs } from 'fs';
+import { parse as parseTOML, stringify } from '@iarna/toml';
 import * as FileSystemUtils from './FileSystemUtils';
 import { concatenateRules } from './RuleProcessor';
 import { loadConfig, LoadedConfig, IAgentConfig } from './ConfigLoader';
@@ -899,8 +900,33 @@ async function applyStandardMcpConfiguration(
       mcpToMerge = transformMcpForFactoryDroid(filteredMcpJson);
     }
 
-    const existing = await readNativeMcp(dest);
-    const merged = mergeMcp(existing, mcpToMerge, strategy, serverKey);
+    const isCodexToml =
+      agent.getIdentifier() === 'codex' && dest.endsWith('.toml');
+    let existing = await readNativeMcp(dest);
+    if (isCodexToml) {
+      try {
+        const tomlContent = await fs.readFile(dest, 'utf8');
+        existing = parseTOML(tomlContent) as Record<string, unknown>;
+      } catch (error) {
+        logVerbose(
+          `Failed to read Codex MCP TOML at ${dest}: ${(error as Error).message}`,
+          verbose,
+        );
+        // ignore missing or invalid TOML, fall back to JSON parsing
+      }
+    }
+    let merged = mergeMcp(existing, mcpToMerge, strategy, serverKey);
+    if (isCodexToml) {
+      const { [serverKey]: servers, ...rest } = merged as Record<
+        string,
+        unknown
+      >;
+      merged = {
+        ...rest,
+        // Codex CLI expects MCP servers under mcp_servers in config.toml.
+        mcp_servers: servers ?? {},
+      };
+    }
 
     // Firebase Studio (IDX) expects no "type" fields in .idx/mcp.json server entries.
     // Sanitize merged config by stripping 'type' from each server when targeting Firebase.
@@ -952,15 +978,26 @@ async function applyStandardMcpConfiguration(
     toWrite = sanitizeForGemini(toWrite);
 
     // Only backup and write if content would actually change (idempotent)
-    const currentContent = JSON.stringify(existing, null, 2);
-    const newContent = JSON.stringify(toWrite, null, 2);
+    const currentContent = isCodexToml
+      ? stringify(existing as Record<string, unknown>)
+      : JSON.stringify(existing, null, 2);
+    const newContent = isCodexToml
+      ? stringify(toWrite as Record<string, unknown>)
+      : JSON.stringify(toWrite, null, 2);
 
     if (currentContent !== newContent) {
       if (backup) {
         const { backupFile } = await import('../core/FileSystemUtils');
         await backupFile(dest);
       }
-      await writeNativeMcp(dest, toWrite);
+      if (isCodexToml) {
+        await FileSystemUtils.writeGeneratedFile(
+          dest,
+          stringify(toWrite as Record<string, unknown>),
+        );
+      } else {
+        await writeNativeMcp(dest, toWrite);
+      }
     } else {
       logVerbose(
         `MCP config for ${agent.getName()} is already up to date - skipping backup and write`,

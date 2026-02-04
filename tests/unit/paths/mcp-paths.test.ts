@@ -68,12 +68,14 @@ describe('MCP Path Resolution', () => {
     describe('specific agent paths', () => {
       it('Windsurf should use project-local path', async () => {
         const mcpPath = await getNativeMcpPath('Windsurf', projectRoot);
-        expect(mcpPath).toBe(path.join(projectRoot, '.windsurf', 'mcp_config.json'));
+        expect(mcpPath).toBe(
+          path.join(projectRoot, '.windsurf', 'mcp_config.json'),
+        );
       });
 
       it('OpenAI Codex CLI should use project-local path', async () => {
         const mcpPath = await getNativeMcpPath('OpenAI Codex CLI', projectRoot);
-        expect(mcpPath).toBe(path.join(projectRoot, '.codex', 'config.json'));
+        expect(mcpPath).toBe(path.join(projectRoot, '.codex', 'config.toml'));
       });
 
       it('Cursor should use project-local path', async () => {
