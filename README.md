@@ -54,40 +54,40 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 
 ## Supported AI Agents
 
-| Agent            | Rules File(s)                                  | MCP Configuration / Notes                        | Skills Support / Location |
-| ---------------- | ---------------------------------------------- | ------------------------------------------------ | ------------------------- |
-| AGENTS.md        | `AGENTS.md`                                    | (pseudo-agent ensuring root `AGENTS.md` exists)  | -                         |
-| GitHub Copilot   | `AGENTS.md`                                    | `.vscode/mcp.json`                               | `.claude/skills/`         |
-| Claude Code      | `CLAUDE.md`                                    | `.mcp.json`                                      | `.claude/skills/`         |
-| OpenAI Codex CLI | `AGENTS.md`                                    | `.codex/config.toml`                             | `.codex/skills/`          |
-| Pi Coding Agent  | `AGENTS.md`                                    | -                                                | `.pi/skills/`             |
-| Jules            | `AGENTS.md`                                    | -                                                | -                         |
-| Cursor           | `AGENTS.md`                                    | `.cursor/mcp.json`                               | `.cursor/skills/`         |
-| Windsurf         | `AGENTS.md`                                    | `.windsurf/mcp_config.json`                      | -                         |
-| Cline            | `.clinerules`                                  | -                                                | -                         |
-| Crush            | `CRUSH.md`                                     | `.crush.json`                                    | -                         |
-| Amp              | `AGENTS.md`                                    | -                                                | `.agents/skills/`         |
-| Antigravity      | `.agent/rules/ruler.md`                        | -                                                | `.agent/skills/`          |
-| Amazon Q CLI     | `.amazonq/rules/ruler_q_rules.md`              | `.amazonq/mcp.json`                              | -                         |
-| Aider            | `AGENTS.md`, `.aider.conf.yml`                 | `.mcp.json`                                      | -                         |
-| Firebase Studio  | `.idx/airules.md`                              | `.idx/mcp.json`                                  | -                         |
-| Open Hands       | `.openhands/microagents/repo.md`               | `config.toml`                                    | -                         |
-| Gemini CLI       | `AGENTS.md`                                    | `.gemini/settings.json`                          | `.gemini/skills/`         |
-| Junie            | `.junie/guidelines.md`                         | -                                                | -                         |
-| AugmentCode      | `.augment/rules/ruler_augment_instructions.md` | -                                                | -                         |
-| Kilo Code        | `AGENTS.md`                                    | `.kilocode/mcp.json`                             | `.claude/skills/`         |
-| OpenCode         | `AGENTS.md`                                    | `opencode.json`                                  | `.opencode/skill/`        |
-| Goose            | `.goosehints`                                  | -                                                | `.agents/skills/`         |
-| Qwen Code        | `AGENTS.md`                                    | `.qwen/settings.json`                            | -                         |
-| RooCode          | `AGENTS.md`                                    | `.roo/mcp.json`                                  | `.roo/skills/`            |
-| Zed              | `AGENTS.md`                                    | `.zed/settings.json` (project root, never $HOME) | -                         |
-| Trae AI          | `.trae/rules/project_rules.md`                 | -                                                | -                         |
-| Warp             | `WARP.md`                                      | -                                                | -                         |
-| Kiro             | `.kiro/steering/ruler_kiro_instructions.md`    | `.kiro/settings/mcp.json`                        | -                         |
-| Firebender       | `firebender.json`                              | `firebender.json` (rules and MCP in same file)   | -                         |
-| Factory Droid    | `AGENTS.md`                                    | `.factory/mcp.json`                              | `.factory/skills/`        |
-| Mistral Vibe     | `AGENTS.md`                                    | `.vibe/config.toml`                              | `.vibe/skills/`           |
-| JetBrains AI Assistant | `.aiassistant/rules/AGENTS.md`           | -                                                | -                         |
+| Agent                  | Rules File(s)                                  | MCP Configuration / Notes                        | Skills Support / Location |
+| ---------------------- | ---------------------------------------------- | ------------------------------------------------ | ------------------------- |
+| AGENTS.md              | `AGENTS.md`                                    | (pseudo-agent ensuring root `AGENTS.md` exists)  | -                         |
+| GitHub Copilot         | `AGENTS.md`                                    | `.vscode/mcp.json`                               | `.claude/skills/`         |
+| Claude Code            | `CLAUDE.md`                                    | `.mcp.json`                                      | `.claude/skills/`         |
+| OpenAI Codex CLI       | `AGENTS.md`                                    | `.codex/config.toml`                             | `.codex/skills/`          |
+| Pi Coding Agent        | `AGENTS.md`                                    | -                                                | `.pi/skills/`             |
+| Jules                  | `AGENTS.md`                                    | -                                                | -                         |
+| Cursor                 | `AGENTS.md`                                    | `.cursor/mcp.json`                               | `.cursor/skills/`         |
+| Windsurf               | `AGENTS.md`                                    | `.windsurf/mcp_config.json`                      | -                         |
+| Cline                  | `.clinerules`                                  | -                                                | -                         |
+| Crush                  | `CRUSH.md`                                     | `.crush.json`                                    | -                         |
+| Amp                    | `AGENTS.md`                                    | -                                                | `.agents/skills/`         |
+| Antigravity            | `.agent/rules/ruler.md`                        | -                                                | `.agent/skills/`          |
+| Amazon Q CLI           | `.amazonq/rules/ruler_q_rules.md`              | `.amazonq/mcp.json`                              | -                         |
+| Aider                  | `AGENTS.md`, `.aider.conf.yml`                 | `.mcp.json`                                      | -                         |
+| Firebase Studio        | `.idx/airules.md`                              | `.idx/mcp.json`                                  | -                         |
+| Open Hands             | `.openhands/microagents/repo.md`               | `config.toml`                                    | -                         |
+| Gemini CLI             | `AGENTS.md`                                    | `.gemini/settings.json`                          | `.gemini/skills/`         |
+| Junie                  | `.junie/guidelines.md`                         | -                                                | -                         |
+| AugmentCode            | `.augment/rules/ruler_augment_instructions.md` | -                                                | -                         |
+| Kilo Code              | `AGENTS.md`                                    | `.kilocode/mcp.json`                             | `.claude/skills/`         |
+| OpenCode               | `AGENTS.md`                                    | `opencode.json`                                  | `.opencode/skill/`        |
+| Goose                  | `.goosehints`                                  | -                                                | `.agents/skills/`         |
+| Qwen Code              | `AGENTS.md`                                    | `.qwen/settings.json`                            | -                         |
+| RooCode                | `AGENTS.md`                                    | `.roo/mcp.json`                                  | `.roo/skills/`            |
+| Zed                    | `AGENTS.md`                                    | `.zed/settings.json` (project root, never $HOME) | -                         |
+| Trae AI                | `.trae/rules/project_rules.md`                 | -                                                | -                         |
+| Warp                   | `WARP.md`                                      | -                                                | -                         |
+| Kiro                   | `.kiro/steering/ruler_kiro_instructions.md`    | `.kiro/settings/mcp.json`                        | -                         |
+| Firebender             | `firebender.json`                              | `firebender.json` (rules and MCP in same file)   | -                         |
+| Factory Droid          | `AGENTS.md`                                    | `.factory/mcp.json`                              | `.factory/skills/`        |
+| Mistral Vibe           | `AGENTS.md`                                    | `.vibe/config.toml`                              | `.vibe/skills/`           |
+| JetBrains AI Assistant | `.aiassistant/rules/AGENTS.md`                 | -                                                | -                         |
 
 ## Getting Started
 
@@ -139,8 +139,8 @@ This is your central hub for all AI agent instructions:
   4. Remaining discovered `.md` files under `.ruler/` (and subdirectories) in sorted order
 - **Rule Files (`*.md`)**: Discovered recursively from `.ruler/` or `$XDG_CONFIG_HOME/ruler` and concatenated in the order above
 - **Concatenation Marker**: Each file's content is prepended with `<!-- Source: <relative_path_to_md_file> -->` for traceability
-- **`ruler.toml`**: Master configuration for Ruler's behavior, agent selection, and output paths
-- **`mcp.json`**: Shared MCP server settings
+- **`ruler.toml`**: Master configuration for Ruler's behavior, agent selection, output paths, and MCP server settings
+- **`mcp.json`**: (Legacy, deprecated) Shared MCP server settings - no longer scaffolded but still supported for backward compatibility
 
 This ordering lets you keep a short, high-impact root `AGENTS.md` (e.g. executive project summary) while housing detailed guidance inside `.ruler/`.
 
@@ -241,6 +241,8 @@ The `apply` command looks for `.ruler/` in the current directory tree, reading t
 | `--nested`                     | Enable nested rule loading (default: inherit from config or disabled). |
 | `--no-nested`                  | Disable nested rule loading even if `nested = true` in config.         |
 | `--backup`                     | Toggle creation of `.bak` backup files (default: enabled).             |
+| `--skills`                     | Enable skills support (experimental, default: enabled).                |
+| `--no-skills`                  | Disable skills support.                                                |
 | `--dry-run`                    | Preview changes without writing files.                                 |
 | `--local-only`                 | Skip `$XDG_CONFIG_HOME` when looking for configuration.                |
 | `--verbose` / `-v`             | Display detailed output during execution.                              |
