@@ -900,8 +900,9 @@ async function applyStandardMcpConfiguration(
       mcpToMerge = transformMcpForFactoryDroid(filteredMcpJson);
     }
 
+    const CODEX_AGENT_ID = 'codex';
     const isCodexToml =
-      agent.getIdentifier() === 'codex' && dest.endsWith('.toml');
+      agent.getIdentifier() === CODEX_AGENT_ID && dest.endsWith('.toml');
     let existing = await readNativeMcp(dest);
     if (isCodexToml) {
       try {
