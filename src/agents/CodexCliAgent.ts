@@ -6,6 +6,9 @@ import { AgentsMdAgent } from './AgentsMdAgent';
 import { writeGeneratedFile } from '../core/FileSystemUtils';
 import { DEFAULT_RULES_FILENAME } from '../constants';
 
+/**
+ * MCP server definition for Codex CLI (stdio uses command, remote uses url).
+ */
 interface McpServer {
   command?: string;
   args?: string[];

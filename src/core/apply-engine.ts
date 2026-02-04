@@ -912,7 +912,7 @@ async function applyStandardMcpConfiguration(
           `Failed to read Codex MCP TOML at ${dest}: ${(error as Error).message}`,
           verbose,
         );
-        // ignore missing or invalid TOML, fall back to JSON parsing
+        // ignore missing or invalid TOML, fall back to previously read value
       }
     }
     let merged = mergeMcp(existing, mcpToMerge, strategy, serverKey);
