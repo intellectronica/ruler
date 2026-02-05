@@ -213,6 +213,7 @@ export async function findGlobalRulerDir(): Promise<string | null> {
  */
 export async function findAllRulerDirs(startPath: string): Promise<string[]> {
   const rulerDirs: string[] = [];
+  const rootPath = path.resolve(startPath);
 
   // Search the entire directory tree downwards from startPath
   async function findRulerDirs(dir: string) {
@@ -226,6 +227,19 @@ export async function findAllRulerDirs(startPath: string): Promise<string[]> {
           } else {
             // Recursively search subdirectories (but skip hidden directories like .git)
             if (!entry.name.startsWith('.')) {
+              // Do not cross git repository boundaries (except the starting root)
+              const gitDir = path.join(fullPath, '.git');
+              try {
+                const gitStat = await fs.stat(gitDir);
+                if (
+                  gitStat.isDirectory() &&
+                  path.resolve(fullPath) !== rootPath
+                ) {
+                  continue;
+                }
+              } catch {
+                // no .git boundary, continue traversal
+              }
               await findRulerDirs(fullPath);
             }
           }
