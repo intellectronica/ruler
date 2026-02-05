@@ -41,5 +41,25 @@ describe('FileSystemUtils - Nested', () => {
       const rulerDirs = await findAllRulerDirs(someDir);
       expect(rulerDirs).toHaveLength(0);
     });
+
+    it('skips descending into nested git repositories', async () => {
+      const projectDir = path.join(tmpDir, 'git-boundary');
+      const nestedRepoDir = path.join(projectDir, 'nested-repo');
+      const siblingDir = path.join(projectDir, 'sibling');
+
+      await fs.mkdir(path.join(projectDir, '.git'), { recursive: true });
+      await fs.mkdir(path.join(projectDir, '.ruler'), { recursive: true });
+
+      await fs.mkdir(path.join(nestedRepoDir, '.git'), { recursive: true });
+      await fs.mkdir(path.join(nestedRepoDir, '.ruler'), { recursive: true });
+
+      await fs.mkdir(path.join(siblingDir, '.ruler'), { recursive: true });
+
+      const rulerDirs = await findAllRulerDirs(projectDir);
+
+      expect(rulerDirs).toContain(path.join(projectDir, '.ruler'));
+      expect(rulerDirs).toContain(path.join(siblingDir, '.ruler'));
+      expect(rulerDirs).not.toContain(path.join(nestedRepoDir, '.ruler'));
+    });
   });
 });

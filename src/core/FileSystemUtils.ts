@@ -215,9 +215,18 @@ export async function findAllRulerDirs(startPath: string): Promise<string[]> {
   const rulerDirs: string[] = [];
 
   // Search the entire directory tree downwards from startPath
-  async function findRulerDirs(dir: string) {
+  async function findRulerDirs(dir: string, isRoot = false) {
     try {
       const entries = await fs.readdir(dir, { withFileTypes: true });
+
+      // If this directory is a git repository (contains .git), do not traverse into it
+      // unless it's the starting root. This prevents crossing repository boundaries
+      // in nested mode.
+      const hasGitRepo = entries.some((entry) => entry.name === '.git');
+      if (!isRoot && hasGitRepo) {
+        return;
+      }
+
       for (const entry of entries) {
         const fullPath = path.join(dir, entry.name);
         if (entry.isDirectory()) {
@@ -226,7 +235,7 @@ export async function findAllRulerDirs(startPath: string): Promise<string[]> {
           } else {
             // Recursively search subdirectories (but skip hidden directories like .git)
             if (!entry.name.startsWith('.')) {
-              await findRulerDirs(fullPath);
+              await findRulerDirs(fullPath, false);
             }
           }
         }
@@ -237,7 +246,7 @@ export async function findAllRulerDirs(startPath: string): Promise<string[]> {
   }
 
   // Start searching from the startPath
-  await findRulerDirs(startPath);
+  await findRulerDirs(startPath, true);
 
   // Sort by depth (most specific first) - deeper paths come first
   rulerDirs.sort((a, b) => {
