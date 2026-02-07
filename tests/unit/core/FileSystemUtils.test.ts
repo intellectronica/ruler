@@ -1,7 +1,10 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import os from 'os';
-import { findRulerDir, readMarkdownFiles } from '../../../src/core/FileSystemUtils';
+import {
+  findRulerDir,
+  readMarkdownFiles,
+} from '../../../src/core/FileSystemUtils';
 
 describe('FileSystemUtils', () => {
   let tmpDir: string;
@@ -44,6 +47,44 @@ describe('FileSystemUtils', () => {
       expect(files.map((f) => f.path)).toEqual([fileA, fileB]);
       expect(files[0].content).toBe('contentA');
       expect(files[1].content).toBe('contentB');
+    });
+
+    it('reads symlinked markdown files', async () => {
+      const rulerDir = path.join(tmpDir, '.ruler-symlink-file');
+      await fs.mkdir(rulerDir, { recursive: true });
+      const realFile = path.join(tmpDir, 'external.md');
+      await fs.writeFile(realFile, 'symlinked content');
+      const linkPath = path.join(rulerDir, 'linked.md');
+      await fs.symlink(realFile, linkPath);
+      const files = await readMarkdownFiles(rulerDir);
+      expect(files.map((f) => f.path)).toContain(linkPath);
+      const linked = files.find((f) => f.path === linkPath);
+      expect(linked?.content).toBe('symlinked content');
+    });
+
+    it('follows symlinked directories', async () => {
+      const rulerDir = path.join(tmpDir, '.ruler-symlink-dir');
+      await fs.mkdir(rulerDir, { recursive: true });
+      const realDir = path.join(tmpDir, 'external-dir');
+      await fs.mkdir(realDir, { recursive: true });
+      const realFile = path.join(realDir, 'deep.md');
+      await fs.writeFile(realFile, 'deep content');
+      const linkPath = path.join(rulerDir, 'linked-dir');
+      await fs.symlink(realDir, linkPath);
+      const files = await readMarkdownFiles(rulerDir);
+      const deepFile = path.join(linkPath, 'deep.md');
+      expect(files.map((f) => f.path)).toContain(deepFile);
+      const deep = files.find((f) => f.path === deepFile);
+      expect(deep?.content).toBe('deep content');
+    });
+
+    it('skips broken symlinks gracefully', async () => {
+      const rulerDir = path.join(tmpDir, '.ruler-broken-symlink');
+      await fs.mkdir(rulerDir, { recursive: true });
+      const linkPath = path.join(rulerDir, 'broken.md');
+      await fs.symlink('/nonexistent/path/file.md', linkPath);
+      const files = await readMarkdownFiles(rulerDir);
+      expect(files.map((f) => f.path)).not.toContain(linkPath);
     });
   });
 });
