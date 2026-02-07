@@ -71,7 +71,19 @@ export async function readMarkdownFiles(
     const entries = await fs.readdir(dir, { withFileTypes: true });
     for (const entry of entries) {
       const fullPath = path.join(dir, entry.name);
-      if (entry.isDirectory()) {
+      // Resolve symlinks to determine actual type
+      let isDir = entry.isDirectory();
+      let isFile = entry.isFile();
+      if (entry.isSymbolicLink()) {
+        try {
+          const stat = await fs.stat(fullPath);
+          isDir = stat.isDirectory();
+          isFile = stat.isFile();
+        } catch {
+          continue; // skip broken symlinks
+        }
+      }
+      if (isDir) {
         // Skip .ruler/skills; skills are propagated separately and should not be concatenated
         const relativeFromRoot = path.relative(rulerDir, fullPath);
         const isSkillsDir =
@@ -81,7 +93,7 @@ export async function readMarkdownFiles(
           continue;
         }
         await walk(fullPath);
-      } else if (entry.isFile() && entry.name.endsWith('.md')) {
+      } else if (isFile && entry.name.endsWith('.md')) {
         const content = await fs.readFile(fullPath, 'utf8');
         mdFiles.push({ path: fullPath, content });
       }
