@@ -4,7 +4,7 @@ import { parse as parseTOML, stringify } from '@iarna/toml';
 import { IAgent, IAgentConfig } from './IAgent';
 import { AgentsMdAgent } from './AgentsMdAgent';
 import { writeGeneratedFile } from '../core/FileSystemUtils';
-import { DEFAULT_RULES_FILENAME } from '../constants';
+import { DEFAULT_RULES_FILENAME, CODEX_SKILLS_PATH } from '../constants';
 
 /**
  * MCP server definition for Codex CLI (stdio uses command, remote uses url).
@@ -173,5 +173,9 @@ export class CodexCliAgent implements IAgent {
 
   supportsNativeSkills(): boolean {
     return true;
+  }
+
+  getNativeSkillsPath(projectRoot: string): string {
+    return path.join(projectRoot, CODEX_SKILLS_PATH);
   }
 }

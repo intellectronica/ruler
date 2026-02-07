@@ -77,4 +77,11 @@ export interface IAgent {
    * Defaults to false if not implemented.
    */
   supportsNativeSkills?(): boolean;
+
+  /**
+   * Returns the path where native skills should be copied for this agent.
+   * Returns null if agent doesn't support native skills.
+   * Multiple agents may return the same path (e.g., Claude, Copilot, KiloCode all use .claude/skills).
+   */
+  getNativeSkillsPath?(projectRoot: string): string | null;
 }

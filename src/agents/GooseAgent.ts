@@ -1,5 +1,6 @@
 import * as path from 'path';
 import { AbstractAgent } from './AbstractAgent';
+import { GOOSE_SKILLS_PATH } from '../constants';
 
 /**
  * Goose agent adapter for Block's Goose AI assistant.
@@ -25,5 +26,9 @@ export class GooseAgent extends AbstractAgent {
 
   supportsNativeSkills(): boolean {
     return true;
+  }
+
+  getNativeSkillsPath(projectRoot: string): string {
+    return path.join(projectRoot, GOOSE_SKILLS_PATH);
   }
 }

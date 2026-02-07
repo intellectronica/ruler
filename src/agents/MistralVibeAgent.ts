@@ -4,7 +4,7 @@ import { parse as parseTOML, stringify } from '@iarna/toml';
 import { IAgent, IAgentConfig } from './IAgent';
 import { AgentsMdAgent } from './AgentsMdAgent';
 import { writeGeneratedFile } from '../core/FileSystemUtils';
-import { DEFAULT_RULES_FILENAME } from '../constants';
+import { DEFAULT_RULES_FILENAME, VIBE_SKILLS_PATH } from '../constants';
 
 /**
  * Mistral Vibe MCP server configuration using [[mcp_servers]] array format.
@@ -215,5 +215,9 @@ export class MistralVibeAgent implements IAgent {
   supportsNativeSkills(): boolean {
     // Mistral Vibe supports native skills in .vibe/skills/
     return true;
+  }
+
+  getNativeSkillsPath(projectRoot: string): string {
+    return path.join(projectRoot, VIBE_SKILLS_PATH);
   }
 }
