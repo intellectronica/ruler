@@ -129,6 +129,20 @@ type SkillTarget =
   | 'factory'
   | 'antigravity';
 
+const SKILL_TARGET_TO_IDENTIFIERS = new Map<SkillTarget, readonly string[]>([
+  ['claude', ['claude', 'copilot', 'kilocode']],
+  ['codex', ['codex']],
+  ['opencode', ['opencode']],
+  ['pi', ['pi']],
+  ['goose', ['goose', 'amp']],
+  ['vibe', ['mistral']],
+  ['roo', ['roo']],
+  ['gemini', ['gemini-cli']],
+  ['cursor', ['cursor']],
+  ['factory', ['factory']],
+  ['antigravity', ['antigravity']],
+]);
+
 function getSelectedSkillTargets(agents: IAgent[]): Set<SkillTarget> {
   const selectedIdentifiers = new Set(
     agents
@@ -137,40 +151,10 @@ function getSelectedSkillTargets(agents: IAgent[]): Set<SkillTarget> {
   );
   const targets = new Set<SkillTarget>();
 
-  if (
-    ['claude', 'copilot', 'kilocode'].some((id) => selectedIdentifiers.has(id))
-  ) {
-    targets.add('claude');
-  }
-  if (selectedIdentifiers.has('codex')) {
-    targets.add('codex');
-  }
-  if (selectedIdentifiers.has('opencode')) {
-    targets.add('opencode');
-  }
-  if (selectedIdentifiers.has('pi')) {
-    targets.add('pi');
-  }
-  if (selectedIdentifiers.has('goose') || selectedIdentifiers.has('amp')) {
-    targets.add('goose');
-  }
-  if (selectedIdentifiers.has('mistral')) {
-    targets.add('vibe');
-  }
-  if (selectedIdentifiers.has('roo')) {
-    targets.add('roo');
-  }
-  if (selectedIdentifiers.has('gemini-cli')) {
-    targets.add('gemini');
-  }
-  if (selectedIdentifiers.has('cursor')) {
-    targets.add('cursor');
-  }
-  if (selectedIdentifiers.has('factory')) {
-    targets.add('factory');
-  }
-  if (selectedIdentifiers.has('antigravity')) {
-    targets.add('antigravity');
+  for (const [target, identifiers] of SKILL_TARGET_TO_IDENTIFIERS) {
+    if (identifiers.some((id) => selectedIdentifiers.has(id))) {
+      targets.add(target);
+    }
   }
 
   return targets;
@@ -503,6 +487,9 @@ export async function propagateSkills(
     return;
   }
 
+  // Warn about experimental features
+  warnOnceExperimental(verbose, dryRun);
+
   const selectedTargets = getSelectedSkillTargets(agents);
   if (selectedTargets.size === 0) {
     logVerboseInfo(
@@ -513,13 +500,10 @@ export async function propagateSkills(
     return;
   }
 
-  // Warn about experimental features
-  warnOnceExperimental(verbose, dryRun);
-
   // Copy to Claude skills directory if needed
   if (selectedTargets.has('claude')) {
     logVerboseInfo(
-      `Copying skills to ${CLAUDE_SKILLS_PATH} for Claude Code, GitHub Copilot, and Kilo Code`,
+      `Copying skills to ${CLAUDE_SKILLS_PATH} for Claude Code, GitHub Copilot, and KiloCode`,
       verbose,
       dryRun,
     );

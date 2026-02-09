@@ -2,7 +2,11 @@ import * as path from 'path';
 import * as fs from 'fs/promises';
 import * as os from 'os';
 import { discoverSkills } from '../src/core/SkillsProcessor';
-import { SKILL_MD_FILENAME } from '../src/constants';
+import {
+  ANTIGRAVITY_SKILLS_PATH,
+  CLAUDE_SKILLS_PATH,
+  SKILL_MD_FILENAME,
+} from '../src/constants';
 
 describe('Skills Discovery and Validation', () => {
   let tmpDir: string;
@@ -122,14 +126,13 @@ describe('Skills Discovery and Validation', () => {
 
       await fs.mkdir(skillsDir, { recursive: true });
 
-      const paths = await getSkillsGitignorePaths(tmpDir, [
-        new AntigravityAgent(),
-      ]);
+      const antigravityAgent = new AntigravityAgent();
+      const paths = await getSkillsGitignorePaths(tmpDir, [antigravityAgent]);
 
-      expect(paths).toEqual([path.join(tmpDir, '.agent', 'skills')]);
+      expect(paths).toEqual([path.join(tmpDir, ANTIGRAVITY_SKILLS_PATH)]);
     });
 
-    it('maps copilot to claude skills paths', async () => {
+    it('returns claude skills path for copilot agent', async () => {
       const { getSkillsGitignorePaths } = await import(
         '../src/core/SkillsProcessor'
       );
@@ -142,7 +145,7 @@ describe('Skills Discovery and Validation', () => {
         new CopilotAgent(),
       ]);
 
-      expect(paths).toEqual([path.join(tmpDir, '.claude', 'skills')]);
+      expect(paths).toEqual([path.join(tmpDir, CLAUDE_SKILLS_PATH)]);
     });
   });
 
@@ -939,15 +942,14 @@ describe('Skills Discovery and Validation', () => {
 
       const antigravitySkill = path.join(
         tmpDir,
-        '.agent',
-        'skills',
+        ANTIGRAVITY_SKILLS_PATH,
         'skill1',
         SKILL_MD_FILENAME,
       );
 
       expect(await fs.readFile(antigravitySkill, 'utf8')).toBe('# Skill 1');
       await expect(
-        fs.access(path.join(tmpDir, '.claude', 'skills')),
+        fs.access(path.join(tmpDir, CLAUDE_SKILLS_PATH)),
       ).rejects.toThrow();
       await expect(
         fs.access(path.join(tmpDir, '.codex', 'skills')),
@@ -975,15 +977,14 @@ describe('Skills Discovery and Validation', () => {
 
       const claudeSkill = path.join(
         tmpDir,
-        '.claude',
-        'skills',
+        CLAUDE_SKILLS_PATH,
         'skill1',
         SKILL_MD_FILENAME,
       );
 
       expect(await fs.readFile(claudeSkill, 'utf8')).toBe('# Skill 1');
       await expect(
-        fs.access(path.join(tmpDir, '.agent', 'skills')),
+        fs.access(path.join(tmpDir, ANTIGRAVITY_SKILLS_PATH)),
       ).rejects.toThrow();
     });
   });
