@@ -2,7 +2,11 @@ import * as path from 'path';
 import * as fs from 'fs/promises';
 import * as os from 'os';
 import { discoverSkills } from '../src/core/SkillsProcessor';
-import { SKILL_MD_FILENAME } from '../src/constants';
+import {
+  ANTIGRAVITY_SKILLS_PATH,
+  CLAUDE_SKILLS_PATH,
+  SKILL_MD_FILENAME,
+} from '../src/constants';
 
 describe('Skills Discovery and Validation', () => {
   let tmpDir: string;
@@ -107,6 +111,41 @@ describe('Skills Discovery and Validation', () => {
 
       expect(result.skills).toHaveLength(0);
       expect(result.warnings).toHaveLength(0);
+    });
+  });
+
+  describe('getSkillsGitignorePaths', () => {
+    it('returns selected agent skills paths only', async () => {
+      const { getSkillsGitignorePaths } = await import(
+        '../src/core/SkillsProcessor'
+      );
+      const { AntigravityAgent } = await import(
+        '../src/agents/AntigravityAgent'
+      );
+      const skillsDir = path.join(tmpDir, '.ruler', 'skills');
+
+      await fs.mkdir(skillsDir, { recursive: true });
+
+      const antigravityAgent = new AntigravityAgent();
+      const paths = await getSkillsGitignorePaths(tmpDir, [antigravityAgent]);
+
+      expect(paths).toEqual([path.join(tmpDir, ANTIGRAVITY_SKILLS_PATH)]);
+    });
+
+    it('returns claude skills path for copilot agent', async () => {
+      const { getSkillsGitignorePaths } = await import(
+        '../src/core/SkillsProcessor'
+      );
+      const { CopilotAgent } = await import('../src/agents/CopilotAgent');
+      const skillsDir = path.join(tmpDir, '.ruler', 'skills');
+
+      await fs.mkdir(skillsDir, { recursive: true });
+
+      const paths = await getSkillsGitignorePaths(tmpDir, [
+        new CopilotAgent(),
+      ]);
+
+      expect(paths).toEqual([path.join(tmpDir, CLAUDE_SKILLS_PATH)]);
     });
   });
 
@@ -879,6 +918,74 @@ describe('Skills Discovery and Validation', () => {
       });
 
       expect(steps).toHaveLength(0);
+    });
+  });
+
+  describe('propagateSkills - selected agents', () => {
+    it('only propagates skills for selected agent destinations', async () => {
+      const { propagateSkills } = await import('../src/core/SkillsProcessor');
+      const { AntigravityAgent } = await import(
+        '../src/agents/AntigravityAgent'
+      );
+      const skillsDir = path.join(tmpDir, '.ruler', 'skills', 'skill1');
+
+      await fs.mkdir(skillsDir, { recursive: true });
+      await fs.writeFile(path.join(skillsDir, SKILL_MD_FILENAME), '# Skill 1');
+
+      await propagateSkills(
+        tmpDir,
+        [new AntigravityAgent()],
+        true,
+        false,
+        false,
+      );
+
+      const antigravitySkill = path.join(
+        tmpDir,
+        ANTIGRAVITY_SKILLS_PATH,
+        'skill1',
+        SKILL_MD_FILENAME,
+      );
+
+      expect(await fs.readFile(antigravitySkill, 'utf8')).toBe('# Skill 1');
+      await expect(
+        fs.access(path.join(tmpDir, CLAUDE_SKILLS_PATH)),
+      ).rejects.toThrow();
+      await expect(
+        fs.access(path.join(tmpDir, '.codex', 'skills')),
+      ).rejects.toThrow();
+      await expect(
+        fs.access(path.join(tmpDir, '.opencode', 'skill')),
+      ).rejects.toThrow();
+    });
+
+    it('propagates copilot skills to claude destination only', async () => {
+      const { propagateSkills } = await import('../src/core/SkillsProcessor');
+      const { CopilotAgent } = await import('../src/agents/CopilotAgent');
+      const skillsDir = path.join(tmpDir, '.ruler', 'skills', 'skill1');
+
+      await fs.mkdir(skillsDir, { recursive: true });
+      await fs.writeFile(path.join(skillsDir, SKILL_MD_FILENAME), '# Skill 1');
+
+      await propagateSkills(
+        tmpDir,
+        [new CopilotAgent()],
+        true,
+        false,
+        false,
+      );
+
+      const claudeSkill = path.join(
+        tmpDir,
+        CLAUDE_SKILLS_PATH,
+        'skill1',
+        SKILL_MD_FILENAME,
+      );
+
+      expect(await fs.readFile(claudeSkill, 'utf8')).toBe('# Skill 1');
+      await expect(
+        fs.access(path.join(tmpDir, ANTIGRAVITY_SKILLS_PATH)),
+      ).rejects.toThrow();
     });
   });
 
