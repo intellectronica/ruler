@@ -47,6 +47,7 @@ export async function discoverSkills(
  */
 export async function getSkillsGitignorePaths(
   projectRoot: string,
+  agents: IAgent[],
 ): Promise<string[]> {
   const skillsDir = path.join(projectRoot, RULER_SKILLS_PATH);
 
@@ -72,19 +73,24 @@ export async function getSkillsGitignorePaths(
     ANTIGRAVITY_SKILLS_PATH,
   } = await import('../constants');
 
-  return [
-    path.join(projectRoot, CLAUDE_SKILLS_PATH),
-    path.join(projectRoot, CODEX_SKILLS_PATH),
-    path.join(projectRoot, OPENCODE_SKILLS_PATH),
-    path.join(projectRoot, PI_SKILLS_PATH),
-    path.join(projectRoot, GOOSE_SKILLS_PATH),
-    path.join(projectRoot, VIBE_SKILLS_PATH),
-    path.join(projectRoot, ROO_SKILLS_PATH),
-    path.join(projectRoot, GEMINI_SKILLS_PATH),
-    path.join(projectRoot, CURSOR_SKILLS_PATH),
-    path.join(projectRoot, FACTORY_SKILLS_PATH),
-    path.join(projectRoot, ANTIGRAVITY_SKILLS_PATH),
-  ];
+  const selectedTargets = getSelectedSkillTargets(agents);
+  const targetPaths: Record<SkillTarget, string> = {
+    claude: CLAUDE_SKILLS_PATH,
+    codex: CODEX_SKILLS_PATH,
+    opencode: OPENCODE_SKILLS_PATH,
+    pi: PI_SKILLS_PATH,
+    goose: GOOSE_SKILLS_PATH,
+    vibe: VIBE_SKILLS_PATH,
+    roo: ROO_SKILLS_PATH,
+    gemini: GEMINI_SKILLS_PATH,
+    cursor: CURSOR_SKILLS_PATH,
+    factory: FACTORY_SKILLS_PATH,
+    antigravity: ANTIGRAVITY_SKILLS_PATH,
+  };
+
+  return Array.from(selectedTargets).map((target) =>
+    path.join(projectRoot, targetPaths[target]),
+  );
 }
 
 /**
@@ -108,6 +114,66 @@ function warnOnceExperimental(verbose: boolean, dryRun: boolean): void {
     'Skills support is experimental and behavior may change in future releases.',
     dryRun,
   );
+}
+
+type SkillTarget =
+  | 'claude'
+  | 'codex'
+  | 'opencode'
+  | 'pi'
+  | 'goose'
+  | 'vibe'
+  | 'roo'
+  | 'gemini'
+  | 'cursor'
+  | 'factory'
+  | 'antigravity';
+
+function getSelectedSkillTargets(agents: IAgent[]): Set<SkillTarget> {
+  const selectedIdentifiers = new Set(
+    agents
+      .filter((agent) => agent.supportsNativeSkills?.())
+      .map((agent) => agent.getIdentifier()),
+  );
+  const targets = new Set<SkillTarget>();
+
+  if (
+    ['claude', 'copilot', 'kilocode'].some((id) => selectedIdentifiers.has(id))
+  ) {
+    targets.add('claude');
+  }
+  if (selectedIdentifiers.has('codex')) {
+    targets.add('codex');
+  }
+  if (selectedIdentifiers.has('opencode')) {
+    targets.add('opencode');
+  }
+  if (selectedIdentifiers.has('pi')) {
+    targets.add('pi');
+  }
+  if (selectedIdentifiers.has('goose') || selectedIdentifiers.has('amp')) {
+    targets.add('goose');
+  }
+  if (selectedIdentifiers.has('mistral')) {
+    targets.add('vibe');
+  }
+  if (selectedIdentifiers.has('roo')) {
+    targets.add('roo');
+  }
+  if (selectedIdentifiers.has('gemini-cli')) {
+    targets.add('gemini');
+  }
+  if (selectedIdentifiers.has('cursor')) {
+    targets.add('cursor');
+  }
+  if (selectedIdentifiers.has('factory')) {
+    targets.add('factory');
+  }
+  if (selectedIdentifiers.has('antigravity')) {
+    targets.add('antigravity');
+  }
+
+  return targets;
 }
 
 /**
@@ -437,81 +503,111 @@ export async function propagateSkills(
     return;
   }
 
+  const selectedTargets = getSelectedSkillTargets(agents);
+  if (selectedTargets.size === 0) {
+    logVerboseInfo(
+      'No selected agents require skills propagation, skipping skills propagation',
+      verbose,
+      dryRun,
+    );
+    return;
+  }
+
   // Warn about experimental features
   warnOnceExperimental(verbose, dryRun);
 
   // Copy to Claude skills directory if needed
-  if (hasNativeSkillsAgent) {
+  if (selectedTargets.has('claude')) {
     logVerboseInfo(
       `Copying skills to ${CLAUDE_SKILLS_PATH} for Claude Code, GitHub Copilot, and Kilo Code`,
       verbose,
       dryRun,
     );
     await propagateSkillsForClaude(projectRoot, { dryRun });
+  }
 
+  if (selectedTargets.has('codex')) {
     logVerboseInfo(
       `Copying skills to ${CODEX_SKILLS_PATH} for OpenAI Codex CLI`,
       verbose,
       dryRun,
     );
     await propagateSkillsForCodex(projectRoot, { dryRun });
+  }
 
+  if (selectedTargets.has('opencode')) {
     logVerboseInfo(
       `Copying skills to ${OPENCODE_SKILLS_PATH} for OpenCode`,
       verbose,
       dryRun,
     );
     await propagateSkillsForOpenCode(projectRoot, { dryRun });
+  }
 
+  if (selectedTargets.has('pi')) {
     logVerboseInfo(
       `Copying skills to ${PI_SKILLS_PATH} for Pi Coding Agent`,
       verbose,
       dryRun,
     );
     await propagateSkillsForPi(projectRoot, { dryRun });
+  }
 
+  if (selectedTargets.has('goose')) {
     logVerboseInfo(
       `Copying skills to ${GOOSE_SKILLS_PATH} for Goose and Amp`,
       verbose,
       dryRun,
     );
     await propagateSkillsForGoose(projectRoot, { dryRun });
+  }
 
+  if (selectedTargets.has('vibe')) {
     logVerboseInfo(
       `Copying skills to ${VIBE_SKILLS_PATH} for Mistral Vibe`,
       verbose,
       dryRun,
     );
     await propagateSkillsForVibe(projectRoot, { dryRun });
+  }
 
+  if (selectedTargets.has('roo')) {
     logVerboseInfo(
       `Copying skills to ${ROO_SKILLS_PATH} for Roo Code`,
       verbose,
       dryRun,
     );
     await propagateSkillsForRoo(projectRoot, { dryRun });
+  }
 
+  if (selectedTargets.has('gemini')) {
     logVerboseInfo(
       `Copying skills to ${GEMINI_SKILLS_PATH} for Gemini CLI`,
       verbose,
       dryRun,
     );
     await propagateSkillsForGemini(projectRoot, { dryRun });
+  }
 
+  if (selectedTargets.has('cursor')) {
     logVerboseInfo(
       `Copying skills to ${CURSOR_SKILLS_PATH} for Cursor`,
       verbose,
       dryRun,
     );
     await propagateSkillsForCursor(projectRoot, { dryRun });
+  }
 
+  if (selectedTargets.has('factory')) {
     logVerboseInfo(
       `Copying skills to ${FACTORY_SKILLS_PATH} for Factory Droid`,
       verbose,
       dryRun,
     );
     await propagateSkillsForFactory(projectRoot, { dryRun });
+  }
 
+  if (selectedTargets.has('antigravity')) {
     logVerboseInfo(
       `Copying skills to ${ANTIGRAVITY_SKILLS_PATH} for Antigravity`,
       verbose,

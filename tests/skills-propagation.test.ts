@@ -110,6 +110,42 @@ describe('Skills Discovery and Validation', () => {
     });
   });
 
+  describe('getSkillsGitignorePaths', () => {
+    it('returns selected agent skills paths only', async () => {
+      const { getSkillsGitignorePaths } = await import(
+        '../src/core/SkillsProcessor'
+      );
+      const { AntigravityAgent } = await import(
+        '../src/agents/AntigravityAgent'
+      );
+      const skillsDir = path.join(tmpDir, '.ruler', 'skills');
+
+      await fs.mkdir(skillsDir, { recursive: true });
+
+      const paths = await getSkillsGitignorePaths(tmpDir, [
+        new AntigravityAgent(),
+      ]);
+
+      expect(paths).toEqual([path.join(tmpDir, '.agent', 'skills')]);
+    });
+
+    it('maps copilot to claude skills paths', async () => {
+      const { getSkillsGitignorePaths } = await import(
+        '../src/core/SkillsProcessor'
+      );
+      const { CopilotAgent } = await import('../src/agents/CopilotAgent');
+      const skillsDir = path.join(tmpDir, '.ruler', 'skills');
+
+      await fs.mkdir(skillsDir, { recursive: true });
+
+      const paths = await getSkillsGitignorePaths(tmpDir, [
+        new CopilotAgent(),
+      ]);
+
+      expect(paths).toEqual([path.join(tmpDir, '.claude', 'skills')]);
+    });
+  });
+
   describe('copySkillsDirectory', () => {
     it('copies .ruler/skills to destination preserving structure', async () => {
       const { copySkillsDirectory } = await import('../src/core/SkillsUtils');
@@ -879,6 +915,76 @@ describe('Skills Discovery and Validation', () => {
       });
 
       expect(steps).toHaveLength(0);
+    });
+  });
+
+  describe('propagateSkills - selected agents', () => {
+    it('only propagates skills for selected agent destinations', async () => {
+      const { propagateSkills } = await import('../src/core/SkillsProcessor');
+      const { AntigravityAgent } = await import(
+        '../src/agents/AntigravityAgent'
+      );
+      const skillsDir = path.join(tmpDir, '.ruler', 'skills', 'skill1');
+
+      await fs.mkdir(skillsDir, { recursive: true });
+      await fs.writeFile(path.join(skillsDir, SKILL_MD_FILENAME), '# Skill 1');
+
+      await propagateSkills(
+        tmpDir,
+        [new AntigravityAgent()],
+        true,
+        false,
+        false,
+      );
+
+      const antigravitySkill = path.join(
+        tmpDir,
+        '.agent',
+        'skills',
+        'skill1',
+        SKILL_MD_FILENAME,
+      );
+
+      expect(await fs.readFile(antigravitySkill, 'utf8')).toBe('# Skill 1');
+      await expect(
+        fs.access(path.join(tmpDir, '.claude', 'skills')),
+      ).rejects.toThrow();
+      await expect(
+        fs.access(path.join(tmpDir, '.codex', 'skills')),
+      ).rejects.toThrow();
+      await expect(
+        fs.access(path.join(tmpDir, '.opencode', 'skill')),
+      ).rejects.toThrow();
+    });
+
+    it('propagates copilot skills to claude destination only', async () => {
+      const { propagateSkills } = await import('../src/core/SkillsProcessor');
+      const { CopilotAgent } = await import('../src/agents/CopilotAgent');
+      const skillsDir = path.join(tmpDir, '.ruler', 'skills', 'skill1');
+
+      await fs.mkdir(skillsDir, { recursive: true });
+      await fs.writeFile(path.join(skillsDir, SKILL_MD_FILENAME), '# Skill 1');
+
+      await propagateSkills(
+        tmpDir,
+        [new CopilotAgent()],
+        true,
+        false,
+        false,
+      );
+
+      const claudeSkill = path.join(
+        tmpDir,
+        '.claude',
+        'skills',
+        'skill1',
+        SKILL_MD_FILENAME,
+      );
+
+      expect(await fs.readFile(claudeSkill, 'utf8')).toBe('# Skill 1');
+      await expect(
+        fs.access(path.join(tmpDir, '.agent', 'skills')),
+      ).rejects.toThrow();
     });
   });
 

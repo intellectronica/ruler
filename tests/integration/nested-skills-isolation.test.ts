@@ -109,14 +109,13 @@ describe('Nested skills handling', () => {
     expect(moduleClaude).not.toContain('Skill content');
     expect(moduleClaude).not.toContain('Skill reference');
 
-    // Skills should still be propagated for native and MCP agents
-    // Claude and Copilot both support native skills now
+    // Skills should still be propagated for selected native agents
+    // Claude and Copilot both map to the Claude skills destination
     const claudeSkill = path.join(projectRoot, '.claude', SKILLS_DIR, 'effect');
     const codexSkill = path.join(projectRoot, '.codex', SKILLS_DIR, 'effect');
 
     await expect(fs.access(claudeSkill)).resolves.toBeUndefined();
-    // Note: .codex/skills should exist because Codex also supports native skills
-    await expect(fs.access(codexSkill)).resolves.toBeUndefined();
+    await expect(fs.access(codexSkill)).rejects.toThrow();
 
     const copiedSkill = await fs.readFile(
       path.join(claudeSkill, 'SKILL.md'),
