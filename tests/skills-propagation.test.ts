@@ -141,9 +141,7 @@ describe('Skills Discovery and Validation', () => {
 
       await fs.mkdir(skillsDir, { recursive: true });
 
-      const paths = await getSkillsGitignorePaths(tmpDir, [
-        new CopilotAgent(),
-      ]);
+      const paths = await getSkillsGitignorePaths(tmpDir, [new CopilotAgent()]);
 
       expect(paths).toEqual([path.join(tmpDir, CLAUDE_SKILLS_PATH)]);
     });
@@ -300,7 +298,7 @@ describe('Skills Discovery and Validation', () => {
   });
 
   describe('propagateSkillsForOpenCode', () => {
-    it('copies .ruler/skills to .opencode/skill preserving structure', async () => {
+    it('copies .ruler/skills to .opencode/skills preserving structure', async () => {
       const { propagateSkillsForOpenCode } = await import(
         '../src/core/SkillsProcessor'
       );
@@ -312,7 +310,7 @@ describe('Skills Discovery and Validation', () => {
 
       await propagateSkillsForOpenCode(tmpDir, { dryRun: false });
 
-      const opencodeSkillsDir = path.join(tmpDir, '.opencode', 'skill');
+      const opencodeSkillsDir = path.join(tmpDir, '.opencode', 'skills');
       const copiedSkill = path.join(
         opencodeSkillsDir,
         'skill1',
@@ -351,10 +349,12 @@ describe('Skills Discovery and Validation', () => {
       const steps = await propagateSkillsForOpenCode(tmpDir, { dryRun: true });
 
       expect(steps.length).toBeGreaterThan(0);
-      expect(steps.some((step) => step.includes('.opencode/skill'))).toBe(true);
+      expect(steps.some((step) => step.includes('.opencode/skills'))).toBe(
+        true,
+      );
 
       // Should not have actually copied
-      const opencodeSkillsDir = path.join(tmpDir, '.opencode', 'skill');
+      const opencodeSkillsDir = path.join(tmpDir, '.opencode', 'skills');
       await expect(fs.access(opencodeSkillsDir)).rejects.toThrow();
     });
 
@@ -955,7 +955,7 @@ describe('Skills Discovery and Validation', () => {
         fs.access(path.join(tmpDir, '.codex', 'skills')),
       ).rejects.toThrow();
       await expect(
-        fs.access(path.join(tmpDir, '.opencode', 'skill')),
+        fs.access(path.join(tmpDir, '.opencode', 'skills')),
       ).rejects.toThrow();
     });
 
@@ -967,13 +967,7 @@ describe('Skills Discovery and Validation', () => {
       await fs.mkdir(skillsDir, { recursive: true });
       await fs.writeFile(path.join(skillsDir, SKILL_MD_FILENAME), '# Skill 1');
 
-      await propagateSkills(
-        tmpDir,
-        [new CopilotAgent()],
-        true,
-        false,
-        false,
-      );
+      await propagateSkills(tmpDir, [new CopilotAgent()], true, false, false);
 
       const claudeSkill = path.join(
         tmpDir,
@@ -994,7 +988,7 @@ describe('Skills Discovery and Validation', () => {
       const { propagateSkills } = await import('../src/core/SkillsProcessor');
       const { allAgents } = await import('../src/lib');
       const claudeSkillsDir = path.join(tmpDir, '.claude', 'skills');
-      const opencodeSkillsDir = path.join(tmpDir, '.opencode', 'skill');
+      const opencodeSkillsDir = path.join(tmpDir, '.opencode', 'skills');
       const piSkillsDir = path.join(tmpDir, '.pi', 'skills');
       const gooseSkillsDir = path.join(tmpDir, '.agents', 'skills');
       const vibeSkillsDir = path.join(tmpDir, '.vibe', 'skills');
