@@ -76,7 +76,7 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | Junie                  | `.junie/guidelines.md`                         | -                                                | -                         |
 | AugmentCode            | `.augment/rules/ruler_augment_instructions.md` | -                                                | -                         |
 | Kilo Code              | `AGENTS.md`                                    | `.kilocode/mcp.json`                             | `.claude/skills/`         |
-| OpenCode               | `AGENTS.md`                                    | `opencode.json`                                  | `.opencode/skill/`        |
+| OpenCode               | `AGENTS.md`                                    | `opencode.json`                                  | `.opencode/skills/`       |
 | Goose                  | `.goosehints`                                  | -                                                | `.agents/skills/`         |
 | Qwen Code              | `AGENTS.md`                                    | `.qwen/settings.json`                            | -                         |
 | RooCode                | `AGENTS.md`                                    | `.roo/mcp.json`                                  | `.roo/skills/`            |
@@ -578,7 +578,7 @@ Skills are specialized knowledge packages that extend AI agent capabilities with
   - **GitHub Copilot**: `.claude/skills/` (shared with Claude Code)
   - **Kilo Code**: `.claude/skills/` (shared with Claude Code)
   - **OpenAI Codex CLI**: `.codex/skills/`
-  - **OpenCode**: `.opencode/skill/`
+  - **OpenCode**: `.opencode/skills/`
   - **Pi Coding Agent**: `.pi/skills/`
   - **Goose**: `.agents/skills/`
   - **Amp**: `.agents/skills/` (shared with Goose)
@@ -644,7 +644,7 @@ When skills support is enabled and gitignore integration is active, Ruler automa
 
 - `.claude/skills/` (for Claude Code, GitHub Copilot, and Kilo Code)
 - `.codex/skills/` (for OpenAI Codex CLI)
-- `.opencode/skill/` (for OpenCode)
+- `.opencode/skills/` (for OpenCode)
 - `.pi/skills/` (for Pi Coding Agent)
 - `.agents/skills/` (for Goose and Amp)
 - `.agent/skills/` (for Antigravity)
@@ -703,7 +703,7 @@ ruler apply
 # 3. Skills are now available to compatible agents:
 #    - Claude Code, GitHub Copilot & Kilo Code: .claude/skills/my-skill/
 #    - OpenAI Codex CLI: .codex/skills/my-skill/
-#    - OpenCode: .opencode/skill/my-skill/
+#    - OpenCode: .opencode/skills/my-skill/
 #    - Pi Coding Agent: .pi/skills/my-skill/
 #    - Goose & Amp: .agents/skills/my-skill/
 #    - Antigravity: .agent/skills/my-skill/

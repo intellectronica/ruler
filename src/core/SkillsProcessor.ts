@@ -223,7 +223,7 @@ async function cleanupSkillsDirectories(
     // Directory doesn't exist, nothing to clean
   }
 
-  // Clean up .opencode/skill
+  // Clean up .opencode/skills
   try {
     await fs.access(opencodeSkillsPath);
     if (dryRun) {
@@ -720,7 +720,7 @@ export async function propagateSkillsForCodex(
 }
 
 /**
- * Propagates skills for OpenCode by copying .ruler/skills to .opencode/skill.
+ * Propagates skills for OpenCode by copying .ruler/skills to .opencode/skills.
  * Uses atomic replace to ensure safe overwriting of existing skills.
  * Returns dry-run steps if dryRun is true, otherwise returns empty array.
  */
