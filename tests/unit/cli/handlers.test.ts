@@ -64,7 +64,9 @@ describe('CLI Handlers', () => {
         false,
         false,
         false,
-        true, undefined,
+        true,
+        undefined,
+        undefined,
       );
     });
 
@@ -93,7 +95,9 @@ describe('CLI Handlers', () => {
         false,
         false,
         false,
-        true, undefined,
+        true,
+        undefined,
+        undefined,
       );
     });
 
@@ -123,7 +127,9 @@ describe('CLI Handlers', () => {
         false,
         false,
         false,
-        true, undefined,
+        true,
+        undefined,
+        undefined,
       );
     });
 
@@ -152,7 +158,41 @@ describe('CLI Handlers', () => {
         false,
         false,
         false,
-        true, undefined,
+        true,
+        undefined,
+        undefined,
+      );
+    });
+
+    it('should handle gitignore-local preference correctly', async () => {
+      const argv = {
+        'project-root': mockProjectRoot,
+        mcp: true,
+        'mcp-overwrite': false,
+        'gitignore-local': true,
+        verbose: false,
+        'dry-run': false,
+        'local-only': false,
+        nested: false,
+        backup: true,
+      };
+
+      await applyHandler(argv);
+
+      expect(applyAllAgentConfigs).toHaveBeenCalledWith(
+        mockProjectRoot,
+        undefined,
+        undefined,
+        true,
+        undefined,
+        undefined,
+        false,
+        false,
+        false,
+        false,
+        true,
+        undefined,
+        true,
       );
     });
 
@@ -181,7 +221,9 @@ describe('CLI Handlers', () => {
         false,
         false,
         true, // nested should be true from CLI
-        true, undefined,
+        true,
+        undefined,
+        undefined,
       );
       // loadConfig should not be called when CLI explicitly sets nested
       expect(loadConfig).not.toHaveBeenCalled();
@@ -225,7 +267,9 @@ describe('CLI Handlers', () => {
         false,
         false,
         true, // nested should be true from TOML
-        true, undefined,
+        true,
+        undefined,
+        undefined,
       );
     });
 
@@ -263,7 +307,9 @@ describe('CLI Handlers', () => {
         false,
         false,
         false, // nested should default to false
-        true, undefined,
+        true,
+        undefined,
+        undefined,
       );
     });
 
@@ -303,7 +349,9 @@ describe('CLI Handlers', () => {
         false,
         false,
         true, // nested should be true from CLI, ignoring TOML
-        true, undefined,
+        true,
+        undefined,
+        undefined,
       );
     });
 

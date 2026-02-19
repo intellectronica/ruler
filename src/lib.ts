@@ -55,6 +55,7 @@ export async function applyAllAgentConfigs(
   nested = false,
   backup = true,
   skillsEnabled?: boolean,
+  cliGitignoreLocal?: boolean,
 ): Promise<void> {
   // Load configuration and rules
   logVerbose(
@@ -224,6 +225,7 @@ export async function applyAllAgentConfigs(
     loadedConfig,
     cliGitignoreEnabled,
     dryRun,
+    cliGitignoreLocal,
   );
 }
 

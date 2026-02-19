@@ -626,6 +626,38 @@ command = "sub-cmd"
 
       expect(gitignoreExists).toBe(false);
     });
+
+    it('should update .git/info/exclude when local gitignore config is enabled', async () => {
+      const config: LoadedConfig = {
+        agentConfigs: {},
+        gitignore: { local: true },
+      };
+      const generatedPaths = ['.claude/config.json'];
+
+      await updateGitignore(tmpDir, generatedPaths, config, true, false);
+
+      const excludeContent = await fs.readFile(
+        path.join(tmpDir, '.git', 'info', 'exclude'),
+        'utf8',
+      );
+      expect(excludeContent).toContain('.claude/config.json');
+    });
+
+    it('should let CLI override local gitignore config', async () => {
+      const config: LoadedConfig = {
+        agentConfigs: {},
+        gitignore: { local: true },
+      };
+      const generatedPaths = ['.claude/config.json'];
+
+      await updateGitignore(tmpDir, generatedPaths, config, true, false, false);
+
+      const gitignoreContent = await fs.readFile(
+        path.join(tmpDir, '.gitignore'),
+        'utf8',
+      );
+      expect(gitignoreContent).toContain('.claude/config.json');
+    });
   });
 
   describe('dry-run logging patterns', () => {
@@ -710,7 +742,7 @@ command = "sub-cmd"
       const rules = '# Test rules';
       const mcpJson = {
         mcpServers: {
-          'context7': {
+          context7: {
             url: 'https://mcp.context7.com/mcp',
             type: 'remote',
             headers: {

@@ -1015,6 +1015,7 @@ async function applyStandardMcpConfiguration(
  * @param config Loaded configuration
  * @param cliGitignoreEnabled CLI gitignore setting
  * @param dryRun Whether to perform a dry run
+ * @param cliGitignoreLocal CLI toggle for .git/info/exclude usage
  */
 export async function updateGitignore(
   projectRoot: string,
@@ -1022,6 +1023,7 @@ export async function updateGitignore(
   config: LoadedConfig,
   cliGitignoreEnabled: boolean | undefined,
   dryRun: boolean,
+  cliGitignoreLocal?: boolean,
 ): Promise<void> {
   // Configuration precedence: CLI > TOML > Default (enabled)
   let gitignoreEnabled: boolean;
@@ -1032,6 +1034,14 @@ export async function updateGitignore(
   } else {
     gitignoreEnabled = true; // Default enabled
   }
+  const gitignoreTarget =
+    cliGitignoreLocal !== undefined
+      ? cliGitignoreLocal
+        ? '.git/info/exclude'
+        : '.gitignore'
+      : config.gitignore?.local
+        ? '.git/info/exclude'
+        : '.gitignore';
 
   if (gitignoreEnabled && generatedPaths.length > 0) {
     const uniquePaths = [...new Set(generatedPaths)];
@@ -1042,13 +1052,13 @@ export async function updateGitignore(
     if (uniquePaths.length > 0) {
       if (dryRun) {
         logInfo(
-          `Would update .gitignore with ${uniquePaths.length} unique path(s): ${uniquePaths.join(', ')}`,
+          `Would update ${gitignoreTarget} with ${uniquePaths.length} unique path(s): ${uniquePaths.join(', ')}`,
           dryRun,
         );
       } else {
-        await updateGitignoreUtil(projectRoot, uniquePaths);
+        await updateGitignoreUtil(projectRoot, uniquePaths, gitignoreTarget);
         logInfo(
-          `Updated .gitignore with ${uniquePaths.length} unique path(s) in the Ruler block.`,
+          `Updated ${gitignoreTarget} with ${uniquePaths.length} unique path(s) in the Ruler block.`,
           dryRun,
         );
       }

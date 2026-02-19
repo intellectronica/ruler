@@ -45,6 +45,11 @@ export function run(): void {
             description:
               'Enable/disable automatic .gitignore updates (default: enabled)',
           })
+          .option('gitignore-local', {
+            type: 'boolean',
+            description:
+              'Write generated ignore entries to .git/info/exclude instead of .gitignore',
+          })
           .option('verbose', {
             type: 'boolean',
             description: 'Enable verbose logging',
