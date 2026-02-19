@@ -238,6 +238,7 @@ The `apply` command looks for `.ruler/` in the current directory tree, reading t
 | `--mcp-overwrite`              | Overwrite native MCP config instead of merging.                        |
 | `--gitignore`                  | Enable automatic .gitignore updates (default: true).                   |
 | `--no-gitignore`               | Disable automatic .gitignore updates.                                  |
+| `--gitignore-local`            | Write managed ignore entries to `.git/info/exclude` instead.           |
 | `--nested`                     | Enable nested rule loading (default: inherit from config or disabled). |
 | `--no-nested`                  | Disable nested rule loading even if `nested = true` in config.         |
 | `--backup`                     | Toggle creation of `.bak` backup files (default: enabled).             |
@@ -405,6 +406,8 @@ Authorization = "Bearer your-token"
 [gitignore]
 # Enable/disable automatic .gitignore updates (default: true)
 enabled = true
+# Write managed entries to .git/info/exclude instead of .gitignore (default: false)
+local = false
 
 # --- Agent-Specific Configurations ---
 [agents.copilot]
@@ -744,8 +747,8 @@ dist/
 
 ### Control Options
 
-- **CLI flags**: `--gitignore` or `--no-gitignore`
-- **Configuration**: `[gitignore].enabled` in `ruler.toml`
+- **CLI flags**: `--gitignore`, `--no-gitignore`, `--gitignore-local`, `--no-gitignore-local`
+- **Configuration**: `[gitignore].enabled` and `[gitignore].local` in `ruler.toml`
 - **Default**: enabled
 
 ## Practical Usage Scenarios

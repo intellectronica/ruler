@@ -5,17 +5,19 @@ const RULER_START_MARKER = '# START Ruler Generated Files';
 const RULER_END_MARKER = '# END Ruler Generated Files';
 
 /**
- * Updates the .gitignore file in the project root with paths in a managed Ruler block.
+ * Updates an ignore file in the project root with paths in a managed Ruler block.
  * Creates the file if it doesn't exist, and creates or updates the Ruler-managed block.
  *
- * @param projectRoot The project root directory (where .gitignore should be located)
- * @param paths Array of file paths to add to .gitignore (can be absolute or relative)
+ * @param projectRoot The project root directory
+ * @param paths Array of file paths to add to the ignore file (can be absolute or relative)
+ * @param ignoreFile Relative path to the ignore file from project root (defaults to .gitignore)
  */
 export async function updateGitignore(
   projectRoot: string,
   paths: string[],
+  ignoreFile = '.gitignore',
 ): Promise<void> {
-  const gitignorePath = path.join(projectRoot, '.gitignore');
+  const gitignorePath = path.join(projectRoot, ignoreFile);
 
   // Read existing .gitignore or start with empty content
   let existingContent = '';
@@ -72,6 +74,7 @@ export async function updateGitignore(
   const newContent = updateGitignoreContent(existingContent, allRulerPaths);
 
   // Write the updated content
+  await fs.mkdir(path.dirname(gitignorePath), { recursive: true });
   await fs.writeFile(gitignorePath, newContent);
 }
 

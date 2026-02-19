@@ -170,6 +170,12 @@ output_path = "awesome.md"
         runRulerWithInheritedStdio('apply --gitignore --no-gitignore', testProject.projectRoot);
       }).not.toThrow();
     });
+
+    it('accepts --gitignore-local flag without error', () => {
+      expect(() => {
+        runRulerWithInheritedStdio('apply --gitignore-local', testProject.projectRoot);
+      }).not.toThrow();
+    });
   });
 
   describe('gitignore integration', () => {
@@ -221,6 +227,16 @@ enabled = true`;
 
       const gitignorePath = path.join(testProject.projectRoot, '.gitignore');
       await expect(fs.access(gitignorePath)).rejects.toThrow();
+    });
+
+    it('writes generated paths to .git/info/exclude when --gitignore-local is used', async () => {
+      runRulerWithInheritedStdio('apply --gitignore-local', testProject.projectRoot);
+
+      const excludePath = path.join(testProject.projectRoot, '.git', 'info', 'exclude');
+      const excludeContent = await fs.readFile(excludePath, 'utf8');
+
+      expect(excludeContent).toContain('# START Ruler Generated Files');
+      expect(excludeContent).toContain('CLAUDE.md');
     });
 
     it('updates existing .gitignore preserving other content', async () => {

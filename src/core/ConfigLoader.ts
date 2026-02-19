@@ -44,6 +44,7 @@ const rulerConfigSchema = z.object({
   gitignore: z
     .object({
       enabled: z.boolean().optional(),
+      local: z.boolean().optional(),
     })
     .optional(),
   skills: z
@@ -246,6 +247,9 @@ export async function loadConfig(
   const gitignoreConfig: GitignoreConfig = {};
   if (typeof rawGitignoreSection.enabled === 'boolean') {
     gitignoreConfig.enabled = rawGitignoreSection.enabled;
+  }
+  if (typeof rawGitignoreSection.local === 'boolean') {
+    gitignoreConfig.local = rawGitignoreSection.local;
   }
 
   const rawSkillsSection =

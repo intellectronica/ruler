@@ -146,6 +146,17 @@ describe('ConfigLoader', () => {
       expect(config.gitignore?.enabled).toBe(false);
     });
 
+    it('parses [gitignore] section with local = true', async () => {
+      const content = `
+        [gitignore]
+        local = true
+      `;
+      await fs.writeFile(path.join(rulerDir, 'ruler.toml'), content);
+      const config = await loadConfig({ projectRoot: tmpDir });
+      expect(config.gitignore).toBeDefined();
+      expect(config.gitignore?.local).toBe(true);
+    });
+
     it('parses [gitignore] section with missing enabled key', async () => {
       const content = `
         [gitignore]

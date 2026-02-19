@@ -18,6 +18,8 @@ export type GlobalMcpConfig = McpConfig;
 export interface GitignoreConfig {
   /** Enable or disable automatic .gitignore updates. */
   enabled?: boolean;
+  /** Write managed ignore entries to .git/info/exclude instead of .gitignore. */
+  local?: boolean;
 }
 
 /** Skills configuration for automatic skills distribution. */

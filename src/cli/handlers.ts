@@ -14,6 +14,7 @@ export interface ApplyArgs {
   mcp: boolean;
   'mcp-overwrite': boolean;
   gitignore?: boolean;
+  'gitignore-local'?: boolean;
   verbose: boolean;
   'dry-run': boolean;
   'local-only': boolean;
@@ -75,6 +76,12 @@ export async function applyHandler(argv: ApplyArgs): Promise<void> {
   } else {
     gitignorePreference = undefined; // Let TOML/default decide
   }
+  let gitignoreLocalPreference: boolean | undefined;
+  if (argv['gitignore-local'] !== undefined) {
+    gitignoreLocalPreference = argv['gitignore-local'];
+  } else {
+    gitignoreLocalPreference = undefined; // Let TOML/default decide
+  }
 
   // Determine nested preference: CLI > TOML > Default (false)
   let nested: boolean;
@@ -119,6 +126,7 @@ export async function applyHandler(argv: ApplyArgs): Promise<void> {
       nested,
       backup,
       skillsEnabled,
+      gitignoreLocalPreference,
     );
     console.log('Ruler apply completed successfully.');
   } catch (err: unknown) {
@@ -163,6 +171,10 @@ export async function initHandler(argv: InitArgs): Promise<void> {
 # Enable nested rule loading from nested .ruler directories
 # When enabled, ruler will search for and process .ruler directories throughout the project hierarchy
 # nested = false
+
+# [gitignore]
+# enabled = true
+# local = false  # set true to write generated ignores to .git/info/exclude instead
 
 # --- Agent Specific Configurations ---
 # You can enable/disable agents and override their default output paths here.
