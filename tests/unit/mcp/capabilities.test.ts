@@ -4,6 +4,7 @@ import { AugmentCodeAgent } from '../../../src/agents/AugmentCodeAgent';
 import { CopilotAgent } from '../../../src/agents/CopilotAgent';
 import { CodexCliAgent } from '../../../src/agents/CodexCliAgent';
 import { FirebaseAgent } from '../../../src/agents/FirebaseAgent';
+import { JunieAgent } from '../../../src/agents/JunieAgent';
 
 describe('MCP Capabilities', () => {
   describe('getAgentMcpCapabilities', () => {
@@ -45,6 +46,7 @@ describe('MCP Capabilities', () => {
       expect(agentSupportsMcp(new OpenHandsAgent())).toBe(true);
       expect(agentSupportsMcp(new CopilotAgent())).toBe(true);
       expect(agentSupportsMcp(new CodexCliAgent())).toBe(true);
+      expect(agentSupportsMcp(new JunieAgent())).toBe(true);
     });
 
     it('returns false for agents that do not support MCP', () => {

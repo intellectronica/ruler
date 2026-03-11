@@ -14,6 +14,7 @@ import {
 import { IAgent } from '../../../src/agents/IAgent';
 import { ClaudeAgent } from '../../../src/agents/ClaudeAgent';
 import { CopilotAgent } from '../../../src/agents/CopilotAgent';
+import { JunieAgent } from '../../../src/agents/JunieAgent';
 import { LoadedConfig } from '../../../src/core/ConfigLoader';
 import * as FileSystemUtils from '../../../src/core/FileSystemUtils';
 import * as Constants from '../../../src/constants';
@@ -581,6 +582,51 @@ command = "sub-cmd"
       );
 
       logWarnSpy.mockRestore();
+    });
+
+    it('writes Junie MCP config to the project-local .junie/mcp/mcp.json path', async () => {
+      const config: LoadedConfig = {
+        agentConfigs: {
+          junie: {
+            enabled: true,
+            mcp: { enabled: true },
+          },
+        },
+      };
+
+      const rules = '# Test rules';
+      const mcpJson = {
+        mcpServers: {
+          context7: {
+            command: 'npx',
+            args: ['-y', '@upstash/context7-mcp'],
+          },
+          remote_api: {
+            url: 'https://api.example.com/mcp',
+            headers: {
+              Authorization: 'Bearer test-token',
+            },
+          },
+        },
+      };
+
+      await applyConfigurationsToAgents(
+        [new JunieAgent()],
+        rules,
+        mcpJson,
+        config,
+        tmpDir,
+        false,
+        false,
+        true,
+        undefined,
+        false,
+      );
+
+      const mcpPath = path.join(tmpDir, '.junie', 'mcp', 'mcp.json');
+      const mcpContent = JSON.parse(await fs.readFile(mcpPath, 'utf8'));
+
+      expect(mcpContent).toEqual(mcpJson);
     });
   });
 

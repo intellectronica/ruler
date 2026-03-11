@@ -195,15 +195,20 @@ describe('revert-engine', () => {
       const geminiDir = path.join(tmpDir, '.gemini');
       const geminiSettings = path.join(geminiDir, 'settings.json');
       const mcpFile = path.join(tmpDir, '.mcp.json');
+      const junieMcpDir = path.join(tmpDir, '.junie', 'mcp');
+      const junieMcpFile = path.join(junieMcpDir, 'mcp.json');
 
       await fs.mkdir(geminiDir, { recursive: true });
+      await fs.mkdir(junieMcpDir, { recursive: true });
       await fs.writeFile(geminiSettings, '{}');
       await fs.writeFile(mcpFile, '{}');
+      await fs.writeFile(junieMcpFile, '{}');
 
       const result = await cleanUpAuxiliaryFiles(tmpDir, false, false);
 
       expect(result.additionalFilesRemoved).toBeGreaterThan(0);
       expect(result.directoriesRemoved).toBeGreaterThan(0);
+      await expect(fs.access(junieMcpFile)).rejects.toThrow();
     });
 
     it('should handle dry run mode', async () => {

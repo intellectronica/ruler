@@ -16,4 +16,12 @@ export class JunieAgent extends AbstractAgent {
   getDefaultOutputPath(projectRoot: string): string {
     return path.join(projectRoot, '.junie', 'guidelines.md');
   }
+
+  supportsMcpStdio(): boolean {
+    return true;
+  }
+
+  supportsMcpRemote(): boolean {
+    return true;
+  }
 }
