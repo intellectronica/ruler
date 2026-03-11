@@ -11,6 +11,7 @@ import {
   VIBE_SKILLS_PATH,
   ROO_SKILLS_PATH,
   GEMINI_SKILLS_PATH,
+  JUNIE_SKILLS_PATH,
   CURSOR_SKILLS_PATH,
   FACTORY_SKILLS_PATH,
   ANTIGRAVITY_SKILLS_PATH,
@@ -68,6 +69,7 @@ export async function getSkillsGitignorePaths(
     VIBE_SKILLS_PATH,
     ROO_SKILLS_PATH,
     GEMINI_SKILLS_PATH,
+    JUNIE_SKILLS_PATH,
     CURSOR_SKILLS_PATH,
     FACTORY_SKILLS_PATH,
     ANTIGRAVITY_SKILLS_PATH,
@@ -83,6 +85,7 @@ export async function getSkillsGitignorePaths(
     vibe: VIBE_SKILLS_PATH,
     roo: ROO_SKILLS_PATH,
     gemini: GEMINI_SKILLS_PATH,
+    junie: JUNIE_SKILLS_PATH,
     cursor: CURSOR_SKILLS_PATH,
     factory: FACTORY_SKILLS_PATH,
     antigravity: ANTIGRAVITY_SKILLS_PATH,
@@ -125,6 +128,7 @@ type SkillTarget =
   | 'vibe'
   | 'roo'
   | 'gemini'
+  | 'junie'
   | 'cursor'
   | 'factory'
   | 'antigravity';
@@ -138,6 +142,7 @@ const SKILL_TARGET_TO_IDENTIFIERS = new Map<SkillTarget, readonly string[]>([
   ['vibe', ['mistral']],
   ['roo', ['roo']],
   ['gemini', ['gemini-cli']],
+  ['junie', ['junie']],
   ['cursor', ['cursor']],
   ['factory', ['factory']],
   ['antigravity', ['antigravity']],
@@ -177,6 +182,7 @@ async function cleanupSkillsDirectories(
   const vibeSkillsPath = path.join(projectRoot, VIBE_SKILLS_PATH);
   const rooSkillsPath = path.join(projectRoot, ROO_SKILLS_PATH);
   const geminiSkillsPath = path.join(projectRoot, GEMINI_SKILLS_PATH);
+  const junieSkillsPath = path.join(projectRoot, JUNIE_SKILLS_PATH);
   const cursorSkillsPath = path.join(projectRoot, CURSOR_SKILLS_PATH);
   const factorySkillsPath = path.join(projectRoot, FACTORY_SKILLS_PATH);
   const antigravitySkillsPath = path.join(projectRoot, ANTIGRAVITY_SKILLS_PATH);
@@ -341,6 +347,27 @@ async function cleanupSkillsDirectories(
       await fs.rm(geminiSkillsPath, { recursive: true, force: true });
       logVerboseInfo(
         `Removed ${GEMINI_SKILLS_PATH} (skills disabled)`,
+        verbose,
+        dryRun,
+      );
+    }
+  } catch {
+    // Directory doesn't exist, nothing to clean
+  }
+
+  // Clean up .junie/skills
+  try {
+    await fs.access(junieSkillsPath);
+    if (dryRun) {
+      logVerboseInfo(
+        `DRY RUN: Would remove ${JUNIE_SKILLS_PATH}`,
+        verbose,
+        dryRun,
+      );
+    } else {
+      await fs.rm(junieSkillsPath, { recursive: true, force: true });
+      logVerboseInfo(
+        `Removed ${JUNIE_SKILLS_PATH} (skills disabled)`,
         verbose,
         dryRun,
       );
@@ -571,6 +598,15 @@ export async function propagateSkills(
       dryRun,
     );
     await propagateSkillsForGemini(projectRoot, { dryRun });
+  }
+
+  if (selectedTargets.has('junie')) {
+    logVerboseInfo(
+      `Copying skills to ${JUNIE_SKILLS_PATH} for Junie`,
+      verbose,
+      dryRun,
+    );
+    await propagateSkillsForJunie(projectRoot, { dryRun });
   }
 
   if (selectedTargets.has('cursor')) {
@@ -1056,6 +1092,55 @@ export async function propagateSkillsForGemini(
     await fs.rename(tempDir, geminiSkillsPath);
   } catch (error) {
     // Clean up temp directory on error
+    try {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    } catch {
+      // Ignore cleanup errors
+    }
+    throw error;
+  }
+
+  return [];
+}
+
+/**
+ * Propagates skills for Junie by copying .ruler/skills to .junie/skills.
+ * Uses atomic replace to ensure safe overwriting of existing skills.
+ * Returns dry-run steps if dryRun is true, otherwise returns empty array.
+ */
+export async function propagateSkillsForJunie(
+  projectRoot: string,
+  options: { dryRun: boolean },
+): Promise<string[]> {
+  const skillsDir = path.join(projectRoot, RULER_SKILLS_PATH);
+  const junieSkillsPath = path.join(projectRoot, JUNIE_SKILLS_PATH);
+  const junieDir = path.dirname(junieSkillsPath);
+
+  try {
+    await fs.access(skillsDir);
+  } catch {
+    return [];
+  }
+
+  if (options.dryRun) {
+    return [`Copy skills from ${RULER_SKILLS_PATH} to ${JUNIE_SKILLS_PATH}`];
+  }
+
+  await fs.mkdir(junieDir, { recursive: true });
+
+  const tempDir = path.join(junieDir, `skills.tmp-${Date.now()}`);
+
+  try {
+    await copySkillsDirectory(skillsDir, tempDir);
+
+    try {
+      await fs.rm(junieSkillsPath, { recursive: true, force: true });
+    } catch {
+      // Target didn't exist, that's fine
+    }
+
+    await fs.rename(tempDir, junieSkillsPath);
+  } catch (error) {
     try {
       await fs.rm(tempDir, { recursive: true, force: true });
     } catch {

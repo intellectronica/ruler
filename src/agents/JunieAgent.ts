@@ -24,4 +24,8 @@ export class JunieAgent extends AbstractAgent {
   supportsMcpRemote(): boolean {
     return true;
   }
+
+  supportsNativeSkills(): boolean {
+    return true;
+  }
 }

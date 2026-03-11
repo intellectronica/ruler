@@ -73,7 +73,7 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | Firebase Studio        | `.idx/airules.md`                              | `.idx/mcp.json`                                  | -                         |
 | Open Hands             | `.openhands/microagents/repo.md`               | `config.toml`                                    | -                         |
 | Gemini CLI             | `AGENTS.md`                                    | `.gemini/settings.json`                          | `.gemini/skills/`         |
-| Junie                  | `.junie/guidelines.md`                         | `.junie/mcp/mcp.json`                            | -                         |
+| Junie                  | `.junie/guidelines.md`                         | `.junie/mcp/mcp.json`                            | `.junie/skills/`          |
 | AugmentCode            | `.augment/rules/ruler_augment_instructions.md` | -                                                | -                         |
 | Kilo Code              | `AGENTS.md`                                    | `.kilocode/mcp.json`                             | `.claude/skills/`         |
 | OpenCode               | `AGENTS.md`                                    | `opencode.json`                                  | `.opencode/skills/`       |
@@ -325,15 +325,15 @@ ruler revert [options]
 
 ### Options
 
-| Option                         | Description                                                                                                                                                                                                                                                                                                      |
-| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--project-root <path>`        | Path to your project's root (default: current directory)                                                                                                                                                                                                                                                         |
+| Option                         | Description                                                                                                                                                                                                                                                                                                                    |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `--project-root <path>`        | Path to your project's root (default: current directory)                                                                                                                                                                                                                                                                       |
 | `--agents <agent1,agent2,...>` | Comma-separated list of agent names to revert (agentsmd, aider, amazonqcli, amp, antigravity, augmentcode, claude, cline, codex, copilot, crush, cursor, factory, firebase, firebender, gemini-cli, goose, jetbrains-ai, jules, junie, kilocode, kiro, mistral, opencode, openhands, pi, qwen, roo, trae, warp, windsurf, zed) |
-| `--config <path>`              | Path to a custom `ruler.toml` configuration file                                                                                                                                                                                                                                                                 |
-| `--keep-backups`               | Keep backup files (.bak) after restoration (default: false)                                                                                                                                                                                                                                                      |
-| `--dry-run`                    | Preview changes without actually reverting files                                                                                                                                                                                                                                                                 |
-| `--verbose` / `-v`             | Display detailed output during execution                                                                                                                                                                                                                                                                         |
-| `--local-only`                 | Only search for local .ruler directories, ignore global config                                                                                                                                                                                                                                                   |
+| `--config <path>`              | Path to a custom `ruler.toml` configuration file                                                                                                                                                                                                                                                                               |
+| `--keep-backups`               | Keep backup files (.bak) after restoration (default: false)                                                                                                                                                                                                                                                                    |
+| `--dry-run`                    | Preview changes without actually reverting files                                                                                                                                                                                                                                                                               |
+| `--verbose` / `-v`             | Display detailed output during execution                                                                                                                                                                                                                                                                                       |
+| `--local-only`                 | Only search for local .ruler directories, ignore global config                                                                                                                                                                                                                                                                 |
 
 ### Common Examples
 
@@ -594,6 +594,7 @@ Skills are specialized knowledge packages that extend AI agent capabilities with
   - **Mistral Vibe**: `.vibe/skills/`
   - **Roo Code**: `.roo/skills/`
   - **Gemini CLI**: `.gemini/skills/`
+  - **Junie**: `.junie/skills/`
   - **Cursor**: `.cursor/skills/`
 
 ### Skills Directory Structure
@@ -659,13 +660,14 @@ When skills support is enabled and gitignore integration is active, Ruler automa
 - `.vibe/skills/` (for Mistral Vibe)
 - `.roo/skills/` (for Roo Code)
 - `.gemini/skills/` (for Gemini CLI)
+- `.junie/skills/` (for Junie)
 - `.cursor/skills/` (for Cursor)
 
 to your `.gitignore` file within the managed Ruler block.
 
 ### Requirements
 
-- **For agents with native skills support** (Claude Code, GitHub Copilot, Kilo Code, OpenAI Codex CLI, OpenCode, Pi Coding Agent, Goose, Amp, Antigravity, Factory Droid, Mistral Vibe, Roo Code, Gemini CLI, Cursor): No additional requirements.
+- **For agents with native skills support** (Claude Code, GitHub Copilot, Kilo Code, OpenAI Codex CLI, OpenCode, Pi Coding Agent, Goose, Amp, Antigravity, Factory Droid, Mistral Vibe, Roo Code, Gemini CLI, Junie, Cursor): No additional requirements.
 
 ### Validation
 
@@ -718,6 +720,7 @@ ruler apply
 #    - Mistral Vibe: .vibe/skills/my-skill/
 #    - Roo Code: .roo/skills/my-skill/
 #    - Gemini CLI: .gemini/skills/my-skill/
+#    - Junie: .junie/skills/my-skill/
 #    - Cursor: .cursor/skills/my-skill/
 ```
 
