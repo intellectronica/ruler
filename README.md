@@ -562,8 +562,6 @@ Authorization = "Bearer token"
 
 Ruler uses this configuration with the `merge` (default) or `overwrite` strategy, controlled by `ruler.toml` or CLI flags.
 
-**Junie project config:** Junie uses the standard `mcpServers` JSON structure in the project-local file `.junie/mcp/mcp.json`, which lets you check the generated MCP server configuration into version control alongside `.junie/guidelines.md`.
-
 **Home Directory Safety:** Ruler never writes MCP configuration files outside your project root. Any historical references to user home directories (e.g. `~/.codeium/windsurf/mcp_config.json` or `~/.zed/settings.json`) have been removed; only project-local paths are targeted.
 
 **Note for OpenAI Codex CLI:** To apply the local Codex CLI MCP configuration, set the `CODEX_HOME` environment variable to your project’s `.codex` directory:
