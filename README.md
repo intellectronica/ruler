@@ -73,7 +73,7 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | Firebase Studio        | `.idx/airules.md`                              | `.idx/mcp.json`                                  | -                         |
 | Open Hands             | `.openhands/microagents/repo.md`               | `config.toml`                                    | -                         |
 | Gemini CLI             | `AGENTS.md`                                    | `.gemini/settings.json`                          | `.gemini/skills/`         |
-| Junie                  | `.junie/guidelines.md`                         | -                                                | -                         |
+| Junie                  | `.junie/guidelines.md`                         | `.junie/mcp/mcp.json`                            | -                         |
 | AugmentCode            | `.augment/rules/ruler_augment_instructions.md` | -                                                | -                         |
 | Kilo Code              | `AGENTS.md`                                    | `.kilocode/mcp.json`                             | `.claude/skills/`         |
 | OpenCode               | `AGENTS.md`                                    | `opencode.json`                                  | `.opencode/skills/`       |
@@ -447,6 +447,10 @@ enabled = true
 enabled = true
 output_path = ".junie/guidelines.md"
 
+[agents.junie.mcp]
+enabled = true
+merge_strategy = "merge"
+
 # Agent-specific MCP configuration
 [agents.cursor.mcp]
 enabled = true
@@ -557,6 +561,8 @@ Authorization = "Bearer token"
 ```
 
 Ruler uses this configuration with the `merge` (default) or `overwrite` strategy, controlled by `ruler.toml` or CLI flags.
+
+**Junie project config:** Junie uses the standard `mcpServers` JSON structure in the project-local file `.junie/mcp/mcp.json`, which lets you check the generated MCP server configuration into version control alongside `.junie/guidelines.md`.
 
 **Home Directory Safety:** Ruler never writes MCP configuration files outside your project root. Any historical references to user home directories (e.g. `~/.codeium/windsurf/mcp_config.json` or `~/.zed/settings.json`) have been removed; only project-local paths are targeted.
 

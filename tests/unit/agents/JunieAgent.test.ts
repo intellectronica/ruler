@@ -23,6 +23,14 @@ describe('JunieAgent', () => {
     expect(agent.getDefaultOutputPath('/root')).toBe('/root/.junie/guidelines.md');
   });
 
+  it('should support stdio MCP servers', () => {
+    expect(agent.supportsMcpStdio()).toBe(true);
+  });
+
+  it('should support remote MCP servers', () => {
+    expect(agent.supportsMcpRemote()).toBe(true);
+  });
+
   it('should apply ruler config to the default output path', async () => {
     const ensureDirExists = jest.spyOn(FileSystemUtils, 'ensureDirExists');
     const backupFile = jest.spyOn(FileSystemUtils, 'backupFile');

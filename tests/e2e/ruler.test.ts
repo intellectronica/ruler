@@ -68,6 +68,7 @@ describe('End-to-End Ruler CLI', () => {
       'config.toml',
     );
     const juniePath = path.join(projectRoot, '.junie', 'guidelines.md');
+    const junieMcpPath = path.join(projectRoot, '.junie', 'mcp', 'mcp.json');
 
     await Promise.all([
       expect(fs.readFile(claudePath, 'utf8')).resolves.toContain('Rule B'),
@@ -79,6 +80,7 @@ describe('End-to-End Ruler CLI', () => {
         fs.readFile(openHandsInstructionsPath, 'utf8'),
       ).resolves.toContain('Rule A'),
       expect(fs.readFile(juniePath, 'utf8')).resolves.toContain('Rule B'),
+      expect(fs.readFile(junieMcpPath, 'utf8')).resolves.toContain('"example"'),
     ]);
     const ohToml = await fs.readFile(openHandsConfigPath, 'utf8');
     const ohParsed: any = parseTOML(ohToml);
@@ -195,6 +197,7 @@ output_path = "awesome.md"
       expect(gitignoreContent).toContain('.idx/airules.md');
       expect(gitignoreContent).toContain('.openhands/microagents/repo.md');
       expect(gitignoreContent).toContain('config.toml');
+      expect(gitignoreContent).toContain('.junie/mcp/mcp.json');
     });
 
     it('does not update .gitignore when --no-gitignore is used', async () => {
@@ -305,6 +308,7 @@ output_path = "custom-claude.md"`;
         '/.vscode/mcp.json',
         '/.gemini/settings.json', 
         '/.cursor/mcp.json',
+        '/.junie/mcp/mcp.json',
         '/.mcp.json',
         // Generated agent files (root-anchored)
         '/AGENTS.md',

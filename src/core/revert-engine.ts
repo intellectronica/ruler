@@ -313,6 +313,7 @@ async function removeAdditionalAgentFiles(
     '.mcp.json',
     '.vscode/mcp.json',
     '.cursor/mcp.json',
+    '.junie/mcp/mcp.json',
     '.kilocode/mcp.json',
     'config.toml',
   ];

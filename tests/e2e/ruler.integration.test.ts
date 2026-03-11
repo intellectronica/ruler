@@ -251,6 +251,7 @@ File: extra-rules.md
       
       // Junie
       '.junie/guidelines.md',
+      '.junie/mcp/mcp.json',
 
       // JetBrains AI Assistant
       '.aiassistant/rules/AGENTS.md',
@@ -302,6 +303,7 @@ File: extra-rules.md
       { path: '.vscode/mcp.json', mcpKey: 'mcpServers' }, // Copilot
       { path: '.kilocode/mcp.json', mcpKey: 'mcpServers' },
       { path: '.mcp.json', mcpKey: 'mcpServers' }, // Aider
+      { path: '.junie/mcp/mcp.json', mcpKey: 'mcpServers' },
     ];
 
     for (const { path, expectedSchema, expectedKey, expectedValue, mcpKey } of jsonConfigFiles) {
@@ -440,6 +442,7 @@ File: extra-rules.md
       { path: '.zed/settings.json', key: 'context_servers', name: 'Zed' },
       { path: '.kilocode/mcp.json', key: 'mcpServers', name: 'Kilo Code' },
       { path: '.mcp.json', key: 'mcpServers', name: 'Aider' },
+      { path: '.junie/mcp/mcp.json', key: 'mcpServers', name: 'Junie' },
       { path: 'opencode.json', key: 'mcp', name: 'OpenCode' },
     ];
 
