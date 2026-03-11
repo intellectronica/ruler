@@ -5,6 +5,7 @@ import { discoverSkills } from '../src/core/SkillsProcessor';
 import {
   ANTIGRAVITY_SKILLS_PATH,
   CLAUDE_SKILLS_PATH,
+  JUNIE_SKILLS_PATH,
   SKILL_MD_FILENAME,
 } from '../src/constants';
 
@@ -144,6 +145,20 @@ describe('Skills Discovery and Validation', () => {
       const paths = await getSkillsGitignorePaths(tmpDir, [new CopilotAgent()]);
 
       expect(paths).toEqual([path.join(tmpDir, CLAUDE_SKILLS_PATH)]);
+    });
+
+    it('returns junie skills path for Junie agent', async () => {
+      const { getSkillsGitignorePaths } = await import(
+        '../src/core/SkillsProcessor'
+      );
+      const { JunieAgent } = await import('../src/agents/JunieAgent');
+      const skillsDir = path.join(tmpDir, '.ruler', 'skills');
+
+      await fs.mkdir(skillsDir, { recursive: true });
+
+      const paths = await getSkillsGitignorePaths(tmpDir, [new JunieAgent()]);
+
+      expect(paths).toEqual([path.join(tmpDir, JUNIE_SKILLS_PATH)]);
     });
   });
 
@@ -707,6 +722,75 @@ describe('Skills Discovery and Validation', () => {
     });
   });
 
+  describe('propagateSkillsForJunie', () => {
+    it('copies .ruler/skills to .junie/skills preserving structure', async () => {
+      const { propagateSkillsForJunie } = await import(
+        '../src/core/SkillsProcessor'
+      );
+      const skillsDir = path.join(tmpDir, '.ruler', 'skills');
+      const skill1 = path.join(skillsDir, 'skill1');
+
+      await fs.mkdir(skill1, { recursive: true });
+      await fs.writeFile(path.join(skill1, SKILL_MD_FILENAME), '# Skill 1');
+
+      await propagateSkillsForJunie(tmpDir, { dryRun: false });
+
+      const junieSkillsDir = path.join(tmpDir, '.junie', 'skills');
+      const copiedSkill = path.join(
+        junieSkillsDir,
+        'skill1',
+        SKILL_MD_FILENAME,
+      );
+      expect(await fs.readFile(copiedSkill, 'utf8')).toBe('# Skill 1');
+    });
+
+    it('creates .junie directory if it does not exist', async () => {
+      const { propagateSkillsForJunie } = await import(
+        '../src/core/SkillsProcessor'
+      );
+      const skillsDir = path.join(tmpDir, '.ruler', 'skills');
+      const skill1 = path.join(skillsDir, 'skill1');
+
+      await fs.mkdir(skill1, { recursive: true });
+      await fs.writeFile(path.join(skill1, SKILL_MD_FILENAME), '# Skill 1');
+
+      await propagateSkillsForJunie(tmpDir, { dryRun: false });
+
+      const junieDir = path.join(tmpDir, '.junie');
+      const stats = await fs.stat(junieDir);
+      expect(stats.isDirectory()).toBe(true);
+    });
+
+    it('includes operations in dry-run preview without executing', async () => {
+      const { propagateSkillsForJunie } = await import(
+        '../src/core/SkillsProcessor'
+      );
+      const skillsDir = path.join(tmpDir, '.ruler', 'skills');
+      const skill1 = path.join(skillsDir, 'skill1');
+
+      await fs.mkdir(skill1, { recursive: true });
+      await fs.writeFile(path.join(skill1, SKILL_MD_FILENAME), '# Skill 1');
+
+      const steps = await propagateSkillsForJunie(tmpDir, { dryRun: true });
+
+      expect(steps.length).toBeGreaterThan(0);
+      expect(steps.some((step) => step.includes('.junie/skills'))).toBe(true);
+
+      const junieSkillsDir = path.join(tmpDir, '.junie', 'skills');
+      await expect(fs.access(junieSkillsDir)).rejects.toThrow();
+    });
+
+    it('no-ops gracefully when .ruler/skills does not exist', async () => {
+      const { propagateSkillsForJunie } = await import(
+        '../src/core/SkillsProcessor'
+      );
+
+      const steps = await propagateSkillsForJunie(tmpDir, { dryRun: true });
+
+      expect(steps).toHaveLength(0);
+    });
+  });
+
   describe('propagateSkillsForCursor', () => {
     it('copies .ruler/skills to .cursor/skills preserving structure', async () => {
       const { propagateSkillsForCursor } = await import(
@@ -981,6 +1065,32 @@ describe('Skills Discovery and Validation', () => {
         fs.access(path.join(tmpDir, ANTIGRAVITY_SKILLS_PATH)),
       ).rejects.toThrow();
     });
+
+    it('propagates Junie skills to junie destination only', async () => {
+      const { propagateSkills } = await import('../src/core/SkillsProcessor');
+      const { JunieAgent } = await import('../src/agents/JunieAgent');
+      const skillsDir = path.join(tmpDir, '.ruler', 'skills', 'skill1');
+
+      await fs.mkdir(skillsDir, { recursive: true });
+      await fs.writeFile(path.join(skillsDir, SKILL_MD_FILENAME), '# Skill 1');
+
+      await propagateSkills(tmpDir, [new JunieAgent()], true, false, false);
+
+      const junieSkill = path.join(
+        tmpDir,
+        JUNIE_SKILLS_PATH,
+        'skill1',
+        SKILL_MD_FILENAME,
+      );
+
+      expect(await fs.readFile(junieSkill, 'utf8')).toBe('# Skill 1');
+      await expect(
+        fs.access(path.join(tmpDir, CLAUDE_SKILLS_PATH)),
+      ).rejects.toThrow();
+      await expect(
+        fs.access(path.join(tmpDir, ANTIGRAVITY_SKILLS_PATH)),
+      ).rejects.toThrow();
+    });
   });
 
   describe('propagateSkills - cleanup when disabled', () => {
@@ -994,6 +1104,7 @@ describe('Skills Discovery and Validation', () => {
       const vibeSkillsDir = path.join(tmpDir, '.vibe', 'skills');
       const rooSkillsDir = path.join(tmpDir, '.roo', 'skills');
       const geminiSkillsDir = path.join(tmpDir, '.gemini', 'skills');
+      const junieSkillsDir = path.join(tmpDir, '.junie', 'skills');
       const cursorSkillsDir = path.join(tmpDir, '.cursor', 'skills');
       const factorySkillsDir = path.join(tmpDir, '.factory', 'skills');
       const antigravitySkillsDir = path.join(tmpDir, '.agent', 'skills');
@@ -1006,6 +1117,7 @@ describe('Skills Discovery and Validation', () => {
       const vibeOldSkill = path.join(vibeSkillsDir, 'old-skill');
       const rooOldSkill = path.join(rooSkillsDir, 'old-skill');
       const geminiOldSkill = path.join(geminiSkillsDir, 'old-skill');
+      const junieOldSkill = path.join(junieSkillsDir, 'old-skill');
       const cursorOldSkill = path.join(cursorSkillsDir, 'old-skill');
       const factoryOldSkill = path.join(factorySkillsDir, 'old-skill');
       const antigravityOldSkill = path.join(antigravitySkillsDir, 'old-skill');
@@ -1016,6 +1128,7 @@ describe('Skills Discovery and Validation', () => {
       await fs.mkdir(vibeOldSkill, { recursive: true });
       await fs.mkdir(rooOldSkill, { recursive: true });
       await fs.mkdir(geminiOldSkill, { recursive: true });
+      await fs.mkdir(junieOldSkill, { recursive: true });
       await fs.mkdir(cursorOldSkill, { recursive: true });
       await fs.mkdir(factoryOldSkill, { recursive: true });
       await fs.mkdir(antigravityOldSkill, { recursive: true });
@@ -1048,6 +1161,10 @@ describe('Skills Discovery and Validation', () => {
         '# Old Skill',
       );
       await fs.writeFile(
+        path.join(junieOldSkill, SKILL_MD_FILENAME),
+        '# Old Skill',
+      );
+      await fs.writeFile(
         path.join(cursorOldSkill, SKILL_MD_FILENAME),
         '# Old Skill',
       );
@@ -1068,6 +1185,7 @@ describe('Skills Discovery and Validation', () => {
       await expect(fs.access(vibeSkillsDir)).resolves.toBeUndefined();
       await expect(fs.access(rooSkillsDir)).resolves.toBeUndefined();
       await expect(fs.access(geminiSkillsDir)).resolves.toBeUndefined();
+      await expect(fs.access(junieSkillsDir)).resolves.toBeUndefined();
       await expect(fs.access(cursorSkillsDir)).resolves.toBeUndefined();
       await expect(fs.access(factorySkillsDir)).resolves.toBeUndefined();
       await expect(fs.access(antigravitySkillsDir)).resolves.toBeUndefined();
@@ -1083,6 +1201,7 @@ describe('Skills Discovery and Validation', () => {
       await expect(fs.access(vibeSkillsDir)).rejects.toThrow();
       await expect(fs.access(rooSkillsDir)).rejects.toThrow();
       await expect(fs.access(geminiSkillsDir)).rejects.toThrow();
+      await expect(fs.access(junieSkillsDir)).rejects.toThrow();
       await expect(fs.access(cursorSkillsDir)).rejects.toThrow();
       await expect(fs.access(factorySkillsDir)).rejects.toThrow();
       await expect(fs.access(antigravitySkillsDir)).rejects.toThrow();

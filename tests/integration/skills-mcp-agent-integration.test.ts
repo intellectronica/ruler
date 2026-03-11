@@ -98,6 +98,34 @@ describe('Skills Agent Integration', () => {
       expect(skillContent).toBe('# Test Skill');
     });
 
+    it('adds skills to .junie/skills for Junie (native skills)', async () => {
+      await applyAllAgentConfigs(
+        tmpDir,
+        ['junie'],
+        undefined,
+        true,
+        undefined,
+        undefined,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true, // skills enabled
+      );
+
+      const junieSkillsPath = path.join(tmpDir, '.junie', 'skills');
+      const testSkillPath = path.join(junieSkillsPath, 'test-skill');
+      const skillMdPath = path.join(testSkillPath, SKILL_MD_FILENAME);
+
+      await expect(fs.access(junieSkillsPath)).resolves.toBeUndefined();
+      await expect(fs.access(testSkillPath)).resolves.toBeUndefined();
+      await expect(fs.access(skillMdPath)).resolves.toBeUndefined();
+
+      const skillContent = await fs.readFile(skillMdPath, 'utf8');
+      expect(skillContent).toBe('# Test Skill');
+    });
+
     it('adds skills to .claude/skills for Copilot (native skills)', async () => {
       await applyAllAgentConfigs(
         tmpDir,

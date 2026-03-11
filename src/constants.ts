@@ -63,6 +63,7 @@ export const GOOSE_SKILLS_PATH = '.agents/skills';
 export const VIBE_SKILLS_PATH = '.vibe/skills';
 export const ROO_SKILLS_PATH = '.roo/skills';
 export const GEMINI_SKILLS_PATH = '.gemini/skills';
+export const JUNIE_SKILLS_PATH = '.junie/skills';
 export const CURSOR_SKILLS_PATH = '.cursor/skills';
 export const FACTORY_SKILLS_PATH = '.factory/skills';
 export const ANTIGRAVITY_SKILLS_PATH = '.agent/skills';
