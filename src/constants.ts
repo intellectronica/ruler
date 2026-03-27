@@ -65,6 +65,7 @@ export const ROO_SKILLS_PATH = '.roo/skills';
 export const GEMINI_SKILLS_PATH = '.gemini/skills';
 export const JUNIE_SKILLS_PATH = '.junie/skills';
 export const CURSOR_SKILLS_PATH = '.cursor/skills';
+export const WINDSURF_SKILLS_PATH = '.windsurf/skills';
 export const FACTORY_SKILLS_PATH = '.factory/skills';
 export const ANTIGRAVITY_SKILLS_PATH = '.agent/skills';
 export const SKILL_MD_FILENAME = 'SKILL.md';
