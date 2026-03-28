@@ -63,7 +63,7 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | Pi Coding Agent        | `AGENTS.md`                                    | -                                                | `.pi/skills/`             |
 | Jules                  | `AGENTS.md`                                    | -                                                | -                         |
 | Cursor                 | `AGENTS.md`                                    | `.cursor/mcp.json`                               | `.cursor/skills/`         |
-| Windsurf               | `AGENTS.md`                                    | `.windsurf/mcp_config.json`                      | -                         |
+| Windsurf               | `AGENTS.md`                                    | `.windsurf/mcp_config.json`                      | `.windsurf/skills/`       |
 | Cline                  | `.clinerules`                                  | -                                                | -                         |
 | Crush                  | `CRUSH.md`                                     | `.crush.json`                                    | -                         |
 | Amp                    | `AGENTS.md`                                    | -                                                | `.agents/skills/`         |
@@ -596,6 +596,7 @@ Skills are specialized knowledge packages that extend AI agent capabilities with
   - **Gemini CLI**: `.gemini/skills/`
   - **Junie**: `.junie/skills/`
   - **Cursor**: `.cursor/skills/`
+  - **Windsurf**: `.windsurf/skills/`
 
 ### Skills Directory Structure
 
