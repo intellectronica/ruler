@@ -25,4 +25,8 @@ export class WindsurfAgent extends AgentsMdAgent {
   supportsMcpRemote(): boolean {
     return true;
   }
+
+  supportsNativeSkills(): boolean {
+    return true;
+  }
 }
