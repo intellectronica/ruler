@@ -1180,6 +1180,32 @@ describe('Skills Discovery and Validation', () => {
         fs.access(path.join(tmpDir, ANTIGRAVITY_SKILLS_PATH)),
       ).rejects.toThrow();
     });
+
+    it('propagates Windsurf skills to windsurf destination only', async () => {
+      const { propagateSkills } = await import('../src/core/SkillsProcessor');
+      const { WindsurfAgent } = await import('../src/agents/WindsurfAgent');
+      const skillsDir = path.join(tmpDir, '.ruler', 'skills', 'skill1');
+
+      await fs.mkdir(skillsDir, { recursive: true });
+      await fs.writeFile(path.join(skillsDir, SKILL_MD_FILENAME), '# Skill 1');
+
+      await propagateSkills(tmpDir, [new WindsurfAgent()], true, false, false);
+
+      const windsurfSkill = path.join(
+        tmpDir,
+        WINDSURF_SKILLS_PATH,
+        'skill1',
+        SKILL_MD_FILENAME,
+      );
+
+      expect(await fs.readFile(windsurfSkill, 'utf8')).toBe('# Skill 1');
+      await expect(
+        fs.access(path.join(tmpDir, CLAUDE_SKILLS_PATH)),
+      ).rejects.toThrow();
+      await expect(
+        fs.access(path.join(tmpDir, ANTIGRAVITY_SKILLS_PATH)),
+      ).rejects.toThrow();
+    });
   });
 
   describe('propagateSkills - cleanup when disabled', () => {
@@ -1197,6 +1223,7 @@ describe('Skills Discovery and Validation', () => {
       const cursorSkillsDir = path.join(tmpDir, '.cursor', 'skills');
       const factorySkillsDir = path.join(tmpDir, '.factory', 'skills');
       const antigravitySkillsDir = path.join(tmpDir, '.agent', 'skills');
+      const windsurfSkillsDir = path.join(tmpDir, '.windsurf', 'skills');
 
       // Create existing skills directories (as if they were from previous run)
       const claudeOldSkill = path.join(claudeSkillsDir, 'old-skill');
@@ -1210,6 +1237,7 @@ describe('Skills Discovery and Validation', () => {
       const cursorOldSkill = path.join(cursorSkillsDir, 'old-skill');
       const factoryOldSkill = path.join(factorySkillsDir, 'old-skill');
       const antigravityOldSkill = path.join(antigravitySkillsDir, 'old-skill');
+      const windsurfOldSkill = path.join(windsurfSkillsDir, 'old-skill');
       await fs.mkdir(claudeOldSkill, { recursive: true });
       await fs.mkdir(opencodeOldSkill, { recursive: true });
       await fs.mkdir(piOldSkill, { recursive: true });
@@ -1221,6 +1249,7 @@ describe('Skills Discovery and Validation', () => {
       await fs.mkdir(cursorOldSkill, { recursive: true });
       await fs.mkdir(factoryOldSkill, { recursive: true });
       await fs.mkdir(antigravityOldSkill, { recursive: true });
+      await fs.mkdir(windsurfOldSkill, { recursive: true });
       await fs.writeFile(
         path.join(claudeOldSkill, SKILL_MD_FILENAME),
         '# Old Skill',
@@ -1265,6 +1294,10 @@ describe('Skills Discovery and Validation', () => {
         path.join(antigravityOldSkill, SKILL_MD_FILENAME),
         '# Old Skill',
       );
+      await fs.writeFile(
+        path.join(windsurfOldSkill, SKILL_MD_FILENAME),
+        '# Old Skill',
+      );
 
       // Verify directories exist before cleanup
       await expect(fs.access(claudeSkillsDir)).resolves.toBeUndefined();
@@ -1278,6 +1311,7 @@ describe('Skills Discovery and Validation', () => {
       await expect(fs.access(cursorSkillsDir)).resolves.toBeUndefined();
       await expect(fs.access(factorySkillsDir)).resolves.toBeUndefined();
       await expect(fs.access(antigravitySkillsDir)).resolves.toBeUndefined();
+      await expect(fs.access(windsurfSkillsDir)).resolves.toBeUndefined();
 
       // Run propagateSkills with skillsEnabled = false
       await propagateSkills(tmpDir, allAgents, false, false, false);
@@ -1294,6 +1328,7 @@ describe('Skills Discovery and Validation', () => {
       await expect(fs.access(cursorSkillsDir)).rejects.toThrow();
       await expect(fs.access(factorySkillsDir)).rejects.toThrow();
       await expect(fs.access(antigravitySkillsDir)).rejects.toThrow();
+      await expect(fs.access(windsurfSkillsDir)).rejects.toThrow();
     });
 
     it('logs cleanup in dry-run mode without actually removing directories', async () => {
