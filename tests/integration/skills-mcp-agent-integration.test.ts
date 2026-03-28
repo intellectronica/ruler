@@ -157,6 +157,37 @@ describe('Skills Agent Integration', () => {
       expect(skillContent).toBe('# Test Skill');
     });
 
+    it('adds skills to .windsurf/skills for Windsurf (native skills)', async () => {
+      await applyAllAgentConfigs(
+        tmpDir,
+        ['windsurf'],
+        undefined,
+        true,
+        undefined,
+        undefined,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true, // skills enabled
+      );
+
+      // Check that .windsurf/skills exists and contains the test skill
+      const windsurfSkillsPath = path.join(tmpDir, '.windsurf', 'skills');
+      const testSkillPath = path.join(windsurfSkillsPath, 'test-skill');
+      const skillMdPath = path.join(testSkillPath, SKILL_MD_FILENAME);
+
+      // Verify the skill directory and file exist
+      await expect(fs.access(windsurfSkillsPath)).resolves.toBeUndefined();
+      await expect(fs.access(testSkillPath)).resolves.toBeUndefined();
+      await expect(fs.access(skillMdPath)).resolves.toBeUndefined();
+
+      // Verify skill content was copied
+      const skillContent = await fs.readFile(skillMdPath, 'utf8');
+      expect(skillContent).toBe('# Test Skill');
+    });
+
     it('does not create skills directories when skills are disabled', async () => {
       await applyAllAgentConfigs(
         tmpDir,

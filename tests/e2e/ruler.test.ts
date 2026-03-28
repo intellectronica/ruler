@@ -269,6 +269,7 @@ output_path = "awesome.md"
       expect(gitignoreContent).toContain('config.toml');
       expect(gitignoreContent).toContain('.junie/mcp/mcp.json');
       expect(gitignoreContent).toContain('.junie/skills');
+      expect(gitignoreContent).toContain('.windsurf/skills');
     });
 
     it('does not update .gitignore when --no-gitignore is used', async () => {
