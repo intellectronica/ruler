@@ -12,6 +12,8 @@ permissions:
 
 env:
   TZ: Europe/Zurich
+  COPILOT_MODEL: 'gpt-5.4'
+  COPILOT_REASONING_EFFORT: 'xhigh'
 
 jobs:
   analyze:
@@ -54,12 +56,26 @@ jobs:
           mkdir -p "$RUNNER_TEMP"
 
           # Read the prompt and run Copilot CLI in programmatic mode
-          copilot -p "$(cat .github/workflows/this-codebase-smells/prompt.md)" \
-            --model gpt-5 \
-            --allow-tool 'shell(*)' \
-            --allow-tool 'read_file(*)' \
-            --allow-tool 'glob(*)' \
-            2>&1 | tee "$RUNNER_TEMP/raw_report.md"
+          copilot_args=(
+            -p "$(cat .github/workflows/this-codebase-smells/prompt.md)"
+            --allow-tool 'shell(*)'
+            --allow-tool 'read_file(*)'
+            --allow-tool 'glob(*)'
+          )
+
+          if [ -n "${COPILOT_MODEL:-}" ]; then
+            echo "Using requested Copilot model: $COPILOT_MODEL"
+            copilot_args+=(--model "$COPILOT_MODEL")
+          else
+            echo "Using Copilot CLI default model"
+          fi
+
+          if [ -n "${COPILOT_REASONING_EFFORT:-}" ]; then
+            echo "Using requested reasoning effort: $COPILOT_REASONING_EFFORT"
+            copilot_args+=(--effort "$COPILOT_REASONING_EFFORT")
+          fi
+
+          copilot "${copilot_args[@]}" 2>&1 | tee "$RUNNER_TEMP/raw_report.md"
 
           # Extract only the content between our markers for the Discussion body
           awk '/^---BEGIN REPORT---$/ {flag=1; next} /^---END REPORT---$/ {flag=0} flag' "$RUNNER_TEMP/raw_report.md" > "$RUNNER_TEMP/report.md"
