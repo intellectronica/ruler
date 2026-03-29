@@ -1,6 +1,10 @@
 # Temporary files
 tmp/
 
+# macOS Finder metadata
+.DS_Store
+**/.DS_Store
+
 # Logs
 logs
 *.log
