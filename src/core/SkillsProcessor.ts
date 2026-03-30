@@ -13,6 +13,7 @@ import {
   GEMINI_SKILLS_PATH,
   JUNIE_SKILLS_PATH,
   CURSOR_SKILLS_PATH,
+  WINDSURF_SKILLS_PATH,
   FACTORY_SKILLS_PATH,
   ANTIGRAVITY_SKILLS_PATH,
   logWarn,
@@ -71,6 +72,7 @@ export async function getSkillsGitignorePaths(
     GEMINI_SKILLS_PATH,
     JUNIE_SKILLS_PATH,
     CURSOR_SKILLS_PATH,
+    WINDSURF_SKILLS_PATH,
     FACTORY_SKILLS_PATH,
     ANTIGRAVITY_SKILLS_PATH,
   } = await import('../constants');
@@ -87,6 +89,7 @@ export async function getSkillsGitignorePaths(
     gemini: GEMINI_SKILLS_PATH,
     junie: JUNIE_SKILLS_PATH,
     cursor: CURSOR_SKILLS_PATH,
+    windsurf: WINDSURF_SKILLS_PATH,
     factory: FACTORY_SKILLS_PATH,
     antigravity: ANTIGRAVITY_SKILLS_PATH,
   };
@@ -130,6 +133,7 @@ type SkillTarget =
   | 'gemini'
   | 'junie'
   | 'cursor'
+  | 'windsurf'
   | 'factory'
   | 'antigravity';
 
@@ -144,6 +148,7 @@ const SKILL_TARGET_TO_IDENTIFIERS = new Map<SkillTarget, readonly string[]>([
   ['gemini', ['gemini-cli']],
   ['junie', ['junie']],
   ['cursor', ['cursor']],
+  ['windsurf', ['windsurf']],
   ['factory', ['factory']],
   ['antigravity', ['antigravity']],
 ]);
@@ -184,6 +189,7 @@ async function cleanupSkillsDirectories(
   const geminiSkillsPath = path.join(projectRoot, GEMINI_SKILLS_PATH);
   const junieSkillsPath = path.join(projectRoot, JUNIE_SKILLS_PATH);
   const cursorSkillsPath = path.join(projectRoot, CURSOR_SKILLS_PATH);
+  const windsurfSkillsPath = path.join(projectRoot, WINDSURF_SKILLS_PATH);
   const factorySkillsPath = path.join(projectRoot, FACTORY_SKILLS_PATH);
   const antigravitySkillsPath = path.join(projectRoot, ANTIGRAVITY_SKILLS_PATH);
 
@@ -389,6 +395,27 @@ async function cleanupSkillsDirectories(
       await fs.rm(cursorSkillsPath, { recursive: true, force: true });
       logVerboseInfo(
         `Removed ${CURSOR_SKILLS_PATH} (skills disabled)`,
+        verbose,
+        dryRun,
+      );
+    }
+  } catch {
+    // Directory doesn't exist, nothing to clean
+  }
+
+  // Clean up .windsurf/skills
+  try {
+    await fs.access(windsurfSkillsPath);
+    if (dryRun) {
+      logVerboseInfo(
+        `DRY RUN: Would remove ${WINDSURF_SKILLS_PATH}`,
+        verbose,
+        dryRun,
+      );
+    } else {
+      await fs.rm(windsurfSkillsPath, { recursive: true, force: true });
+      logVerboseInfo(
+        `Removed ${WINDSURF_SKILLS_PATH} (skills disabled)`,
         verbose,
         dryRun,
       );
@@ -616,6 +643,15 @@ export async function propagateSkills(
       dryRun,
     );
     await propagateSkillsForCursor(projectRoot, { dryRun });
+  }
+
+  if (selectedTargets.has('windsurf')) {
+    logVerboseInfo(
+      `Copying skills to ${WINDSURF_SKILLS_PATH} for Windsurf`,
+      verbose,
+      dryRun,
+    );
+    await propagateSkillsForWindsurf(projectRoot, { dryRun });
   }
 
   if (selectedTargets.has('factory')) {
@@ -1197,6 +1233,64 @@ export async function propagateSkillsForCursor(
 
     // Rename temp to target
     await fs.rename(tempDir, cursorSkillsPath);
+  } catch (error) {
+    // Clean up temp directory on error
+    try {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    } catch {
+      // Ignore cleanup errors
+    }
+    throw error;
+  }
+
+  return [];
+}
+
+/**
+ * Propagates skills for Windsurf by copying .ruler/skills to .windsurf/skills.
+ * Uses atomic replace to ensure safe overwriting of existing skills.
+ * Returns dry-run steps if dryRun is true, otherwise returns empty array.
+ */
+export async function propagateSkillsForWindsurf(
+  projectRoot: string,
+  options: { dryRun: boolean },
+): Promise<string[]> {
+  const skillsDir = path.join(projectRoot, RULER_SKILLS_PATH);
+  const windsurfSkillsPath = path.join(projectRoot, WINDSURF_SKILLS_PATH);
+  const windsurfDir = path.dirname(windsurfSkillsPath);
+
+  // Check if source skills directory exists
+  try {
+    await fs.access(skillsDir);
+  } catch {
+    // No skills directory - return empty
+    return [];
+  }
+
+  if (options.dryRun) {
+    return [`Copy skills from ${RULER_SKILLS_PATH} to ${WINDSURF_SKILLS_PATH}`];
+  }
+
+  // Ensure .windsurf directory exists
+  await fs.mkdir(windsurfDir, { recursive: true });
+
+  // Use atomic replace: copy to temp, then rename
+  const tempDir = path.join(windsurfDir, `skills.tmp-${Date.now()}`);
+
+  try {
+    // Copy to temp directory
+    await copySkillsDirectory(skillsDir, tempDir);
+
+    // Atomically replace the target
+    // First, remove existing target if it exists
+    try {
+      await fs.rm(windsurfSkillsPath, { recursive: true, force: true });
+    } catch {
+      // Target didn't exist, that's fine
+    }
+
+    // Rename temp to target
+    await fs.rename(tempDir, windsurfSkillsPath);
   } catch (error) {
     // Clean up temp directory on error
     try {
