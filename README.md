@@ -663,12 +663,13 @@ When skills support is enabled and gitignore integration is active, Ruler automa
 - `.gemini/skills/` (for Gemini CLI)
 - `.junie/skills/` (for Junie)
 - `.cursor/skills/` (for Cursor)
+- `.windsurf/skills/` (for Windsurf)
 
 to your `.gitignore` file within the managed Ruler block.
 
 ### Requirements
 
-- **For agents with native skills support** (Claude Code, GitHub Copilot, Kilo Code, OpenAI Codex CLI, OpenCode, Pi Coding Agent, Goose, Amp, Antigravity, Factory Droid, Mistral Vibe, Roo Code, Gemini CLI, Junie, Cursor): No additional requirements.
+- **For agents with native skills support** (Claude Code, GitHub Copilot, Kilo Code, OpenAI Codex CLI, OpenCode, Pi Coding Agent, Goose, Amp, Antigravity, Factory Droid, Mistral Vibe, Roo Code, Gemini CLI, Junie, Cursor, Windsurf): No additional requirements.
 
 ### Validation
 
@@ -723,6 +724,7 @@ ruler apply
 #    - Gemini CLI: .gemini/skills/my-skill/
 #    - Junie: .junie/skills/my-skill/
 #    - Cursor: .cursor/skills/my-skill/
+#    - Windsurf: .windsurf/skills/my-skill/
 ```
 
 ## `.gitignore` Integration
