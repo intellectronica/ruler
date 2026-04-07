@@ -135,6 +135,7 @@ export async function applyAllAgentConfigs(
           skillsEnabledResolved,
           verbose,
           dryRun,
+          localOnly,
         );
       }
     }
@@ -188,6 +189,7 @@ export async function applyAllAgentConfigs(
         skillsEnabledResolved,
         verbose,
         dryRun,
+        localOnly,
       );
     }
 
@@ -215,6 +217,7 @@ export async function applyAllAgentConfigs(
     const skillsPaths = await getSkillsGitignorePaths(
       projectRoot,
       selectedAgents,
+      localOnly,
     );
     allGeneratedPaths = [...generatedPaths, ...skillsPaths];
   }

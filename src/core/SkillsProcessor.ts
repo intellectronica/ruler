@@ -3,6 +3,7 @@ import * as fs from 'fs/promises';
 import { SkillInfo } from '../types';
 import {
   RULER_SKILLS_PATH,
+  SKILLS_DIR,
   CLAUDE_SKILLS_PATH,
   CODEX_SKILLS_PATH,
   OPENCODE_SKILLS_PATH,
@@ -19,7 +20,8 @@ import {
   logWarn,
   logVerboseInfo,
 } from '../constants';
-import { walkSkillsTree, copySkillsDirectory } from './SkillsUtils';
+import { walkSkillsTree, copySkillsDirectory, mergeSkillsDirectories } from './SkillsUtils';
+import { findGlobalRulerDir } from './FileSystemUtils';
 import type { IAgent } from '../agents/IAgent';
 
 /**
@@ -44,19 +46,59 @@ export async function discoverSkills(
 }
 
 /**
+ * Discovers skills in the global config directory (~/.config/ruler/skills).
+ * Returns discovered skills and any validation warnings.
+ */
+export async function discoverGlobalSkills(): Promise<{ skills: SkillInfo[]; warnings: string[]; globalSkillsDir: string | null }> {
+  const globalDir = await findGlobalRulerDir();
+  if (!globalDir) {
+    return { skills: [], warnings: [], globalSkillsDir: null };
+  }
+
+  const globalSkillsDir = path.join(globalDir, SKILLS_DIR);
+  try {
+    await fs.access(globalSkillsDir);
+  } catch {
+    return { skills: [], warnings: [], globalSkillsDir: null };
+  }
+
+  const result = await walkSkillsTree(globalSkillsDir);
+  return { ...result, globalSkillsDir };
+}
+
+/**
  * Gets the paths that skills will generate, for gitignore purposes.
  * Returns empty array if skills directory doesn't exist.
  */
 export async function getSkillsGitignorePaths(
   projectRoot: string,
   agents: IAgent[],
+  localOnly: boolean = false,
 ): Promise<string[]> {
   const skillsDir = path.join(projectRoot, RULER_SKILLS_PATH);
 
-  // Check if skills directory exists
+  // Check if any skills exist (local or global)
+  let hasLocalSkills = false;
+  let hasGlobalSkills = false;
   try {
     await fs.access(skillsDir);
+    hasLocalSkills = true;
   } catch {
+    // no local skills
+  }
+  if (!localOnly) {
+    const globalDir = await findGlobalRulerDir();
+    if (globalDir) {
+      try {
+        await fs.access(path.join(globalDir, SKILLS_DIR));
+        hasGlobalSkills = true;
+      } catch {
+        // no global skills
+      }
+    }
+  }
+
+  if (!hasLocalSkills && !hasGlobalSkills) {
     return [];
   }
 
@@ -469,6 +511,9 @@ async function cleanupSkillsDirectories(
 
 /**
  * Propagates skills for agents that need them.
+ * Discovers skills from both local (.ruler/skills) and global (~/.config/ruler/skills) directories.
+ * When both local and global skills exist, local skills take precedence (override global by name).
+ * When localOnly is true, global skills are skipped.
  */
 export async function propagateSkills(
   projectRoot: string,
@@ -476,6 +521,7 @@ export async function propagateSkills(
   skillsEnabled: boolean,
   verbose: boolean,
   dryRun: boolean,
+  localOnly: boolean = false,
 ): Promise<void> {
   if (!skillsEnabled) {
     logVerboseInfo(
@@ -488,34 +534,90 @@ export async function propagateSkills(
     return;
   }
 
-  const skillsDir = path.join(projectRoot, RULER_SKILLS_PATH);
+  const localSkillsDir = path.join(projectRoot, RULER_SKILLS_PATH);
+  let hasLocalSkills = false;
+  let hasGlobalSkills = false;
+  let globalSkillsDir: string | null = null;
 
-  // Check if skills directory exists
+  // Check if local skills directory exists
   try {
-    await fs.access(skillsDir);
+    await fs.access(localSkillsDir);
+    hasLocalSkills = true;
   } catch {
-    // No skills directory - this is fine
+    // No local skills directory
+  }
+
+  // Check if global skills directory exists (unless --local-only)
+  if (!localOnly) {
+    const globalResult = await discoverGlobalSkills();
+    if (globalResult.globalSkillsDir) {
+      hasGlobalSkills = true;
+      globalSkillsDir = globalResult.globalSkillsDir;
+    }
+  }
+
+  if (!hasLocalSkills && !hasGlobalSkills) {
     logVerboseInfo(
-      'No .ruler/skills directory found, skipping skills propagation',
+      'No skills directory found (checked local .ruler/skills' + (localOnly ? '' : ' and global config') + '), skipping skills propagation',
       verbose,
       dryRun,
     );
     return;
   }
 
-  // Discover skills
-  const { skills, warnings } = await discoverSkills(projectRoot);
+  // Discover and merge skills from both sources
+  let allSkills: SkillInfo[] = [];
+  let allWarnings: string[] = [];
 
-  if (warnings.length > 0) {
-    warnings.forEach((warning) => logWarn(warning, dryRun));
+  if (hasGlobalSkills && globalSkillsDir) {
+    const globalResult = await walkSkillsTree(globalSkillsDir);
+    allSkills = [...globalResult.skills];
+    allWarnings = [...globalResult.warnings];
+    if (globalResult.skills.length > 0) {
+      logVerboseInfo(
+        `Discovered ${globalResult.skills.length} global skill(s) from ${globalSkillsDir}`,
+        verbose,
+        dryRun,
+      );
+    }
   }
 
-  if (skills.length === 0) {
-    logVerboseInfo('No valid skills found in .ruler/skills', verbose, dryRun);
+  if (hasLocalSkills) {
+    const localResult = await discoverSkills(projectRoot);
+    allWarnings = [...allWarnings, ...localResult.warnings];
+
+    if (localResult.skills.length > 0) {
+      logVerboseInfo(
+        `Discovered ${localResult.skills.length} local skill(s) from ${RULER_SKILLS_PATH}`,
+        verbose,
+        dryRun,
+      );
+
+      // Local skills override global skills with the same name
+      const localNames = new Set(localResult.skills.map((s) => s.name));
+      const overridden = allSkills.filter((s) => localNames.has(s.name));
+      if (overridden.length > 0) {
+        logVerboseInfo(
+          `Local skills override ${overridden.length} global skill(s): ${overridden.map((s) => s.name).join(', ')}`,
+          verbose,
+          dryRun,
+        );
+      }
+      allSkills = allSkills.filter((s) => !localNames.has(s.name));
+      allSkills = [...allSkills, ...localResult.skills];
+    }
+  }
+
+  if (allWarnings.length > 0) {
+    allWarnings.forEach((warning) => logWarn(warning, dryRun));
+  }
+
+  if (allSkills.length === 0) {
+    logVerboseInfo('No valid skills found', verbose, dryRun);
     return;
   }
 
-  logVerboseInfo(`Discovered ${skills.length} skill(s)`, verbose, dryRun);
+  logVerboseInfo(`Total: ${allSkills.length} skill(s) to propagate`, verbose, dryRun);
 
   const hasNativeSkillsAgent = agents.some((a) => a.supportsNativeSkills?.());
   const nonNativeAgents = agents.filter(
@@ -554,6 +656,29 @@ export async function propagateSkills(
     return;
   }
 
+  // Build a merged skills source directory if we have both local and global skills.
+  // Global skills are copied first, then local skills overwrite (local takes precedence).
+  let mergedSkillsDir: string | null = null;
+  let effectiveSkillsDir: string;
+
+  if (hasLocalSkills && hasGlobalSkills && globalSkillsDir) {
+    // Need to merge: create a temp dir with global first, then local on top
+    mergedSkillsDir = path.join(projectRoot, '.ruler', `.skills-merged-${Date.now()}`);
+    try {
+      await mergeSkillsDirectories(globalSkillsDir, localSkillsDir, mergedSkillsDir);
+      effectiveSkillsDir = mergedSkillsDir;
+    } catch (error) {
+      // Clean up on error
+      try { await fs.rm(mergedSkillsDir, { recursive: true, force: true }); } catch { /* ignore */ }
+      throw error;
+    }
+  } else if (hasLocalSkills) {
+    effectiveSkillsDir = localSkillsDir;
+  } else {
+    effectiveSkillsDir = globalSkillsDir!;
+  }
+
+  try {
   // Copy to Claude skills directory if needed
   if (selectedTargets.has('claude')) {
     logVerboseInfo(
@@ -561,7 +686,7 @@ export async function propagateSkills(
       verbose,
       dryRun,
     );
-    await propagateSkillsForClaude(projectRoot, { dryRun });
+    await propagateSkillsForClaude(projectRoot, { dryRun, skillsSourceDir: effectiveSkillsDir });
   }
 
   if (selectedTargets.has('codex')) {
@@ -570,7 +695,7 @@ export async function propagateSkills(
       verbose,
       dryRun,
     );
-    await propagateSkillsForCodex(projectRoot, { dryRun });
+    await propagateSkillsForCodex(projectRoot, { dryRun, skillsSourceDir: effectiveSkillsDir });
   }
 
   if (selectedTargets.has('opencode')) {
@@ -579,7 +704,7 @@ export async function propagateSkills(
       verbose,
       dryRun,
     );
-    await propagateSkillsForOpenCode(projectRoot, { dryRun });
+    await propagateSkillsForOpenCode(projectRoot, { dryRun, skillsSourceDir: effectiveSkillsDir });
   }
 
   if (selectedTargets.has('pi')) {
@@ -588,7 +713,7 @@ export async function propagateSkills(
       verbose,
       dryRun,
     );
-    await propagateSkillsForPi(projectRoot, { dryRun });
+    await propagateSkillsForPi(projectRoot, { dryRun, skillsSourceDir: effectiveSkillsDir });
   }
 
   if (selectedTargets.has('goose')) {
@@ -597,7 +722,7 @@ export async function propagateSkills(
       verbose,
       dryRun,
     );
-    await propagateSkillsForGoose(projectRoot, { dryRun });
+    await propagateSkillsForGoose(projectRoot, { dryRun, skillsSourceDir: effectiveSkillsDir });
   }
 
   if (selectedTargets.has('vibe')) {
@@ -606,7 +731,7 @@ export async function propagateSkills(
       verbose,
       dryRun,
     );
-    await propagateSkillsForVibe(projectRoot, { dryRun });
+    await propagateSkillsForVibe(projectRoot, { dryRun, skillsSourceDir: effectiveSkillsDir });
   }
 
   if (selectedTargets.has('roo')) {
@@ -615,7 +740,7 @@ export async function propagateSkills(
       verbose,
       dryRun,
     );
-    await propagateSkillsForRoo(projectRoot, { dryRun });
+    await propagateSkillsForRoo(projectRoot, { dryRun, skillsSourceDir: effectiveSkillsDir });
   }
 
   if (selectedTargets.has('gemini')) {
@@ -624,7 +749,7 @@ export async function propagateSkills(
       verbose,
       dryRun,
     );
-    await propagateSkillsForGemini(projectRoot, { dryRun });
+    await propagateSkillsForGemini(projectRoot, { dryRun, skillsSourceDir: effectiveSkillsDir });
   }
 
   if (selectedTargets.has('junie')) {
@@ -633,7 +758,7 @@ export async function propagateSkills(
       verbose,
       dryRun,
     );
-    await propagateSkillsForJunie(projectRoot, { dryRun });
+    await propagateSkillsForJunie(projectRoot, { dryRun, skillsSourceDir: effectiveSkillsDir });
   }
 
   if (selectedTargets.has('cursor')) {
@@ -642,7 +767,7 @@ export async function propagateSkills(
       verbose,
       dryRun,
     );
-    await propagateSkillsForCursor(projectRoot, { dryRun });
+    await propagateSkillsForCursor(projectRoot, { dryRun, skillsSourceDir: effectiveSkillsDir });
   }
 
   if (selectedTargets.has('windsurf')) {
@@ -651,7 +776,7 @@ export async function propagateSkills(
       verbose,
       dryRun,
     );
-    await propagateSkillsForWindsurf(projectRoot, { dryRun });
+    await propagateSkillsForWindsurf(projectRoot, { dryRun, skillsSourceDir: effectiveSkillsDir });
   }
 
   if (selectedTargets.has('factory')) {
@@ -660,7 +785,7 @@ export async function propagateSkills(
       verbose,
       dryRun,
     );
-    await propagateSkillsForFactory(projectRoot, { dryRun });
+    await propagateSkillsForFactory(projectRoot, { dryRun, skillsSourceDir: effectiveSkillsDir });
   }
 
   if (selectedTargets.has('antigravity')) {
@@ -669,10 +794,16 @@ export async function propagateSkills(
       verbose,
       dryRun,
     );
-    await propagateSkillsForAntigravity(projectRoot, { dryRun });
+    await propagateSkillsForAntigravity(projectRoot, { dryRun, skillsSourceDir: effectiveSkillsDir });
   }
 
   // No MCP-based propagation; only native skills are supported.
+  } finally {
+    // Clean up merged temp directory if we created one
+    if (mergedSkillsDir) {
+      try { await fs.rm(mergedSkillsDir, { recursive: true, force: true }); } catch { /* ignore */ }
+    }
+  }
 }
 
 /**
@@ -682,9 +813,9 @@ export async function propagateSkills(
  */
 export async function propagateSkillsForClaude(
   projectRoot: string,
-  options: { dryRun: boolean },
+  options: { dryRun: boolean; skillsSourceDir?: string },
 ): Promise<string[]> {
-  const skillsDir = path.join(projectRoot, RULER_SKILLS_PATH);
+  const skillsDir = options.skillsSourceDir || path.join(projectRoot, RULER_SKILLS_PATH);
   const claudeSkillsPath = path.join(projectRoot, CLAUDE_SKILLS_PATH);
   const claudeDir = path.dirname(claudeSkillsPath);
 
@@ -740,9 +871,9 @@ export async function propagateSkillsForClaude(
  */
 export async function propagateSkillsForCodex(
   projectRoot: string,
-  options: { dryRun: boolean },
+  options: { dryRun: boolean; skillsSourceDir?: string },
 ): Promise<string[]> {
-  const skillsDir = path.join(projectRoot, RULER_SKILLS_PATH);
+  const skillsDir = options.skillsSourceDir || path.join(projectRoot, RULER_SKILLS_PATH);
   const codexSkillsPath = path.join(projectRoot, CODEX_SKILLS_PATH);
   const codexDir = path.dirname(codexSkillsPath);
 
@@ -798,9 +929,9 @@ export async function propagateSkillsForCodex(
  */
 export async function propagateSkillsForOpenCode(
   projectRoot: string,
-  options: { dryRun: boolean },
+  options: { dryRun: boolean; skillsSourceDir?: string },
 ): Promise<string[]> {
-  const skillsDir = path.join(projectRoot, RULER_SKILLS_PATH);
+  const skillsDir = options.skillsSourceDir || path.join(projectRoot, RULER_SKILLS_PATH);
   const opencodeSkillsPath = path.join(projectRoot, OPENCODE_SKILLS_PATH);
   const opencodeDir = path.dirname(opencodeSkillsPath);
 
@@ -856,9 +987,9 @@ export async function propagateSkillsForOpenCode(
  */
 export async function propagateSkillsForPi(
   projectRoot: string,
-  options: { dryRun: boolean },
+  options: { dryRun: boolean; skillsSourceDir?: string },
 ): Promise<string[]> {
-  const skillsDir = path.join(projectRoot, RULER_SKILLS_PATH);
+  const skillsDir = options.skillsSourceDir || path.join(projectRoot, RULER_SKILLS_PATH);
   const piSkillsPath = path.join(projectRoot, PI_SKILLS_PATH);
   const piDir = path.dirname(piSkillsPath);
 
@@ -914,9 +1045,9 @@ export async function propagateSkillsForPi(
  */
 export async function propagateSkillsForGoose(
   projectRoot: string,
-  options: { dryRun: boolean },
+  options: { dryRun: boolean; skillsSourceDir?: string },
 ): Promise<string[]> {
-  const skillsDir = path.join(projectRoot, RULER_SKILLS_PATH);
+  const skillsDir = options.skillsSourceDir || path.join(projectRoot, RULER_SKILLS_PATH);
   const gooseSkillsPath = path.join(projectRoot, GOOSE_SKILLS_PATH);
   const gooseDir = path.dirname(gooseSkillsPath);
 
@@ -972,9 +1103,9 @@ export async function propagateSkillsForGoose(
  */
 export async function propagateSkillsForVibe(
   projectRoot: string,
-  options: { dryRun: boolean },
+  options: { dryRun: boolean; skillsSourceDir?: string },
 ): Promise<string[]> {
-  const skillsDir = path.join(projectRoot, RULER_SKILLS_PATH);
+  const skillsDir = options.skillsSourceDir || path.join(projectRoot, RULER_SKILLS_PATH);
   const vibeSkillsPath = path.join(projectRoot, VIBE_SKILLS_PATH);
   const vibeDir = path.dirname(vibeSkillsPath);
 
@@ -1030,9 +1161,9 @@ export async function propagateSkillsForVibe(
  */
 export async function propagateSkillsForRoo(
   projectRoot: string,
-  options: { dryRun: boolean },
+  options: { dryRun: boolean; skillsSourceDir?: string },
 ): Promise<string[]> {
-  const skillsDir = path.join(projectRoot, RULER_SKILLS_PATH);
+  const skillsDir = options.skillsSourceDir || path.join(projectRoot, RULER_SKILLS_PATH);
   const rooSkillsPath = path.join(projectRoot, ROO_SKILLS_PATH);
   const rooDir = path.dirname(rooSkillsPath);
 
@@ -1088,9 +1219,9 @@ export async function propagateSkillsForRoo(
  */
 export async function propagateSkillsForGemini(
   projectRoot: string,
-  options: { dryRun: boolean },
+  options: { dryRun: boolean; skillsSourceDir?: string },
 ): Promise<string[]> {
-  const skillsDir = path.join(projectRoot, RULER_SKILLS_PATH);
+  const skillsDir = options.skillsSourceDir || path.join(projectRoot, RULER_SKILLS_PATH);
   const geminiSkillsPath = path.join(projectRoot, GEMINI_SKILLS_PATH);
   const geminiDir = path.dirname(geminiSkillsPath);
 
@@ -1146,9 +1277,9 @@ export async function propagateSkillsForGemini(
  */
 export async function propagateSkillsForJunie(
   projectRoot: string,
-  options: { dryRun: boolean },
+  options: { dryRun: boolean; skillsSourceDir?: string },
 ): Promise<string[]> {
-  const skillsDir = path.join(projectRoot, RULER_SKILLS_PATH);
+  const skillsDir = options.skillsSourceDir || path.join(projectRoot, RULER_SKILLS_PATH);
   const junieSkillsPath = path.join(projectRoot, JUNIE_SKILLS_PATH);
   const junieDir = path.dirname(junieSkillsPath);
 
@@ -1195,9 +1326,9 @@ export async function propagateSkillsForJunie(
  */
 export async function propagateSkillsForCursor(
   projectRoot: string,
-  options: { dryRun: boolean },
+  options: { dryRun: boolean; skillsSourceDir?: string },
 ): Promise<string[]> {
-  const skillsDir = path.join(projectRoot, RULER_SKILLS_PATH);
+  const skillsDir = options.skillsSourceDir || path.join(projectRoot, RULER_SKILLS_PATH);
   const cursorSkillsPath = path.join(projectRoot, CURSOR_SKILLS_PATH);
   const cursorDir = path.dirname(cursorSkillsPath);
 
@@ -1253,9 +1384,9 @@ export async function propagateSkillsForCursor(
  */
 export async function propagateSkillsForWindsurf(
   projectRoot: string,
-  options: { dryRun: boolean },
+  options: { dryRun: boolean; skillsSourceDir?: string },
 ): Promise<string[]> {
-  const skillsDir = path.join(projectRoot, RULER_SKILLS_PATH);
+  const skillsDir = options.skillsSourceDir || path.join(projectRoot, RULER_SKILLS_PATH);
   const windsurfSkillsPath = path.join(projectRoot, WINDSURF_SKILLS_PATH);
   const windsurfDir = path.dirname(windsurfSkillsPath);
 
@@ -1311,9 +1442,9 @@ export async function propagateSkillsForWindsurf(
  */
 export async function propagateSkillsForFactory(
   projectRoot: string,
-  options: { dryRun: boolean },
+  options: { dryRun: boolean; skillsSourceDir?: string },
 ): Promise<string[]> {
-  const skillsDir = path.join(projectRoot, RULER_SKILLS_PATH);
+  const skillsDir = options.skillsSourceDir || path.join(projectRoot, RULER_SKILLS_PATH);
   const factorySkillsPath = path.join(projectRoot, FACTORY_SKILLS_PATH);
   const factoryDir = path.dirname(factorySkillsPath);
 
@@ -1369,9 +1500,9 @@ export async function propagateSkillsForFactory(
  */
 export async function propagateSkillsForAntigravity(
   projectRoot: string,
-  options: { dryRun: boolean },
+  options: { dryRun: boolean; skillsSourceDir?: string },
 ): Promise<string[]> {
-  const skillsDir = path.join(projectRoot, RULER_SKILLS_PATH);
+  const skillsDir = options.skillsSourceDir || path.join(projectRoot, RULER_SKILLS_PATH);
   const antigravitySkillsPath = path.join(projectRoot, ANTIGRAVITY_SKILLS_PATH);
   const antigravityDir = path.dirname(antigravitySkillsPath);
 
