@@ -241,7 +241,8 @@ The `apply` command looks for `.ruler/` in the current directory tree, reading t
 | `--gitignore-local`            | Write managed ignore entries to `.git/info/exclude` instead.           |
 | `--nested`                     | Enable nested rule loading (default: inherit from config or disabled). |
 | `--no-nested`                  | Disable nested rule loading even if `nested = true` in config.         |
-| `--backup`                     | Toggle creation of `.bak` backup files (default: enabled).             |
+| `--backup`                     | Enable creation of `.bak` backup files (default: enabled).             |
+| `--no-backup`                  | Disable creation of `.bak` backup files.                               |
 | `--skills`                     | Enable skills support (experimental, default: enabled).                |
 | `--no-skills`                  | Disable skills support.                                                |
 | `--dry-run`                    | Preview changes without writing files.                                 |
