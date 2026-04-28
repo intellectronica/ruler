@@ -205,6 +205,12 @@ function buildClaudeFile(sub: SubagentInfo): string {
   };
   if (fm.tools !== undefined) meta.tools = fm.tools;
   if (fm.model !== undefined) meta.model = fm.model;
+  // Pass through readonly and is_background verbatim so authoring intent
+  // survives the Claude transform. Claude Code ignores unknown frontmatter
+  // keys, but downstream tooling that reads .claude/agents/*.md can still
+  // observe the original values.
+  if (fm.readonly !== undefined) meta.readonly = fm.readonly;
+  if (fm.is_background !== undefined) meta.is_background = fm.is_background;
   return `${buildFrontmatterBlock(meta)}\n${ensureBodyFormatting(sub.body)}`;
 }
 

@@ -56,7 +56,7 @@ describe('Subagents per-agent propagators', () => {
   });
 
   describe('Claude propagator', () => {
-    it('writes a passthrough markdown file with original frontmatter', async () => {
+    it('writes a passthrough markdown file preserving all source frontmatter', async () => {
       const sub = makeSubagent({
         frontmatter: {
           name: 'reviewer',
@@ -78,8 +78,8 @@ describe('Subagents per-agent propagators', () => {
       expect(meta.description).toBe('Reviews code');
       expect(meta.tools).toEqual(['Read', 'Grep']);
       expect(meta.model).toBe('inherit');
-      expect(meta.readonly).toBeUndefined();
-      expect(meta.is_background).toBeUndefined();
+      expect(meta.readonly).toBe(true);
+      expect(meta.is_background).toBe(false);
       expect(body.trim()).toBe('You review code.');
     });
 
