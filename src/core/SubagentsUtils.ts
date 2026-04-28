@@ -99,7 +99,20 @@ export async function loadSubagentFile(
 ): Promise<SubagentInfo> {
   const stem = path.basename(filePath, '.md');
   const content = await fs.readFile(filePath, 'utf8');
-  const parsed = parseFrontmatter(content);
+  // js-yaml throws on malformed YAML; convert that into the standard
+  // validation-failure shape so one bad file doesn't abort discovery.
+  let parsed: ParsedFrontmatter | null;
+  try {
+    parsed = parseFrontmatter(content);
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    return {
+      name: stem,
+      path: filePath,
+      valid: false,
+      error: `${stem}.md: invalid YAML frontmatter: ${detail}`,
+    };
+  }
 
   if (!parsed) {
     return {

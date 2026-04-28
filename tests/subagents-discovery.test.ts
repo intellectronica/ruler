@@ -146,6 +146,25 @@ body
     expect(result.warnings.length).toBeGreaterThan(0);
   });
 
+  it('warns and skips files with malformed YAML frontmatter without aborting discovery', async () => {
+    // Malformed: tools value is an unterminated YAML flow sequence
+    await writeAgent(
+      'broken',
+      `---\nname: broken\ndescription: bad yaml\ntools: [Read,\n---\nbody\n`,
+    );
+    // A valid sibling — discovery must keep going and surface this one.
+    await writeAgent(
+      'good',
+      `---\nname: good\ndescription: ok\n---\nbody\n`,
+    );
+
+    const result = await discoverSubagents(tmpDir);
+    expect(result.subagents).toHaveLength(1);
+    expect(result.subagents[0].name).toBe('good');
+    expect(result.warnings.length).toBeGreaterThan(0);
+    expect(result.warnings.some((w) => /broken/.test(w))).toBe(true);
+  });
+
   it('ignores non-.md files', async () => {
     const dir = path.join(tmpDir, RULER_SUBAGENTS_PATH);
     await fs.mkdir(dir, { recursive: true });
