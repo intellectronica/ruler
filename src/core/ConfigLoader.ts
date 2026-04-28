@@ -8,6 +8,7 @@ import {
   GlobalMcpConfig,
   GitignoreConfig,
   SkillsConfig,
+  SubagentsConfig,
 } from '../types';
 import { createRulerError } from '../constants';
 
@@ -48,6 +49,11 @@ const rulerConfigSchema = z.object({
     })
     .optional(),
   skills: z
+    .object({
+      enabled: z.boolean().optional(),
+    })
+    .optional(),
+  subagents: z
     .object({
       enabled: z.boolean().optional(),
     })
@@ -105,6 +111,8 @@ export interface LoadedConfig {
   gitignore?: GitignoreConfig;
   /** Skills configuration section. */
   skills?: SkillsConfig;
+  /** Subagents configuration section. */
+  subagents?: SubagentsConfig;
   /** Whether to enable nested rule loading from nested .ruler directories. */
   nested?: boolean;
   /** Whether the nested option was explicitly provided in the config. */
@@ -261,6 +269,17 @@ export async function loadConfig(
     skillsConfig.enabled = rawSkillsSection.enabled;
   }
 
+  const rawSubagentsSection =
+    raw.subagents &&
+    typeof raw.subagents === 'object' &&
+    !Array.isArray(raw.subagents)
+      ? (raw.subagents as Record<string, unknown>)
+      : {};
+  const subagentsConfig: SubagentsConfig = {};
+  if (typeof rawSubagentsSection.enabled === 'boolean') {
+    subagentsConfig.enabled = rawSubagentsSection.enabled;
+  }
+
   const nestedDefined = typeof raw.nested === 'boolean';
   const nested = nestedDefined ? (raw.nested as boolean) : false;
 
@@ -271,6 +290,7 @@ export async function loadConfig(
     mcp: globalMcpConfig,
     gitignore: gitignoreConfig,
     skills: skillsConfig,
+    subagents: subagentsConfig,
     nested,
     nestedDefined,
   };
