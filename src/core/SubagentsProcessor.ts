@@ -444,10 +444,11 @@ export async function propagateSubagents(
     await fs.access(sourceDir);
   } catch {
     logVerboseInfo(
-      'No .ruler/agents directory found, skipping subagent propagation',
+      'No .ruler/agents directory found, cleaning up any stale managed subagent directories',
       verbose,
       dryRun,
     );
+    await cleanupAllSubagentsDirectories(projectRoot, dryRun, verbose);
     return;
   }
 
@@ -456,10 +457,11 @@ export async function propagateSubagents(
 
   if (subagents.length === 0) {
     logVerboseInfo(
-      'No valid subagents found in .ruler/agents',
+      'No valid subagents found in .ruler/agents; cleaning up any stale managed subagent directories',
       verbose,
       dryRun,
     );
+    await cleanupAllSubagentsDirectories(projectRoot, dryRun, verbose);
     return;
   }
 
@@ -476,6 +478,24 @@ export async function propagateSubagents(
     );
   }
 
+  const targets = getSelectedSubagentTargets(agents);
+
+  // Reconcile: any managed target directory that is not in the current
+  // selection set is stale and must be removed. This catches the case where
+  // a user drops an agent (e.g. claude+cursor → claude only) so the previously
+  // generated .cursor/agents/ directory does not linger as orphaned config.
+  const allTargets: SubagentTarget[] = ['claude', 'cursor', 'codex', 'copilot'];
+  for (const target of allTargets) {
+    if (!targets.has(target)) {
+      await cleanupSubagentsDir(
+        projectRoot,
+        SUBAGENT_TARGET_PATHS[target],
+        dryRun,
+        verbose,
+      );
+    }
+  }
+
   if (supporting.length === 0) {
     logVerboseInfo(
       'No agents support native subagents, skipping subagent propagation',
@@ -486,8 +506,6 @@ export async function propagateSubagents(
   }
 
   warnOnceExperimental(dryRun);
-
-  const targets = getSelectedSubagentTargets(agents);
 
   if (targets.has('claude')) {
     logVerboseInfo(

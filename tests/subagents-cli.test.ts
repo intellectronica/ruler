@@ -216,6 +216,120 @@ describe('Subagents apply integration', () => {
     ).resolves.toBeUndefined();
   });
 
+  it('removes target directories that drop out of the selected agent set', async () => {
+    await setupRulerProject(tmpDir);
+    await writeSubagent(tmpDir, 'reviewer');
+
+    // First run: claude + cursor selected — both targets get written.
+    await applyAllAgentConfigs(
+      tmpDir,
+      ['claude', 'cursor'],
+      undefined,
+      false,
+      undefined,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      undefined,
+      undefined,
+      true,
+    );
+    await expect(
+      fs.access(path.join(tmpDir, CLAUDE_SUBAGENTS_PATH, 'reviewer.md')),
+    ).resolves.toBeUndefined();
+    await expect(
+      fs.access(path.join(tmpDir, CURSOR_SUBAGENTS_PATH, 'reviewer.md')),
+    ).resolves.toBeUndefined();
+
+    // Second run: only claude — cursor's target dir must be cleaned up.
+    await applyAllAgentConfigs(
+      tmpDir,
+      ['claude'],
+      undefined,
+      false,
+      undefined,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      undefined,
+      undefined,
+      true,
+    );
+    await expect(
+      fs.access(path.join(tmpDir, CLAUDE_SUBAGENTS_PATH, 'reviewer.md')),
+    ).resolves.toBeUndefined();
+    await expect(
+      fs.access(path.join(tmpDir, CURSOR_SUBAGENTS_PATH)),
+    ).rejects.toThrow();
+  });
+
+  it('cleans up all target directories when source .ruler/agents is removed', async () => {
+    await setupRulerProject(tmpDir);
+    await writeSubagent(tmpDir, 'reviewer');
+
+    await applyAllAgentConfigs(
+      tmpDir,
+      ['claude', 'cursor', 'codex', 'copilot'],
+      undefined,
+      false,
+      undefined,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      undefined,
+      undefined,
+      true,
+    );
+    await expect(
+      fs.access(path.join(tmpDir, CLAUDE_SUBAGENTS_PATH, 'reviewer.md')),
+    ).resolves.toBeUndefined();
+
+    // Remove source dir, then re-apply. All target dirs should be cleaned up.
+    await fs.rm(path.join(tmpDir, RULER_SUBAGENTS_PATH), {
+      recursive: true,
+      force: true,
+    });
+
+    await applyAllAgentConfigs(
+      tmpDir,
+      ['claude', 'cursor', 'codex', 'copilot'],
+      undefined,
+      false,
+      undefined,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      undefined,
+      undefined,
+      true,
+    );
+
+    await expect(
+      fs.access(path.join(tmpDir, CLAUDE_SUBAGENTS_PATH)),
+    ).rejects.toThrow();
+    await expect(
+      fs.access(path.join(tmpDir, CURSOR_SUBAGENTS_PATH)),
+    ).rejects.toThrow();
+    await expect(
+      fs.access(path.join(tmpDir, CODEX_SUBAGENTS_PATH)),
+    ).rejects.toThrow();
+    await expect(
+      fs.access(path.join(tmpDir, COPILOT_SUBAGENTS_PATH)),
+    ).rejects.toThrow();
+  });
+
   it('skips non-supporting agents with a warning, still writes for supporting ones', async () => {
     await setupRulerProject(tmpDir);
     await writeSubagent(tmpDir, 'reviewer');
