@@ -41,3 +41,35 @@ export interface SkillInfo {
   /** Error message if invalid. */
   error?: string;
 }
+
+/** Subagents configuration for automatic subagent distribution. */
+export interface SubagentsConfig {
+  /** Enable or disable subagents support. */
+  enabled?: boolean;
+}
+
+/** Frontmatter fields recognised on a source subagent definition. */
+export interface SubagentFrontmatter {
+  name: string;
+  description: string;
+  tools?: string[];
+  model?: string;
+  readonly?: boolean;
+  is_background?: boolean;
+}
+
+/** Information about a discovered subagent. */
+export interface SubagentInfo {
+  /** Name of the subagent (filename stem and frontmatter `name`). */
+  name: string;
+  /** Absolute path to the source `.md` file. */
+  path: string;
+  /** Parsed frontmatter (only present when valid). */
+  frontmatter?: SubagentFrontmatter;
+  /** Body content after the frontmatter delimiter. */
+  body?: string;
+  /** Whether this subagent passed validation. */
+  valid: boolean;
+  /** Error message if invalid. */
+  error?: string;
+}
