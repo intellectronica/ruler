@@ -174,4 +174,8 @@ export class CodexCliAgent implements IAgent {
   supportsNativeSkills(): boolean {
     return true;
   }
+
+  supportsNativeSubagents(): boolean {
+    return true;
+  }
 }

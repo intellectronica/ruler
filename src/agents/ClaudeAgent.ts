@@ -28,4 +28,8 @@ export class ClaudeAgent extends AbstractAgent {
   supportsNativeSkills(): boolean {
     return true;
   }
+
+  supportsNativeSubagents(): boolean {
+    return true;
+  }
 }

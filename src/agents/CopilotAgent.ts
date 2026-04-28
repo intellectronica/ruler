@@ -59,4 +59,8 @@ export class CopilotAgent implements IAgent {
   supportsNativeSkills(): boolean {
     return true;
   }
+
+  supportsNativeSubagents(): boolean {
+    return true;
+  }
 }
