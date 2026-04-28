@@ -298,5 +298,55 @@ describe('Subagents per-agent propagators', () => {
       const { meta } = readFrontmatter(content);
       expect(meta.model).toBeUndefined();
     });
+
+    describe('unmapped-tool warnings', () => {
+      const subWithUnknownTool = makeSubagent({
+        frontmatter: {
+          name: 'reviewer',
+          description: 'Reviews code',
+          tools: ['Read', 'NotARealTool'],
+        },
+      });
+
+      it('stays silent on a normal apply (no verbose, no dry-run)', async () => {
+        const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
+        try {
+          await propagateSubagentsForCopilot(tmpDir, [subWithUnknownTool], {
+            dryRun: false,
+          });
+          const calls = warnSpy.mock.calls.flat().join('\n');
+          expect(calls).not.toMatch(/NotARealTool/);
+        } finally {
+          warnSpy.mockRestore();
+        }
+      });
+
+      it('emits the warning when verbose is enabled', async () => {
+        const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
+        try {
+          await propagateSubagentsForCopilot(tmpDir, [subWithUnknownTool], {
+            dryRun: false,
+            verbose: true,
+          });
+          const calls = warnSpy.mock.calls.flat().join('\n');
+          expect(calls).toMatch(/NotARealTool/);
+        } finally {
+          warnSpy.mockRestore();
+        }
+      });
+
+      it('emits the warning during dry-run regardless of verbose', async () => {
+        const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
+        try {
+          await propagateSubagentsForCopilot(tmpDir, [subWithUnknownTool], {
+            dryRun: true,
+          });
+          const calls = warnSpy.mock.calls.flat().join('\n');
+          expect(calls).toMatch(/NotARealTool/);
+        } finally {
+          warnSpy.mockRestore();
+        }
+      });
+    });
   });
 });

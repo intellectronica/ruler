@@ -195,6 +195,7 @@ async function writeAgentsDirectoryAtomic(
 
 interface PropagateOptions {
   dryRun: boolean;
+  verbose?: boolean;
 }
 
 function buildClaudeFile(sub: SubagentInfo): string {
@@ -247,6 +248,7 @@ function buildCodexFile(sub: SubagentInfo): string {
 function buildCopilotFile(
   sub: SubagentInfo,
   dryRun: boolean,
+  verbose: boolean,
 ): { content: string; warnings: string[] } {
   const fm = sub.frontmatter as SubagentFrontmatter;
   const meta: Record<string, unknown> = {
@@ -272,9 +274,13 @@ function buildCopilotFile(
   if (fm.readonly === true) {
     meta['disable-model-invocation'] = true;
   }
-  // Surface warnings via logWarn so they're visible to the user.
-  for (const warning of warnings) {
-    logWarn(warning, dryRun);
+  // Tool-drop is informational — surface it only when the user explicitly
+  // asked for detail (--verbose) or when previewing changes (--dry-run).
+  // A normal apply stays quiet to avoid noise on every run.
+  if (verbose || dryRun) {
+    for (const warning of warnings) {
+      logWarn(warning, dryRun);
+    }
   }
   return {
     content: `${buildFrontmatterBlock(meta)}\n${ensureBodyFormatting(sub.body)}`,
@@ -349,11 +355,14 @@ export async function propagateSubagentsForCopilot(
 ): Promise<string[]> {
   if (subagents.length === 0) return [];
   const targetDir = path.join(projectRoot, COPILOT_SUBAGENTS_PATH);
+  const verbose = options.verbose ?? false;
   if (options.dryRun) {
     const planLines: string[] = [];
     for (const s of subagents) {
-      // Surface tool-mapping warnings during dry-run too.
-      buildCopilotFile(s, true);
+      // Surface tool-mapping warnings during dry-run too — buildCopilotFile
+      // emits when dryRun is true so users previewing a change can see
+      // which tools would be dropped before it actually happens.
+      buildCopilotFile(s, true, verbose);
       planLines.push(
         `Write ${path.join(COPILOT_SUBAGENTS_PATH, `${s.name}.md`)}`,
       );
@@ -362,7 +371,7 @@ export async function propagateSubagentsForCopilot(
   }
   const files = subagents.map((s) => ({
     name: `${s.name}.md`,
-    content: buildCopilotFile(s, false).content,
+    content: buildCopilotFile(s, false, verbose).content,
   }));
   await writeAgentsDirectoryAtomic(targetDir, files);
   return [];
@@ -513,7 +522,10 @@ export async function propagateSubagents(
       verbose,
       dryRun,
     );
-    await propagateSubagentsForClaude(projectRoot, subagents, { dryRun });
+    await propagateSubagentsForClaude(projectRoot, subagents, {
+      dryRun,
+      verbose,
+    });
   }
   if (targets.has('cursor')) {
     logVerboseInfo(
@@ -521,7 +533,10 @@ export async function propagateSubagents(
       verbose,
       dryRun,
     );
-    await propagateSubagentsForCursor(projectRoot, subagents, { dryRun });
+    await propagateSubagentsForCursor(projectRoot, subagents, {
+      dryRun,
+      verbose,
+    });
   }
   if (targets.has('codex')) {
     logVerboseInfo(
@@ -529,7 +544,10 @@ export async function propagateSubagents(
       verbose,
       dryRun,
     );
-    await propagateSubagentsForCodex(projectRoot, subagents, { dryRun });
+    await propagateSubagentsForCodex(projectRoot, subagents, {
+      dryRun,
+      verbose,
+    });
   }
   if (targets.has('copilot')) {
     logVerboseInfo(
@@ -537,6 +555,9 @@ export async function propagateSubagents(
       verbose,
       dryRun,
     );
-    await propagateSubagentsForCopilot(projectRoot, subagents, { dryRun });
+    await propagateSubagentsForCopilot(projectRoot, subagents, {
+      dryRun,
+      verbose,
+    });
   }
 }
