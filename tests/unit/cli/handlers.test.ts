@@ -67,6 +67,7 @@ describe('CLI Handlers', () => {
         true,
         undefined,
         undefined,
+        undefined,
       );
     });
 
@@ -96,6 +97,7 @@ describe('CLI Handlers', () => {
         false,
         false,
         true,
+        undefined,
         undefined,
         undefined,
       );
@@ -130,6 +132,7 @@ describe('CLI Handlers', () => {
         true,
         undefined,
         undefined,
+        undefined,
       );
     });
 
@@ -159,6 +162,7 @@ describe('CLI Handlers', () => {
         false,
         false,
         true,
+        undefined,
         undefined,
         undefined,
       );
@@ -193,6 +197,7 @@ describe('CLI Handlers', () => {
         true,
         undefined,
         true,
+        undefined,
       );
     });
 
@@ -222,6 +227,7 @@ describe('CLI Handlers', () => {
         false,
         true, // nested should be true from CLI
         true,
+        undefined,
         undefined,
         undefined,
       );
@@ -270,6 +276,7 @@ describe('CLI Handlers', () => {
         true,
         undefined,
         undefined,
+        undefined,
       );
     });
 
@@ -308,6 +315,7 @@ describe('CLI Handlers', () => {
         false,
         false, // nested should default to false
         true,
+        undefined,
         undefined,
         undefined,
       );
@@ -350,6 +358,7 @@ describe('CLI Handlers', () => {
         false,
         true, // nested should be true from CLI, ignoring TOML
         true,
+        undefined,
         undefined,
         undefined,
       );

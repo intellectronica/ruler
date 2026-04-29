@@ -54,40 +54,40 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 
 ## Supported AI Agents
 
-| Agent                  | Rules File(s)                                  | MCP Configuration / Notes                        | Skills Support / Location |
-| ---------------------- | ---------------------------------------------- | ------------------------------------------------ | ------------------------- |
-| AGENTS.md              | `AGENTS.md`                                    | (pseudo-agent ensuring root `AGENTS.md` exists)  | -                         |
-| GitHub Copilot         | `AGENTS.md`                                    | `.vscode/mcp.json`                               | `.claude/skills/`         |
-| Claude Code            | `CLAUDE.md`                                    | `.mcp.json`                                      | `.claude/skills/`         |
-| OpenAI Codex CLI       | `AGENTS.md`                                    | `.codex/config.toml`                             | `.codex/skills/`          |
-| Pi Coding Agent        | `AGENTS.md`                                    | -                                                | `.pi/skills/`             |
-| Jules                  | `AGENTS.md`                                    | -                                                | -                         |
-| Cursor                 | `AGENTS.md`                                    | `.cursor/mcp.json`                               | `.cursor/skills/`         |
-| Windsurf               | `AGENTS.md`                                    | `.windsurf/mcp_config.json`                      | `.windsurf/skills/`       |
-| Cline                  | `.clinerules`                                  | -                                                | -                         |
-| Crush                  | `CRUSH.md`                                     | `.crush.json`                                    | -                         |
-| Amp                    | `AGENTS.md`                                    | -                                                | `.agents/skills/`         |
-| Antigravity            | `.agent/rules/ruler.md`                        | -                                                | `.agent/skills/`          |
-| Amazon Q CLI           | `.amazonq/rules/ruler_q_rules.md`              | `.amazonq/mcp.json`                              | -                         |
-| Aider                  | `AGENTS.md`, `.aider.conf.yml`                 | `.mcp.json`                                      | -                         |
-| Firebase Studio        | `.idx/airules.md`                              | `.idx/mcp.json`                                  | -                         |
-| Open Hands             | `.openhands/microagents/repo.md`               | `config.toml`                                    | -                         |
-| Gemini CLI             | `AGENTS.md`                                    | `.gemini/settings.json`                          | `.gemini/skills/`         |
-| Junie                  | `.junie/guidelines.md`                         | `.junie/mcp/mcp.json`                            | `.junie/skills/`          |
-| AugmentCode            | `.augment/rules/ruler_augment_instructions.md` | -                                                | -                         |
-| Kilo Code              | `AGENTS.md`                                    | `.kilocode/mcp.json`                             | `.claude/skills/`         |
-| OpenCode               | `AGENTS.md`                                    | `opencode.json`                                  | `.opencode/skills/`       |
-| Goose                  | `.goosehints`                                  | -                                                | `.agents/skills/`         |
-| Qwen Code              | `AGENTS.md`                                    | `.qwen/settings.json`                            | -                         |
-| RooCode                | `AGENTS.md`                                    | `.roo/mcp.json`                                  | `.roo/skills/`            |
-| Zed                    | `AGENTS.md`                                    | `.zed/settings.json` (project root, never $HOME) | -                         |
-| Trae AI                | `.trae/rules/project_rules.md`                 | -                                                | -                         |
-| Warp                   | `WARP.md`                                      | -                                                | -                         |
-| Kiro                   | `.kiro/steering/ruler_kiro_instructions.md`    | `.kiro/settings/mcp.json`                        | -                         |
-| Firebender             | `firebender.json`                              | `firebender.json` (rules and MCP in same file)   | -                         |
-| Factory Droid          | `AGENTS.md`                                    | `.factory/mcp.json`                              | `.factory/skills/`        |
-| Mistral Vibe           | `AGENTS.md`                                    | `.vibe/config.toml`                              | `.vibe/skills/`           |
-| JetBrains AI Assistant | `.aiassistant/rules/AGENTS.md`                 | -                                                | -                         |
+| Agent                  | Rules File(s)                                  | MCP Configuration / Notes                        | Skills Support / Location | Subagents Support / Location |
+| ---------------------- | ---------------------------------------------- | ------------------------------------------------ | ------------------------- | ---------------------------- |
+| AGENTS.md              | `AGENTS.md`                                    | (pseudo-agent ensuring root `AGENTS.md` exists)  | -                         | -                            |
+| GitHub Copilot         | `AGENTS.md`                                    | `.vscode/mcp.json`                               | `.claude/skills/`         | `.github/agents/`            |
+| Claude Code            | `CLAUDE.md`                                    | `.mcp.json`                                      | `.claude/skills/`         | `.claude/agents/`            |
+| OpenAI Codex CLI       | `AGENTS.md`                                    | `.codex/config.toml`                             | `.codex/skills/`          | `.codex/agents/` (`.toml`)   |
+| Pi Coding Agent        | `AGENTS.md`                                    | -                                                | `.pi/skills/`             | -                            |
+| Jules                  | `AGENTS.md`                                    | -                                                | -                         | -                            |
+| Cursor                 | `AGENTS.md`                                    | `.cursor/mcp.json`                               | `.cursor/skills/`         | `.cursor/agents/`            |
+| Windsurf               | `AGENTS.md`                                    | `.windsurf/mcp_config.json`                      | `.windsurf/skills/`       | -                            |
+| Cline                  | `.clinerules`                                  | -                                                | -                         | -                            |
+| Crush                  | `CRUSH.md`                                     | `.crush.json`                                    | -                         | -                            |
+| Amp                    | `AGENTS.md`                                    | -                                                | `.agents/skills/`         | -                            |
+| Antigravity            | `.agent/rules/ruler.md`                        | -                                                | `.agent/skills/`          | -                            |
+| Amazon Q CLI           | `.amazonq/rules/ruler_q_rules.md`              | `.amazonq/mcp.json`                              | -                         | -                            |
+| Aider                  | `AGENTS.md`, `.aider.conf.yml`                 | `.mcp.json`                                      | -                         | -                            |
+| Firebase Studio        | `.idx/airules.md`                              | `.idx/mcp.json`                                  | -                         | -                            |
+| Open Hands             | `.openhands/microagents/repo.md`               | `config.toml`                                    | -                         | -                            |
+| Gemini CLI             | `AGENTS.md`                                    | `.gemini/settings.json`                          | `.gemini/skills/`         | -                            |
+| Junie                  | `.junie/guidelines.md`                         | `.junie/mcp/mcp.json`                            | `.junie/skills/`          | -                            |
+| AugmentCode            | `.augment/rules/ruler_augment_instructions.md` | -                                                | -                         | -                            |
+| Kilo Code              | `AGENTS.md`                                    | `.kilocode/mcp.json`                             | `.claude/skills/`         | -                            |
+| OpenCode               | `AGENTS.md`                                    | `opencode.json`                                  | `.opencode/skills/`       | -                            |
+| Goose                  | `.goosehints`                                  | -                                                | `.agents/skills/`         | -                            |
+| Qwen Code              | `AGENTS.md`                                    | `.qwen/settings.json`                            | -                         | -                            |
+| RooCode                | `AGENTS.md`                                    | `.roo/mcp.json`                                  | `.roo/skills/`            | -                            |
+| Zed                    | `AGENTS.md`                                    | `.zed/settings.json` (project root, never $HOME) | -                         | -                            |
+| Trae AI                | `.trae/rules/project_rules.md`                 | -                                                | -                         | -                            |
+| Warp                   | `WARP.md`                                      | -                                                | -                         | -                            |
+| Kiro                   | `.kiro/steering/ruler_kiro_instructions.md`    | `.kiro/settings/mcp.json`                        | -                         | -                            |
+| Firebender             | `firebender.json`                              | `firebender.json` (rules and MCP in same file)   | -                         | -                            |
+| Factory Droid          | `AGENTS.md`                                    | `.factory/mcp.json`                              | `.factory/skills/`        | -                            |
+| Mistral Vibe           | `AGENTS.md`                                    | `.vibe/config.toml`                              | `.vibe/skills/`           | -                            |
+| JetBrains AI Assistant | `.aiassistant/rules/AGENTS.md`                 | -                                                | -                         | -                            |
 
 ## Getting Started
 
@@ -245,6 +245,8 @@ The `apply` command looks for `.ruler/` in the current directory tree, reading t
 | `--no-backup`                  | Disable creation of `.bak` backup files.                               |
 | `--skills`                     | Enable skills support (experimental, default: enabled).                |
 | `--no-skills`                  | Disable skills support.                                                |
+| `--subagents`                  | Enable subagents support (experimental, default: enabled).             |
+| `--no-subagents`               | Disable subagents support.                                             |
 | `--dry-run`                    | Preview changes without writing files.                                 |
 | `--local-only`                 | Skip `$XDG_CONFIG_HOME` when looking for configuration.                |
 | `--verbose` / `-v`             | Display detailed output during execution.                              |
@@ -727,6 +729,142 @@ ruler apply
 #    - Cursor: .cursor/skills/my-skill/
 #    - Windsurf: .windsurf/skills/my-skill/
 ```
+
+## Subagents Support (Experimental)
+
+> **⚠️ Experimental:** Subagents support is experimental and behavior may change in future releases.
+
+Ruler can distribute named, delegatable **subagents** from a single source of truth (`.ruler/agents/`) to each agent's native subagent location. Each source file is one Markdown file with YAML frontmatter; Ruler transforms it into the format the target agent expects.
+
+### How It Works
+
+For agents with a native subagent primitive, Ruler writes one file per subagent into the target directory:
+
+| Agent             | Target location                | Format |
+| ----------------- | ------------------------------ | ------ |
+| Claude Code       | `.claude/agents/<name>.md`     | Markdown + YAML frontmatter |
+| Cursor            | `.cursor/agents/<name>.md`     | Markdown + YAML frontmatter |
+| OpenAI Codex CLI  | `.codex/agents/<name>.toml`    | TOML (one self-contained file per agent) |
+| GitHub Copilot    | `.github/agents/<name>.md`     | Markdown + YAML frontmatter |
+
+Other agents (Windsurf, RooCode, Aider, Gemini CLI, …) do not yet have a comparable native subagent primitive and are skipped with a warning. Subagent propagation will be added when those agents ship a comparable file format.
+
+### Source Format
+
+Author each subagent as `.ruler/agents/<name>.md`:
+
+```markdown
+---
+name: code-reviewer
+description: Use PROACTIVELY after a feature/fix is implemented. Reviews against SOLID/DRY/KISS. Read-only.
+tools: [Read, Grep, Glob, Bash]
+model: inherit
+readonly: true
+is_background: false
+---
+
+# Code Reviewer
+
+You operate in a fresh context window with read-only access. Your job is to
+review the diff and surrounding code against the design principles and return
+a structured verdict.
+```
+
+**Required frontmatter fields:**
+
+| Field         | Type   | Notes                                                 |
+| ------------- | ------ | ----------------------------------------------------- |
+| `name`        | string | Must match the filename stem (`code-reviewer.md` → `name: code-reviewer`). |
+| `description` | string | When the parent agent should delegate to this subagent. |
+
+**Optional frontmatter fields:**
+
+| Field           | Type             | Used by                                          | Default behavior                              |
+| --------------- | ---------------- | ------------------------------------------------ | --------------------------------------------- |
+| `tools`         | string[]         | Claude (verbatim), Copilot (mapped to aliases)   | Cursor / Codex ignore; omitted if absent.     |
+| `model`         | string           | All four targets                                 | Cursor defaults to `inherit`; others omit.    |
+| `readonly`      | boolean          | Cursor (verbatim), Codex (`sandbox_mode`), Copilot (`disable-model-invocation`) | Defaults to `false` for Cursor; omitted otherwise. |
+| `is_background` | boolean          | Cursor only                                      | Defaults to `false` for Cursor.               |
+
+For GitHub Copilot, source `tools` (Claude vocabulary: `Read`, `Grep`, `Bash`, …) are translated to Copilot's aliases (`read`, `search`, `execute`, …). Tools that do not have a Copilot equivalent are dropped silently on a normal apply; pass `--verbose` (or use `--dry-run` to preview) to see which tools were dropped.
+
+### Configuration
+
+Subagents are enabled by default. Toggle them via CLI flag or `ruler.toml`:
+
+```bash
+ruler apply --no-subagents   # disable subagent propagation for one run
+```
+
+```toml
+# .ruler/ruler.toml
+[subagents]
+enabled = false
+```
+
+CLI flags take precedence over `ruler.toml`, which takes precedence over the default (enabled).
+
+### Validation
+
+Source files are validated at discovery time:
+
+- Files without YAML frontmatter are skipped with a warning.
+- Files missing required `name` or `description` are skipped with a warning.
+- Files where `name` does not match the filename stem are skipped with a warning.
+- Unknown frontmatter keys are dropped (not errored).
+
+### Dry-Run Mode
+
+Use `--dry-run` to preview which files would be written without touching disk.
+
+### `.gitignore` Integration
+
+When subagents are enabled, the four target directories are added to the Ruler-managed block of `.gitignore`:
+
+```
+.claude/agents/
+.cursor/agents/
+.codex/agents/
+.github/agents/
+```
+
+Use `--no-gitignore` to opt out.
+
+### Cleanup
+
+Subagent propagation does **not** currently have explicit `ruler revert` support. To remove generated subagent directories, set `[subagents] enabled = false` (or pass `--no-subagents`) and run `ruler apply` once. Cleanup will run for all four targets even if no source `.ruler/agents/` directory exists.
+
+### Example Workflow
+
+```bash
+# 1. Author a subagent in your project
+mkdir -p .ruler/agents
+cat > .ruler/agents/code-reviewer.md << 'EOF'
+---
+name: code-reviewer
+description: Reviews changes against SOLID/DRY/KISS
+tools: [Read, Grep, Glob]
+readonly: true
+---
+
+You review code changes for quality.
+EOF
+
+# 2. Apply (subagents enabled by default)
+ruler apply
+
+# 3. The subagent is now available in each agent's native location:
+#    - Claude Code:  .claude/agents/code-reviewer.md
+#    - Cursor:       .cursor/agents/code-reviewer.md
+#    - Codex CLI:    .codex/agents/code-reviewer.toml
+#    - GitHub Copilot: .github/agents/code-reviewer.md
+```
+
+### Limitations
+
+- **No explicit revert command.** Cleanup happens via `[subagents] enabled = false` on a subsequent `apply`.
+- **Atomic replace, not merge.** Ruler regenerates each agent's subagent directory from the source on every apply. Manual edits to generated files will be overwritten.
+- **No support yet for agents without a native subagent primitive.** Windsurf, RooCode, Aider, Gemini CLI, and others are skipped with a warning. Propagation will be added when those agents ship a comparable file format.
 
 ## `.gitignore` Integration
 

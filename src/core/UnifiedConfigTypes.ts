@@ -2,6 +2,7 @@ import {
   McpConfig,
   GitignoreConfig,
   SkillsConfig,
+  SubagentsConfig,
   McpStrategy,
 } from '../types';
 
@@ -33,6 +34,7 @@ export interface TomlConfig {
   mcpServers?: Record<string, McpServerDef>;
   gitignore?: GitignoreConfig;
   skills?: SkillsConfig;
+  subagents?: SubagentsConfig;
   nested?: boolean;
 }
 

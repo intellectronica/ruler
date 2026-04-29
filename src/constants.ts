@@ -69,3 +69,10 @@ export const WINDSURF_SKILLS_PATH = '.windsurf/skills';
 export const FACTORY_SKILLS_PATH = '.factory/skills';
 export const ANTIGRAVITY_SKILLS_PATH = '.agent/skills';
 export const SKILL_MD_FILENAME = 'SKILL.md';
+
+// Subagents-related constants
+export const RULER_SUBAGENTS_PATH = '.ruler/agents';
+export const CLAUDE_SUBAGENTS_PATH = '.claude/agents';
+export const CURSOR_SUBAGENTS_PATH = '.cursor/agents';
+export const CODEX_SUBAGENTS_PATH = '.codex/agents';
+export const COPILOT_SUBAGENTS_PATH = '.github/agents';

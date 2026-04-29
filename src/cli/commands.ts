@@ -82,6 +82,11 @@ export function run(): void {
             type: 'boolean',
             description:
               'Enable/disable skills support (experimental, default: enabled)',
+          })
+          .option('subagents', {
+            type: 'boolean',
+            description:
+              'Enable/disable subagents support (experimental, default: enabled)',
           });
       },
       applyHandler,

@@ -21,6 +21,7 @@ export interface ApplyArgs {
   nested?: boolean;
   backup: boolean;
   skills?: boolean;
+  subagents?: boolean;
 }
 
 export interface InitArgs {
@@ -112,6 +113,14 @@ export async function applyHandler(argv: ApplyArgs): Promise<void> {
     skillsEnabled = undefined; // Let config/default decide
   }
 
+  // Determine subagents preference: CLI > TOML > Default (enabled)
+  let subagentsEnabled: boolean | undefined;
+  if (argv.subagents !== undefined) {
+    subagentsEnabled = argv.subagents;
+  } else {
+    subagentsEnabled = undefined; // Let config/default decide
+  }
+
   try {
     await applyAllAgentConfigs(
       projectRoot,
@@ -127,6 +136,7 @@ export async function applyHandler(argv: ApplyArgs): Promise<void> {
       backup,
       skillsEnabled,
       gitignoreLocalPreference,
+      subagentsEnabled,
     );
     console.log('Ruler apply completed successfully.');
   } catch (err: unknown) {
