@@ -58,14 +58,18 @@ async function loadNestedConfigurations(
   );
 
   const results: HierarchicalRulerConfiguration[] = [];
-  const rulerDirConfigs = await processIndependentRulerDirs(rulerDirs);
 
-  for (const { rulerDir, files } of rulerDirConfigs) {
+  // Load config first so we know whether `.ruler/agents/` should be included
+  // in the rule concatenation for each directory.
+  for (const rulerDir of rulerDirs) {
     const config = await loadConfigForRulerDir(
       rulerDir,
       configPath,
       resolvedNested,
     );
+    const files = await FileSystemUtils.readMarkdownFiles(rulerDir, {
+      includeAgents: shouldIncludeAgentsInRules(config),
+    });
     results.push(
       await createHierarchicalConfiguration(
         rulerDir,
@@ -80,26 +84,11 @@ async function loadNestedConfigurations(
 }
 
 /**
- * Processes each .ruler directory independently, returning configuration for each.
- * Each .ruler directory gets its own rules (not merged with others).
+ * Returns true when `.ruler/agents/*.md` should be concatenated into the
+ * generated top-level rule files. Defaults to false.
  */
-async function processIndependentRulerDirs(
-  rulerDirs: string[],
-): Promise<
-  Array<{ rulerDir: string; files: { path: string; content: string }[] }>
-> {
-  const results: Array<{
-    rulerDir: string;
-    files: { path: string; content: string }[];
-  }> = [];
-
-  // Process each .ruler directory independently
-  for (const rulerDir of rulerDirs) {
-    const files = await FileSystemUtils.readMarkdownFiles(rulerDir);
-    results.push({ rulerDir, files });
-  }
-
-  return results;
+function shouldIncludeAgentsInRules(config: LoadedConfig): boolean {
+  return config.subagents?.include_in_rules === true;
 }
 
 async function createHierarchicalConfiguration(
@@ -194,6 +183,8 @@ function cloneLoadedConfig(config: LoadedConfig): LoadedConfig {
     cliAgents: config.cliAgents ? [...config.cliAgents] : undefined,
     mcp: config.mcp ? { ...config.mcp } : undefined,
     gitignore: config.gitignore ? { ...config.gitignore } : undefined,
+    skills: config.skills ? { ...config.skills } : undefined,
+    subagents: config.subagents ? { ...config.subagents } : undefined,
     nested: config.nested,
     nestedDefined: config.nestedDefined,
   };
@@ -285,8 +276,11 @@ async function loadSingleConfiguration(
     configPath,
   });
 
-  // Read rule files
-  const files = await FileSystemUtils.readMarkdownFiles(rulerDirs[0]);
+  // Read rule files. `.ruler/agents/` is only included when
+  // `[agents] include_in_rules = true`.
+  const files = await FileSystemUtils.readMarkdownFiles(rulerDirs[0], {
+    includeAgents: shouldIncludeAgentsInRules(config),
+  });
 
   // Concatenate rules
   const concatenatedRules = concatenateRules(files, path.dirname(primaryDir));

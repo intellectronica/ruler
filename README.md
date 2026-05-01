@@ -790,19 +790,24 @@ For GitHub Copilot, source `tools` (Claude vocabulary: `Read`, `Grep`, `Bash`, â
 
 ### Configuration
 
-Subagents are enabled by default. Toggle them via CLI flag or `ruler.toml`:
+Subagent propagation is **disabled by default**. Opt in via CLI flag or `ruler.toml`:
 
 ```bash
-ruler apply --no-subagents   # disable subagent propagation for one run
+ruler apply --subagents   # enable subagent propagation for one run
 ```
 
 ```toml
 # .ruler/ruler.toml
-[subagents]
-enabled = false
+[agents]
+enabled = true
+# include_in_rules = true  # also append .ruler/agents/*.md into top-level CLAUDE.md / AGENTS.md (default: false)
 ```
 
-CLI flags take precedence over `ruler.toml`, which takes precedence over the default (enabled).
+> **Note:** the previous release used `[subagents]` for these keys. `[subagents]` is still honored as a fallback with a deprecation warning, and will be removed in a future release. Please migrate to `[agents]`.
+
+`[agents] enabled` controls only native subagent propagation from `.ruler/agents/`. It is independent from `[agents.<name>] enabled` (which toggles per-coding-agent output like `CLAUDE.md` / `AGENTS.md`).
+
+CLI flags take precedence over `ruler.toml`, which takes precedence over the default (disabled).
 
 ### Validation
 
@@ -832,7 +837,7 @@ Use `--no-gitignore` to opt out.
 
 ### Cleanup
 
-Subagent propagation does **not** currently have explicit `ruler revert` support. To remove generated subagent directories, set `[subagents] enabled = false` (or pass `--no-subagents`) and run `ruler apply` once. Cleanup will run for all four targets even if no source `.ruler/agents/` directory exists.
+Subagent propagation does **not** currently have explicit `ruler revert` support. To remove generated subagent directories, set `[agents] enabled = false` (or pass `--no-subagents`) and run `ruler apply` once. Cleanup will run for all four targets even if no source `.ruler/agents/` directory exists.
 
 ### Example Workflow
 
@@ -850,10 +855,13 @@ readonly: true
 You review code changes for quality.
 EOF
 
-# 2. Apply (subagents enabled by default)
+# 2. Opt subagents in (default is disabled â€” see [agents] section above)
+echo -e "\n[agents]\nenabled = true" >> .ruler/ruler.toml
+
+# 3. Apply
 ruler apply
 
-# 3. The subagent is now available in each agent's native location:
+# 4. The subagent is now available in each agent's native location:
 #    - Claude Code:  .claude/agents/code-reviewer.md
 #    - Cursor:       .cursor/agents/code-reviewer.md
 #    - Codex CLI:    .codex/agents/code-reviewer.toml
@@ -862,7 +870,7 @@ ruler apply
 
 ### Limitations
 
-- **No explicit revert command.** Cleanup happens via `[subagents] enabled = false` on a subsequent `apply`.
+- **No explicit revert command.** Cleanup happens via `[agents] enabled = false` on a subsequent `apply`.
 - **Atomic replace, not merge.** Ruler regenerates each agent's subagent directory from the source on every apply. Manual edits to generated files will be overwritten.
 - **No support yet for agents without a native subagent primitive.** Windsurf, RooCode, Aider, Gemini CLI, and others are skipped with a warning. Propagation will be added when those agents ship a comparable file format.
 
