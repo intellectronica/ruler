@@ -10,7 +10,26 @@ import {
   SkillsConfig,
   SubagentsConfig,
 } from '../types';
-import { createRulerError } from '../constants';
+import { createRulerError, logWarn } from '../constants';
+
+// One-shot guard so the deprecation message fires once per process even when
+// `loadConfig` is called multiple times (e.g. nested mode walks every
+// `.ruler` directory).
+let _legacySubagentsWarned = false;
+
+function warnLegacySubagentsSection(): void {
+  if (_legacySubagentsWarned) return;
+  _legacySubagentsWarned = true;
+  logWarn(
+    '`[subagents]` is deprecated; rename it to `[agents]` in your ruler.toml. ' +
+      'The legacy section is honored for now and will be removed in a future release.',
+  );
+}
+
+/** Test helper — re-arms the deprecation guard so suites can assert it fires. */
+export function _resetLegacySubagentsWarningForTests(): void {
+  _legacySubagentsWarned = false;
+}
 
 interface ErrnoException extends Error {
   code?: string;
@@ -33,9 +52,22 @@ const agentConfigSchema = z
   })
   .optional();
 
+// `[agents]` is a heterogeneous table that holds two unrelated kinds of keys:
+//   - reserved subagent-control booleans (`enabled`, `include_in_rules`)
+//   - one nested table per coding-agent integration (`[agents.claude]`, etc.)
+// Reserved keys are validated by the object shape; everything else falls
+// through `catchall` and is treated as a per-agent config record.
+const SUBAGENT_RESERVED_KEYS = new Set(['enabled', 'include_in_rules']);
+
 const rulerConfigSchema = z.object({
   default_agents: z.array(z.string()).optional(),
-  agents: z.record(z.string(), agentConfigSchema).optional(),
+  agents: z
+    .object({
+      enabled: z.boolean().optional(),
+      include_in_rules: z.boolean().optional(),
+    })
+    .catchall(agentConfigSchema)
+    .optional(),
   mcp: z
     .object({
       enabled: z.boolean().optional(),
@@ -53,9 +85,14 @@ const rulerConfigSchema = z.object({
       enabled: z.boolean().optional(),
     })
     .optional(),
+  // Deprecated: kept in the schema only so that legacy `[subagents]` blocks
+  // are preserved through validation. The parser reads from here as a
+  // fallback when the new `[agents]` keys are absent and emits a one-time
+  // deprecation warning. Remove in the next minor release.
   subagents: z
     .object({
       enabled: z.boolean().optional(),
+      include_in_rules: z.boolean().optional(),
     })
     .optional(),
   nested: z.boolean().optional(),
@@ -192,6 +229,10 @@ export async function loadConfig(
       : {};
   const agentConfigs: Record<string, IAgentConfig> = {};
   for (const [name, section] of Object.entries(agentsSection)) {
+    // Reserved subagent-control keys live alongside per-agent records in
+    // the same `[agents]` table; skip them here so we only process actual
+    // coding-agent integrations as agent configs.
+    if (SUBAGENT_RESERVED_KEYS.has(name)) continue;
     if (section && typeof section === 'object') {
       const sectionObj = section as Record<string, unknown>;
       const cfg: IAgentConfig = {};
@@ -269,15 +310,40 @@ export async function loadConfig(
     skillsConfig.enabled = rawSkillsSection.enabled;
   }
 
-  const rawSubagentsSection =
+  // Subagent control lives under `[agents]` (alongside per-agent records).
+  // The reserved keys `enabled` and `include_in_rules` are pulled out here
+  // and surfaced internally as `LoadedConfig.subagents` for the rest of the
+  // codebase, which still uses the `Subagent*` naming.
+  //
+  // Backward-compatibility: the previous release used `[subagents]` for the
+  // same two keys. We still read those as a fallback when the matching
+  // `[agents]` key is absent, and emit a one-time deprecation warning so
+  // existing configs keep working while users migrate.
+  const rawLegacySubagentsSection =
     raw.subagents &&
     typeof raw.subagents === 'object' &&
     !Array.isArray(raw.subagents)
       ? (raw.subagents as Record<string, unknown>)
       : {};
+  const legacyHasContent =
+    typeof rawLegacySubagentsSection.enabled === 'boolean' ||
+    typeof rawLegacySubagentsSection.include_in_rules === 'boolean';
+  if (legacyHasContent) {
+    warnLegacySubagentsSection();
+  }
+
   const subagentsConfig: SubagentsConfig = {};
-  if (typeof rawSubagentsSection.enabled === 'boolean') {
-    subagentsConfig.enabled = rawSubagentsSection.enabled;
+  if (typeof agentsSection.enabled === 'boolean') {
+    subagentsConfig.enabled = agentsSection.enabled;
+  } else if (typeof rawLegacySubagentsSection.enabled === 'boolean') {
+    subagentsConfig.enabled = rawLegacySubagentsSection.enabled;
+  }
+  if (typeof agentsSection.include_in_rules === 'boolean') {
+    subagentsConfig.include_in_rules =
+      agentsSection.include_in_rules as boolean;
+  } else if (typeof rawLegacySubagentsSection.include_in_rules === 'boolean') {
+    subagentsConfig.include_in_rules =
+      rawLegacySubagentsSection.include_in_rules;
   }
 
   const nestedDefined = typeof raw.nested === 'boolean';

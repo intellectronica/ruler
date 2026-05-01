@@ -46,6 +46,13 @@ export interface SkillInfo {
 export interface SubagentsConfig {
   /** Enable or disable subagents support. */
   enabled?: boolean;
+  /**
+   * When true, `.ruler/agents/*.md` are also concatenated into the
+   * generated top-level rule files (CLAUDE.md, AGENTS.md, Copilot
+   * instructions, etc.). When false (default), `.ruler/agents/` is
+   * skipped during rule concatenation, mirroring `.ruler/skills/`.
+   */
+  include_in_rules?: boolean;
 }
 
 /** Frontmatter fields recognised on a source subagent definition. */

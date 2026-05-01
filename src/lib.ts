@@ -35,7 +35,13 @@ function resolveSkillsEnabled(
 
 /**
  * Resolves subagents enabled state based on precedence:
- * CLI flag > ruler.toml > default (enabled).
+ * CLI flag > ruler.toml > default (disabled).
+ *
+ * When neither `[agents] enabled` (nor the legacy `[subagents] enabled`)
+ * nor a CLI flag is provided, propagation is disabled by default per spec.
+ * Subagent definitions are an opt-in feature — propagating them silently
+ * could leak runtime prompts into native subagent locations on projects
+ * that never intended to use the feature.
  */
 function resolveSubagentsEnabled(
   cliFlag: boolean | undefined,
@@ -45,7 +51,7 @@ function resolveSubagentsEnabled(
     ? cliFlag
     : configSetting !== undefined
       ? configSetting
-      : true; // default to enabled
+      : false; // default to disabled — see spec: subagents must opt in
 }
 
 /**
