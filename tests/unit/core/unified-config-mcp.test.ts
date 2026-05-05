@@ -5,7 +5,10 @@ import { loadUnifiedConfig } from '../../../src/core/UnifiedConfigLoader';
 
 describe('UnifiedConfigLoader MCP normalization', () => {
   // From tests/unit/core -> go up to tests, then into integration/fixtures/unified
-  const projectRoot = path.join(__dirname, '../../integration/fixtures/unified');
+  const projectRoot = path.join(
+    __dirname,
+    '../../integration/fixtures/unified',
+  );
   test('normalizes mcp.json servers', async () => {
     const unified = await loadUnifiedConfig({ projectRoot });
     // Expect non-null after implementation

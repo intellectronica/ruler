@@ -8,14 +8,19 @@ describe('Lowercase Configuration Support', () => {
   let tmpDir: string;
 
   beforeEach(async () => {
-    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ruler-lowercase-config-'));
-    
+    tmpDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), 'ruler-lowercase-config-'),
+    );
+
     // Create .ruler directory
     const rulerDir = path.join(tmpDir, '.ruler');
     await fs.mkdir(rulerDir, { recursive: true });
-    
+
     // Create a basic instructions file
-    await fs.writeFile(path.join(rulerDir, 'instructions.md'), '# Test instructions');
+    await fs.writeFile(
+      path.join(rulerDir, 'instructions.md'),
+      '# Test instructions',
+    );
   });
 
   afterEach(async () => {
@@ -32,7 +37,7 @@ enabled = true
 [agents.claude]
 enabled = false
 `;
-    
+
     const configPath = path.join(tmpDir, '.ruler', 'ruler.toml');
     await fs.writeFile(configPath, configContent);
 
@@ -66,7 +71,7 @@ enabled = false
 [agents.aider]
 enabled = true
 `;
-    
+
     const configPath = path.join(tmpDir, '.ruler', 'ruler.toml');
     await fs.writeFile(configPath, configContent);
 
@@ -93,7 +98,7 @@ output_path = "CUSTOM_CLAUDE.md"
 output_path_instructions = "custom_aider.md"
 output_path_config = "custom_aider.yml"
 `;
-    
+
     const configPath = path.join(tmpDir, '.ruler', 'ruler.toml');
     await fs.writeFile(configPath, configContent);
 
@@ -103,9 +108,17 @@ output_path_config = "custom_aider.yml"
     });
 
     // ConfigLoader resolves paths to absolute paths
-    expect(config.agentConfigs.copilot?.outputPath).toBe(path.join(tmpDir, 'custom/copilot.md'));
-    expect(config.agentConfigs.claude?.outputPath).toBe(path.join(tmpDir, 'CUSTOM_CLAUDE.md'));
-    expect(config.agentConfigs.aider?.outputPathInstructions).toBe(path.join(tmpDir, 'custom_aider.md'));
-    expect(config.agentConfigs.aider?.outputPathConfig).toBe(path.join(tmpDir, 'custom_aider.yml'));
+    expect(config.agentConfigs.copilot?.outputPath).toBe(
+      path.join(tmpDir, 'custom/copilot.md'),
+    );
+    expect(config.agentConfigs.claude?.outputPath).toBe(
+      path.join(tmpDir, 'CUSTOM_CLAUDE.md'),
+    );
+    expect(config.agentConfigs.aider?.outputPathInstructions).toBe(
+      path.join(tmpDir, 'custom_aider.md'),
+    );
+    expect(config.agentConfigs.aider?.outputPathConfig).toBe(
+      path.join(tmpDir, 'custom_aider.yml'),
+    );
   });
 });

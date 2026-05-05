@@ -66,7 +66,7 @@ describe('CopilotAgent', () => {
     try {
       // Create existing file to be backed up
       const agentsMdPath = path.join(projectRoot, 'AGENTS.md');
-      
+
       await fs.writeFile(agentsMdPath, 'Existing AGENTS.md content');
 
       const agent = new CopilotAgent();
@@ -76,14 +76,14 @@ describe('CopilotAgent', () => {
 
       // Check that backup file was created
       const agentsMdBackup = path.join(projectRoot, 'AGENTS.md.bak');
-      
+
       const agentsMdBackupContent = await fs.readFile(agentsMdBackup, 'utf8');
 
       expect(agentsMdBackupContent).toBe('Existing AGENTS.md content');
 
       // Check that new content was written
       const agentsMdContent = await fs.readFile(agentsMdPath, 'utf8');
-      
+
       expect(agentsMdContent).toContain('Rule A');
     } finally {
       await teardownTestProject(projectRoot);
@@ -97,7 +97,7 @@ describe('CopilotAgent', () => {
     try {
       // Create existing file
       const agentsMdPath = path.join(projectRoot, 'AGENTS.md');
-      
+
       await fs.writeFile(agentsMdPath, 'Existing AGENTS.md content');
 
       const agent = new CopilotAgent();
@@ -107,14 +107,17 @@ describe('CopilotAgent', () => {
 
       // Check that no backup file was created
       const agentsMdBackup = path.join(projectRoot, 'AGENTS.md.bak');
-      
-      const agentsMdBackupExists = await fs.access(agentsMdBackup).then(() => true).catch(() => false);
+
+      const agentsMdBackupExists = await fs
+        .access(agentsMdBackup)
+        .then(() => true)
+        .catch(() => false);
 
       expect(agentsMdBackupExists).toBe(false);
 
       // Check that new content was still written
       const agentsMdContent = await fs.readFile(agentsMdPath, 'utf8');
-      
+
       expect(agentsMdContent).toContain('Rule A');
     } finally {
       await teardownTestProject(projectRoot);
@@ -138,7 +141,7 @@ describe('CopilotAgent', () => {
       const agentsMdStat1 = await fs.stat(agentsMdPath);
 
       // Wait a bit to ensure different timestamps if files are rewritten
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Second apply with same rules
       await agent.applyRulerConfig(rules, projectRoot, null);

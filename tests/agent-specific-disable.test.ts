@@ -2,7 +2,11 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import os from 'os';
 import { execSync } from 'child_process';
-import { setupTestProject, teardownTestProject, runRulerWithInheritedStdio } from './harness';
+import {
+  setupTestProject,
+  teardownTestProject,
+  runRulerWithInheritedStdio,
+} from './harness';
 
 describe('agent-specific-disable', () => {
   let testProject: { projectRoot: string };
@@ -22,7 +26,7 @@ enabled = false
       '.ruler/mcp.json': JSON.stringify(mcp, null, 2) + '\n',
       '.vscode/mcp.json': JSON.stringify(nativeVs, null, 2) + '\n',
       '.cursor/mcp.json': JSON.stringify(nativeCur, null, 2) + '\n',
-      '.ruler/ruler.toml': toml
+      '.ruler/ruler.toml': toml,
     });
   });
 
@@ -32,9 +36,9 @@ enabled = false
 
   it('skips disabled agent but merges others', async () => {
     const { projectRoot } = testProject;
-    
+
     runRulerWithInheritedStdio('apply', projectRoot);
-    
+
     const copilot = JSON.parse(
       await fs.readFile(path.join(projectRoot, '.vscode', 'mcp.json'), 'utf8'),
     );

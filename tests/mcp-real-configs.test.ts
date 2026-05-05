@@ -20,7 +20,7 @@ describe('MCP Propagation Integration - Real vs Example Configs', () => {
     const rulerDir = path.join(tmpDir, '.ruler');
     await fs.mkdir(rulerDir);
 
-    // Create AGENTS.md 
+    // Create AGENTS.md
     await fs.writeFile(path.join(rulerDir, 'AGENTS.md'), '# Test instructions');
 
     // Create ruler.toml with REAL, user-defined MCP servers (not examples)
@@ -46,16 +46,19 @@ env = { API_TOKEN = "real-token-12345" }
       undefined,
       false, // verbose
       false, // dry run
-      true   // local only
+      true, // local only
     );
 
     // Verify OpenHands config exists and contains ONLY the user-defined servers
     const openHandsConfigPath = path.join(tmpDir, 'config.toml');
-    const configExists = await fs.access(openHandsConfigPath).then(() => true).catch(() => false);
+    const configExists = await fs
+      .access(openHandsConfigPath)
+      .then(() => true)
+      .catch(() => false);
     expect(configExists).toBe(true);
 
     const configContent = await fs.readFile(openHandsConfigPath, 'utf8');
-    
+
     // Should contain the REAL user-defined servers
     expect(configContent).toContain('user_real_filesystem');
     expect(configContent).toContain('user_real_api');
@@ -91,12 +94,15 @@ args = ["toml-mcp-tool"]
     const mcpJson = {
       mcpServers: {
         json_server: {
-          command: "uvx", 
-          args: ["json-mcp-tool"]
-        }
-      }
+          command: 'uvx',
+          args: ['json-mcp-tool'],
+        },
+      },
     };
-    await fs.writeFile(path.join(rulerDir, 'mcp.json'), JSON.stringify(mcpJson));
+    await fs.writeFile(
+      path.join(rulerDir, 'mcp.json'),
+      JSON.stringify(mcpJson),
+    );
 
     // Apply ruler configuration for OpenHands
     await applyAllAgentConfigs(
@@ -108,12 +114,12 @@ args = ["toml-mcp-tool"]
       undefined,
       false, // verbose
       false, // dry run
-      true   // local only
+      true, // local only
     );
 
     const openHandsConfigPath = path.join(tmpDir, 'config.toml');
     const configContent = await fs.readFile(openHandsConfigPath, 'utf8');
-    
+
     // Should contain BOTH user-defined servers from merged sources
     expect(configContent).toContain('toml_server');
     expect(configContent).toContain('json_server');
@@ -150,12 +156,15 @@ default_agents = ["openhands"]
       undefined,
       false, // verbose
       false, // dry run
-      true   // local only
+      true, // local only
     );
 
     // Should NOT create OpenHands config file when no servers are defined
     const openHandsConfigPath = path.join(tmpDir, 'config.toml');
-    const configExists = await fs.access(openHandsConfigPath).then(() => true).catch(() => false);
+    const configExists = await fs
+      .access(openHandsConfigPath)
+      .then(() => true)
+      .catch(() => false);
     expect(configExists).toBe(false);
   });
 });

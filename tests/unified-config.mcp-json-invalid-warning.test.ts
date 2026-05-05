@@ -21,9 +21,9 @@ describe('legacy mcp.json invalid still warns', () => {
     const { projectRoot } = testProject;
     const { loadUnifiedConfig } = require('../dist/core/UnifiedConfigLoader');
     const config = await loadUnifiedConfig({ projectRoot });
-    
-    const deprecationDiagnostic = config.diagnostics.find((d: any) => 
-      d.code === 'MCP_JSON_DEPRECATED'
+
+    const deprecationDiagnostic = config.diagnostics.find(
+      (d: any) => d.code === 'MCP_JSON_DEPRECATED',
     );
     expect(deprecationDiagnostic).toBeTruthy();
     expect(deprecationDiagnostic.severity).toBe('warning');

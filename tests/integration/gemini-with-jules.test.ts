@@ -1,6 +1,10 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { setupTestProject, teardownTestProject, runRulerWithInheritedStdio } from '../harness';
+import {
+  setupTestProject,
+  teardownTestProject,
+  runRulerWithInheritedStdio,
+} from '../harness';
 
 describe('Gemini MCP merge even if AGENTS.md already written by Jules', () => {
   let projectRoot: string;
@@ -10,9 +14,9 @@ describe('Gemini MCP merge even if AGENTS.md already written by Jules', () => {
       '.ruler/AGENTS.md': 'Rule A',
       '.ruler/mcp.json': JSON.stringify({
         mcpServers: {
-          ex: { command: 'uvx', args: ['mcp-ex'] }
-        }
-      })
+          ex: { command: 'uvx', args: ['mcp-ex'] },
+        },
+      }),
     });
     projectRoot = tmp.projectRoot;
   });
@@ -30,4 +34,3 @@ describe('Gemini MCP merge even if AGENTS.md already written by Jules', () => {
     expect(Object.keys(json.mcpServers)).toContain('ex');
   });
 });
-

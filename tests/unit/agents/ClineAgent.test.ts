@@ -27,7 +27,9 @@ describe('ClineAgent', () => {
   it('should have the correct default output path', () => {
     const agent = new ClineAgent();
     const projectRoot = '/test/project';
-    expect(agent.getDefaultOutputPath(projectRoot)).toBe(path.join(projectRoot, '.clinerules'));
+    expect(agent.getDefaultOutputPath(projectRoot)).toBe(
+      path.join(projectRoot, '.clinerules'),
+    );
   });
 
   it('writes rules to .clinerules file', async () => {

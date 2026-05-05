@@ -63,8 +63,10 @@ describe('AbstractAgent', () => {
     it('creates parent directory if it does not exist', async () => {
       const rules = 'Test rules with nested path';
       const customPath = path.join('nested', 'dir', 'test.md');
-      
-      await agent.applyRulerConfig(rules, tmpDir, null, { outputPath: customPath });
+
+      await agent.applyRulerConfig(rules, tmpDir, null, {
+        outputPath: customPath,
+      });
 
       const fullPath = path.join(tmpDir, customPath);
       const content = await fs.readFile(fullPath, 'utf8');
@@ -95,9 +97,11 @@ describe('AbstractAgent', () => {
       const rules = 'Custom path rules';
       const customPath = path.join(tmpDir, 'custom', 'test-rules.md');
       await fs.mkdir(path.dirname(customPath), { recursive: true });
-      
-      await agent.applyRulerConfig(rules, tmpDir, null, { outputPath: customPath });
-      
+
+      await agent.applyRulerConfig(rules, tmpDir, null, {
+        outputPath: customPath,
+      });
+
       const content = await fs.readFile(customPath, 'utf8');
       expect(content).toBe(rules);
     });
@@ -105,10 +109,12 @@ describe('AbstractAgent', () => {
     it('resolves relative paths correctly', async () => {
       const rules = 'Relative path rules';
       const relativePath = '../outside/test.md';
-      
+
       // This should resolve relative to the project root
-      await agent.applyRulerConfig(rules, tmpDir, null, { outputPath: relativePath });
-      
+      await agent.applyRulerConfig(rules, tmpDir, null, {
+        outputPath: relativePath,
+      });
+
       const expectedPath = path.resolve(tmpDir, relativePath);
       const content = await fs.readFile(expectedPath, 'utf8');
       expect(content).toBe(rules);
@@ -117,9 +123,11 @@ describe('AbstractAgent', () => {
     it('handles absolute paths correctly', async () => {
       const rules = 'Absolute path rules';
       const absolutePath = path.join(tmpDir, 'absolute', 'test.md');
-      
-      await agent.applyRulerConfig(rules, tmpDir, null, { outputPath: absolutePath });
-      
+
+      await agent.applyRulerConfig(rules, tmpDir, null, {
+        outputPath: absolutePath,
+      });
+
       const content = await fs.readFile(absolutePath, 'utf8');
       expect(content).toBe(rules);
     });

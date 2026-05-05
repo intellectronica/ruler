@@ -48,7 +48,11 @@ Authorization = "Bearer TOKEN123"
     // Verify the JSON contains the expected transformations
     const servers = parsed.mcpServers as Record<string, any>;
     expect(servers.filesystem.command).toBe('npx');
-    expect(servers.filesystem.args).toEqual(['-y', 'server-filesystem', '/tmp']);
+    expect(servers.filesystem.args).toEqual([
+      '-y',
+      'server-filesystem',
+      '/tmp',
+    ]);
 
     expect(servers.remote_api.command).toBe('npx');
     expect(servers.remote_api.args).toEqual([

@@ -32,4 +32,8 @@ export class ClaudeAgent extends AbstractAgent {
   supportsNativeSubagents(): boolean {
     return true;
   }
+
+  supportsNativeHooks(): boolean {
+    return true;
+  }
 }

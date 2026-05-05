@@ -4,20 +4,23 @@ import { IAgent } from '../../../src/agents/IAgent';
 
 // Mock agent implementation for testing
 class MockAgent implements IAgent {
-  constructor(private name: string, private identifier: string) {}
-  
+  constructor(
+    private name: string,
+    private identifier: string,
+  ) {}
+
   getIdentifier(): string {
     return this.identifier;
   }
-  
+
   getName(): string {
     return this.name;
   }
-  
+
   async applyRulerConfig(): Promise<void> {
     // Mock implementation
   }
-  
+
   getDefaultOutputPath(): string {
     return `.${this.identifier}/config.json`;
   }
@@ -39,7 +42,7 @@ describe('resolveSelectedAgents', () => {
     const result = resolveSelectedAgents(config, mockAgents);
 
     expect(result).toHaveLength(2);
-    expect(result.map(a => a.getIdentifier())).toEqual(['claude', 'cursor']);
+    expect(result.map((a) => a.getIdentifier())).toEqual(['claude', 'cursor']);
   });
 
   it('should select agents based on CLI filters using partial name matches', () => {
@@ -61,7 +64,7 @@ describe('resolveSelectedAgents', () => {
     };
 
     expect(() => resolveSelectedAgents(config, mockAgents)).toThrow(
-      'Invalid agent specified: invalid-agent'
+      'Invalid agent specified: invalid-agent',
     );
   });
 
@@ -99,7 +102,7 @@ describe('resolveSelectedAgents', () => {
     };
 
     expect(() => resolveSelectedAgents(config, mockAgents)).toThrow(
-      'Invalid agent specified in default_agents: invalid-default'
+      'Invalid agent specified in default_agents: invalid-default',
     );
   });
 
@@ -113,7 +116,10 @@ describe('resolveSelectedAgents', () => {
     const result = resolveSelectedAgents(config, mockAgents);
 
     expect(result).toHaveLength(2);
-    expect(result.map(a => a.getIdentifier()).sort()).toEqual(['copilot', 'cursor']);
+    expect(result.map((a) => a.getIdentifier()).sort()).toEqual([
+      'copilot',
+      'cursor',
+    ]);
   });
 
   it('should select all agents when no configuration is provided', () => {
@@ -124,7 +130,11 @@ describe('resolveSelectedAgents', () => {
     const result = resolveSelectedAgents(config, mockAgents);
 
     expect(result).toHaveLength(3);
-    expect(result.map(a => a.getIdentifier()).sort()).toEqual(['claude', 'copilot', 'cursor']);
+    expect(result.map((a) => a.getIdentifier()).sort()).toEqual([
+      'claude',
+      'copilot',
+      'cursor',
+    ]);
   });
 
   it('should handle CLI agents precedence over default_agents', () => {
@@ -169,14 +179,17 @@ describe('resolveSelectedAgents', () => {
       defaultAgents: ['claude'], // Only claude is in defaults
       agentConfigs: {
         copilot: { enabled: true }, // Explicitly enabled but not in defaults - should be included
-        claude: { enabled: true },  // In defaults and enabled
+        claude: { enabled: true }, // In defaults and enabled
       },
     };
 
     const result = resolveSelectedAgents(config, mockAgents);
 
     expect(result).toHaveLength(2);
-    expect(result.map(a => a.getIdentifier()).sort()).toEqual(['claude', 'copilot']);
+    expect(result.map((a) => a.getIdentifier()).sort()).toEqual([
+      'claude',
+      'copilot',
+    ]);
   });
 
   it('should exclude agents with explicit enabled=false even when in default_agents', () => {
@@ -217,7 +230,7 @@ describe('resolveSelectedAgents', () => {
     const result = resolveSelectedAgents(config, mockAgents);
 
     expect(result).toHaveLength(2);
-    expect(result.map(a => a.getIdentifier())).toEqual(['claude', 'cursor']);
+    expect(result.map((a) => a.getIdentifier())).toEqual(['claude', 'cursor']);
   });
 
   it('should handle empty CLI agents array', () => {
@@ -229,7 +242,11 @@ describe('resolveSelectedAgents', () => {
     const result = resolveSelectedAgents(config, mockAgents);
 
     expect(result).toHaveLength(3);
-    expect(result.map(a => a.getIdentifier()).sort()).toEqual(['claude', 'copilot', 'cursor']);
+    expect(result.map((a) => a.getIdentifier()).sort()).toEqual([
+      'claude',
+      'copilot',
+      'cursor',
+    ]);
   });
 
   it('should handle empty default agents array', () => {
@@ -241,6 +258,10 @@ describe('resolveSelectedAgents', () => {
     const result = resolveSelectedAgents(config, mockAgents);
 
     expect(result).toHaveLength(3);
-    expect(result.map(a => a.getIdentifier()).sort()).toEqual(['claude', 'copilot', 'cursor']);
+    expect(result.map((a) => a.getIdentifier()).sort()).toEqual([
+      'claude',
+      'copilot',
+      'cursor',
+    ]);
   });
 });

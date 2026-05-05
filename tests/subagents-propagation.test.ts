@@ -105,7 +105,13 @@ describe('Subagents per-agent propagators', () => {
       // First write
       await propagateSubagentsForClaude(
         tmpDir,
-        [makeSubagent({ name: 'old', frontmatter: { name: 'old', description: 'old' }, path: '/v/old.md' })],
+        [
+          makeSubagent({
+            name: 'old',
+            frontmatter: { name: 'old', description: 'old' },
+            path: '/v/old.md',
+          }),
+        ],
         { dryRun: false },
       );
       const oldTarget = path.join(tmpDir, CLAUDE_SUBAGENTS_PATH, 'old.md');

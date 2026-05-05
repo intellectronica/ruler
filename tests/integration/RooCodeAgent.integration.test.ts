@@ -8,7 +8,7 @@ describe('RooCodeAgent Integration', () => {
 
   beforeEach(async () => {
     testProject = await setupTestProject({
-      '.ruler/test.md': '# Test rules for RooCode'
+      '.ruler/test.md': '# Test rules for RooCode',
     });
   });
 
@@ -37,7 +37,7 @@ describe('RooCodeAgent Integration', () => {
 
   it('creates MCP servers when ruler.toml has mcp_servers', async () => {
     const { projectRoot } = testProject;
-    
+
     // Add ruler.toml with MCP servers
     const rulerTomlContent = `[mcp_servers.echo]
 command = "echo"
@@ -46,8 +46,11 @@ args = ["hello"]
 [mcp_servers.remote]
 type = "http"
 url = "https://api.example.com"`;
-    
-    await fs.writeFile(path.join(projectRoot, '.ruler', 'ruler.toml'), rulerTomlContent);
+
+    await fs.writeFile(
+      path.join(projectRoot, '.ruler', 'ruler.toml'),
+      rulerTomlContent,
+    );
 
     // Run ruler with roo agent
     runRuler('apply --agents roo', projectRoot);
@@ -56,15 +59,15 @@ url = "https://api.example.com"`;
     const mcpPath = path.join(projectRoot, '.roo', 'mcp.json');
     const mcpContent = await fs.readFile(mcpPath, 'utf8');
     const mcpJson = JSON.parse(mcpContent);
-    
+
     expect(mcpJson.mcpServers.echo).toEqual({
       command: 'echo',
       args: ['hello'],
-      type: 'stdio'
+      type: 'stdio',
     });
     expect(mcpJson.mcpServers.remote).toEqual({
       type: 'remote',
-      url: 'https://api.example.com'
+      url: 'https://api.example.com',
     });
   });
 
@@ -73,22 +76,22 @@ url = "https://api.example.com"`;
 
     // First run
     runRuler('apply --agents roo', projectRoot);
-    
+
     const agentsPath = path.join(projectRoot, 'AGENTS.md');
     const mcpPath = path.join(projectRoot, '.roo', 'mcp.json');
-    
+
     const agentsStats1 = await fs.stat(agentsPath);
     const mcpStats1 = await fs.stat(mcpPath);
-    
+
     // Wait a moment to ensure timestamps would differ if files were rewritten
-    await new Promise(resolve => setTimeout(resolve, 10));
-    
+    await new Promise((resolve) => setTimeout(resolve, 10));
+
     // Second run
     runRuler('apply --agents roo', projectRoot);
-    
+
     const agentsStats2 = await fs.stat(agentsPath);
     const mcpStats2 = await fs.stat(mcpPath);
-    
+
     // Files should not have been modified
     expect(agentsStats2.mtimeMs).toBe(agentsStats1.mtimeMs);
     expect(mcpStats2.mtimeMs).toBe(mcpStats1.mtimeMs);
@@ -96,30 +99,33 @@ url = "https://api.example.com"`;
 
   it('merges with existing .roo/mcp.json', async () => {
     const { projectRoot } = testProject;
-    
+
     // Create existing .roo/mcp.json
     const existingMcp = {
       mcpServers: {
         'existing-server': {
-          command: 'existing-cmd'
-        }
-      }
+          command: 'existing-cmd',
+        },
+      },
     };
-    
+
     await fs.mkdir(path.join(projectRoot, '.roo'), { recursive: true });
     await fs.writeFile(
-      path.join(projectRoot, '.roo', 'mcp.json'), 
-      JSON.stringify(existingMcp, null, 2)
+      path.join(projectRoot, '.roo', 'mcp.json'),
+      JSON.stringify(existingMcp, null, 2),
     );
-    
+
     // Add ruler.toml with new servers
     const rulerTomlContent = `[mcp_servers.new-server]
 command = "new-cmd"
 
 [mcp_servers.existing-server]
 command = "updated-cmd"`;
-    
-    await fs.writeFile(path.join(projectRoot, '.ruler', 'ruler.toml'), rulerTomlContent);
+
+    await fs.writeFile(
+      path.join(projectRoot, '.ruler', 'ruler.toml'),
+      rulerTomlContent,
+    );
 
     // Run ruler
     runRuler('apply --agents roo', projectRoot);
@@ -128,14 +134,14 @@ command = "updated-cmd"`;
     const mcpPath = path.join(projectRoot, '.roo', 'mcp.json');
     const mcpContent = await fs.readFile(mcpPath, 'utf8');
     const mcpJson = JSON.parse(mcpContent);
-    
+
     expect(mcpJson.mcpServers['existing-server']).toEqual({
       command: 'updated-cmd',
-      type: 'stdio'
+      type: 'stdio',
     });
     expect(mcpJson.mcpServers['new-server']).toEqual({
       command: 'new-cmd',
-      type: 'stdio'
+      type: 'stdio',
     });
   });
 });

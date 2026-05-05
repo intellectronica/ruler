@@ -366,4 +366,40 @@ describe('ConfigLoader', () => {
       expect(config.agentConfigs.claude.enabled).toBe(false);
     });
   });
+
+  describe('[hooks] section', () => {
+    it('parses hooks.enabled = true', async () => {
+      await fs.writeFile(
+        path.join(rulerDir, 'ruler.toml'),
+        '[hooks]\nenabled = true\n',
+      );
+      const config = await loadConfig({ projectRoot: tmpDir });
+      expect(config.hooks?.enabled).toBe(true);
+    });
+
+    it('parses hooks.enabled = false', async () => {
+      await fs.writeFile(
+        path.join(rulerDir, 'ruler.toml'),
+        '[hooks]\nenabled = false\n',
+      );
+      const config = await loadConfig({ projectRoot: tmpDir });
+      expect(config.hooks?.enabled).toBe(false);
+    });
+
+    it('returns undefined hooks.enabled when section is absent', async () => {
+      await fs.writeFile(
+        path.join(rulerDir, 'ruler.toml'),
+        'default_agents = ["claude"]\n',
+      );
+      const config = await loadConfig({ projectRoot: tmpDir });
+      expect(config.hooks?.enabled).toBeUndefined();
+    });
+
+    it('returns empty hooks config when section exists but has no keys', async () => {
+      await fs.writeFile(path.join(rulerDir, 'ruler.toml'), '[hooks]\n');
+      const config = await loadConfig({ projectRoot: tmpDir });
+      expect(config.hooks).toBeDefined();
+      expect(config.hooks?.enabled).toBeUndefined();
+    });
+  });
 });

@@ -75,7 +75,9 @@ describe('FirebaseAgent', () => {
       const rules = 'some rules';
       const customPath = path.join(tmpDir, 'custom', 'firebase-rules.md');
       await fs.mkdir(path.dirname(customPath), { recursive: true });
-      await agent.applyRulerConfig(rules, tmpDir, null, { outputPath: customPath });
+      await agent.applyRulerConfig(rules, tmpDir, null, {
+        outputPath: customPath,
+      });
       const content = await fs.readFile(customPath, 'utf8');
       expect(content).toBe(rules);
     });

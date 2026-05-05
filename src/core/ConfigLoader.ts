@@ -9,6 +9,7 @@ import {
   GitignoreConfig,
   SkillsConfig,
   SubagentsConfig,
+  HooksConfig,
 } from '../types';
 import { createRulerError, logWarn } from '../constants';
 
@@ -85,6 +86,11 @@ const rulerConfigSchema = z.object({
       enabled: z.boolean().optional(),
     })
     .optional(),
+  hooks: z
+    .object({
+      enabled: z.boolean().optional(),
+    })
+    .optional(),
   // Deprecated: kept in the schema only so that legacy `[subagents]` blocks
   // are preserved through validation. The parser reads from here as a
   // fallback when the new `[agents]` keys are absent and emits a one-time
@@ -148,6 +154,8 @@ export interface LoadedConfig {
   gitignore?: GitignoreConfig;
   /** Skills configuration section. */
   skills?: SkillsConfig;
+  /** Hooks configuration section. */
+  hooks?: HooksConfig;
   /** Subagents configuration section. */
   subagents?: SubagentsConfig;
   /** Whether to enable nested rule loading from nested .ruler directories. */
@@ -310,6 +318,15 @@ export async function loadConfig(
     skillsConfig.enabled = rawSkillsSection.enabled;
   }
 
+  const rawHooksSection =
+    raw.hooks && typeof raw.hooks === 'object' && !Array.isArray(raw.hooks)
+      ? (raw.hooks as Record<string, unknown>)
+      : {};
+  const hooksConfig: HooksConfig = {};
+  if (typeof rawHooksSection.enabled === 'boolean') {
+    hooksConfig.enabled = rawHooksSection.enabled;
+  }
+
   // Subagent control lives under `[agents]` (alongside per-agent records).
   // The reserved keys `enabled` and `include_in_rules` are pulled out here
   // and surfaced internally as `LoadedConfig.subagents` for the rest of the
@@ -356,6 +373,7 @@ export async function loadConfig(
     mcp: globalMcpConfig,
     gitignore: gitignoreConfig,
     skills: skillsConfig,
+    hooks: hooksConfig,
     subagents: subagentsConfig,
     nested,
     nestedDefined,

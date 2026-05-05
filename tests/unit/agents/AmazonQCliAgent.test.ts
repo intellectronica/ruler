@@ -32,7 +32,9 @@ describe('AmazonQCliAgent Unit Tests', () => {
 
     it('returns correct default output paths', () => {
       const paths = agent.getDefaultOutputPath('/tmp/test');
-      expect(paths.instructions).toBe('/tmp/test/.amazonq/rules/ruler_q_rules.md');
+      expect(paths.instructions).toBe(
+        '/tmp/test/.amazonq/rules/ruler_q_rules.md',
+      );
       expect(paths.mcp).toBe('/tmp/test/.amazonq/mcp.json');
     });
 
@@ -52,10 +54,15 @@ describe('AmazonQCliAgent Unit Tests', () => {
   describe('applyRulerConfig', () => {
     it('creates rules file in correct location', async () => {
       const rules = '# Test Rules\nUse TypeScript';
-      
+
       await agent.applyRulerConfig(rules, tmpDir, null, undefined, false);
-      
-      const rulesPath = path.join(tmpDir, '.amazonq', 'rules', 'ruler_q_rules.md');
+
+      const rulesPath = path.join(
+        tmpDir,
+        '.amazonq',
+        'rules',
+        'ruler_q_rules.md',
+      );
       const content = await fs.readFile(rulesPath, 'utf8');
       expect(content).toBe(rules);
     });
@@ -66,9 +73,9 @@ describe('AmazonQCliAgent Unit Tests', () => {
         mcpServers: {
           filesystem: {
             command: 'npx',
-            args: ['-y', '@modelcontextprotocol/server-filesystem', '.']
-          }
-        }
+            args: ['-y', '@modelcontextprotocol/server-filesystem', '.'],
+          },
+        },
       };
 
       await agent.applyRulerConfig(rules, tmpDir, mcpConfig, undefined, false);
@@ -76,44 +83,52 @@ describe('AmazonQCliAgent Unit Tests', () => {
       const mcpPath = path.join(tmpDir, '.amazonq', 'mcp.json');
       const mcpContent = await fs.readFile(mcpPath, 'utf8');
       const parsedMcp = JSON.parse(mcpContent);
-      
+
       expect(parsedMcp.mcpServers.filesystem).toEqual({
         command: 'npx',
-        args: ['-y', '@modelcontextprotocol/server-filesystem', '.']
+        args: ['-y', '@modelcontextprotocol/server-filesystem', '.'],
       });
     });
 
     it('merges MCP configuration with existing config', async () => {
       const rules = '# Test Rules';
-      
+
       // First, create existing MCP config
       const existingMcpPath = path.join(tmpDir, '.amazonq', 'mcp.json');
       const existingMcp = {
         mcpServers: {
-          existing: { command: 'existing-cmd' }
-        }
+          existing: { command: 'existing-cmd' },
+        },
       };
-      
+
       await fs.mkdir(path.dirname(existingMcpPath), { recursive: true });
       await fs.writeFile(existingMcpPath, JSON.stringify(existingMcp, null, 2));
 
       // Now apply new MCP config
       const newMcpConfig = {
         mcpServers: {
-          filesystem: { command: 'npx', args: ['mcp-filesystem'] }
-        }
+          filesystem: { command: 'npx', args: ['mcp-filesystem'] },
+        },
       };
 
-      await agent.applyRulerConfig(rules, tmpDir, newMcpConfig, undefined, false);
+      await agent.applyRulerConfig(
+        rules,
+        tmpDir,
+        newMcpConfig,
+        undefined,
+        false,
+      );
 
       const mcpContent = await fs.readFile(existingMcpPath, 'utf8');
       const parsedMcp = JSON.parse(mcpContent);
-      
+
       // Should contain both existing and new servers
-      expect(parsedMcp.mcpServers.existing).toEqual({ command: 'existing-cmd' });
-      expect(parsedMcp.mcpServers.filesystem).toEqual({ 
-        command: 'npx', 
-        args: ['mcp-filesystem'] 
+      expect(parsedMcp.mcpServers.existing).toEqual({
+        command: 'existing-cmd',
+      });
+      expect(parsedMcp.mcpServers.filesystem).toEqual({
+        command: 'npx',
+        args: ['mcp-filesystem'],
       });
     });
 
@@ -121,17 +136,23 @@ describe('AmazonQCliAgent Unit Tests', () => {
       const rules = '# Test Rules';
       const mcpConfig = {
         mcpServers: {
-          filesystem: { command: 'npx' }
-        }
+          filesystem: { command: 'npx' },
+        },
       };
       const agentConfig = {
-        mcp: { enabled: false }
+        mcp: { enabled: false },
       };
 
-      await agent.applyRulerConfig(rules, tmpDir, mcpConfig, agentConfig, false);
+      await agent.applyRulerConfig(
+        rules,
+        tmpDir,
+        mcpConfig,
+        agentConfig,
+        false,
+      );
 
       const mcpPath = path.join(tmpDir, '.amazonq', 'mcp.json');
-      
+
       // MCP file should not exist
       await expect(fs.access(mcpPath)).rejects.toThrow();
     });
@@ -139,7 +160,7 @@ describe('AmazonQCliAgent Unit Tests', () => {
     it('uses custom output path when provided', async () => {
       const rules = '# Custom Rules';
       const agentConfig = {
-        outputPath: 'custom/path/rules.md'
+        outputPath: 'custom/path/rules.md',
       };
 
       await agent.applyRulerConfig(rules, tmpDir, null, agentConfig, false);

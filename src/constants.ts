@@ -76,3 +76,7 @@ export const CLAUDE_SUBAGENTS_PATH = '.claude/agents';
 export const CURSOR_SUBAGENTS_PATH = '.cursor/agents';
 export const CODEX_SUBAGENTS_PATH = '.codex/agents';
 export const COPILOT_SUBAGENTS_PATH = '.github/agents';
+
+// Hooks-related constants
+export const RULER_HOOKS_PATH = '.ruler/hooks.json';
+export const CLAUDE_SETTINGS_PATH = '.claude/settings.json';

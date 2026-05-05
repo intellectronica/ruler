@@ -36,7 +36,9 @@ describe('GeminiCliAgent', () => {
 
       // AGENTS.md should be written at the repository root
       const agentsMdPath = path.join(projectRoot, 'AGENTS.md');
-      await expect(fs.readFile(agentsMdPath, 'utf8')).resolves.toContain('Rule A');
+      await expect(fs.readFile(agentsMdPath, 'utf8')).resolves.toContain(
+        'Rule A',
+      );
 
       // .gemini/settings.json should include contextFileName: "AGENTS.md"
       const settingsPath = path.join(projectRoot, '.gemini', 'settings.json');
@@ -66,7 +68,9 @@ describe('GeminiCliAgent', () => {
 
       expect(settings.someSetting).toBe(true);
       // Ensure any existing mcpServers are preserved (merge happens in apply engine, this just shouldn’t remove)
-      expect(settings.mcpServers).toEqual({ existing: { url: 'http://example' } });
+      expect(settings.mcpServers).toEqual({
+        existing: { url: 'http://example' },
+      });
       // Ensure contextFileName is set to AGENTS.md
       expect(settings.contextFileName).toBe('AGENTS.md');
     } finally {

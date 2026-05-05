@@ -85,4 +85,12 @@ export interface IAgent {
    * Defaults to false if not implemented.
    */
   supportsNativeSubagents?(): boolean;
+
+  /**
+   * Returns whether this agent supports native hooks (like Claude Code).
+   * When true, hooks from `.ruler/hooks.json` are propagated to the agent's
+   * settings file.
+   * Defaults to false if not implemented.
+   */
+  supportsNativeHooks?(): boolean;
 }

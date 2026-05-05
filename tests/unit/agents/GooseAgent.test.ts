@@ -32,7 +32,7 @@ describe('GooseAgent', () => {
   it('should write rules to .goosehints file', async () => {
     const rules = 'Test instructions for Goose';
     await agent.applyRulerConfig(rules, tmpDir, null);
-    
+
     const hintsPath = path.join(tmpDir, '.goosehints');
     const content = await fs.readFile(hintsPath, 'utf8');
     expect(content).toBe(rules);
@@ -46,19 +46,19 @@ describe('GooseAgent', () => {
           url: 'https://test-server.example.com',
           timeout: 300,
           env: {
-            API_KEY: '${TEST_API_KEY}'
-          }
-        }
-      }
+            API_KEY: '${TEST_API_KEY}',
+          },
+        },
+      },
     };
-    
+
     await agent.applyRulerConfig(rules, tmpDir, mcpConfig);
-    
+
     // Should only create .goosehints file
     const hintsPath = path.join(tmpDir, '.goosehints');
     const content = await fs.readFile(hintsPath, 'utf8');
     expect(content).toBe(rules);
-    
+
     // Should not create any config files
     const configPath = path.join(tmpDir, '.goose', 'config.yaml');
     await expect(fs.access(configPath)).rejects.toThrow();

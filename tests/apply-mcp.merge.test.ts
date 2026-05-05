@@ -2,7 +2,11 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import os from 'os';
 import { execSync } from 'child_process';
-import { setupTestProject, teardownTestProject, runRulerWithInheritedStdio } from './harness';
+import {
+  setupTestProject,
+  teardownTestProject,
+  runRulerWithInheritedStdio,
+} from './harness';
 
 describe('apply-mcp.merge', () => {
   let testProject: { projectRoot: string };
@@ -13,7 +17,7 @@ describe('apply-mcp.merge', () => {
 
     testProject = await setupTestProject({
       '.ruler/mcp.json': JSON.stringify(mcp, null, 2) + '\n',
-      '.vscode/mcp.json': JSON.stringify(native, null, 2) + '\n'
+      '.vscode/mcp.json': JSON.stringify(native, null, 2) + '\n',
     });
   });
 
@@ -23,9 +27,9 @@ describe('apply-mcp.merge', () => {
 
   it('merges servers from .ruler/mcp.json and existing native config', async () => {
     const { projectRoot } = testProject;
-    
+
     runRulerWithInheritedStdio('apply', projectRoot);
-    
+
     const resultText = await fs.readFile(
       path.join(projectRoot, '.vscode', 'mcp.json'),
       'utf8',
