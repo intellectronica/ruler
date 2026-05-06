@@ -89,6 +89,22 @@ describe('config-utils', () => {
       expect(Object.keys(result)).toContain('claude');
     });
 
+    it('should prioritize exact identifier matches over fuzzy display name matches', () => {
+      const agents = [
+        new MockAgent('copilot', 'GitHub Copilot'),
+        new MockAgent('pi', 'Pi Coding Agent'),
+      ];
+      const rawConfigs = {
+        pi: { enabled: true },
+      };
+
+      const result = mapRawAgentConfigs(rawConfigs, agents);
+
+      expect(result).toEqual({
+        pi: { enabled: true },
+      });
+    });
+
     it('should ignore keys that do not match any agent', () => {
       const rawConfigs = {
         copilot: { enabled: true },
