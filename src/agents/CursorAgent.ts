@@ -54,4 +54,8 @@ export class CursorAgent extends AgentsMdAgent {
   supportsNativeSubagents(): boolean {
     return true;
   }
+
+  supportsNativeHooks(): boolean {
+    return true;
+  }
 }

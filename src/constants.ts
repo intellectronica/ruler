@@ -80,3 +80,5 @@ export const COPILOT_SUBAGENTS_PATH = '.github/agents';
 // Hooks-related constants
 export const RULER_HOOKS_PATH = '.ruler/hooks.json';
 export const CLAUDE_SETTINGS_PATH = '.claude/settings.json';
+export const CURSOR_SETTINGS_PATH = '.cursor/settings.json';
+export const COPILOT_SETTINGS_PATH = '.github/copilot-settings.json';

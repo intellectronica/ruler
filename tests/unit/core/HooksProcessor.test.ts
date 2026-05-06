@@ -5,11 +5,20 @@ import {
   loadHooksFile,
   propagateHooks,
   propagateHooksForClaude,
+  propagateHooksForCursor,
+  propagateHooksForCopilot,
   _resetExperimentalWarningForTests,
   type RulerHooks,
 } from '../../../src/core/HooksProcessor';
-import { RULER_HOOKS_PATH, CLAUDE_SETTINGS_PATH } from '../../../src/constants';
+import {
+  RULER_HOOKS_PATH,
+  CLAUDE_SETTINGS_PATH,
+  CURSOR_SETTINGS_PATH,
+  COPILOT_SETTINGS_PATH,
+} from '../../../src/constants';
 import { ClaudeAgent } from '../../../src/agents/ClaudeAgent';
+import { CursorAgent } from '../../../src/agents/CursorAgent';
+import { CopilotAgent } from '../../../src/agents/CopilotAgent';
 import { AiderAgent } from '../../../src/agents/AiderAgent';
 
 // ---------------------------------------------------------------------------
@@ -22,12 +31,19 @@ async function writeHooksFile(dir: string, content: unknown): Promise<void> {
   await fs.writeFile(hooksPath, JSON.stringify(content), 'utf8');
 }
 
+async function readSettingsFile(
+  dir: string,
+  relPath: string,
+): Promise<Record<string, unknown>> {
+  const settingsPath = path.join(dir, relPath);
+  const raw = await fs.readFile(settingsPath, 'utf8');
+  return JSON.parse(raw) as Record<string, unknown>;
+}
+
 async function readClaudeSettings(
   dir: string,
 ): Promise<Record<string, unknown>> {
-  const settingsPath = path.join(dir, CLAUDE_SETTINGS_PATH);
-  const raw = await fs.readFile(settingsPath, 'utf8');
-  return JSON.parse(raw) as Record<string, unknown>;
+  return readSettingsFile(dir, CLAUDE_SETTINGS_PATH);
 }
 
 // ---------------------------------------------------------------------------
@@ -208,8 +224,234 @@ describe('propagateHooksForClaude', () => {
 });
 
 // ---------------------------------------------------------------------------
-// propagateHooks orchestrator
+// propagateHooksForCursor
 // ---------------------------------------------------------------------------
+
+describe('propagateHooksForCursor', () => {
+  let tmpDir: string;
+
+  beforeEach(async () => {
+    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ruler-hooks-cursor-'));
+  });
+
+  afterEach(async () => {
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  });
+
+  const SAMPLE_HOOKS: RulerHooks = {
+    PreToolUse: [
+      { matcher: 'Bash', hooks: [{ type: 'command', command: 'check.sh' }] },
+    ],
+  };
+
+  it('writes hooks to .cursor/settings.json', async () => {
+    await propagateHooksForCursor(tmpDir, SAMPLE_HOOKS, false, false);
+    const settings = await readSettingsFile(tmpDir, CURSOR_SETTINGS_PATH);
+    expect(settings.hooks).toEqual(SAMPLE_HOOKS);
+  });
+
+  it('merges hooks into existing settings without removing other keys', async () => {
+    const settingsPath = path.join(tmpDir, CURSOR_SETTINGS_PATH);
+    await fs.mkdir(path.dirname(settingsPath), { recursive: true });
+    await fs.writeFile(
+      settingsPath,
+      JSON.stringify({ cursorSetting: 'keep-me' }),
+      'utf8',
+    );
+    await propagateHooksForCursor(tmpDir, SAMPLE_HOOKS, false, false);
+    const settings = await readSettingsFile(tmpDir, CURSOR_SETTINGS_PATH);
+    expect(settings.cursorSetting).toBe('keep-me');
+    expect(settings.hooks).toEqual(SAMPLE_HOOKS);
+  });
+
+  it('does not write files in dry-run mode', async () => {
+    await propagateHooksForCursor(tmpDir, SAMPLE_HOOKS, true, false);
+    const settingsPath = path.join(tmpDir, CURSOR_SETTINGS_PATH);
+    await expect(fs.access(settingsPath)).rejects.toThrow();
+  });
+
+  it('creates .cursor directory if it does not exist', async () => {
+    await propagateHooksForCursor(tmpDir, SAMPLE_HOOKS, false, false);
+    const cursorDir = path.join(tmpDir, '.cursor');
+    await expect(fs.access(cursorDir)).resolves.toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// propagateHooksForCopilot
+// ---------------------------------------------------------------------------
+
+describe('propagateHooksForCopilot', () => {
+  let tmpDir: string;
+
+  beforeEach(async () => {
+    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ruler-hooks-copilot-'));
+  });
+
+  afterEach(async () => {
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  });
+
+  const SAMPLE_HOOKS: RulerHooks = {
+    Stop: [{ hooks: [{ type: 'command', command: 'done.sh' }] }],
+  };
+
+  it('writes hooks to .github/copilot-settings.json', async () => {
+    await propagateHooksForCopilot(tmpDir, SAMPLE_HOOKS, false, false);
+    const settings = await readSettingsFile(tmpDir, COPILOT_SETTINGS_PATH);
+    expect(settings.hooks).toEqual(SAMPLE_HOOKS);
+  });
+
+  it('merges hooks into existing settings without removing other keys', async () => {
+    const settingsPath = path.join(tmpDir, COPILOT_SETTINGS_PATH);
+    await fs.mkdir(path.dirname(settingsPath), { recursive: true });
+    await fs.writeFile(
+      settingsPath,
+      JSON.stringify({ existingKey: 'keep-me' }),
+      'utf8',
+    );
+    await propagateHooksForCopilot(tmpDir, SAMPLE_HOOKS, false, false);
+    const settings = await readSettingsFile(tmpDir, COPILOT_SETTINGS_PATH);
+    expect(settings.existingKey).toBe('keep-me');
+    expect(settings.hooks).toEqual(SAMPLE_HOOKS);
+  });
+
+  it('does not write files in dry-run mode', async () => {
+    await propagateHooksForCopilot(tmpDir, SAMPLE_HOOKS, true, false);
+    const settingsPath = path.join(tmpDir, COPILOT_SETTINGS_PATH);
+    await expect(fs.access(settingsPath)).rejects.toThrow();
+  });
+
+  it('creates .github directory if it does not exist', async () => {
+    await propagateHooksForCopilot(tmpDir, SAMPLE_HOOKS, false, false);
+    const githubDir = path.join(tmpDir, '.github');
+    await expect(fs.access(githubDir)).resolves.toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// propagateHooks orchestrator — Cursor and Copilot
+// ---------------------------------------------------------------------------
+
+describe('propagateHooks orchestrator — Cursor and Copilot', () => {
+  let tmpDir: string;
+
+  beforeEach(async () => {
+    tmpDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), 'ruler-hooks-orch-multi-'),
+    );
+    _resetExperimentalWarningForTests();
+  });
+
+  afterEach(async () => {
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  });
+
+  it('propagates hooks to Cursor settings when cursor agent is selected', async () => {
+    await writeHooksFile(tmpDir, {
+      PreToolUse: [
+        { matcher: 'Bash', hooks: [{ type: 'command', command: 'pre.sh' }] },
+      ],
+    });
+
+    await propagateHooks(tmpDir, [new CursorAgent()], true, false, false);
+
+    const settings = await readSettingsFile(tmpDir, CURSOR_SETTINGS_PATH);
+    expect(settings.hooks).toBeDefined();
+  });
+
+  it('propagates hooks to Copilot settings when copilot agent is selected', async () => {
+    await writeHooksFile(tmpDir, {
+      Stop: [{ hooks: [{ type: 'command', command: 'done.sh' }] }],
+    });
+
+    await propagateHooks(tmpDir, [new CopilotAgent()], true, false, false);
+
+    const settings = await readSettingsFile(tmpDir, COPILOT_SETTINGS_PATH);
+    expect(settings.hooks).toBeDefined();
+  });
+
+  it('propagates hooks to all three agents when all are selected', async () => {
+    await writeHooksFile(tmpDir, {
+      PostToolUse: [{ hooks: [{ type: 'command', command: 'post.sh' }] }],
+    });
+
+    await propagateHooks(
+      tmpDir,
+      [new ClaudeAgent(), new CursorAgent(), new CopilotAgent()],
+      true,
+      false,
+      false,
+    );
+
+    const claudeSettings = await readSettingsFile(tmpDir, CLAUDE_SETTINGS_PATH);
+    const cursorSettings = await readSettingsFile(tmpDir, CURSOR_SETTINGS_PATH);
+    const copilotSettings = await readSettingsFile(
+      tmpDir,
+      COPILOT_SETTINGS_PATH,
+    );
+
+    expect(claudeSettings.hooks).toBeDefined();
+    expect(cursorSettings.hooks).toBeDefined();
+    expect(copilotSettings.hooks).toBeDefined();
+  });
+
+  it('removes hooks from all agent settings when hooksEnabled is false', async () => {
+    // Pre-populate all settings files with hooks.
+    for (const relPath of [
+      CLAUDE_SETTINGS_PATH,
+      CURSOR_SETTINGS_PATH,
+      COPILOT_SETTINGS_PATH,
+    ]) {
+      const settingsPath = path.join(tmpDir, relPath);
+      await fs.mkdir(path.dirname(settingsPath), { recursive: true });
+      await fs.writeFile(
+        settingsPath,
+        JSON.stringify({ hooks: { Stop: [] }, other: 'keep' }),
+        'utf8',
+      );
+    }
+
+    await propagateHooks(
+      tmpDir,
+      [new ClaudeAgent(), new CursorAgent(), new CopilotAgent()],
+      false,
+      false,
+      false,
+    );
+
+    for (const relPath of [
+      CLAUDE_SETTINGS_PATH,
+      CURSOR_SETTINGS_PATH,
+      COPILOT_SETTINGS_PATH,
+    ]) {
+      const settings = await readSettingsFile(tmpDir, relPath);
+      expect(settings).not.toHaveProperty('hooks');
+      expect(settings.other).toBe('keep');
+    }
+  });
+
+  it('dry-run does not write Cursor or Copilot settings files', async () => {
+    await writeHooksFile(tmpDir, {
+      PreToolUse: [{ hooks: [{ type: 'command', command: 'check.sh' }] }],
+    });
+
+    await propagateHooks(
+      tmpDir,
+      [new CursorAgent(), new CopilotAgent()],
+      true,
+      false,
+      true,
+    );
+
+    await expect(
+      fs.access(path.join(tmpDir, CURSOR_SETTINGS_PATH)),
+    ).rejects.toThrow();
+    await expect(
+      fs.access(path.join(tmpDir, COPILOT_SETTINGS_PATH)),
+    ).rejects.toThrow();
+  });
+});
 
 describe('propagateHooks orchestrator', () => {
   let tmpDir: string;

@@ -3,6 +3,8 @@ import * as fs from 'fs/promises';
 import {
   RULER_HOOKS_PATH,
   CLAUDE_SETTINGS_PATH,
+  CURSOR_SETTINGS_PATH,
+  COPILOT_SETTINGS_PATH,
   logWarn,
   logVerboseInfo,
 } from '../constants';
@@ -158,13 +160,12 @@ export async function loadHooksFile(
 }
 
 /**
- * Reads the existing `.claude/settings.json` from the project root.
- * Returns an empty object if the file does not exist.
+ * Reads a JSON settings file from the project root.
+ * Returns an empty object if the file does not exist or is not a valid object.
  */
-async function readClaudeSettings(
-  projectRoot: string,
+async function readSettingsFile(
+  settingsPath: string,
 ): Promise<Record<string, unknown>> {
-  const settingsPath = path.join(projectRoot, CLAUDE_SETTINGS_PATH);
   try {
     const raw = await fs.readFile(settingsPath, 'utf8');
     const parsed = JSON.parse(raw);
@@ -182,6 +183,29 @@ async function readClaudeSettings(
 }
 
 /**
+ * Writes a JSON settings object to a file, creating parent directories as needed.
+ */
+async function writeSettingsFile(
+  settingsPath: string,
+  settings: Record<string, unknown>,
+): Promise<void> {
+  await fs.mkdir(path.dirname(settingsPath), { recursive: true });
+  await fs.writeFile(settingsPath, JSON.stringify(settings, null, 2) + '\n', {
+    encoding: 'utf8',
+  });
+}
+
+/**
+ * Reads the existing `.claude/settings.json` from the project root.
+ * Returns an empty object if the file does not exist.
+ */
+async function readClaudeSettings(
+  projectRoot: string,
+): Promise<Record<string, unknown>> {
+  return readSettingsFile(path.join(projectRoot, CLAUDE_SETTINGS_PATH));
+}
+
+/**
  * Writes the updated settings object to `.claude/settings.json`,
  * creating the `.claude` directory if needed.
  */
@@ -189,11 +213,10 @@ async function writeClaudeSettings(
   projectRoot: string,
   settings: Record<string, unknown>,
 ): Promise<void> {
-  const settingsPath = path.join(projectRoot, CLAUDE_SETTINGS_PATH);
-  await fs.mkdir(path.dirname(settingsPath), { recursive: true });
-  await fs.writeFile(settingsPath, JSON.stringify(settings, null, 2) + '\n', {
-    encoding: 'utf8',
-  });
+  await writeSettingsFile(
+    path.join(projectRoot, CLAUDE_SETTINGS_PATH),
+    settings,
+  );
 }
 
 /**
@@ -222,15 +245,67 @@ export async function propagateHooksForClaude(
 }
 
 /**
- * Removes the ruler-managed `hooks` key from `.claude/settings.json`.
- * Called when hooks are disabled so stale configuration is cleaned up.
+ * Propagates hooks into `.cursor/settings.json` for Cursor.
+ * Merges ruler-managed hooks into the existing settings, replacing any
+ * previously ruler-managed hooks entries while preserving other settings.
  */
-async function cleanupClaudeHooks(
+export async function propagateHooksForCursor(
   projectRoot: string,
+  hooks: RulerHooks,
   dryRun: boolean,
   verbose: boolean,
 ): Promise<void> {
-  const settingsPath = path.join(projectRoot, CLAUDE_SETTINGS_PATH);
+  if (dryRun) {
+    logVerboseInfo(
+      `DRY RUN: Would write hooks to ${CURSOR_SETTINGS_PATH}`,
+      verbose,
+      dryRun,
+    );
+    return;
+  }
+
+  const settingsPath = path.join(projectRoot, CURSOR_SETTINGS_PATH);
+  const settings = await readSettingsFile(settingsPath);
+  settings.hooks = hooks;
+  await writeSettingsFile(settingsPath, settings);
+}
+
+/**
+ * Propagates hooks into `.github/copilot-settings.json` for GitHub Copilot.
+ * Merges ruler-managed hooks into the existing settings, replacing any
+ * previously ruler-managed hooks entries while preserving other settings.
+ */
+export async function propagateHooksForCopilot(
+  projectRoot: string,
+  hooks: RulerHooks,
+  dryRun: boolean,
+  verbose: boolean,
+): Promise<void> {
+  if (dryRun) {
+    logVerboseInfo(
+      `DRY RUN: Would write hooks to ${COPILOT_SETTINGS_PATH}`,
+      verbose,
+      dryRun,
+    );
+    return;
+  }
+
+  const settingsPath = path.join(projectRoot, COPILOT_SETTINGS_PATH);
+  const settings = await readSettingsFile(settingsPath);
+  settings.hooks = hooks;
+  await writeSettingsFile(settingsPath, settings);
+}
+
+/**
+ * Removes the ruler-managed `hooks` key from a JSON settings file.
+ * If the file does not exist, or no `hooks` key is present, this is a no-op.
+ */
+async function cleanupHooksFromSettingsFile(
+  settingsPath: string,
+  relPath: string,
+  dryRun: boolean,
+  verbose: boolean,
+): Promise<void> {
   try {
     await fs.access(settingsPath);
   } catch {
@@ -238,22 +313,50 @@ async function cleanupClaudeHooks(
   }
   if (dryRun) {
     logVerboseInfo(
-      `DRY RUN: Would remove hooks from ${CLAUDE_SETTINGS_PATH}`,
+      `DRY RUN: Would remove hooks from ${relPath}`,
       verbose,
       dryRun,
     );
     return;
   }
-  const settings = await readClaudeSettings(projectRoot);
+  const settings = await readSettingsFile(settingsPath);
   if ('hooks' in settings) {
     delete settings.hooks;
-    await writeClaudeSettings(projectRoot, settings);
+    await writeSettingsFile(settingsPath, settings);
     logVerboseInfo(
-      `Removed hooks from ${CLAUDE_SETTINGS_PATH} (hooks disabled)`,
+      `Removed hooks from ${relPath} (hooks disabled)`,
       verbose,
       dryRun,
     );
   }
+}
+
+/**
+ * Removes ruler-managed hooks from all supported agent settings files.
+ */
+async function cleanupAllHooks(
+  projectRoot: string,
+  dryRun: boolean,
+  verbose: boolean,
+): Promise<void> {
+  await cleanupHooksFromSettingsFile(
+    path.join(projectRoot, CLAUDE_SETTINGS_PATH),
+    CLAUDE_SETTINGS_PATH,
+    dryRun,
+    verbose,
+  );
+  await cleanupHooksFromSettingsFile(
+    path.join(projectRoot, CURSOR_SETTINGS_PATH),
+    CURSOR_SETTINGS_PATH,
+    dryRun,
+    verbose,
+  );
+  await cleanupHooksFromSettingsFile(
+    path.join(projectRoot, COPILOT_SETTINGS_PATH),
+    COPILOT_SETTINGS_PATH,
+    dryRun,
+    verbose,
+  );
 }
 
 /**
@@ -294,7 +397,7 @@ export async function propagateHooks(
       verbose,
       dryRun,
     );
-    await cleanupClaudeHooks(projectRoot, dryRun, verbose);
+    await cleanupAllHooks(projectRoot, dryRun, verbose);
     return;
   }
 
@@ -354,5 +457,29 @@ export async function propagateHooks(
       dryRun,
     );
     await propagateHooksForClaude(projectRoot, hooks, dryRun, verbose);
+  }
+
+  const cursorAgent = hookSupportingAgents.find(
+    (a) => a.getIdentifier() === 'cursor',
+  );
+  if (cursorAgent) {
+    logVerboseInfo(
+      `Writing hooks to ${CURSOR_SETTINGS_PATH} for Cursor`,
+      verbose,
+      dryRun,
+    );
+    await propagateHooksForCursor(projectRoot, hooks, dryRun, verbose);
+  }
+
+  const copilotAgent = hookSupportingAgents.find(
+    (a) => a.getIdentifier() === 'copilot',
+  );
+  if (copilotAgent) {
+    logVerboseInfo(
+      `Writing hooks to ${COPILOT_SETTINGS_PATH} for GitHub Copilot`,
+      verbose,
+      dryRun,
+    );
+    await propagateHooksForCopilot(projectRoot, hooks, dryRun, verbose);
   }
 }
