@@ -245,7 +245,7 @@ The `apply` command looks for `.ruler/` in the current directory tree, reading t
 | `--no-backup`                  | Disable creation of `.bak` backup files.                               |
 | `--skills`                     | Enable skills support (experimental, default: enabled).                |
 | `--no-skills`                  | Disable skills support.                                                |
-| `--subagents`                  | Enable subagents support (experimental, default: enabled).             |
+| `--subagents`                  | Enable subagents support (experimental, default: disabled).            |
 | `--no-subagents`               | Disable subagents support.                                             |
 | `--dry-run`                    | Preview changes without writing files.                                 |
 | `--local-only`                 | Skip `$XDG_CONFIG_HOME` when looking for configuration.                |
