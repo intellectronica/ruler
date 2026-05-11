@@ -87,6 +87,11 @@ export function run(): void {
             type: 'boolean',
             description:
               'Enable/disable subagents support (experimental, default: enabled)',
+          })
+          .option('hooks', {
+            type: 'boolean',
+            description:
+              'Enable/disable hooks support (experimental, default: disabled)',
           });
       },
       applyHandler,
