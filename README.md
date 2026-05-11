@@ -246,7 +246,7 @@ The `apply` command looks for `.ruler/` in the current directory tree, reading t
 | `--no-backup`                  | Disable creation of `.bak` backup files.                               |
 | `--skills`                     | Enable skills support (experimental, default: enabled).                |
 | `--no-skills`                  | Disable skills support.                                                |
-| `--subagents`                  | Enable subagents support (experimental, default: enabled).             |
+| `--subagents`                  | Enable subagents support (experimental, default: disabled).            |
 | `--no-subagents`               | Disable subagents support.                                             |
 | `--hooks`                      | Enable hooks support (experimental, default: disabled).                |
 | `--no-hooks`                   | Disable hooks support.                                                 |
