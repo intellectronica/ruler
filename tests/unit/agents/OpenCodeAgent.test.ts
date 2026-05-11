@@ -48,15 +48,11 @@ describe('OpenCodeAgent', () => {
 
     expect(mockedFs.writeFile).toHaveBeenCalledWith('/root/AGENTS.md', 'rules');
     expect(mockedFs.writeFile).toHaveBeenCalledWith(
-      '/root/opencode.json',
-      JSON.stringify(
-        {
-          $schema: 'https://opencode.ai/config.json',
-          mcp: {},
-        },
-        null,
-        2,
-      ),
+      '/root/opencode.json', 
+      JSON.stringify({
+        $schema: 'https://opencode.ai/config.json',
+        mcp: {}
+      }, null, 2)
     );
   });
 
@@ -65,9 +61,9 @@ describe('OpenCodeAgent', () => {
       mcpServers: {
         'test-server': {
           command: 'echo',
-          args: ['hello'],
-        },
-      },
+          args: ['hello']
+        }
+      }
     };
 
     mockedFs.readFile.mockRejectedValue(new Error('File not found'));
@@ -76,20 +72,16 @@ describe('OpenCodeAgent', () => {
 
     expect(mockedFs.writeFile).toHaveBeenCalledWith('/root/AGENTS.md', 'rules');
     expect(mockedFs.writeFile).toHaveBeenCalledWith(
-      '/root/opencode.json',
-      JSON.stringify(
-        {
-          $schema: 'https://opencode.ai/config.json',
-          mcp: {
-            'test-server': {
-              command: 'echo',
-              args: ['hello'],
-            },
-          },
-        },
-        null,
-        2,
-      ),
+      '/root/opencode.json', 
+      JSON.stringify({
+        $schema: 'https://opencode.ai/config.json',
+        mcp: {
+          'test-server': {
+            command: 'echo',
+            args: ['hello']
+          }
+        }
+      }, null, 2)
     );
   });
 
@@ -98,34 +90,30 @@ describe('OpenCodeAgent', () => {
       mcpServers: {
         'test-server': {
           command: 'echo',
-          args: ['hello'],
-        },
-      },
+          args: ['hello']
+        }
+      }
     };
 
     mockedFs.readFile.mockRejectedValue(new Error('File not found'));
 
     await agent.applyRulerConfig('rules', '/root', mcpConfig, {
       outputPathInstructions: 'CUSTOM.md',
-      outputPathConfig: 'custom-opencode.json',
+      outputPathConfig: 'custom-opencode.json'
     });
 
     expect(mockedFs.writeFile).toHaveBeenCalledWith('/root/CUSTOM.md', 'rules');
     expect(mockedFs.writeFile).toHaveBeenCalledWith(
-      '/root/custom-opencode.json',
-      JSON.stringify(
-        {
-          $schema: 'https://opencode.ai/config.json',
-          mcp: {
-            'test-server': {
-              command: 'echo',
-              args: ['hello'],
-            },
-          },
-        },
-        null,
-        2,
-      ),
+      '/root/custom-opencode.json', 
+      JSON.stringify({
+        $schema: 'https://opencode.ai/config.json',
+        mcp: {
+          'test-server': {
+            command: 'echo',
+            args: ['hello']
+          }
+        }
+      }, null, 2)
     );
   });
 });

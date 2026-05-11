@@ -3,14 +3,7 @@ import * as path from 'path';
 import { loadUnifiedConfig } from '../../../src/core/UnifiedConfigLoader';
 
 describe('UnifiedConfigLoader (basic)', () => {
-  const tmpRoot = path.join(
-    __dirname,
-    '..',
-    '..',
-    '..',
-    'tmp-fixtures',
-    'unified-basic',
-  );
+  const tmpRoot = path.join(__dirname, '..', '..', '..', 'tmp-fixtures', 'unified-basic');
   const rulerDir = path.join(tmpRoot, '.ruler');
   const tomlPath = path.join(rulerDir, 'ruler.toml');
 
@@ -31,10 +24,8 @@ describe('UnifiedConfigLoader (basic)', () => {
   test('orders rule files with AGENTS.md first', async () => {
     const unified = await loadUnifiedConfig({ projectRoot: tmpRoot });
     expect(unified.rules.files[0].relativePath).toMatch(/AGENTS\.md$/);
-    const rels = unified.rules.files.map((f) => f.relativePath);
+  const rels = unified.rules.files.map((f) => f.relativePath);
     expect(rels).toEqual(['AGENTS.md', 'extra.md']);
-    expect(unified.rules.concatenated).toMatch(
-      /<!-- Source: \.ruler\/AGENTS.md -->[\s\S]*<!-- Source: \.ruler\/extra.md -->/,
-    );
+  expect(unified.rules.concatenated).toMatch(/<!-- Source: \.ruler\/AGENTS.md -->[\s\S]*<!-- Source: \.ruler\/extra.md -->/);
   });
 });

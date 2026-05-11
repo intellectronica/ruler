@@ -28,9 +28,7 @@ describe('Subagents discovery', () => {
   });
 
   it('returns empty list when .ruler/agents/ is empty', async () => {
-    await fs.mkdir(path.join(tmpDir, RULER_SUBAGENTS_PATH), {
-      recursive: true,
-    });
+    await fs.mkdir(path.join(tmpDir, RULER_SUBAGENTS_PATH), { recursive: true });
     const result = await discoverSubagents(tmpDir);
     expect(result.subagents).toHaveLength(0);
     expect(result.warnings).toHaveLength(0);
@@ -155,7 +153,10 @@ body
       `---\nname: broken\ndescription: bad yaml\ntools: [Read,\n---\nbody\n`,
     );
     // A valid sibling — discovery must keep going and surface this one.
-    await writeAgent('good', `---\nname: good\ndescription: ok\n---\nbody\n`);
+    await writeAgent(
+      'good',
+      `---\nname: good\ndescription: ok\n---\nbody\n`,
+    );
 
     const result = await discoverSubagents(tmpDir);
     expect(result.subagents).toHaveLength(1);

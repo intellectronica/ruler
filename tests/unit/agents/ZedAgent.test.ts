@@ -41,9 +41,7 @@ describe('ZedAgent', () => {
 
       // AGENTS.md should be written at the repository root
       const agentsMdPath = path.join(projectRoot, 'AGENTS.md');
-      await expect(fs.readFile(agentsMdPath, 'utf8')).resolves.toContain(
-        'Rule A',
-      );
+      await expect(fs.readFile(agentsMdPath, 'utf8')).resolves.toContain('Rule A');
     } finally {
       await teardownTestProject(projectRoot);
     }
@@ -53,7 +51,7 @@ describe('ZedAgent', () => {
     const { projectRoot } = await setupTestProject({
       '.ruler/AGENTS.md': 'Test rules',
     });
-
+    
     try {
       const agent = new ZedAgent();
       const rules = 'Test rules content';
@@ -92,7 +90,7 @@ describe('ZedAgent', () => {
     const { projectRoot } = await setupTestProject({
       '.ruler/AGENTS.md': 'Test rules',
     });
-
+    
     try {
       // Create existing settings.json with some MCP servers
       const zedDir = path.join(projectRoot, '.zed');
@@ -108,10 +106,7 @@ describe('ZedAgent', () => {
           },
         },
       };
-      await fs.writeFile(
-        zedSettingsPath,
-        JSON.stringify(existingSettings, null, 2),
-      );
+      await fs.writeFile(zedSettingsPath, JSON.stringify(existingSettings, null, 2));
 
       const agent = new ZedAgent();
       const rules = 'Test rules content';
@@ -153,7 +148,7 @@ describe('ZedAgent', () => {
     const { projectRoot } = await setupTestProject({
       '.ruler/AGENTS.md': 'Test rules',
     });
-
+    
     try {
       const agent = new ZedAgent();
       const rules = 'Test rules content';
@@ -172,7 +167,7 @@ describe('ZedAgent', () => {
     const { projectRoot } = await setupTestProject({
       '.ruler/AGENTS.md': 'Test rules',
     });
-
+    
     try {
       // Create existing settings.json with some MCP servers
       const zedDir = path.join(projectRoot, '.zed');
@@ -188,10 +183,7 @@ describe('ZedAgent', () => {
           },
         },
       };
-      await fs.writeFile(
-        zedSettingsPath,
-        JSON.stringify(existingSettings, null, 2),
-      );
+      await fs.writeFile(zedSettingsPath, JSON.stringify(existingSettings, null, 2));
 
       const agent = new ZedAgent();
       const rules = 'Test rules content';
@@ -231,7 +223,7 @@ describe('ZedAgent', () => {
 
   it('transforms MCP server configuration from ruler format to Zed format', () => {
     const agent = new ZedAgent();
-
+    
     // Test transformation of a typical ruler MCP server configuration
     const rulerConfig = {
       type: 'stdio',
@@ -271,7 +263,7 @@ env = { TEST_VAR = "test_value" }
     try {
       // Import applyAllAgentConfigs to test the full flow
       const { applyAllAgentConfigs } = await import('../../../src/lib');
-
+      
       // Apply configuration only to Zed agent through the full flow
       await applyAllAgentConfigs(
         projectRoot,
@@ -295,7 +287,7 @@ env = { TEST_VAR = "test_value" }
       // Verify the transformation was applied correctly
       expect(settings.context_servers).toBeDefined();
       expect(settings.context_servers.test_server).toBeDefined();
-
+      
       const serverConfig = settings.context_servers.test_server;
       // Should have transformed format: no "type", has "source": "custom"
       expect(serverConfig.type).toBeUndefined();

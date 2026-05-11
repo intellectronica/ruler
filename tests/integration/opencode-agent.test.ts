@@ -7,9 +7,7 @@ describe('OpenCode Agent Integration', () => {
   let tmpDir: string;
 
   beforeEach(async () => {
-    tmpDir = await fs.mkdtemp(
-      path.join(os.tmpdir(), 'ruler-opencode-integration-'),
-    );
+    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ruler-opencode-integration-'));
   });
 
   afterEach(async () => {
@@ -20,25 +18,15 @@ describe('OpenCode Agent Integration', () => {
     // Create a minimal .ruler directory structure without mcp.json
     const rulerDir = path.join(tmpDir, '.ruler');
     await fs.mkdir(rulerDir, { recursive: true });
-
+    
     // Create basic AGENTS.md file
     await fs.writeFile(
       path.join(rulerDir, 'AGENTS.md'),
-      '# Test Rules\n\nThese are test rules for the OpenCode agent.',
+      '# Test Rules\n\nThese are test rules for the OpenCode agent.'
     );
 
     // Run ruler apply for just the OpenCode agent
-    await applyAllAgentConfigs(
-      tmpDir,
-      ['opencode'],
-      undefined,
-      true,
-      undefined,
-      false,
-      false,
-      false,
-      true,
-    );
+    await applyAllAgentConfigs(tmpDir, ['opencode'], undefined, true, undefined, false, false, false, true);
 
     // Verify that opencode.json was created
     const openCodePath = path.join(tmpDir, 'opencode.json');
@@ -53,11 +41,11 @@ describe('OpenCode Agent Integration', () => {
     // Create .ruler directory structure with mcp.json
     const rulerDir = path.join(tmpDir, '.ruler');
     await fs.mkdir(rulerDir, { recursive: true });
-
+    
     // Create basic AGENTS.md file
     await fs.writeFile(
       path.join(rulerDir, 'AGENTS.md'),
-      '# Test Rules\n\nThese are test rules for the OpenCode agent.',
+      '# Test Rules\n\nThese are test rules for the OpenCode agent.'
     );
 
     // Create ruler.toml with MCP config
@@ -73,17 +61,7 @@ timeout = 45
     await fs.writeFile(path.join(rulerDir, 'ruler.toml'), rulerToml);
 
     // Run ruler apply for just the OpenCode agent
-    await applyAllAgentConfigs(
-      tmpDir,
-      ['opencode'],
-      undefined,
-      true,
-      undefined,
-      false,
-      false,
-      false,
-      true,
-    );
+    await applyAllAgentConfigs(tmpDir, ['opencode'], undefined, true, undefined, false, false, false, true);
 
     // Verify that opencode.json was created with the MCP server
     const openCodePath = path.join(tmpDir, 'opencode.json');

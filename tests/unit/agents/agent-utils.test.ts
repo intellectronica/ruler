@@ -61,7 +61,7 @@ describe('getAgentOutputPaths', () => {
     it('returns default path when no config is provided', () => {
       const agent = new MockSinglePathAgent();
       const result = getAgentOutputPaths(agent, tmpDir);
-
+      
       expect(result).toEqual([path.join(tmpDir, 'MOCK.md')]);
     });
 
@@ -70,9 +70,9 @@ describe('getAgentOutputPaths', () => {
       const agentConfig: IAgentConfig = {
         outputPath: '/custom/path/output.md',
       };
-
+      
       const result = getAgentOutputPaths(agent, tmpDir, agentConfig);
-
+      
       expect(result).toEqual(['/custom/path/output.md']);
     });
 
@@ -83,9 +83,9 @@ describe('getAgentOutputPaths', () => {
         outputPathInstructions: '/ignored/instructions.md',
         outputPathConfig: '/ignored/config.yml',
       };
-
+      
       const result = getAgentOutputPaths(agent, tmpDir, agentConfig);
-
+      
       expect(result).toEqual(['/custom/path/output.md']);
     });
   });
@@ -94,7 +94,7 @@ describe('getAgentOutputPaths', () => {
     it('returns all default paths when no config is provided', () => {
       const agent = new MockMultiPathAgent();
       const result = getAgentOutputPaths(agent, tmpDir);
-
+      
       expect(result).toEqual([
         path.join(tmpDir, 'mock_instructions.md'),
         path.join(tmpDir, '.mock.conf.yml'),
@@ -107,9 +107,9 @@ describe('getAgentOutputPaths', () => {
       const agentConfig: IAgentConfig = {
         outputPathInstructions: '/custom/instructions.md',
       };
-
+      
       const result = getAgentOutputPaths(agent, tmpDir, agentConfig);
-
+      
       expect(result).toEqual([
         '/custom/instructions.md',
         path.join(tmpDir, '.mock.conf.yml'),
@@ -122,9 +122,9 @@ describe('getAgentOutputPaths', () => {
       const agentConfig: IAgentConfig = {
         outputPathConfig: '/custom/config.yml',
       };
-
+      
       const result = getAgentOutputPaths(agent, tmpDir, agentConfig);
-
+      
       expect(result).toEqual([
         path.join(tmpDir, 'mock_instructions.md'),
         '/custom/config.yml',
@@ -138,9 +138,9 @@ describe('getAgentOutputPaths', () => {
         outputPathInstructions: '/custom/instructions.md',
         outputPathConfig: '/custom/config.yml',
       };
-
+      
       const result = getAgentOutputPaths(agent, tmpDir, agentConfig);
-
+      
       expect(result).toEqual([
         '/custom/instructions.md',
         '/custom/config.yml',
@@ -172,7 +172,7 @@ describe('getAgentOutputPaths', () => {
 
       const agent = new MockNoInstructionsAgent();
       const result = getAgentOutputPaths(agent, tmpDir);
-
+      
       expect(result).toEqual([
         path.join(tmpDir, '.mock.conf.yml'),
         path.join(tmpDir, 'other.txt'),
@@ -203,7 +203,7 @@ describe('getAgentOutputPaths', () => {
 
       const agent = new MockNoConfigAgent();
       const result = getAgentOutputPaths(agent, tmpDir);
-
+      
       expect(result).toEqual([
         path.join(tmpDir, 'instructions.md'),
         path.join(tmpDir, 'other.txt'),
@@ -216,9 +216,9 @@ describe('getAgentOutputPaths', () => {
         outputPath: '/ignored/path.md',
         outputPathInstructions: '/custom/instructions.md',
       };
-
+      
       const result = getAgentOutputPaths(agent, tmpDir, agentConfig);
-
+      
       expect(result).toEqual([
         '/custom/instructions.md',
         path.join(tmpDir, '.mock.conf.yml'),
@@ -249,7 +249,7 @@ describe('getAgentOutputPaths', () => {
 
       const agent = new MockEmptyPathsAgent();
       const result = getAgentOutputPaths(agent, tmpDir);
-
+      
       expect(result).toEqual([]);
     });
   });

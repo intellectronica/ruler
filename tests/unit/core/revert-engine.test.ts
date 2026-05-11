@@ -70,7 +70,7 @@ describe('revert-engine', () => {
         undefined,
         false,
         false,
-        false,
+        false
       );
 
       expect(result.restored).toBe(1);
@@ -82,10 +82,7 @@ describe('revert-engine', () => {
       expect(restoredContent).toBe('backup content');
 
       // Check that backup was removed
-      const backupExists = await fs
-        .access(backupPath)
-        .then(() => true)
-        .catch(() => false);
+      const backupExists = await fs.access(backupPath).then(() => true).catch(() => false);
       expect(backupExists).toBe(false);
     });
 
@@ -103,7 +100,7 @@ describe('revert-engine', () => {
         undefined,
         false,
         false,
-        false,
+        false
       );
 
       expect(result.restored).toBe(0);
@@ -111,10 +108,7 @@ describe('revert-engine', () => {
       expect(result.backupsRemoved).toBe(0);
 
       // Check that file was removed
-      const fileExists = await fs
-        .access(configPath)
-        .then(() => true)
-        .catch(() => false);
+      const fileExists = await fs.access(configPath).then(() => true).catch(() => false);
       expect(fileExists).toBe(false);
     });
 
@@ -134,7 +128,7 @@ describe('revert-engine', () => {
         undefined,
         true, // keepBackups
         false,
-        false,
+        false
       );
 
       expect(result.restored).toBe(1);
@@ -142,10 +136,7 @@ describe('revert-engine', () => {
       expect(result.backupsRemoved).toBe(0);
 
       // Check that backup still exists
-      const backupExists = await fs
-        .access(backupPath)
-        .then(() => true)
-        .catch(() => false);
+      const backupExists = await fs.access(backupPath).then(() => true).catch(() => false);
       expect(backupExists).toBe(true);
     });
 
@@ -165,7 +156,7 @@ describe('revert-engine', () => {
         undefined,
         false,
         false,
-        true, // dryRun
+        true // dryRun
       );
 
       expect(result.restored).toBe(1);
@@ -176,10 +167,7 @@ describe('revert-engine', () => {
       const currentContent = await fs.readFile(configPath, 'utf8');
       expect(currentContent).toBe('current content');
 
-      const backupExists = await fs
-        .access(backupPath)
-        .then(() => true)
-        .catch(() => false);
+      const backupExists = await fs.access(backupPath).then(() => true).catch(() => false);
       expect(backupExists).toBe(true);
     });
 
@@ -192,7 +180,7 @@ describe('revert-engine', () => {
         undefined,
         false,
         false,
-        false,
+        false
       );
 
       expect(result.restored).toBe(0);
@@ -233,10 +221,7 @@ describe('revert-engine', () => {
       expect(result.additionalFilesRemoved).toBeGreaterThan(0);
 
       // Check that file still exists in dry run
-      const fileExists = await fs
-        .access(mcpFile)
-        .then(() => true)
-        .catch(() => false);
+      const fileExists = await fs.access(mcpFile).then(() => true).catch(() => false);
       expect(fileExists).toBe(true);
     });
 
@@ -255,39 +240,36 @@ describe('revert-engine', () => {
 
     it('should use [ruler:dry-run] prefix when dryRun is true', async () => {
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
-
+      
       // Create a test file to trigger removal in removeAdditionalAgentFiles
       const mcpFile = path.join(tmpDir, '.mcp.json');
       await fs.writeFile(mcpFile, '{}');
 
       await cleanUpAuxiliaryFiles(tmpDir, true, true); // verbose=true, dryRun=true
-
+      
       const errorCalls = consoleErrorSpy.mock.calls.flat();
-      const hasRulerDryRunPrefix = errorCalls.some(
-        (call) => typeof call === 'string' && call.includes('[ruler:dry-run]'),
+      const hasRulerDryRunPrefix = errorCalls.some(call => 
+        typeof call === 'string' && call.includes('[ruler:dry-run]')
       );
-
+      
       expect(hasRulerDryRunPrefix).toBe(true);
       consoleErrorSpy.mockRestore();
     });
 
     it('should use [ruler] prefix when dryRun is false', async () => {
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
-
+      
       // Create a test file to trigger removal in removeAdditionalAgentFiles
       const mcpFile = path.join(tmpDir, '.mcp.json');
       await fs.writeFile(mcpFile, '{}');
 
       await cleanUpAuxiliaryFiles(tmpDir, true, false); // verbose=true, dryRun=false
-
+      
       const errorCalls = consoleErrorSpy.mock.calls.flat();
-      const hasRulerPrefix = errorCalls.some(
-        (call) =>
-          typeof call === 'string' &&
-          call.includes('[ruler]') &&
-          !call.includes('[ruler:dry-run]'),
+      const hasRulerPrefix = errorCalls.some(call => 
+        typeof call === 'string' && call.includes('[ruler]') && !call.includes('[ruler:dry-run]')
       );
-
+      
       expect(hasRulerPrefix).toBe(true);
       consoleErrorSpy.mockRestore();
     });

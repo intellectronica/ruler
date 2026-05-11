@@ -7,10 +7,8 @@ describe('Revert Agent Integration', () => {
   let tmpDir: string;
 
   beforeEach(async () => {
-    tmpDir = await fs.mkdtemp(
-      path.join(os.tmpdir(), 'ruler-agent-integration-'),
-    );
-
+    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ruler-agent-integration-'));
+    
     const rulerDir = path.join(tmpDir, '.ruler');
     await fs.mkdir(rulerDir, { recursive: true });
     await fs.writeFile(path.join(rulerDir, 'instructions.md'), 'Test Rule');
@@ -24,20 +22,11 @@ describe('Revert Agent Integration', () => {
     it('should revert only Claude agent files', async () => {
       await fs.writeFile(path.join(tmpDir, 'CLAUDE.md'), 'Claude content');
       await fs.writeFile(path.join(tmpDir, 'AGENTS.md'), 'Agents content');
-
-      await revertAllAgentConfigs(
-        tmpDir,
-        ['claude'],
-        undefined,
-        false,
-        false,
-        false,
-      );
-
+      
+      await revertAllAgentConfigs(tmpDir, ['claude'], undefined, false, false, false);
+      
       await expect(fs.access(path.join(tmpDir, 'CLAUDE.md'))).rejects.toThrow();
-      await expect(
-        fs.access(path.join(tmpDir, 'AGENTS.md')),
-      ).resolves.toBeUndefined();
+      await expect(fs.access(path.join(tmpDir, 'AGENTS.md'))).resolves.toBeUndefined();
     });
 
     it('should revert multiple specific agents', async () => {
@@ -45,64 +34,30 @@ describe('Revert Agent Integration', () => {
       await fs.writeFile(path.join(tmpDir, 'AGENTS.md'), 'Agents content');
       await fs.writeFile(path.join(tmpDir, 'CRUSH.md'), 'Crush content');
 
-      await revertAllAgentConfigs(
-        tmpDir,
-        ['claude', 'crush'],
-        undefined,
-        false,
-        false,
-        false,
-      );
+      await revertAllAgentConfigs(tmpDir, ['claude', 'crush'], undefined, false, false, false);
 
       await expect(fs.access(path.join(tmpDir, 'CLAUDE.md'))).rejects.toThrow();
       await expect(fs.access(path.join(tmpDir, 'CRUSH.md'))).rejects.toThrow();
-      await expect(
-        fs.access(path.join(tmpDir, 'AGENTS.md')),
-      ).resolves.toBeUndefined();
+      await expect(fs.access(path.join(tmpDir, 'AGENTS.md'))).resolves.toBeUndefined();
     });
 
     it('should handle agent with multiple output paths (AiderAgent)', async () => {
       await fs.writeFile(path.join(tmpDir, 'AGENTS.md'), 'Aider instructions');
-      await fs.writeFile(
-        path.join(tmpDir, '.aider.conf.yml'),
-        'read: [AGENTS.md]',
-      );
-
-      await revertAllAgentConfigs(
-        tmpDir,
-        ['aider'],
-        undefined,
-        false,
-        false,
-        false,
-      );
-
+      await fs.writeFile(path.join(tmpDir, '.aider.conf.yml'), 'read: [AGENTS.md]');
+      
+      await revertAllAgentConfigs(tmpDir, ['aider'], undefined, false, false, false);
+      
       await expect(fs.access(path.join(tmpDir, 'AGENTS.md'))).rejects.toThrow();
-      await expect(
-        fs.access(path.join(tmpDir, '.aider.conf.yml')),
-      ).rejects.toThrow();
+      await expect(fs.access(path.join(tmpDir, '.aider.conf.yml'))).rejects.toThrow();
     });
 
     it('should handle KiloCode agent files and directories', async () => {
-      await fs.writeFile(
-        path.join(tmpDir, 'AGENTS.md'),
-        'KiloCode instructions',
-      );
+      await fs.writeFile(path.join(tmpDir, 'AGENTS.md'), 'KiloCode instructions');
       // Kilo Code still writes MCP settings under .kilocode/.
       await fs.mkdir(path.join(tmpDir, '.kilocode'), { recursive: true });
-      await fs.writeFile(
-        path.join(tmpDir, '.kilocode', 'mcp.json'),
-        '{"mcpServers": {}}',
-      );
+      await fs.writeFile(path.join(tmpDir, '.kilocode', 'mcp.json'), '{"mcpServers": {}}');
 
-      await revertAllAgentConfigs(
-        tmpDir,
-        ['kilocode'],
-        undefined,
-        false,
-        false,
-        false,
-      );
+      await revertAllAgentConfigs(tmpDir, ['kilocode'], undefined, false, false, false);
 
       await expect(fs.access(path.join(tmpDir, '.kilocode'))).rejects.toThrow();
       await expect(fs.access(path.join(tmpDir, 'AGENTS.md'))).rejects.toThrow();
@@ -113,52 +68,24 @@ describe('Revert Agent Integration', () => {
     it('should remove empty agent directories', async () => {
       await fs.writeFile(path.join(tmpDir, 'AGENTS.md'), 'Copilot content');
 
-      await fs.mkdir(path.join(tmpDir, '.augment', 'rules'), {
-        recursive: true,
-      });
-      await fs.writeFile(
-        path.join(tmpDir, '.augment', 'rules', 'ruler_augment_instructions.md'),
-        'Augment content',
-      );
+      await fs.mkdir(path.join(tmpDir, '.augment', 'rules'), { recursive: true });
+      await fs.writeFile(path.join(tmpDir, '.augment', 'rules', 'ruler_augment_instructions.md'), 'Augment content');
 
-      await revertAllAgentConfigs(
-        tmpDir,
-        undefined,
-        undefined,
-        false,
-        false,
-        false,
-      );
+      await revertAllAgentConfigs(tmpDir, undefined, undefined, false, false, false);
 
       await expect(fs.access(path.join(tmpDir, 'AGENTS.md'))).rejects.toThrow();
       await expect(fs.access(path.join(tmpDir, '.augment'))).rejects.toThrow();
     });
 
     it('should preserve directories with non-ruler content', async () => {
-      await fs.mkdir(path.join(tmpDir, '.github', 'workflows'), {
-        recursive: true,
-      });
+      await fs.mkdir(path.join(tmpDir, '.github', 'workflows'), { recursive: true });
       await fs.writeFile(path.join(tmpDir, 'AGENTS.md'), 'Copilot content');
-      await fs.writeFile(
-        path.join(tmpDir, '.github', 'workflows', 'ci.yml'),
-        'Existing workflow',
-      );
+      await fs.writeFile(path.join(tmpDir, '.github', 'workflows', 'ci.yml'), 'Existing workflow');
 
-      await revertAllAgentConfigs(
-        tmpDir,
-        undefined,
-        undefined,
-        false,
-        false,
-        false,
-      );
+      await revertAllAgentConfigs(tmpDir, undefined, undefined, false, false, false);
 
-      await expect(
-        fs.access(path.join(tmpDir, '.github')),
-      ).resolves.toBeUndefined();
-      await expect(
-        fs.access(path.join(tmpDir, '.github', 'workflows', 'ci.yml')),
-      ).resolves.toBeUndefined();
+      await expect(fs.access(path.join(tmpDir, '.github'))).resolves.toBeUndefined();
+      await expect(fs.access(path.join(tmpDir, '.github', 'workflows', 'ci.yml'))).resolves.toBeUndefined();
       await expect(fs.access(path.join(tmpDir, 'AGENTS.md'))).rejects.toThrow();
     });
   });
@@ -168,31 +95,14 @@ describe('Revert Agent Integration', () => {
       await fs.writeFile(path.join(tmpDir, '.mcp.json'), '{"mcpServers": {}}');
       await fs.mkdir(path.join(tmpDir, '.vscode'), { recursive: true });
       await fs.mkdir(path.join(tmpDir, '.junie', 'mcp'), { recursive: true });
-      await fs.writeFile(
-        path.join(tmpDir, '.vscode', 'mcp.json'),
-        '{"mcpServers": {}}',
-      );
-      await fs.writeFile(
-        path.join(tmpDir, '.junie', 'mcp', 'mcp.json'),
-        '{"mcpServers": {}}',
-      );
-
-      await revertAllAgentConfigs(
-        tmpDir,
-        undefined,
-        undefined,
-        false,
-        false,
-        false,
-      );
-
+      await fs.writeFile(path.join(tmpDir, '.vscode', 'mcp.json'), '{"mcpServers": {}}');
+      await fs.writeFile(path.join(tmpDir, '.junie', 'mcp', 'mcp.json'), '{"mcpServers": {}}');
+      
+      await revertAllAgentConfigs(tmpDir, undefined, undefined, false, false, false);
+      
       await expect(fs.access(path.join(tmpDir, '.mcp.json'))).rejects.toThrow();
-      await expect(
-        fs.access(path.join(tmpDir, '.vscode', 'mcp.json')),
-      ).rejects.toThrow();
-      await expect(
-        fs.access(path.join(tmpDir, '.junie', 'mcp', 'mcp.json')),
-      ).rejects.toThrow();
+      await expect(fs.access(path.join(tmpDir, '.vscode', 'mcp.json'))).rejects.toThrow();
+      await expect(fs.access(path.join(tmpDir, '.junie', 'mcp', 'mcp.json'))).rejects.toThrow();
     });
   });
 
@@ -204,14 +114,7 @@ describe('Revert Agent Integration', () => {
       await fs.writeFile(backupPath, 'Original Claude');
       await fs.writeFile(claudePath, 'Modified Claude');
 
-      await revertAllAgentConfigs(
-        tmpDir,
-        ['claude'],
-        undefined,
-        false,
-        false,
-        false,
-      );
+      await revertAllAgentConfigs(tmpDir, ['claude'], undefined, false, false, false);
 
       const claudeContent = await fs.readFile(claudePath, 'utf8');
       expect(claudeContent).toBe('Original Claude');
@@ -221,22 +124,15 @@ describe('Revert Agent Integration', () => {
       const claudePath = path.join(tmpDir, 'CLAUDE.md');
       await fs.writeFile(`${claudePath}.bak`, 'Original Claude');
       await fs.writeFile(claudePath, 'Modified Claude');
-
+      
       const agentsPath = path.join(tmpDir, 'AGENTS.md');
       await fs.writeFile(agentsPath, 'Generated Agents');
-
-      await revertAllAgentConfigs(
-        tmpDir,
-        undefined,
-        undefined,
-        false,
-        false,
-        false,
-      );
-
+      
+      await revertAllAgentConfigs(tmpDir, undefined, undefined, false, false, false);
+      
       const claudeContent = await fs.readFile(claudePath, 'utf8');
       expect(claudeContent).toBe('Original Claude');
-
+      
       await expect(fs.access(agentsPath)).rejects.toThrow();
     });
   });
@@ -246,18 +142,9 @@ describe('Revert Agent Integration', () => {
       await fs.writeFile(path.join(tmpDir, 'CLAUDE.md'), 'Claude content');
 
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-      await revertAllAgentConfigs(
-        tmpDir,
-        undefined,
-        undefined,
-        false,
-        false,
-        true,
-      );
+      await revertAllAgentConfigs(tmpDir, undefined, undefined, false, false, true);
 
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Files processed:'),
-      );
+      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Files processed:'));
 
       consoleSpy.mockRestore();
     });

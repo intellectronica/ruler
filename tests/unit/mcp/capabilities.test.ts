@@ -1,8 +1,4 @@
-import {
-  getAgentMcpCapabilities,
-  agentSupportsMcp,
-  filterMcpConfigForAgent,
-} from '../../../src/mcp/capabilities';
+import { getAgentMcpCapabilities, agentSupportsMcp, filterMcpConfigForAgent } from '../../../src/mcp/capabilities';
 import { OpenHandsAgent } from '../../../src/agents/OpenHandsAgent';
 import { AugmentCodeAgent } from '../../../src/agents/AugmentCodeAgent';
 import { CopilotAgent } from '../../../src/agents/CopilotAgent';
@@ -15,7 +11,7 @@ describe('MCP Capabilities', () => {
     it('returns correct capabilities for OpenHands (both stdio and remote)', () => {
       const agent = new OpenHandsAgent();
       const capabilities = getAgentMcpCapabilities(agent);
-
+      
       expect(capabilities.supportsStdio).toBe(true);
       expect(capabilities.supportsRemote).toBe(true);
     });
@@ -23,7 +19,7 @@ describe('MCP Capabilities', () => {
     it('returns correct capabilities for AugmentCode (no MCP support)', () => {
       const agent = new AugmentCodeAgent();
       const capabilities = getAgentMcpCapabilities(agent);
-
+      
       expect(capabilities.supportsStdio).toBe(false);
       expect(capabilities.supportsRemote).toBe(false);
     });
@@ -31,7 +27,7 @@ describe('MCP Capabilities', () => {
     it('returns correct capabilities for Copilot (both stdio and remote)', () => {
       const agent = new CopilotAgent();
       const capabilities = getAgentMcpCapabilities(agent);
-
+      
       expect(capabilities.supportsStdio).toBe(true);
       expect(capabilities.supportsRemote).toBe(true);
     });
@@ -39,7 +35,7 @@ describe('MCP Capabilities', () => {
     it('returns correct capabilities for CodexCli (stdio and remote)', () => {
       const agent = new CodexCliAgent();
       const capabilities = getAgentMcpCapabilities(agent);
-
+      
       expect(capabilities.supportsStdio).toBe(true);
       expect(capabilities.supportsRemote).toBe(true);
     });
@@ -78,7 +74,7 @@ describe('MCP Capabilities', () => {
     it('returns all servers for agents that support both stdio and remote', () => {
       const agent = new OpenHandsAgent();
       const filtered = filterMcpConfigForAgent(testMcpConfig, agent);
-
+      
       expect(filtered).not.toBeNull();
       expect(filtered!.mcpServers).toEqual({
         stdio_server: testMcpConfig.mcpServers.stdio_server,
@@ -90,7 +86,7 @@ describe('MCP Capabilities', () => {
     it('returns null for agents that do not support MCP', () => {
       const agent = new AugmentCodeAgent();
       const filtered = filterMcpConfigForAgent(testMcpConfig, agent);
-
+      
       expect(filtered).toBeNull();
     });
 
@@ -98,14 +94,14 @@ describe('MCP Capabilities', () => {
       const agent = new OpenHandsAgent();
       const emptyConfig = { mcpServers: {} };
       const filtered = filterMcpConfigForAgent(emptyConfig, agent);
-
+      
       expect(filtered).toBeNull();
     });
 
     it('filters servers based on agent capabilities (stdio only)', () => {
       const agent = new FirebaseAgent();
       const filtered = filterMcpConfigForAgent(testMcpConfig, agent);
-
+      
       expect(filtered).not.toBeNull();
       expect(filtered!.mcpServers).toEqual({
         stdio_server: testMcpConfig.mcpServers.stdio_server,
@@ -122,7 +118,7 @@ describe('MCP Capabilities', () => {
       const agent = new OpenHandsAgent();
       const invalidConfig = { somethingElse: {} };
       const filtered = filterMcpConfigForAgent(invalidConfig, agent);
-
+      
       expect(filtered).toBeNull();
     });
 
@@ -148,7 +144,7 @@ describe('MCP Capabilities', () => {
       };
 
       const filtered = filterMcpConfigForAgent(configWithRemoteServers, agent);
-
+      
       expect(filtered).not.toBeNull();
       expect(filtered!.mcpServers).toEqual({
         simple_remote: {
@@ -172,7 +168,7 @@ describe('MCP Capabilities', () => {
     });
 
     it('does not transform remote servers for agents that support both stdio and remote', () => {
-      const agent = new OpenHandsAgent(); // Supports both stdio and remote
+      const agent = new OpenHandsAgent();  // Supports both stdio and remote
       const configWithRemoteServers = {
         mcpServers: {
           remote_server: {
@@ -186,7 +182,7 @@ describe('MCP Capabilities', () => {
       };
 
       const filtered = filterMcpConfigForAgent(configWithRemoteServers, agent);
-
+      
       expect(filtered).not.toBeNull();
       expect(filtered!.mcpServers).toEqual({
         remote_server: {

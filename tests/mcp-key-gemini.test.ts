@@ -1,10 +1,6 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import {
-  setupTestProject,
-  teardownTestProject,
-  runRulerWithInheritedStdio,
-} from './harness';
+import { setupTestProject, teardownTestProject, runRulerWithInheritedStdio } from './harness';
 
 describe('Gemini MCP key usage', () => {
   let projectRoot: string;
@@ -14,9 +10,9 @@ describe('Gemini MCP key usage', () => {
       '.ruler/AGENTS.md': 'Rule A',
       '.ruler/mcp.json': JSON.stringify({
         mcpServers: {
-          example: { type: 'stdio', command: 'node', args: ['server.js'] },
-        },
-      }),
+          example: { type: 'stdio', command: 'node', args: ['server.js'] }
+        }
+      })
     });
     projectRoot = tmp.projectRoot;
   });
@@ -36,3 +32,4 @@ describe('Gemini MCP key usage', () => {
     expect(Object.keys(json.mcpServers)).toContain('example');
   });
 });
+
