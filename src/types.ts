@@ -42,6 +42,12 @@ export interface SkillInfo {
   error?: string;
 }
 
+/** Hooks configuration for automatic hooks distribution. */
+export interface HooksConfig {
+  /** Enable or disable hooks support. */
+  enabled?: boolean;
+}
+
 /** Subagents configuration for automatic subagent distribution. */
 export interface SubagentsConfig {
   /** Enable or disable subagents support. */

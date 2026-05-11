@@ -55,6 +55,24 @@ function resolveSubagentsEnabled(
 }
 
 /**
+ * Resolves hooks enabled state based on precedence:
+ * CLI flag > ruler.toml > default (disabled).
+ *
+ * Hooks are an opt-in feature — propagating them silently to `.claude/settings.json`
+ * on projects that never intended to use the feature would be intrusive.
+ */
+function resolveHooksEnabled(
+  cliFlag: boolean | undefined,
+  configSetting: boolean | undefined,
+): boolean {
+  return cliFlag !== undefined
+    ? cliFlag
+    : configSetting !== undefined
+      ? configSetting
+      : false; // default to disabled — opt-in like subagents
+}
+
+/**
  * Applies ruler configurations for all supported AI agents.
  * @param projectRoot Root directory of the project
  */
@@ -78,6 +96,7 @@ export async function applyAllAgentConfigs(
   skillsEnabled?: boolean,
   cliGitignoreLocal?: boolean,
   subagentsEnabled?: boolean,
+  hooksEnabled?: boolean,
 ): Promise<void> {
   // Load configuration and rules
   logVerbose(
@@ -184,6 +203,29 @@ export async function applyAllAgentConfigs(
       }
     }
 
+    // Propagate hooks (mirrors subagents handling for nested mode).
+    const hooksEnabledResolved = resolveHooksEnabled(
+      hooksEnabled,
+      rootConfig.hooks?.enabled,
+    );
+    {
+      const { propagateHooks } = await import('./core/HooksProcessor');
+      for (const configEntry of hierarchicalConfigs) {
+        const nestedRoot = path.dirname(configEntry.rulerDir);
+        logVerbose(
+          `Propagating hooks for nested directory: ${nestedRoot}`,
+          verbose,
+        );
+        await propagateHooks(
+          nestedRoot,
+          selectedAgents,
+          hooksEnabledResolved,
+          verbose,
+          dryRun,
+        );
+      }
+    }
+
     generatedPaths = await processHierarchicalConfigurations(
       selectedAgents,
       hierarchicalConfigs,
@@ -247,6 +289,22 @@ export async function applyAllAgentConfigs(
         projectRoot,
         selectedAgents,
         subagentsEnabledResolvedSingle,
+        verbose,
+        dryRun,
+      );
+    }
+
+    // Propagate hooks (mirrors subagents handling).
+    const hooksEnabledResolvedSingle = resolveHooksEnabled(
+      hooksEnabled,
+      singleConfig.config.hooks?.enabled,
+    );
+    {
+      const { propagateHooks } = await import('./core/HooksProcessor');
+      await propagateHooks(
+        projectRoot,
+        selectedAgents,
+        hooksEnabledResolvedSingle,
         verbose,
         dryRun,
       );
