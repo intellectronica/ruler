@@ -57,7 +57,11 @@ const agentConfigSchema = z
 //   - one nested table per coding-agent integration (`[agents.claude]`, etc.)
 // Reserved keys are validated by the object shape; everything else falls
 // through `catchall` and is treated as a per-agent config record.
-const SUBAGENT_RESERVED_KEYS = new Set(['enabled', 'include_in_rules']);
+const SUBAGENT_RESERVED_KEYS = new Set([
+  'enabled',
+  'include_in_rules',
+  'cleanup_orphaned',
+]);
 
 const rulerConfigSchema = z.object({
   default_agents: z.array(z.string()).optional(),
@@ -65,6 +69,7 @@ const rulerConfigSchema = z.object({
     .object({
       enabled: z.boolean().optional(),
       include_in_rules: z.boolean().optional(),
+      cleanup_orphaned: z.boolean().optional(),
     })
     .catchall(agentConfigSchema)
     .optional(),
@@ -93,6 +98,7 @@ const rulerConfigSchema = z.object({
     .object({
       enabled: z.boolean().optional(),
       include_in_rules: z.boolean().optional(),
+      cleanup_orphaned: z.boolean().optional(),
     })
     .optional(),
   nested: z.boolean().optional(),
@@ -327,7 +333,8 @@ export async function loadConfig(
       : {};
   const legacyHasContent =
     typeof rawLegacySubagentsSection.enabled === 'boolean' ||
-    typeof rawLegacySubagentsSection.include_in_rules === 'boolean';
+    typeof rawLegacySubagentsSection.include_in_rules === 'boolean' ||
+    typeof rawLegacySubagentsSection.cleanup_orphaned === 'boolean';
   if (legacyHasContent) {
     warnLegacySubagentsSection();
   }
@@ -344,6 +351,13 @@ export async function loadConfig(
   } else if (typeof rawLegacySubagentsSection.include_in_rules === 'boolean') {
     subagentsConfig.include_in_rules =
       rawLegacySubagentsSection.include_in_rules;
+  }
+  if (typeof agentsSection.cleanup_orphaned === 'boolean') {
+    subagentsConfig.cleanup_orphaned =
+      agentsSection.cleanup_orphaned as boolean;
+  } else if (typeof rawLegacySubagentsSection.cleanup_orphaned === 'boolean') {
+    subagentsConfig.cleanup_orphaned =
+      rawLegacySubagentsSection.cleanup_orphaned;
   }
 
   const nestedDefined = typeof raw.nested === 'boolean';

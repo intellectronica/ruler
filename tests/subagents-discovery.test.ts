@@ -21,6 +21,15 @@ describe('Subagents discovery', () => {
     await fs.writeFile(path.join(dir, `${name}.md`), content);
   }
 
+  async function writeNestedAgent(
+    relativePath: string,
+    content: string,
+  ): Promise<void> {
+    const filePath = path.join(tmpDir, RULER_SUBAGENTS_PATH, relativePath);
+    await fs.mkdir(path.dirname(filePath), { recursive: true });
+    await fs.writeFile(filePath, content);
+  }
+
   it('returns empty list when .ruler/agents/ does not exist', async () => {
     const result = await discoverSubagents(tmpDir);
     expect(result.subagents).toHaveLength(0);
@@ -28,7 +37,9 @@ describe('Subagents discovery', () => {
   });
 
   it('returns empty list when .ruler/agents/ is empty', async () => {
-    await fs.mkdir(path.join(tmpDir, RULER_SUBAGENTS_PATH), { recursive: true });
+    await fs.mkdir(path.join(tmpDir, RULER_SUBAGENTS_PATH), {
+      recursive: true,
+    });
     const result = await discoverSubagents(tmpDir);
     expect(result.subagents).toHaveLength(0);
     expect(result.warnings).toHaveLength(0);
@@ -88,6 +99,25 @@ Body 2
     const result = await discoverSubagents(tmpDir);
     expect(result.subagents).toHaveLength(2);
     expect(result.subagents.every((s) => s.valid)).toBe(true);
+  });
+
+  it('discovers nested subagents recursively and preserves source relative paths', async () => {
+    await writeNestedAgent(
+      'specialists/reviewer.md',
+      `---
+name: reviewer
+description: Reviews
+---
+Body
+`,
+    );
+
+    const result = await discoverSubagents(tmpDir);
+    expect(result.subagents).toHaveLength(1);
+    expect(result.subagents[0].name).toBe('reviewer');
+    expect(result.subagents[0].sourceRelativePath).toBe(
+      path.join('specialists', 'reviewer.md'),
+    );
   });
 
   it('warns and skips files without frontmatter', async () => {
@@ -153,10 +183,7 @@ body
       `---\nname: broken\ndescription: bad yaml\ntools: [Read,\n---\nbody\n`,
     );
     // A valid sibling — discovery must keep going and surface this one.
-    await writeAgent(
-      'good',
-      `---\nname: good\ndescription: ok\n---\nbody\n`,
-    );
+    await writeAgent('good', `---\nname: good\ndescription: ok\n---\nbody\n`);
 
     const result = await discoverSubagents(tmpDir);
     expect(result.subagents).toHaveLength(1);

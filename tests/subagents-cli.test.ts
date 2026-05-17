@@ -106,7 +106,7 @@ describe('Subagents apply integration', () => {
     ).rejects.toThrow();
   });
 
-  it('cleans up existing target directories when subagentsEnabled=false', async () => {
+  it('leaves existing target directories untouched when subagentsEnabled=false by default', async () => {
     await setupRulerProject(tmpDir);
     await writeSubagent(tmpDir, 'reviewer');
 
@@ -131,7 +131,7 @@ describe('Subagents apply integration', () => {
       fs.access(path.join(tmpDir, CLAUDE_SUBAGENTS_PATH, 'reviewer.md')),
     ).resolves.toBeUndefined();
 
-    // Second run: disabled — directories should be removed
+    // Second run: disabled — directories should stay by default (non-destructive)
     await applyAllAgentConfigs(
       tmpDir,
       ['claude', 'cursor'],
@@ -147,6 +147,58 @@ describe('Subagents apply integration', () => {
       undefined,
       undefined,
       false,
+    );
+    await expect(
+      fs.access(path.join(tmpDir, CLAUDE_SUBAGENTS_PATH)),
+    ).resolves.toBeUndefined();
+    await expect(
+      fs.access(path.join(tmpDir, CURSOR_SUBAGENTS_PATH)),
+    ).resolves.toBeUndefined();
+  });
+
+  it('cleans up existing target directories when cleanup_orphaned=true and subagentsEnabled=false', async () => {
+    await setupRulerProject(tmpDir);
+    await writeSubagent(tmpDir, 'reviewer');
+    await fs.writeFile(
+      path.join(tmpDir, '.ruler', 'ruler.toml'),
+      '[agents]\nenabled = true\ncleanup_orphaned = true\n',
+    );
+
+    await applyAllAgentConfigs(
+      tmpDir,
+      ['claude', 'cursor'],
+      undefined,
+      false,
+      undefined,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      undefined,
+      undefined,
+      undefined, // TOML controls enabled=true for first run
+    );
+    await expect(
+      fs.access(path.join(tmpDir, CLAUDE_SUBAGENTS_PATH, 'reviewer.md')),
+    ).resolves.toBeUndefined();
+
+    await applyAllAgentConfigs(
+      tmpDir,
+      ['claude', 'cursor'],
+      undefined,
+      false,
+      undefined,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      undefined,
+      undefined,
+      false, // CLI disables subagents; cleanup_orphaned comes from TOML
     );
     await expect(
       fs.access(path.join(tmpDir, CLAUDE_SUBAGENTS_PATH)),
@@ -219,6 +271,10 @@ describe('Subagents apply integration', () => {
   it('removes target directories that drop out of the selected agent set', async () => {
     await setupRulerProject(tmpDir);
     await writeSubagent(tmpDir, 'reviewer');
+    await fs.writeFile(
+      path.join(tmpDir, '.ruler', 'ruler.toml'),
+      '[agents]\nenabled = true\ncleanup_orphaned = true\n',
+    );
 
     // First run: claude + cursor selected — both targets get written.
     await applyAllAgentConfigs(
@@ -272,6 +328,10 @@ describe('Subagents apply integration', () => {
   it('cleans up all target directories when source .ruler/agents is removed', async () => {
     await setupRulerProject(tmpDir);
     await writeSubagent(tmpDir, 'reviewer');
+    await fs.writeFile(
+      path.join(tmpDir, '.ruler', 'ruler.toml'),
+      '[agents]\nenabled = true\ncleanup_orphaned = true\n',
+    );
 
     await applyAllAgentConfigs(
       tmpDir,

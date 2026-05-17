@@ -86,7 +86,7 @@ export function run(): void {
           .option('subagents', {
             type: 'boolean',
             description:
-              'Enable/disable subagents support (experimental, default: enabled)',
+              'Enable/disable subagents support (experimental, default: disabled)',
           });
       },
       applyHandler,

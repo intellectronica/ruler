@@ -47,6 +47,12 @@ export interface SubagentsConfig {
   /** Enable or disable subagents support. */
   enabled?: boolean;
   /**
+   * When true, Ruler may delete previously generated native subagent
+   * directories that are stale (disabled, no source definitions, or
+   * deselected targets). Defaults to false (non-destructive).
+   */
+  cleanup_orphaned?: boolean;
+  /**
    * When true, `.ruler/agents/*.md` are also concatenated into the
    * generated top-level rule files (CLAUDE.md, AGENTS.md, Copilot
    * instructions, etc.). When false (default), `.ruler/agents/` is
@@ -71,6 +77,8 @@ export interface SubagentInfo {
   name: string;
   /** Absolute path to the source `.md` file. */
   path: string;
+  /** Relative `.md` path under `.ruler/agents/` (preserves nested layout). */
+  sourceRelativePath?: string;
   /** Parsed frontmatter (only present when valid). */
   frontmatter?: SubagentFrontmatter;
   /** Body content after the frontmatter delimiter. */

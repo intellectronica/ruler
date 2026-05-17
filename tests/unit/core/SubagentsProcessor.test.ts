@@ -120,7 +120,7 @@ describe('SubagentsProcessor — propagateSubagents orchestrator', () => {
     await fs.rm(tmpDir, { recursive: true, force: true });
   });
 
-  it('cleans up all four target dirs when subagentsEnabled is false', async () => {
+  it('does not clean up target dirs when subagentsEnabled is false and cleanup_orphaned is disabled', async () => {
     // Pre-create a stale target dir.
     const staleClaude = path.join(tmpDir, CLAUDE_SUBAGENTS_PATH);
     await fs.mkdir(staleClaude, { recursive: true });
@@ -130,6 +130,24 @@ describe('SubagentsProcessor — propagateSubagents orchestrator', () => {
       tmpDir,
       [new ClaudeAgent()],
       false, // subagentsEnabled
+      false, // cleanupOrphaned
+      false, // verbose
+      false, // dryRun
+    );
+
+    await expect(fs.access(staleClaude)).resolves.toBeUndefined();
+  });
+
+  it('cleans up all four target dirs when subagentsEnabled is false and cleanup_orphaned is enabled', async () => {
+    const staleClaude = path.join(tmpDir, CLAUDE_SUBAGENTS_PATH);
+    await fs.mkdir(staleClaude, { recursive: true });
+    await fs.writeFile(path.join(staleClaude, 'old.md'), 'stale');
+
+    await propagateSubagents(
+      tmpDir,
+      [new ClaudeAgent()],
+      false, // subagentsEnabled
+      true, // cleanupOrphaned
       false, // verbose
       false, // dryRun
     );
@@ -137,18 +155,25 @@ describe('SubagentsProcessor — propagateSubagents orchestrator', () => {
     await expect(fs.access(staleClaude)).rejects.toThrow();
   });
 
-  it('cleans up all targets when .ruler/agents directory does not exist', async () => {
+  it('cleans up all targets when .ruler/agents directory does not exist and cleanup_orphaned is enabled', async () => {
     const staleCursor = path.join(tmpDir, CURSOR_SUBAGENTS_PATH);
     await fs.mkdir(staleCursor, { recursive: true });
     await fs.writeFile(path.join(staleCursor, 'gone.md'), 'stale');
 
     // Source dir intentionally absent.
-    await propagateSubagents(tmpDir, [new CursorAgent()], true, false, false);
+    await propagateSubagents(
+      tmpDir,
+      [new CursorAgent()],
+      true,
+      true,
+      false,
+      false,
+    );
 
     await expect(fs.access(staleCursor)).rejects.toThrow();
   });
 
-  it('cleans up targets when .ruler/agents has no valid subagents', async () => {
+  it('cleans up targets when .ruler/agents has no valid subagents and cleanup_orphaned is enabled', async () => {
     const sourceDir = path.join(tmpDir, RULER_SUBAGENTS_PATH);
     await fs.mkdir(sourceDir, { recursive: true });
     // File with no frontmatter — invalid, skipped with warning.
@@ -160,7 +185,14 @@ describe('SubagentsProcessor — propagateSubagents orchestrator', () => {
 
     const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
 
-    await propagateSubagents(tmpDir, [new CodexCliAgent()], true, false, false);
+    await propagateSubagents(
+      tmpDir,
+      [new CodexCliAgent()],
+      true,
+      true,
+      false,
+      false,
+    );
 
     await expect(fs.access(staleCodex)).rejects.toThrow();
     warnSpy.mockRestore();
@@ -176,7 +208,14 @@ describe('SubagentsProcessor — propagateSubagents orchestrator', () => {
     );
 
     const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
-    await propagateSubagents(tmpDir, [new AiderAgent()], true, false, false);
+    await propagateSubagents(
+      tmpDir,
+      [new AiderAgent()],
+      true,
+      false,
+      false,
+      false,
+    );
     warnSpy.mockRestore();
 
     // No target directories should have been created.
@@ -204,7 +243,14 @@ describe('SubagentsProcessor — propagateSubagents orchestrator', () => {
     await fs.writeFile(path.join(cursorDir, 'reviewer.md'), 'prev');
 
     // This run only selects claude — cursor dir must be reconciled away.
-    await propagateSubagents(tmpDir, [new ClaudeAgent()], true, false, false);
+    await propagateSubagents(
+      tmpDir,
+      [new ClaudeAgent()],
+      true,
+      true,
+      false,
+      false,
+    );
 
     await expect(
       fs.access(path.join(tmpDir, CLAUDE_SUBAGENTS_PATH, 'reviewer.md')),

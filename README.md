@@ -740,18 +740,18 @@ Ruler can distribute named, delegatable **subagents** from a single source of tr
 
 For agents with a native subagent primitive, Ruler writes one file per subagent into the target directory:
 
-| Agent             | Target location                | Format |
-| ----------------- | ------------------------------ | ------ |
-| Claude Code       | `.claude/agents/<name>.md`     | Markdown + YAML frontmatter |
-| Cursor            | `.cursor/agents/<name>.md`     | Markdown + YAML frontmatter |
-| OpenAI Codex CLI  | `.codex/agents/<name>.toml`    | TOML (one self-contained file per agent) |
-| GitHub Copilot    | `.github/agents/<name>.md`     | Markdown + YAML frontmatter |
+| Agent            | Target location                      | Format                                   |
+| ---------------- | ------------------------------------ | ---------------------------------------- |
+| Claude Code      | `.claude/agents/<relative-path>.md`  | Markdown + YAML frontmatter              |
+| Cursor           | `.cursor/agents/<relative-path>.md`  | Markdown + YAML frontmatter              |
+| OpenAI Codex CLI | `.codex/agents/<relative-path>.toml` | TOML (one self-contained file per agent) |
+| GitHub Copilot   | `.github/agents/<relative-path>.md`  | Markdown + YAML frontmatter              |
 
 Other agents (Windsurf, RooCode, Aider, Gemini CLI, …) do not yet have a comparable native subagent primitive and are skipped with a warning. Subagent propagation will be added when those agents ship a comparable file format.
 
 ### Source Format
 
-Author each subagent as `.ruler/agents/<name>.md`:
+Author each subagent as `.ruler/agents/<name>.md` (nested folders are supported and preserved in outputs):
 
 ```markdown
 ---
@@ -772,19 +772,19 @@ a structured verdict.
 
 **Required frontmatter fields:**
 
-| Field         | Type   | Notes                                                 |
-| ------------- | ------ | ----------------------------------------------------- |
+| Field         | Type   | Notes                                                                      |
+| ------------- | ------ | -------------------------------------------------------------------------- |
 | `name`        | string | Must match the filename stem (`code-reviewer.md` → `name: code-reviewer`). |
-| `description` | string | When the parent agent should delegate to this subagent. |
+| `description` | string | When the parent agent should delegate to this subagent.                    |
 
 **Optional frontmatter fields:**
 
-| Field           | Type             | Used by                                          | Default behavior                              |
-| --------------- | ---------------- | ------------------------------------------------ | --------------------------------------------- |
-| `tools`         | string[]         | Claude (verbatim), Copilot (mapped to aliases)   | Cursor / Codex ignore; omitted if absent.     |
-| `model`         | string           | All four targets                                 | Cursor defaults to `inherit`; others omit.    |
-| `readonly`      | boolean          | Cursor (verbatim), Codex (`sandbox_mode`), Copilot (`disable-model-invocation`) | Defaults to `false` for Cursor; omitted otherwise. |
-| `is_background` | boolean          | Cursor only                                      | Defaults to `false` for Cursor.               |
+| Field           | Type     | Used by                                                                         | Default behavior                                   |
+| --------------- | -------- | ------------------------------------------------------------------------------- | -------------------------------------------------- |
+| `tools`         | string[] | Claude (verbatim), Copilot (mapped to aliases)                                  | Cursor / Codex ignore; omitted if absent.          |
+| `model`         | string   | All four targets                                                                | Cursor defaults to `inherit`; others omit.         |
+| `readonly`      | boolean  | Cursor (verbatim), Codex (`sandbox_mode`), Copilot (`disable-model-invocation`) | Defaults to `false` for Cursor; omitted otherwise. |
+| `is_background` | boolean  | Cursor only                                                                     | Defaults to `false` for Cursor.                    |
 
 For GitHub Copilot, source `tools` (Claude vocabulary: `Read`, `Grep`, `Bash`, …) are translated to Copilot's aliases (`read`, `search`, `execute`, …). Tools that do not have a Copilot equivalent are dropped silently on a normal apply; pass `--verbose` (or use `--dry-run` to preview) to see which tools were dropped.
 
@@ -801,6 +801,7 @@ ruler apply --subagents   # enable subagent propagation for one run
 [agents]
 enabled = true
 # include_in_rules = true  # also append .ruler/agents/*.md into top-level CLAUDE.md / AGENTS.md (default: false)
+# cleanup_orphaned = true   # allow ruler to delete stale native subagent dirs (default: false)
 ```
 
 > **Note:** the previous release used `[subagents]` for these keys. `[subagents]` is still honored as a fallback with a deprecation warning, and will be removed in a future release. Please migrate to `[agents]`.
@@ -837,7 +838,7 @@ Use `--no-gitignore` to opt out.
 
 ### Cleanup
 
-Subagent propagation does **not** currently have explicit `ruler revert` support. To remove generated subagent directories, set `[agents] enabled = false` (or pass `--no-subagents`) and run `ruler apply` once. Cleanup will run for all four targets even if no source `.ruler/agents/` directory exists.
+Subagent propagation does **not** currently have explicit `ruler revert` support. By default, `ruler apply` is non-destructive and leaves existing native subagent directories untouched when subagents are disabled or missing. To allow automatic cleanup of stale generated directories, set `[agents] cleanup_orphaned = true`, then disable subagents (`[agents] enabled = false` or `--no-subagents`) and run `ruler apply`.
 
 ### Example Workflow
 
@@ -870,7 +871,7 @@ ruler apply
 
 ### Limitations
 
-- **No explicit revert command.** Cleanup happens via `[agents] enabled = false` on a subsequent `apply`.
+- **No explicit revert command.** Optional cleanup is available via `[agents] cleanup_orphaned = true` and a subsequent `apply`.
 - **Atomic replace, not merge.** Ruler regenerates each agent's subagent directory from the source on every apply. Manual edits to generated files will be overwritten.
 - **No support yet for agents without a native subagent primitive.** Windsurf, RooCode, Aider, Gemini CLI, and others are skipped with a warning. Propagation will be added when those agents ship a comparable file format.
 

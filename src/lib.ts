@@ -54,6 +54,12 @@ function resolveSubagentsEnabled(
       : false; // default to disabled — see spec: subagents must opt in
 }
 
+function resolveSubagentsCleanupOrphaned(
+  configSetting: boolean | undefined,
+): boolean {
+  return configSetting === true;
+}
+
 /**
  * Applies ruler configurations for all supported AI agents.
  * @param projectRoot Root directory of the project
@@ -166,6 +172,9 @@ export async function applyAllAgentConfigs(
       subagentsEnabled,
       rootConfig.subagents?.enabled,
     );
+    const subagentsCleanupOrphaned = resolveSubagentsCleanupOrphaned(
+      rootConfig.subagents?.cleanup_orphaned,
+    );
     {
       const { propagateSubagents } = await import('./core/SubagentsProcessor');
       for (const configEntry of hierarchicalConfigs) {
@@ -178,6 +187,7 @@ export async function applyAllAgentConfigs(
           nestedRoot,
           selectedAgents,
           subagentsEnabledResolved,
+          subagentsCleanupOrphaned,
           verbose,
           dryRun,
         );
@@ -241,12 +251,16 @@ export async function applyAllAgentConfigs(
       subagentsEnabled,
       singleConfig.config.subagents?.enabled,
     );
+    const subagentsCleanupOrphanedSingle = resolveSubagentsCleanupOrphaned(
+      singleConfig.config.subagents?.cleanup_orphaned,
+    );
     {
       const { propagateSubagents } = await import('./core/SubagentsProcessor');
       await propagateSubagents(
         projectRoot,
         selectedAgents,
         subagentsEnabledResolvedSingle,
+        subagentsCleanupOrphanedSingle,
         verbose,
         dryRun,
       );

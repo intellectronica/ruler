@@ -32,11 +32,7 @@ export async function discoverSubagents(
     return { subagents: [], warnings: [] };
   }
 
-  const entries = await fs.readdir(dir, { withFileTypes: true });
-  const mdFiles = entries
-    .filter((entry) => entry.isFile() && entry.name.endsWith('.md'))
-    .map((entry) => path.join(dir, entry.name))
-    .sort();
+  const mdFiles = await listMarkdownFilesRecursive(dir);
 
   const subagents: SubagentInfo[] = [];
   const warnings: string[] = [];
@@ -44,6 +40,7 @@ export async function discoverSubagents(
   for (const filePath of mdFiles) {
     const info = await loadSubagentFile(filePath);
     if (info.valid) {
+      info.sourceRelativePath = path.relative(dir, filePath);
       subagents.push(info);
     } else if (info.error) {
       warnings.push(info.error);
@@ -51,6 +48,23 @@ export async function discoverSubagents(
   }
 
   return { subagents, warnings };
+}
+
+async function listMarkdownFilesRecursive(dir: string): Promise<string[]> {
+  const results: string[] = [];
+  const entries = await fs.readdir(dir, { withFileTypes: true });
+  for (const entry of entries) {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      const nested = await listMarkdownFilesRecursive(fullPath);
+      results.push(...nested);
+      continue;
+    }
+    if (entry.isFile() && entry.name.endsWith('.md')) {
+      results.push(fullPath);
+    }
+  }
+  return results.sort();
 }
 
 type SubagentTarget = 'claude' | 'cursor' | 'codex' | 'copilot';
@@ -171,7 +185,9 @@ async function writeAgentsDirectoryAtomic(
 
   try {
     for (const { name, content } of files) {
-      await fs.writeFile(path.join(tempDir, name), content, 'utf8');
+      const outputPath = path.join(tempDir, name);
+      await fs.mkdir(path.dirname(outputPath), { recursive: true });
+      await fs.writeFile(outputPath, content, 'utf8');
     }
     try {
       await fs.rm(targetDir, { recursive: true, force: true });
@@ -196,6 +212,23 @@ async function writeAgentsDirectoryAtomic(
 interface PropagateOptions {
   dryRun: boolean;
   verbose?: boolean;
+}
+
+function getSourceRelativeMdPath(sub: SubagentInfo): string {
+  const fromSource = sub.sourceRelativePath;
+  if (
+    typeof fromSource === 'string' &&
+    fromSource.length > 0 &&
+    !path.isAbsolute(fromSource) &&
+    !fromSource.startsWith('..')
+  ) {
+    return fromSource;
+  }
+  return `${sub.name}.md`;
+}
+
+function withExtension(filePath: string, ext: '.md' | '.toml'): string {
+  return filePath.replace(/\.md$/i, ext);
 }
 
 function buildClaudeFile(sub: SubagentInfo): string {
@@ -297,11 +330,12 @@ export async function propagateSubagentsForClaude(
   const targetDir = path.join(projectRoot, CLAUDE_SUBAGENTS_PATH);
   if (options.dryRun) {
     return subagents.map(
-      (s) => `Write ${path.join(CLAUDE_SUBAGENTS_PATH, `${s.name}.md`)}`,
+      (s) =>
+        `Write ${path.join(CLAUDE_SUBAGENTS_PATH, getSourceRelativeMdPath(s))}`,
     );
   }
   const files = subagents.map((s) => ({
-    name: `${s.name}.md`,
+    name: getSourceRelativeMdPath(s),
     content: buildClaudeFile(s),
   }));
   await writeAgentsDirectoryAtomic(targetDir, files);
@@ -317,11 +351,12 @@ export async function propagateSubagentsForCursor(
   const targetDir = path.join(projectRoot, CURSOR_SUBAGENTS_PATH);
   if (options.dryRun) {
     return subagents.map(
-      (s) => `Write ${path.join(CURSOR_SUBAGENTS_PATH, `${s.name}.md`)}`,
+      (s) =>
+        `Write ${path.join(CURSOR_SUBAGENTS_PATH, getSourceRelativeMdPath(s))}`,
     );
   }
   const files = subagents.map((s) => ({
-    name: `${s.name}.md`,
+    name: getSourceRelativeMdPath(s),
     content: buildCursorFile(s),
   }));
   await writeAgentsDirectoryAtomic(targetDir, files);
@@ -337,11 +372,12 @@ export async function propagateSubagentsForCodex(
   const targetDir = path.join(projectRoot, CODEX_SUBAGENTS_PATH);
   if (options.dryRun) {
     return subagents.map(
-      (s) => `Write ${path.join(CODEX_SUBAGENTS_PATH, `${s.name}.toml`)}`,
+      (s) =>
+        `Write ${path.join(CODEX_SUBAGENTS_PATH, withExtension(getSourceRelativeMdPath(s), '.toml'))}`,
     );
   }
   const files = subagents.map((s) => ({
-    name: `${s.name}.toml`,
+    name: withExtension(getSourceRelativeMdPath(s), '.toml'),
     content: buildCodexFile(s),
   }));
   await writeAgentsDirectoryAtomic(targetDir, files);
@@ -364,13 +400,13 @@ export async function propagateSubagentsForCopilot(
       // which tools would be dropped before it actually happens.
       buildCopilotFile(s, true, verbose);
       planLines.push(
-        `Write ${path.join(COPILOT_SUBAGENTS_PATH, `${s.name}.md`)}`,
+        `Write ${path.join(COPILOT_SUBAGENTS_PATH, getSourceRelativeMdPath(s))}`,
       );
     }
     return planLines;
   }
   const files = subagents.map((s) => ({
-    name: `${s.name}.md`,
+    name: getSourceRelativeMdPath(s),
     content: buildCopilotFile(s, false, verbose).content,
   }));
   await writeAgentsDirectoryAtomic(targetDir, files);
@@ -435,16 +471,35 @@ export async function propagateSubagents(
   projectRoot: string,
   agents: IAgent[],
   subagentsEnabled: boolean,
+  cleanupOrphaned: boolean,
   verbose: boolean,
   dryRun: boolean,
 ): Promise<void> {
+  const maybeCleanupAllSubagentsDirectories = async (): Promise<void> => {
+    if (!cleanupOrphaned) {
+      logVerboseInfo(
+        'Subagent cleanup skipped (set [agents] cleanup_orphaned = true to enable directory cleanup)',
+        verbose,
+        dryRun,
+      );
+      return;
+    }
+    await cleanupAllSubagentsDirectories(projectRoot, dryRun, verbose);
+  };
+  const maybeCleanupSubagentsDir = async (relPath: string): Promise<void> => {
+    if (!cleanupOrphaned) return;
+    await cleanupSubagentsDir(projectRoot, relPath, dryRun, verbose);
+  };
+
   if (!subagentsEnabled) {
     logVerboseInfo(
-      'Subagents support disabled, cleaning up subagent directories',
+      cleanupOrphaned
+        ? 'Subagents support disabled, cleaning up subagent directories'
+        : 'Subagents support disabled, leaving existing subagent directories unchanged',
       verbose,
       dryRun,
     );
-    await cleanupAllSubagentsDirectories(projectRoot, dryRun, verbose);
+    await maybeCleanupAllSubagentsDirectories();
     return;
   }
 
@@ -453,11 +508,13 @@ export async function propagateSubagents(
     await fs.access(sourceDir);
   } catch {
     logVerboseInfo(
-      'No .ruler/agents directory found, cleaning up any stale managed subagent directories',
+      cleanupOrphaned
+        ? 'No .ruler/agents directory found, cleaning up any stale managed subagent directories'
+        : 'No .ruler/agents directory found; leaving existing subagent directories unchanged',
       verbose,
       dryRun,
     );
-    await cleanupAllSubagentsDirectories(projectRoot, dryRun, verbose);
+    await maybeCleanupAllSubagentsDirectories();
     return;
   }
 
@@ -466,11 +523,13 @@ export async function propagateSubagents(
 
   if (subagents.length === 0) {
     logVerboseInfo(
-      'No valid subagents found in .ruler/agents; cleaning up any stale managed subagent directories',
+      cleanupOrphaned
+        ? 'No valid subagents found in .ruler/agents; cleaning up any stale managed subagent directories'
+        : 'No valid subagents found in .ruler/agents; leaving existing subagent directories unchanged',
       verbose,
       dryRun,
     );
-    await cleanupAllSubagentsDirectories(projectRoot, dryRun, verbose);
+    await maybeCleanupAllSubagentsDirectories();
     return;
   }
 
@@ -496,12 +555,7 @@ export async function propagateSubagents(
   const allTargets: SubagentTarget[] = ['claude', 'cursor', 'codex', 'copilot'];
   for (const target of allTargets) {
     if (!targets.has(target)) {
-      await cleanupSubagentsDir(
-        projectRoot,
-        SUBAGENT_TARGET_PATHS[target],
-        dryRun,
-        verbose,
-      );
+      await maybeCleanupSubagentsDir(SUBAGENT_TARGET_PATHS[target]);
     }
   }
 
