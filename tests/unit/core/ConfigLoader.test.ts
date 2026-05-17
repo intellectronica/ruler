@@ -202,26 +202,30 @@ describe('ConfigLoader', () => {
       warnSpy.mockRestore();
     });
 
-    it('parses [agents] enabled and include_in_rules', async () => {
-      const content = '[agents]\nenabled = true\ninclude_in_rules = true\n';
+    it('parses [agents] enabled, include_in_rules, and cleanup_orphaned', async () => {
+      const content =
+        '[agents]\nenabled = true\ninclude_in_rules = true\ncleanup_orphaned = true\n';
       await fs.writeFile(path.join(rulerDir, 'ruler.toml'), content);
       const config = await loadConfig({ projectRoot: tmpDir });
       expect(config.subagents?.enabled).toBe(true);
       expect(config.subagents?.include_in_rules).toBe(true);
+      expect(config.subagents?.cleanup_orphaned).toBe(true);
     });
 
     it('does not treat reserved keys as agent configs', async () => {
       const content =
-        '[agents]\nenabled = true\ninclude_in_rules = false\n\n[agents.claude]\nenabled = false\n';
+        '[agents]\nenabled = true\ninclude_in_rules = false\ncleanup_orphaned = true\n\n[agents.claude]\nenabled = false\n';
       await fs.writeFile(path.join(rulerDir, 'ruler.toml'), content);
       const config = await loadConfig({ projectRoot: tmpDir });
       // Reserved keys flow into subagents, NOT agentConfigs
       expect(config.agentConfigs).not.toHaveProperty('enabled');
       expect(config.agentConfigs).not.toHaveProperty('include_in_rules');
+      expect(config.agentConfigs).not.toHaveProperty('cleanup_orphaned');
       expect(config.agentConfigs).toHaveProperty('claude');
       expect(config.agentConfigs.claude.enabled).toBe(false);
       expect(config.subagents?.enabled).toBe(true);
       expect(config.subagents?.include_in_rules).toBe(false);
+      expect(config.subagents?.cleanup_orphaned).toBe(true);
     });
 
     it('parses upstream-style [agents.*] only (no reserved keys)', async () => {
@@ -233,14 +237,17 @@ describe('ConfigLoader', () => {
       expect(config.agentConfigs.cursor.enabled).toBe(true);
       expect(config.subagents?.enabled).toBeUndefined();
       expect(config.subagents?.include_in_rules).toBeUndefined();
+      expect(config.subagents?.cleanup_orphaned).toBeUndefined();
     });
 
     it('honors legacy [subagents] when [agents] keys are absent', async () => {
-      const content = '[subagents]\nenabled = true\ninclude_in_rules = true\n';
+      const content =
+        '[subagents]\nenabled = true\ninclude_in_rules = true\ncleanup_orphaned = true\n';
       await fs.writeFile(path.join(rulerDir, 'ruler.toml'), content);
       const config = await loadConfig({ projectRoot: tmpDir });
       expect(config.subagents?.enabled).toBe(true);
       expect(config.subagents?.include_in_rules).toBe(true);
+      expect(config.subagents?.cleanup_orphaned).toBe(true);
     });
 
     it('emits a deprecation warning for legacy [subagents]', async () => {
@@ -277,13 +284,14 @@ describe('ConfigLoader', () => {
     });
 
     it('applies per-key precedence: new [agents] overrides legacy [subagents]', async () => {
-      // enabled: new wins (true). include_in_rules: only legacy provides it (true).
+      // enabled: new wins (true). include_in_rules/cleanup_orphaned: legacy provides both (true).
       const content =
-        '[agents]\nenabled = true\n\n[subagents]\nenabled = false\ninclude_in_rules = true\n';
+        '[agents]\nenabled = true\n\n[subagents]\nenabled = false\ninclude_in_rules = true\ncleanup_orphaned = true\n';
       await fs.writeFile(path.join(rulerDir, 'ruler.toml'), content);
       const config = await loadConfig({ projectRoot: tmpDir });
       expect(config.subagents?.enabled).toBe(true);
       expect(config.subagents?.include_in_rules).toBe(true);
+      expect(config.subagents?.cleanup_orphaned).toBe(true);
     });
 
     it('leaves subagents config empty when neither section sets the keys', async () => {
@@ -292,6 +300,7 @@ describe('ConfigLoader', () => {
       const config = await loadConfig({ projectRoot: tmpDir });
       expect(config.subagents?.enabled).toBeUndefined();
       expect(config.subagents?.include_in_rules).toBeUndefined();
+      expect(config.subagents?.cleanup_orphaned).toBeUndefined();
     });
 
     it('rejects [agents] enabled when value is not a boolean (Zod validation)', async () => {
@@ -304,6 +313,14 @@ describe('ConfigLoader', () => {
 
     it('rejects [agents] include_in_rules when value is not a boolean', async () => {
       const content = '[agents]\ninclude_in_rules = 1\n';
+      await fs.writeFile(path.join(rulerDir, 'ruler.toml'), content);
+      await expect(loadConfig({ projectRoot: tmpDir })).rejects.toThrow(
+        /Invalid configuration/i,
+      );
+    });
+
+    it('rejects [agents] cleanup_orphaned when value is not a boolean', async () => {
+      const content = '[agents]\ncleanup_orphaned = "yes"\n';
       await fs.writeFile(path.join(rulerDir, 'ruler.toml'), content);
       await expect(loadConfig({ projectRoot: tmpDir })).rejects.toThrow(
         /Invalid configuration/i,

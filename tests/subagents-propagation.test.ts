@@ -105,7 +105,13 @@ describe('Subagents per-agent propagators', () => {
       // First write
       await propagateSubagentsForClaude(
         tmpDir,
-        [makeSubagent({ name: 'old', frontmatter: { name: 'old', description: 'old' }, path: '/v/old.md' })],
+        [
+          makeSubagent({
+            name: 'old',
+            frontmatter: { name: 'old', description: 'old' },
+            path: '/v/old.md',
+          }),
+        ],
         { dryRun: false },
       );
       const oldTarget = path.join(tmpDir, CLAUDE_SUBAGENTS_PATH, 'old.md');
@@ -118,6 +124,14 @@ describe('Subagents per-agent propagators', () => {
       await expect(fs.access(oldTarget)).rejects.toThrow();
       await expect(
         fs.access(path.join(tmpDir, CLAUDE_SUBAGENTS_PATH, 'reviewer.md')),
+      ).resolves.toBeUndefined();
+    });
+
+    it('preserves nested source-relative paths', async () => {
+      const sub = makeSubagent({ sourceRelativePath: 'sub/reviewer.md' });
+      await propagateSubagentsForClaude(tmpDir, [sub], { dryRun: false });
+      await expect(
+        fs.access(path.join(tmpDir, CLAUDE_SUBAGENTS_PATH, 'sub/reviewer.md')),
       ).resolves.toBeUndefined();
     });
   });
@@ -225,6 +239,14 @@ describe('Subagents per-agent propagators', () => {
       );
       const parsed = parseTOML(raw) as Record<string, unknown>;
       expect(parsed.developer_instructions).toBe(body);
+    });
+
+    it('preserves nested source-relative paths and changes extension to .toml', async () => {
+      const sub = makeSubagent({ sourceRelativePath: 'sub/reviewer.md' });
+      await propagateSubagentsForCodex(tmpDir, [sub], { dryRun: false });
+      await expect(
+        fs.access(path.join(tmpDir, CODEX_SUBAGENTS_PATH, 'sub/reviewer.toml')),
+      ).resolves.toBeUndefined();
     });
   });
 

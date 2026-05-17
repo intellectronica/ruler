@@ -113,7 +113,7 @@ export async function applyHandler(argv: ApplyArgs): Promise<void> {
     skillsEnabled = undefined; // Let config/default decide
   }
 
-  // Determine subagents preference: CLI > TOML > Default (enabled)
+  // Determine subagents preference: CLI > TOML > Default (disabled)
   let subagentsEnabled: boolean | undefined;
   if (argv.subagents !== undefined) {
     subagentsEnabled = argv.subagents;
