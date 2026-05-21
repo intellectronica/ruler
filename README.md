@@ -1079,7 +1079,7 @@ A: Simply rename `.ruler/instructions.md` to `.ruler/AGENTS.md` (recommended). I
 A: Local stdio servers become `stdio_servers`. Remote URLs containing `/sse` are classified as `sse_servers`; others become `shttp_servers`. Bearer tokens in an `Authorization` header are extracted into `api_key` where possible.
 
 **Q: Where is Zed configuration written now?**
-A: Ruler writes a `settings.json` in the project root (not the user home dir) and transforms MCP server definitions to Zed's `context_servers` format including `source: "custom"`.
+A: Ruler writes `.zed/settings.json` inside the project root (not the user home dir) and transforms MCP server definitions to Zed's `context_servers` format including `source: "custom"`.
 
 **Q: What changed about MCP initialization?**
 A: `ruler init` now only adds example MCP server sections to `ruler.toml` instead of creating `.ruler/mcp.json`. The JSON file is still consumed if present, but TOML servers win on name conflicts.
