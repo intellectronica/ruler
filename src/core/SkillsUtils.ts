@@ -138,3 +138,22 @@ export async function copySkillsDirectory(
   await fs.mkdir(destDir, { recursive: true });
   await copyRecursive(srcDir, destDir);
 }
+
+/**
+ * Merges two skills directories into a destination directory.
+ * Files from the override directory take precedence over files from the base directory.
+ * This is used to merge global skills (base) with local skills (override).
+ */
+export async function mergeSkillsDirectories(
+  baseDir: string,
+  overrideDir: string,
+  destDir: string,
+): Promise<void> {
+  await fs.mkdir(destDir, { recursive: true });
+
+  // Copy base (global) skills first
+  await copyRecursive(baseDir, destDir);
+
+  // Copy override (local) skills on top — overwrites any same-named skills
+  await copyRecursive(overrideDir, destDir);
+}
