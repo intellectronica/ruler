@@ -9,7 +9,10 @@ import {
   revertAgentConfiguration,
   cleanUpAuxiliaryFiles,
 } from './core/revert-engine';
-import { resolveSelectedAgents } from './core/agent-selection';
+import {
+  agentMatchesFilter,
+  resolveSelectedAgents,
+} from './core/agent-selection';
 import { mapRawAgentConfigs } from './core/config-utils';
 
 const agents: IAgent[] = allAgents;
@@ -70,24 +73,27 @@ export async function revertAllAgentConfigs(
       // Fall back to the old logic without validation
       if (config.cliAgents && config.cliAgents.length > 0) {
         const filters = config.cliAgents.map((n) => n.toLowerCase());
+        const validAgentIdentifiers = new Set(
+          agents.map((agent) => agent.getIdentifier()),
+        );
         selected = agents.filter((agent) =>
-          filters.some(
-            (f) =>
-              agent.getIdentifier() === f ||
-              agent.getName().toLowerCase().includes(f),
+          filters.some((f) =>
+            agentMatchesFilter(agent, f, validAgentIdentifiers),
           ),
         );
       } else if (config.defaultAgents && config.defaultAgents.length > 0) {
         const defaults = config.defaultAgents.map((n) => n.toLowerCase());
+        const validAgentIdentifiers = new Set(
+          agents.map((agent) => agent.getIdentifier()),
+        );
         selected = agents.filter((agent) => {
           const identifier = agent.getIdentifier();
           const override = config.agentConfigs[identifier]?.enabled;
           if (override !== undefined) {
             return override;
           }
-          return defaults.some(
-            (d) =>
-              identifier === d || agent.getName().toLowerCase().includes(d),
+          return defaults.some((d) =>
+            agentMatchesFilter(agent, d, validAgentIdentifiers),
           );
         });
       } else {
