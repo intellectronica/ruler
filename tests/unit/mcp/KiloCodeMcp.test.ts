@@ -169,6 +169,39 @@ describe('KiloCode MCP Integration', () => {
       expect(merged.mcpServers.filesystem).toEqual({ command: 'npx' });
     });
 
+    it('removes stale server aliases during overwrite', async () => {
+      const existing = {
+        servers: {
+          stale: { command: 'stale-cmd' },
+        },
+        mcpServers: {
+          legacy: { command: 'legacy-cmd' },
+        },
+        mcp: {
+          other: { command: 'other-cmd' },
+        },
+        setting: 'preserved',
+      };
+
+      const newConfig = {
+        mcpServers: {
+          filesystem: { command: 'npx' },
+        },
+      };
+
+      const merged = mergeMcp(existing, newConfig, 'overwrite', 'servers') as {
+        servers: Record<string, unknown>;
+        mcpServers?: Record<string, unknown>;
+        mcp?: Record<string, unknown>;
+        setting?: string;
+      };
+
+      expect(merged.setting).toBe('preserved');
+      expect(merged.servers).toEqual({ filesystem: { command: 'npx' } });
+      expect(merged.mcpServers).toBeUndefined();
+      expect(merged.mcp).toBeUndefined();
+    });
+
     it('overwrites servers with same name during merge', async () => {
       const existing = {
         mcpServers: {

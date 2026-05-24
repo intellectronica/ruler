@@ -1,5 +1,7 @@
 import { McpStrategy } from '../types';
 
+const MCP_SERVER_KEYS = ['servers', 'mcpServers', 'mcp', 'mcp_servers'];
+
 /**
  * Merge native and incoming MCP server configurations according to strategy.
  * @param base Existing native MCP config object.
@@ -22,8 +24,14 @@ export function mergeMcp(
       (incoming.mcpServers as Record<string, unknown>) ||
       (incoming.mcp as Record<string, unknown>) ||
       {};
+    const preservedBase = { ...base };
+    for (const key of MCP_SERVER_KEYS) {
+      if (key !== serverKey) {
+        delete preservedBase[key];
+      }
+    }
     return {
-      ...base,
+      ...preservedBase,
       [serverKey]: incomingServers,
     };
   }
