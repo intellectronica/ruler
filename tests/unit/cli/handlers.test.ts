@@ -668,6 +668,60 @@ describe('CLI Handlers', () => {
       ).toBe(false);
       logSpy.mockRestore();
     });
+
+    it('should exit with a concise error when directory creation fails', async () => {
+      const initError = new Error('EACCES: permission denied, mkdir .ruler');
+      (fs.mkdir as jest.Mock).mockRejectedValue(initError);
+      const exitSpy = jest
+        .spyOn(process, 'exit')
+        .mockImplementation((code?: string | number | null | undefined) => {
+          throw new Error(`process.exit: ${code}`);
+        });
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      const argv = {
+        'project-root': mockProjectRoot,
+        global: false,
+      };
+
+      await expect(initHandler(argv)).rejects.toThrow('process.exit: 1');
+
+      expect(errorSpy).toHaveBeenCalledTimes(1);
+      expect(errorSpy).toHaveBeenCalledWith(
+        '[ruler] EACCES: permission denied, mkdir .ruler',
+      );
+      expect(exitSpy).toHaveBeenCalledWith(1);
+
+      exitSpy.mockRestore();
+      errorSpy.mockRestore();
+    });
+
+    it('should exit with a concise error when writing default files fails', async () => {
+      const initError = new Error('ENOSPC: no space left on device');
+      (fs.writeFile as jest.Mock).mockRejectedValue(initError);
+      const exitSpy = jest
+        .spyOn(process, 'exit')
+        .mockImplementation((code?: string | number | null | undefined) => {
+          throw new Error(`process.exit: ${code}`);
+        });
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      const argv = {
+        'project-root': mockProjectRoot,
+        global: false,
+      };
+
+      await expect(initHandler(argv)).rejects.toThrow('process.exit: 1');
+
+      expect(errorSpy).toHaveBeenCalledTimes(1);
+      expect(errorSpy).toHaveBeenCalledWith(
+        '[ruler] ENOSPC: no space left on device',
+      );
+      expect(exitSpy).toHaveBeenCalledWith(1);
+
+      exitSpy.mockRestore();
+      errorSpy.mockRestore();
+    });
   });
 
   describe('revertHandler', () => {
