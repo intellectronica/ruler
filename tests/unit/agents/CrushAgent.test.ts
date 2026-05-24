@@ -84,6 +84,22 @@ describe('CrushAgent', () => {
     await expect(fs.access(mcpPath)).rejects.toThrow();
   });
 
+  it('should use outputPath as the instructions path when provided', async () => {
+    const rules = 'some rules';
+
+    await agent.applyRulerConfig(rules, projectRoot, null, {
+      outputPath: path.join(projectRoot, 'CUSTOM.md'),
+      outputPathInstructions: path.join(projectRoot, 'IGNORED.md'),
+    });
+
+    await expect(
+      fs.readFile(path.join(projectRoot, 'CUSTOM.md'), 'utf-8'),
+    ).resolves.toBe(rules);
+    await expect(
+      fs.access(path.join(projectRoot, 'IGNORED.md')),
+    ).rejects.toThrow();
+  });
+
   it('should transform MCP server type from "remote" to "http"', async () => {
     const rules = 'some rules';
     const mcpJson = {

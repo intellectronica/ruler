@@ -27,7 +27,9 @@ export class OpenCodeAgent implements IAgent {
     const outputPaths = this.getDefaultOutputPath(projectRoot);
     const instructionsPath = path.resolve(
       projectRoot,
-      agentConfig?.outputPathInstructions ?? outputPaths['instructions'],
+      agentConfig?.outputPath ??
+        agentConfig?.outputPathInstructions ??
+        outputPaths['instructions'],
     );
     const mcpPath = path.resolve(
       projectRoot,

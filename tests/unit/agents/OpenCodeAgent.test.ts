@@ -116,4 +116,15 @@ describe('OpenCodeAgent', () => {
       }, null, 2)
     );
   });
+
+  it('should use outputPath as the instructions path when provided', async () => {
+    mockedFs.readFile.mockRejectedValue(new Error('File not found'));
+
+    await agent.applyRulerConfig('rules', '/root', null, {
+      outputPath: 'CUSTOM.md',
+      outputPathInstructions: 'IGNORED.md',
+    });
+
+    expect(mockedFs.writeFile).toHaveBeenCalledWith('/root/CUSTOM.md', 'rules');
+  });
 });
