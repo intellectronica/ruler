@@ -65,7 +65,9 @@ export class CrushAgent implements IAgent {
   ): Promise<void> {
     const outputPaths = this.getDefaultOutputPath(projectRoot);
     const instructionsPath =
-      agentConfig?.outputPathInstructions ?? outputPaths['instructions'];
+      agentConfig?.outputPath ??
+      agentConfig?.outputPathInstructions ??
+      outputPaths['instructions'];
     const mcpPath = agentConfig?.outputPathConfig ?? outputPaths['mcp'];
 
     await fs.writeFile(instructionsPath, concatenatedRules);

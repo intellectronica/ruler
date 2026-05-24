@@ -22,7 +22,9 @@ export function getAgentOutputPaths(
     // Handle instructions path
     if ('instructions' in defaultPaths) {
       const instructionsPath =
-        agentConfig?.outputPathInstructions ?? defaultPaths.instructions;
+        agentConfig?.outputPath ??
+        agentConfig?.outputPathInstructions ??
+        defaultPaths.instructions;
       paths.push(instructionsPath);
     }
 
