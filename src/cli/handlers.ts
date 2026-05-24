@@ -160,25 +160,26 @@ export async function initHandler(argv: InitArgs): Promise<void> {
   const projectRoot = argv['project-root'];
   const isGlobal = argv['global'];
 
-  const rulerDir = isGlobal
-    ? path.join(
-        process.env.XDG_CONFIG_HOME || path.join(os.homedir(), '.config'),
-        'ruler',
-      )
-    : path.join(projectRoot, '.ruler');
-  await fs.mkdir(rulerDir, { recursive: true });
-  const instructionsPath = path.join(rulerDir, DEFAULT_RULES_FILENAME); // .ruler/AGENTS.md
-  const tomlPath = path.join(rulerDir, 'ruler.toml');
-  const exists = async (p: string) => {
-    try {
-      await fs.access(p);
-      return true;
-    } catch {
-      return false;
-    }
-  };
-  const DEFAULT_INSTRUCTIONS = `# AGENTS.md\n\nCentralised AI agent instructions. Add coding guidelines, style guides, and project context here.\n\nRuler concatenates all .md files in this directory (and subdirectories), starting with AGENTS.md (if present), then remaining files in sorted order.\n`;
-  const DEFAULT_TOML = `# Ruler Configuration File
+  try {
+    const rulerDir = isGlobal
+      ? path.join(
+          process.env.XDG_CONFIG_HOME || path.join(os.homedir(), '.config'),
+          'ruler',
+        )
+      : path.join(projectRoot, '.ruler');
+    await fs.mkdir(rulerDir, { recursive: true });
+    const instructionsPath = path.join(rulerDir, DEFAULT_RULES_FILENAME); // .ruler/AGENTS.md
+    const tomlPath = path.join(rulerDir, 'ruler.toml');
+    const exists = async (p: string) => {
+      try {
+        await fs.access(p);
+        return true;
+      } catch {
+        return false;
+      }
+    };
+    const DEFAULT_INSTRUCTIONS = `# AGENTS.md\n\nCentralised AI agent instructions. Add coding guidelines, style guides, and project context here.\n\nRuler concatenates all .md files in this directory (and subdirectories), starting with AGENTS.md (if present), then remaining files in sorted order.\n`;
+    const DEFAULT_TOML = `# Ruler Configuration File
 # See https://ai.intellectronica.net/ruler for documentation.
 
 # To specify which agents are active by default when --agents is not used,
@@ -223,18 +224,23 @@ export async function initHandler(argv: InitArgs): Promise<void> {
 # url = "https://api.example.com/mcp"
 # headers = { Authorization = "Bearer REPLACE_ME" }
 `;
-  if (!(await exists(instructionsPath))) {
-    // Create new AGENTS.md regardless of legacy presence.
-    await fs.writeFile(instructionsPath, DEFAULT_INSTRUCTIONS);
-    console.log(`[ruler] Created ${instructionsPath}`);
-  } else {
-    console.log(`[ruler] ${DEFAULT_RULES_FILENAME} already exists, skipping`);
-  }
-  if (!(await exists(tomlPath))) {
-    await fs.writeFile(tomlPath, DEFAULT_TOML);
-    console.log(`[ruler] Created ${tomlPath}`);
-  } else {
-    console.log(`[ruler] ruler.toml already exists, skipping`);
+    if (!(await exists(instructionsPath))) {
+      // Create new AGENTS.md regardless of legacy presence.
+      await fs.writeFile(instructionsPath, DEFAULT_INSTRUCTIONS);
+      console.log(`[ruler] Created ${instructionsPath}`);
+    } else {
+      console.log(`[ruler] ${DEFAULT_RULES_FILENAME} already exists, skipping`);
+    }
+    if (!(await exists(tomlPath))) {
+      await fs.writeFile(tomlPath, DEFAULT_TOML);
+      console.log(`[ruler] Created ${tomlPath}`);
+    } else {
+      console.log(`[ruler] ruler.toml already exists, skipping`);
+    }
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(formatCliError(message));
+    process.exit(1);
   }
 }
 
