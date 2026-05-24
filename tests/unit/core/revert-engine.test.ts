@@ -348,6 +348,36 @@ describe('revert-engine', () => {
       consoleErrorSpy.mockRestore();
     });
 
+    it('uses prefix string for verbose dry-run VSCode settings cleanup logs', async () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+      const settingsPath = path.join(tmpDir, '.vscode', 'settings.json');
+
+      await fs.mkdir(path.dirname(settingsPath), { recursive: true });
+      await fs.writeFile(
+        settingsPath,
+        JSON.stringify({
+          'augment.advanced': {
+            mcpServers: [{ name: 'test-server', command: 'test' }],
+          },
+        }),
+      );
+
+      await cleanUpAuxiliaryFiles(tmpDir, true, true);
+
+      const errorCalls = consoleErrorSpy.mock.calls.flat();
+
+      expect(errorCalls).toContain(
+        `[ruler:verbose] [ruler:dry-run] Would remove empty VSCode settings file`,
+      );
+      expect(
+        errorCalls.some(
+          (call) =>
+            typeof call === 'string' && call.includes('function actionPrefix'),
+        ),
+      ).toBe(false);
+      consoleErrorSpy.mockRestore();
+    });
+
     it('should use [ruler] prefix when dryRun is false', async () => {
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
 
