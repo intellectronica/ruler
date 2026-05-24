@@ -14,7 +14,7 @@ describe('OpenCode Agent Integration', () => {
     await fs.rm(tmpDir, { recursive: true, force: true });
   });
 
-  it('should create opencode.json file when running ruler apply without MCP config', async () => {
+  it('should not create opencode.json file when running ruler apply without MCP config', async () => {
     // Create a minimal .ruler directory structure without mcp.json
     const rulerDir = path.join(tmpDir, '.ruler');
     await fs.mkdir(rulerDir, { recursive: true });
@@ -28,13 +28,9 @@ describe('OpenCode Agent Integration', () => {
     // Run ruler apply for just the OpenCode agent
     await applyAllAgentConfigs(tmpDir, ['opencode'], undefined, true, undefined, false, false, false, true);
 
-    // Verify that opencode.json was created
+    // Verify that no empty MCP file was created
     const openCodePath = path.join(tmpDir, 'opencode.json');
-    const content = await fs.readFile(openCodePath, 'utf8');
-    const config = JSON.parse(content);
-
-    expect(config.$schema).toBe('https://opencode.ai/config.json');
-    expect(config.mcp).toEqual({});
+    await expect(fs.access(openCodePath)).rejects.toThrow();
   });
 
   it('should create opencode.json with MCP servers when MCP config exists', async () => {

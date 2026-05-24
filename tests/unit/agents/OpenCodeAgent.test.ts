@@ -41,19 +41,13 @@ describe('OpenCodeAgent', () => {
     expect(agent.supportsNativeSkills()).toBe(true);
   });
 
-  it('should create opencode.json with schema and empty MCP when no MCP config provided', async () => {
+  it('should write only instructions when no MCP config is provided', async () => {
     mockedFs.readFile.mockRejectedValue(new Error('File not found'));
 
     await agent.applyRulerConfig('rules', '/root', null);
 
     expect(mockedFs.writeFile).toHaveBeenCalledWith('/root/AGENTS.md', 'rules');
-    expect(mockedFs.writeFile).toHaveBeenCalledWith(
-      '/root/opencode.json', 
-      JSON.stringify({
-        $schema: 'https://opencode.ai/config.json',
-        mcp: {}
-      }, null, 2)
-    );
+    expect(mockedFs.writeFile).toHaveBeenCalledTimes(1);
   });
 
   it('should create opencode.json with MCP servers when MCP config provided', async () => {
