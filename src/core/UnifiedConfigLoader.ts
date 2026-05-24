@@ -240,6 +240,12 @@ export async function loadUnifiedConfig(
           });
         }
 
+        if (hasCommand && hasUrl) {
+          delete server.command;
+          delete server.args;
+          delete server.env;
+        }
+
         // Derive type - remote takes precedence if both are present
         if (server.url) {
           server.type = 'remote';
