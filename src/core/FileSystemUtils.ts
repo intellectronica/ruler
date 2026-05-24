@@ -5,11 +5,30 @@ import { SKILLS_DIR, RULER_SUBAGENTS_PATH } from '../constants';
 
 const SUBAGENTS_DIR_NAME = path.basename(RULER_SUBAGENTS_PATH);
 
+const DEFAULT_NESTED_DISCOVERY_IGNORES = new Set([
+  '__fixtures__',
+  '__generated__',
+  'build',
+  'coverage',
+  'dist',
+  'fixtures',
+  'generated',
+  'node_modules',
+  'temp',
+  'tmp',
+]);
+
 /**
  * Gets the XDG config directory path, falling back to ~/.config if XDG_CONFIG_HOME is not set.
  */
 function getXdgConfigDir(): string {
   return process.env.XDG_CONFIG_HOME || path.join(os.homedir(), '.config');
+}
+
+function shouldSkipNestedDiscoveryDir(dirName: string): boolean {
+  return (
+    dirName.startsWith('.') || DEFAULT_NESTED_DISCOVERY_IGNORES.has(dirName)
+  );
 }
 
 /**
@@ -274,24 +293,21 @@ export async function findAllRulerDirs(startPath: string): Promise<string[]> {
         if (entry.isDirectory()) {
           if (entry.name === '.ruler') {
             rulerDirs.push(fullPath);
-          } else {
-            // Recursively search subdirectories (but skip hidden directories like .git)
-            if (!entry.name.startsWith('.')) {
-              // Do not cross git repository boundaries (except the starting root)
-              const gitDir = path.join(fullPath, '.git');
-              try {
-                const gitStat = await fs.stat(gitDir);
-                if (
-                  gitStat.isDirectory() &&
-                  path.resolve(fullPath) !== rootPath
-                ) {
-                  continue;
-                }
-              } catch {
-                // no .git boundary, continue traversal
+          } else if (!shouldSkipNestedDiscoveryDir(entry.name)) {
+            // Do not cross git repository boundaries (except the starting root)
+            const gitDir = path.join(fullPath, '.git');
+            try {
+              const gitStat = await fs.stat(gitDir);
+              if (
+                gitStat.isDirectory() &&
+                path.resolve(fullPath) !== rootPath
+              ) {
+                continue;
               }
-              await findRulerDirs(fullPath);
+            } catch {
+              // no .git boundary, continue traversal
             }
+            await findRulerDirs(fullPath);
           }
         }
       }
