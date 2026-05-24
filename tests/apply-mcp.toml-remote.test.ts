@@ -56,4 +56,41 @@ url = "https://api.example.com/mcp"
       type: 'remote'
     });
   });
+
+  it('propagates mixed command/url TOML servers as remote', async () => {
+    const mixedProject = await setupTestProject({
+      '.ruler/ruler.toml': `[mcp]
+enabled = true
+merge_strategy = "merge"
+
+[mcp_servers.search]
+command = "npx"
+args = ["-y", "local-search"]
+url = "https://mcp.example.com/search"
+
+[mcp_servers.search.env]
+TOKEN = "stdio-only"
+`,
+      '.vscode/mcp.json': '{"mcpServers": {}}',
+    });
+
+    try {
+      runRuler('apply --agents copilot', mixedProject.projectRoot);
+
+      const nativePath = path.join(
+        mixedProject.projectRoot,
+        '.vscode',
+        'mcp.json',
+      );
+      const content = await fs.readFile(nativePath, 'utf8');
+      const config = JSON.parse(content);
+
+      expect(config.servers.search).toEqual({
+        url: 'https://mcp.example.com/search',
+        type: 'remote',
+      });
+    } finally {
+      await teardownTestProject(mixedProject.projectRoot);
+    }
+  });
 });
