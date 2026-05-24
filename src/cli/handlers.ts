@@ -56,6 +56,21 @@ function formatCliError(message: string): string {
     : `${ERROR_PREFIX} ${message}`;
 }
 
+function parseCliAgents(agents: string | undefined): string[] | undefined {
+  if (agents === undefined) {
+    return undefined;
+  }
+
+  const parsedAgents = agents.split(',').map((agent) => agent.trim());
+  if (parsedAgents.some((agent) => agent.length === 0)) {
+    throw new Error(
+      'Empty agent token in --agents. Remove extra commas or provide an agent name.',
+    );
+  }
+
+  return parsedAgents;
+}
+
 async function resolveNestedPreference(
   argv: ApplyArgs,
   projectRoot: string,
@@ -81,9 +96,6 @@ async function resolveNestedPreference(
 export async function applyHandler(argv: ApplyArgs): Promise<void> {
   const projectRoot = argv['project-root'];
   assertNotInsideRulerDir(projectRoot);
-  const agents = argv.agents
-    ? argv.agents.split(',').map((a) => a.trim())
-    : undefined;
   const configPath = argv.config;
   const mcpEnabled = argv.mcp;
   const mcpStrategy: McpStrategy | undefined = argv['mcp-overwrite']
@@ -126,6 +138,8 @@ export async function applyHandler(argv: ApplyArgs): Promise<void> {
   }
 
   try {
+    const agents = parseCliAgents(argv.agents);
+
     // Determine nested preference: CLI > TOML > Default (false)
     const nested = await resolveNestedPreference(argv, projectRoot, configPath);
 
@@ -244,9 +258,6 @@ export async function initHandler(argv: InitArgs): Promise<void> {
 export async function revertHandler(argv: RevertArgs): Promise<void> {
   const projectRoot = argv['project-root'];
   assertNotInsideRulerDir(projectRoot);
-  const agents = argv.agents
-    ? argv.agents.split(',').map((a) => a.trim())
-    : undefined;
   const configPath = argv.config;
   const keepBackups = argv['keep-backups'];
   const verbose = argv.verbose;
@@ -254,6 +265,8 @@ export async function revertHandler(argv: RevertArgs): Promise<void> {
   const localOnly = argv['local-only'];
 
   try {
+    const agents = parseCliAgents(argv.agents);
+
     await revertAllAgentConfigs(
       projectRoot,
       agents,

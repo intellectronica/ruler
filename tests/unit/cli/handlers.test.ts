@@ -71,6 +71,70 @@ describe('CLI Handlers', () => {
       );
     });
 
+    it('should reject trailing empty --agents tokens', async () => {
+      const exitSpy = jest
+        .spyOn(process, 'exit')
+        .mockImplementation((code?: string | number | null | undefined) => {
+          throw new Error(`process.exit: ${code}`);
+        });
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      const argv = {
+        'project-root': mockProjectRoot,
+        agents: 'copilot,',
+        mcp: true,
+        'mcp-overwrite': false,
+        verbose: false,
+        'dry-run': false,
+        'local-only': false,
+        nested: false,
+        backup: true,
+      };
+
+      await expect(applyHandler(argv)).rejects.toThrow('process.exit: 1');
+
+      expect(errorSpy).toHaveBeenCalledWith(
+        '[ruler] Empty agent token in --agents. Remove extra commas or provide an agent name.',
+      );
+      expect(applyAllAgentConfigs).not.toHaveBeenCalled();
+      expect(exitSpy).toHaveBeenCalledWith(1);
+
+      exitSpy.mockRestore();
+      errorSpy.mockRestore();
+    });
+
+    it('should reject whitespace-only --agents tokens', async () => {
+      const exitSpy = jest
+        .spyOn(process, 'exit')
+        .mockImplementation((code?: string | number | null | undefined) => {
+          throw new Error(`process.exit: ${code}`);
+        });
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      const argv = {
+        'project-root': mockProjectRoot,
+        agents: 'copilot,   ',
+        mcp: true,
+        'mcp-overwrite': false,
+        verbose: false,
+        'dry-run': false,
+        'local-only': false,
+        nested: false,
+        backup: true,
+      };
+
+      await expect(applyHandler(argv)).rejects.toThrow('process.exit: 1');
+
+      expect(errorSpy).toHaveBeenCalledWith(
+        '[ruler] Empty agent token in --agents. Remove extra commas or provide an agent name.',
+      );
+      expect(applyAllAgentConfigs).not.toHaveBeenCalled();
+      expect(exitSpy).toHaveBeenCalledWith(1);
+
+      exitSpy.mockRestore();
+      errorSpy.mockRestore();
+    });
+
     it('should handle mcp-overwrite correctly', async () => {
       const argv = {
         'project-root': mockProjectRoot,
@@ -629,6 +693,35 @@ describe('CLI Handlers', () => {
         false,
         false,
       );
+    });
+
+    it('should reject trailing empty --agents tokens', async () => {
+      const exitSpy = jest
+        .spyOn(process, 'exit')
+        .mockImplementation((code?: string | number | null | undefined) => {
+          throw new Error(`process.exit: ${code}`);
+        });
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      const argv = {
+        'project-root': mockProjectRoot,
+        agents: 'claude,',
+        'keep-backups': true,
+        verbose: true,
+        'dry-run': false,
+        'local-only': false,
+      };
+
+      await expect(revertHandler(argv)).rejects.toThrow('process.exit: 1');
+
+      expect(errorSpy).toHaveBeenCalledWith(
+        '[ruler] Empty agent token in --agents. Remove extra commas or provide an agent name.',
+      );
+      expect(revertAllAgentConfigs).not.toHaveBeenCalled();
+      expect(exitSpy).toHaveBeenCalledWith(1);
+
+      exitSpy.mockRestore();
+      errorSpy.mockRestore();
     });
 
     it('should handle undefined agents correctly', async () => {
