@@ -16,6 +16,9 @@ import {
 import { mapRawAgentConfigs } from './core/config-utils';
 
 const agents: IAgent[] = allAgents;
+const RULER_IGNORE_START_MARKER = '# START Ruler Generated Files';
+const RULER_IGNORE_END_MARKER = '# END Ruler Generated Files';
+const MANAGED_IGNORE_FILES = ['.gitignore', '.git/info/exclude'];
 
 export { allAgents };
 
@@ -146,11 +149,11 @@ export async function revertAllAgentConfigs(
   );
   totalFilesRemoved += cleanupResult.additionalFilesRemoved;
 
-  // Clean .gitignore if reverting all agents
-  const gitignoreCleaned =
+  // Clean managed ignore blocks if reverting all agents.
+  const cleanedIgnoreFiles =
     !config.cliAgents || config.cliAgents.length === 0
-      ? await cleanGitignore(projectRoot, verbose, dryRun)
-      : false;
+      ? await cleanManagedIgnoreFiles(projectRoot, verbose, dryRun)
+      : [];
 
   // Display summary
   const prefix = actionPrefix(dryRun);
@@ -172,57 +175,77 @@ export async function revertAllAgentConfigs(
       `  Empty directories removed: ${cleanupResult.directoriesRemoved}`,
     );
   }
-  if (gitignoreCleaned) {
-    console.log(`  .gitignore cleaned: yes`);
+  for (const ignoreFile of cleanedIgnoreFiles) {
+    console.log(`  ${ignoreFile} cleaned: yes`);
   }
 }
 
 /**
- * Removes the ruler-managed block from .gitignore file.
+ * Removes the ruler-managed block from ignore files Ruler can update.
  */
-async function cleanGitignore(
+async function cleanManagedIgnoreFiles(
   projectRoot: string,
   verbose: boolean,
   dryRun: boolean,
+): Promise<string[]> {
+  const cleanedFiles: string[] = [];
+
+  for (const ignoreFile of MANAGED_IGNORE_FILES) {
+    if (await cleanIgnoreFile(projectRoot, ignoreFile, verbose, dryRun)) {
+      cleanedFiles.push(ignoreFile);
+    }
+  }
+
+  return cleanedFiles;
+}
+
+async function cleanIgnoreFile(
+  projectRoot: string,
+  ignoreFile: string,
+  verbose: boolean,
+  dryRun: boolean,
 ): Promise<boolean> {
-  const gitignorePath = path.join(projectRoot, '.gitignore');
+  const ignorePath = path.join(projectRoot, ignoreFile);
 
   try {
-    await fs.access(gitignorePath);
+    await fs.access(ignorePath);
   } catch {
-    logVerbose('No .gitignore file found', verbose);
+    logVerbose(`No ${ignoreFile} file found`, verbose);
     return false;
   }
 
-  const content = await fs.readFile(gitignorePath, 'utf8');
-  const startMarker = '# START Ruler Generated Files';
-  const endMarker = '# END Ruler Generated Files';
+  const content = await fs.readFile(ignorePath, 'utf8');
 
-  const startIndex = content.indexOf(startMarker);
-  const endIndex = content.indexOf(endMarker);
+  const startIndex = content.indexOf(RULER_IGNORE_START_MARKER);
+  const endIndex = content.indexOf(RULER_IGNORE_END_MARKER);
 
   if (startIndex === -1 || endIndex === -1) {
-    logVerbose('No ruler-managed block found in .gitignore', verbose);
+    logVerbose(`No ruler-managed block found in ${ignoreFile}`, verbose);
     return false;
   }
 
   const prefix = actionPrefix(dryRun);
 
   if (dryRun) {
-    logVerbose(`${prefix} Would remove ruler block from .gitignore`, verbose);
+    logVerbose(
+      `${prefix} Would remove ruler block from ${ignoreFile}`,
+      verbose,
+    );
   } else {
     const beforeBlock = content.substring(0, startIndex);
-    const afterBlock = content.substring(endIndex + endMarker.length);
+    const afterBlock = content.substring(
+      endIndex + RULER_IGNORE_END_MARKER.length,
+    );
 
     let newContent = beforeBlock + afterBlock;
     newContent = newContent.replace(/\n{3,}/g, '\n\n'); // Replace 3+ newlines with 2
 
     if (newContent.trim() === '') {
-      await fs.unlink(gitignorePath);
-      logVerbose(`${prefix} Removed empty .gitignore file`, verbose);
+      await fs.unlink(ignorePath);
+      logVerbose(`${prefix} Removed empty ${ignoreFile} file`, verbose);
     } else {
-      await fs.writeFile(gitignorePath, newContent);
-      logVerbose(`${prefix} Removed ruler block from .gitignore`, verbose);
+      await fs.writeFile(ignorePath, newContent);
+      logVerbose(`${prefix} Removed ruler block from ${ignoreFile}`, verbose);
     }
   }
 

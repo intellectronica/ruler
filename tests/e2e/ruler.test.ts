@@ -55,6 +55,10 @@ describe('End-to-End Ruler CLI', () => {
       force: true,
     });
     await fs.rm(path.join(projectRoot, '.gitignore'), { force: true });
+    await fs.rm(path.join(projectRoot, '.git'), {
+      recursive: true,
+      force: true,
+    });
     // Clean up any custom files from previous tests
     await fs.rm(path.join(projectRoot, 'awesome.md'), { force: true });
     await fs.rm(path.join(projectRoot, 'custom-claude.md'), { force: true });
@@ -329,6 +333,27 @@ enabled = true`;
 
       expect(excludeContent).toContain('# START Ruler Generated Files');
       expect(excludeContent).toContain('CLAUDE.md');
+    });
+
+    it('removes generated paths from .git/info/exclude after local apply and revert', async () => {
+      runRulerWithInheritedStdio(
+        'apply --gitignore-local',
+        testProject.projectRoot,
+      );
+
+      const excludePath = path.join(
+        testProject.projectRoot,
+        '.git',
+        'info',
+        'exclude',
+      );
+      await expect(fs.readFile(excludePath, 'utf8')).resolves.toContain(
+        '# START Ruler Generated Files',
+      );
+
+      runRulerWithInheritedStdio('revert', testProject.projectRoot);
+
+      await expect(fs.access(excludePath)).rejects.toThrow();
     });
 
     it('updates existing .gitignore preserving other content', async () => {

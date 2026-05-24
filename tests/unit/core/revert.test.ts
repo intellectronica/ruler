@@ -342,6 +342,37 @@ describe('Revert Core Functions', () => {
       expect(content).toBe('node_modules/\n\n*.log\n');
     });
 
+    it('removes the ruler-managed block from .git/info/exclude', async () => {
+      const excludePath = path.join(tmpDir, '.git', 'info', 'exclude');
+      await fs.mkdir(path.dirname(excludePath), { recursive: true });
+      await fs.writeFile(
+        excludePath,
+        [
+          '*.local',
+          '',
+          '# START Ruler Generated Files',
+          '/AGENTS.md',
+          '/CLAUDE.md',
+          '# END Ruler Generated Files',
+          '',
+          '*.secret',
+          '',
+        ].join('\n'),
+      );
+
+      await revertAllAgentConfigs(
+        tmpDir,
+        undefined,
+        undefined,
+        false,
+        false,
+        false,
+      );
+
+      const content = await fs.readFile(excludePath, 'utf8');
+      expect(content).toBe('*.local\n\n*.secret\n');
+    });
+
     it('removes .gitignore when it only contains the ruler-managed block', async () => {
       await fs.writeFile(
         path.join(tmpDir, '.gitignore'),
