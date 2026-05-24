@@ -23,6 +23,7 @@ export function mergeMcp(
       (incoming.mcp as Record<string, unknown>) ||
       {};
     return {
+      ...base,
       [serverKey]: incomingServers,
     };
   }

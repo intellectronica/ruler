@@ -143,6 +143,32 @@ describe('KiloCode MCP Integration', () => {
       });
     });
 
+    it('preserves non-MCP properties during overwrite', async () => {
+      const existing = {
+        mcpServers: {
+          existing: { command: 'existing-cmd' },
+        },
+        model: 'gpt-test',
+      };
+
+      const newConfig = {
+        mcpServers: {
+          filesystem: { command: 'npx' },
+        },
+      };
+
+      const merged = mergeMcp(
+        existing,
+        newConfig,
+        'overwrite',
+        'mcpServers',
+      ) as McpConfig;
+
+      expect(merged.model).toBe('gpt-test');
+      expect(merged.mcpServers.existing).toBeUndefined();
+      expect(merged.mcpServers.filesystem).toEqual({ command: 'npx' });
+    });
+
     it('overwrites servers with same name during merge', async () => {
       const existing = {
         mcpServers: {
