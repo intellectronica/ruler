@@ -278,7 +278,7 @@ export async function revertHandler(argv: RevertArgs): Promise<void> {
     );
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    console.error(`${ERROR_PREFIX} ${message}`);
+    console.error(formatCliError(message));
     process.exit(1);
   }
 }

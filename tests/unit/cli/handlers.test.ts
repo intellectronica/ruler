@@ -774,6 +774,40 @@ describe('CLI Handlers', () => {
       errorSpy.mockRestore();
     });
 
+    it('should not double-prefix formatted Ruler errors', async () => {
+      (revertAllAgentConfigs as jest.Mock).mockRejectedValue(
+        new Error(
+          '[ruler] .ruler directory not found (Context: Searched from: /mock/project/root)',
+        ),
+      );
+
+      const exitSpy = jest
+        .spyOn(process, 'exit')
+        .mockImplementation((code?: string | number | null | undefined) => {
+          throw new Error(`process.exit: ${code}`);
+        });
+
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      const argv = {
+        'project-root': mockProjectRoot,
+        'keep-backups': false,
+        verbose: false,
+        'dry-run': false,
+        'local-only': false,
+      };
+
+      await expect(revertHandler(argv)).rejects.toThrow('process.exit: 1');
+
+      expect(errorSpy).toHaveBeenCalledWith(
+        '[ruler] .ruler directory not found (Context: Searched from: /mock/project/root)',
+      );
+      expect(exitSpy).toHaveBeenCalledWith(1);
+
+      exitSpy.mockRestore();
+      errorSpy.mockRestore();
+    });
+
     it('should fail fast when running revert from inside a .ruler directory', async () => {
       const exitSpy = jest
         .spyOn(process, 'exit')
