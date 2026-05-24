@@ -3,6 +3,7 @@
   "version": "0.3.41",
   "description": "Ruler — apply the same rules to all coding agents",
   "main": "dist/lib.js",
+  "types": "dist/lib.d.ts",
   "scripts": {
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "format": "prettier --write \"src/**/*.{ts,tsx,json,md}\"",
