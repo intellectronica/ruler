@@ -1,6 +1,7 @@
 import * as fs from 'fs/promises';
 import { ensureDirExists } from '../core/FileSystemUtils';
 import * as path from 'path';
+import { McpStrategy } from '../types';
 
 interface OpenCodeMcpServer {
   type: 'local' | 'remote';
@@ -100,6 +101,7 @@ export async function propagateMcpToOpenCode(
   rulerMcpData: Record<string, unknown> | null,
   openCodeConfigPath: string,
   backup = true,
+  strategy: McpStrategy = 'merge',
 ): Promise<void> {
   const rulerMcp: RulerMcp = rulerMcpData || {};
 
@@ -119,10 +121,13 @@ export async function propagateMcpToOpenCode(
   const finalConfig = {
     ...existingConfig,
     $schema: transformedConfig.$schema,
-    mcp: {
-      ...existingConfig.mcp,
-      ...transformedConfig.mcp,
-    },
+    mcp:
+      strategy === 'overwrite'
+        ? transformedConfig.mcp
+        : {
+            ...existingConfig.mcp,
+            ...transformedConfig.mcp,
+          },
   };
 
   await ensureDirExists(path.dirname(openCodeConfigPath));

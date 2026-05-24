@@ -679,6 +679,7 @@ async function applyMcpConfiguration(
     return await applyOpenHandsMcpConfiguration(
       agentMcpJson,
       dest,
+      cliMcpStrategy ?? agentConfig?.mcp?.strategy ?? config.mcp?.strategy,
       dryRun,
       verbose,
       backup,
@@ -689,6 +690,7 @@ async function applyMcpConfiguration(
     return await applyOpenCodeMcpConfiguration(
       agentMcpJson,
       dest,
+      cliMcpStrategy ?? agentConfig?.mcp?.strategy ?? config.mcp?.strategy,
       dryRun,
       verbose,
       backup,
@@ -725,6 +727,7 @@ async function applyMcpConfiguration(
 async function applyOpenHandsMcpConfiguration(
   filteredMcpJson: Record<string, unknown>,
   dest: string,
+  strategy: McpStrategy | undefined,
   dryRun: boolean,
   verbose: boolean,
   backup = true,
@@ -735,13 +738,14 @@ async function applyOpenHandsMcpConfiguration(
       verbose,
     );
   } else {
-    await propagateMcpToOpenHands(filteredMcpJson, dest, backup);
+    await propagateMcpToOpenHands(filteredMcpJson, dest, backup, strategy);
   }
 }
 
 async function applyOpenCodeMcpConfiguration(
   filteredMcpJson: Record<string, unknown>,
   dest: string,
+  strategy: McpStrategy | undefined,
   dryRun: boolean,
   verbose: boolean,
   backup = true,
@@ -752,7 +756,7 @@ async function applyOpenCodeMcpConfiguration(
       verbose,
     );
   } else {
-    await propagateMcpToOpenCode(filteredMcpJson, dest, backup);
+    await propagateMcpToOpenCode(filteredMcpJson, dest, backup, strategy);
   }
 }
 
