@@ -8,7 +8,7 @@ describe('Revert Core Functions', () => {
 
   beforeEach(async () => {
     tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ruler-revert-unit-'));
-    
+
     const rulerDir = path.join(tmpDir, '.ruler');
     await fs.mkdir(rulerDir, { recursive: true });
     await fs.writeFile(path.join(rulerDir, 'instructions.md'), 'Test Rule');
@@ -21,10 +21,18 @@ describe('Revert Core Functions', () => {
   describe('revertAllAgentConfigs', () => {
     it('should throw error when .ruler directory not found', async () => {
       const emptyDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ruler-empty-'));
-      
+
       try {
         await expect(
-          revertAllAgentConfigs(emptyDir, undefined, undefined, false, false, false, true),
+          revertAllAgentConfigs(
+            emptyDir,
+            undefined,
+            undefined,
+            false,
+            false,
+            false,
+            true,
+          ),
         ).rejects.toThrow('.ruler directory not found');
       } finally {
         await fs.rm(emptyDir, { recursive: true, force: true });
@@ -33,53 +41,190 @@ describe('Revert Core Functions', () => {
 
     it('should handle dry-run mode correctly', async () => {
       await fs.writeFile(path.join(tmpDir, 'CLAUDE.md'), 'Generated content');
-      
+
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-      
-      await revertAllAgentConfigs(tmpDir, undefined, undefined, false, false, true);
-      
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[ruler:dry-run] Revert summary (dry run):'));
-      
-      await expect(fs.access(path.join(tmpDir, 'CLAUDE.md'))).resolves.toBeUndefined();
-      
+
+      await revertAllAgentConfigs(
+        tmpDir,
+        undefined,
+        undefined,
+        false,
+        false,
+        true,
+      );
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('[ruler:dry-run] Revert summary (dry run):'),
+      );
+
+      await expect(
+        fs.access(path.join(tmpDir, 'CLAUDE.md')),
+      ).resolves.toBeUndefined();
+
       consoleSpy.mockRestore();
     });
 
     it('should handle verbose logging', async () => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-      
-      await revertAllAgentConfigs(tmpDir, undefined, undefined, false, true, false);
-      
+
+      await revertAllAgentConfigs(
+        tmpDir,
+        undefined,
+        undefined,
+        false,
+        true,
+        false,
+      );
+
       expect(consoleSpy).toHaveBeenCalled();
-      
+
       consoleSpy.mockRestore();
     });
 
     it('should handle specific agents filter', async () => {
       await fs.writeFile(path.join(tmpDir, 'CLAUDE.md'), 'Claude content');
       await fs.writeFile(path.join(tmpDir, 'AGENTS.md'), 'Agents content');
-      
+
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-      
-      await revertAllAgentConfigs(tmpDir, ['claude'], undefined, false, false, false);
-      
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Reverting Claude Code'));
-      expect(consoleSpy).not.toHaveBeenCalledWith(expect.stringContaining('Reverting OpenAI Codex CLI'));
-      
+
+      await revertAllAgentConfigs(
+        tmpDir,
+        ['claude'],
+        undefined,
+        false,
+        false,
+        false,
+      );
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Reverting Claude Code'),
+      );
+      expect(consoleSpy).not.toHaveBeenCalledWith(
+        expect.stringContaining('Reverting OpenAI Codex CLI'),
+      );
+
       consoleSpy.mockRestore();
+    });
+
+    it('continues with valid CLI agents when invalid filters are present', async () => {
+      await fs.writeFile(path.join(tmpDir, 'CLAUDE.md'), 'Claude content');
+
+      const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      await revertAllAgentConfigs(
+        tmpDir,
+        ['claude', 'not-a-real-agent'],
+        undefined,
+        false,
+        true,
+        false,
+      );
+
+      expect(consoleLogSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Reverting Claude Code'),
+      );
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('continuing with valid agents only'),
+      );
+      await expect(fs.access(path.join(tmpDir, 'CLAUDE.md'))).rejects.toThrow();
+
+      consoleLogSpy.mockRestore();
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('uses valid default agents when invalid defaults are present', async () => {
+      await fs.writeFile(
+        path.join(tmpDir, '.ruler', 'ruler.toml'),
+        'default_agents = ["claude", "not-a-real-agent"]\n',
+      );
+      await fs.writeFile(path.join(tmpDir, 'CLAUDE.md'), 'Claude content');
+      await fs.writeFile(path.join(tmpDir, 'AGENTS.md'), 'Agents content');
+
+      const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      await revertAllAgentConfigs(
+        tmpDir,
+        undefined,
+        undefined,
+        false,
+        true,
+        false,
+      );
+
+      expect(consoleLogSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Reverting Claude Code'),
+      );
+      expect(consoleLogSpy).not.toHaveBeenCalledWith(
+        expect.stringContaining('Reverting AgentsMd'),
+      );
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('continuing with valid agents only'),
+      );
+
+      consoleLogSpy.mockRestore();
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('honors agent config overrides when falling back from invalid defaults', async () => {
+      await fs.writeFile(
+        path.join(tmpDir, '.ruler', 'ruler.toml'),
+        [
+          'default_agents = ["claude", "not-a-real-agent"]',
+          '',
+          '[agents.claude]',
+          'enabled = false',
+          '',
+          '[agents.agentsmd]',
+          'enabled = true',
+          '',
+        ].join('\n'),
+      );
+      await fs.writeFile(path.join(tmpDir, 'CLAUDE.md'), 'Claude content');
+      await fs.writeFile(path.join(tmpDir, 'AGENTS.md'), 'Agents content');
+
+      const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      await revertAllAgentConfigs(
+        tmpDir,
+        undefined,
+        undefined,
+        false,
+        true,
+        false,
+      );
+
+      expect(consoleLogSpy).not.toHaveBeenCalledWith(
+        expect.stringContaining('Reverting Claude Code'),
+      );
+      expect(consoleLogSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Reverting AgentsMd'),
+      );
+
+      consoleLogSpy.mockRestore();
+      consoleErrorSpy.mockRestore();
     });
 
     it('should handle keep-backups flag', async () => {
       const filePath = path.join(tmpDir, 'CLAUDE.md');
       const backupPath = `${filePath}.bak`;
-      
+
       await fs.writeFile(backupPath, 'Original content');
       await fs.writeFile(filePath, 'Modified content');
-      
-      await revertAllAgentConfigs(tmpDir, undefined, undefined, true, false, false);
-      
+
+      await revertAllAgentConfigs(
+        tmpDir,
+        undefined,
+        undefined,
+        true,
+        false,
+        false,
+      );
+
       await expect(fs.access(backupPath)).resolves.toBeUndefined();
-      
+
       const restoredContent = await fs.readFile(filePath, 'utf8');
       expect(restoredContent).toBe('Original content');
     });
@@ -87,14 +232,21 @@ describe('Revert Core Functions', () => {
     it('should remove backup files when keep-backups is false', async () => {
       const filePath = path.join(tmpDir, 'CLAUDE.md');
       const backupPath = `${filePath}.bak`;
-      
+
       await fs.writeFile(backupPath, 'Original content');
       await fs.writeFile(filePath, 'Modified content');
-      
-      await revertAllAgentConfigs(tmpDir, undefined, undefined, false, false, false);
-      
+
+      await revertAllAgentConfigs(
+        tmpDir,
+        undefined,
+        undefined,
+        false,
+        false,
+        false,
+      );
+
       await expect(fs.access(backupPath)).rejects.toThrow();
-      
+
       const restoredContent = await fs.readFile(filePath, 'utf8');
       expect(restoredContent).toBe('Original content');
     });
@@ -102,21 +254,35 @@ describe('Revert Core Functions', () => {
     it('should remove generated files without backups', async () => {
       const filePath = path.join(tmpDir, 'CLAUDE.md');
       await fs.writeFile(filePath, 'Generated content');
-      
-      await revertAllAgentConfigs(tmpDir, undefined, undefined, false, false, false);
-      
+
+      await revertAllAgentConfigs(
+        tmpDir,
+        undefined,
+        undefined,
+        false,
+        false,
+        false,
+      );
+
       await expect(fs.access(filePath)).rejects.toThrow();
     });
 
     it('should clean up empty directories', async () => {
       const githubDir = path.join(tmpDir, '.github');
       const cursorDir = path.join(tmpDir, '.cursor');
-      
+
       await fs.mkdir(githubDir, { recursive: true });
       await fs.mkdir(cursorDir, { recursive: true });
-      
-      await revertAllAgentConfigs(tmpDir, undefined, undefined, false, false, false);
-      
+
+      await revertAllAgentConfigs(
+        tmpDir,
+        undefined,
+        undefined,
+        false,
+        false,
+        false,
+      );
+
       await expect(fs.access(githubDir)).rejects.toThrow();
       await expect(fs.access(cursorDir)).rejects.toThrow();
     });
@@ -124,12 +290,130 @@ describe('Revert Core Functions', () => {
     it('should preserve non-empty directories', async () => {
       const githubDir = path.join(tmpDir, '.github');
       await fs.mkdir(githubDir, { recursive: true });
-      await fs.writeFile(path.join(githubDir, 'existing-file.txt'), 'Existing content');
-      
-      await revertAllAgentConfigs(tmpDir, undefined, undefined, false, false, false);
-      
+      await fs.writeFile(
+        path.join(githubDir, 'existing-file.txt'),
+        'Existing content',
+      );
+
+      await revertAllAgentConfigs(
+        tmpDir,
+        undefined,
+        undefined,
+        false,
+        false,
+        false,
+      );
+
       await expect(fs.access(githubDir)).resolves.toBeUndefined();
-      await expect(fs.access(path.join(githubDir, 'existing-file.txt'))).resolves.toBeUndefined();
+      await expect(
+        fs.access(path.join(githubDir, 'existing-file.txt')),
+      ).resolves.toBeUndefined();
+    });
+
+    it('removes the ruler-managed block from .gitignore', async () => {
+      await fs.writeFile(
+        path.join(tmpDir, '.gitignore'),
+        [
+          'node_modules/',
+          '',
+          '# START Ruler Generated Files',
+          '/AGENTS.md',
+          '/CLAUDE.md',
+          '# END Ruler Generated Files',
+          '',
+          '*.log',
+          '',
+        ].join('\n'),
+      );
+
+      await revertAllAgentConfigs(
+        tmpDir,
+        undefined,
+        undefined,
+        false,
+        false,
+        false,
+      );
+
+      const content = await fs.readFile(
+        path.join(tmpDir, '.gitignore'),
+        'utf8',
+      );
+      expect(content).toBe('node_modules/\n\n*.log\n');
+    });
+
+    it('removes .gitignore when it only contains the ruler-managed block', async () => {
+      await fs.writeFile(
+        path.join(tmpDir, '.gitignore'),
+        [
+          '# START Ruler Generated Files',
+          '/AGENTS.md',
+          '# END Ruler Generated Files',
+          '',
+        ].join('\n'),
+      );
+
+      await revertAllAgentConfigs(
+        tmpDir,
+        undefined,
+        undefined,
+        false,
+        false,
+        false,
+      );
+
+      await expect(
+        fs.access(path.join(tmpDir, '.gitignore')),
+      ).rejects.toThrow();
+    });
+
+    it('leaves .gitignore unchanged during dry-run cleanup', async () => {
+      const gitignoreContent = [
+        '# START Ruler Generated Files',
+        '/AGENTS.md',
+        '# END Ruler Generated Files',
+        '',
+      ].join('\n');
+      await fs.writeFile(path.join(tmpDir, '.gitignore'), gitignoreContent);
+
+      await revertAllAgentConfigs(
+        tmpDir,
+        undefined,
+        undefined,
+        false,
+        false,
+        true,
+      );
+
+      await expect(
+        fs.readFile(path.join(tmpDir, '.gitignore'), 'utf8'),
+      ).resolves.toBe(gitignoreContent);
+    });
+
+    it('does not report .gitignore cleanup when no ruler-managed block exists', async () => {
+      await fs.writeFile(path.join(tmpDir, '.gitignore'), 'node_modules/\n');
+
+      const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
+
+      try {
+        await revertAllAgentConfigs(
+          tmpDir,
+          undefined,
+          undefined,
+          false,
+          false,
+          false,
+        );
+
+        expect(consoleLogSpy).not.toHaveBeenCalledWith(
+          '  .gitignore cleaned: yes',
+        );
+        await expect(
+          fs.readFile(path.join(tmpDir, '.gitignore'), 'utf8'),
+        ).resolves.toBe('node_modules/\n');
+      } finally {
+        consoleLogSpy.mockRestore();
+      }
     });
   });
 
@@ -141,14 +425,21 @@ describe('Revert Core Functions', () => {
     it('should use [ruler:dry-run] prefix consistently when dryRun is true', async () => {
       const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
       await fs.writeFile(path.join(tmpDir, 'CLAUDE.md'), 'Generated content');
-      
-      await revertAllAgentConfigs(tmpDir, undefined, undefined, false, false, true); // dryRun=true
-      
+
+      await revertAllAgentConfigs(
+        tmpDir,
+        undefined,
+        undefined,
+        false,
+        false,
+        true,
+      ); // dryRun=true
+
       const logCalls = consoleLogSpy.mock.calls.flat();
-      const hasRulerDryRunPrefix = logCalls.some(call => 
-        typeof call === 'string' && call.includes('[ruler:dry-run]')
+      const hasRulerDryRunPrefix = logCalls.some(
+        (call) => typeof call === 'string' && call.includes('[ruler:dry-run]'),
       );
-      
+
       expect(hasRulerDryRunPrefix).toBe(true);
       consoleLogSpy.mockRestore();
     });
@@ -156,14 +447,24 @@ describe('Revert Core Functions', () => {
     it('should use [ruler] prefix consistently when dryRun is false', async () => {
       const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
       await fs.writeFile(path.join(tmpDir, 'CLAUDE.md'), 'Generated content');
-      
-      await revertAllAgentConfigs(tmpDir, undefined, undefined, false, false, false); // dryRun=false
-      
+
+      await revertAllAgentConfigs(
+        tmpDir,
+        undefined,
+        undefined,
+        false,
+        false,
+        false,
+      ); // dryRun=false
+
       const logCalls = consoleLogSpy.mock.calls.flat();
-      const hasRulerPrefix = logCalls.some(call => 
-        typeof call === 'string' && call.includes('[ruler]') && !call.includes('[ruler:dry-run]')
+      const hasRulerPrefix = logCalls.some(
+        (call) =>
+          typeof call === 'string' &&
+          call.includes('[ruler]') &&
+          !call.includes('[ruler:dry-run]'),
       );
-      
+
       expect(hasRulerPrefix).toBe(true);
       consoleLogSpy.mockRestore();
     });
