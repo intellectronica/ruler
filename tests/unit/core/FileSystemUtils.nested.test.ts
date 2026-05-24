@@ -62,5 +62,65 @@ describe('FileSystemUtils - Nested', () => {
         path.join(projectDir, '.ruler'),
       ]);
     });
+
+    it('skips .ruler directories inside generated and fixture directories', async () => {
+      const projectDir = path.join(tmpDir, 'ignored-generated-trees');
+      const moduleDir = path.join(projectDir, 'packages', 'app');
+      const generatedDirs = [
+        'node_modules',
+        'dist',
+        'build',
+        'coverage',
+        'fixtures',
+        '__fixtures__',
+        'tmp',
+        'temp',
+        'generated',
+        '__generated__',
+      ];
+
+      await fs.mkdir(path.join(projectDir, '.ruler'), { recursive: true });
+      await fs.mkdir(path.join(moduleDir, '.ruler'), { recursive: true });
+
+      await Promise.all(
+        generatedDirs.map((dirName) =>
+          fs.mkdir(path.join(projectDir, dirName, 'nested', '.ruler'), {
+            recursive: true,
+          }),
+        ),
+      );
+
+      const rulerDirs = await findAllRulerDirs(projectDir);
+
+      expect(rulerDirs).toEqual([
+        path.join(moduleDir, '.ruler'),
+        path.join(projectDir, '.ruler'),
+      ]);
+    });
+
+    it('still discovers normal nested project directories', async () => {
+      const projectDir = path.join(tmpDir, 'normal-nested-projects');
+      const nestedProjectDirs = [
+        path.join(projectDir, 'apps', 'web'),
+        path.join(projectDir, 'packages', 'core'),
+        path.join(projectDir, 'examples', 'cli'),
+      ];
+
+      await fs.mkdir(path.join(projectDir, '.ruler'), { recursive: true });
+      await Promise.all(
+        nestedProjectDirs.map((nestedProjectDir) =>
+          fs.mkdir(path.join(nestedProjectDir, '.ruler'), { recursive: true }),
+        ),
+      );
+
+      const rulerDirs = await findAllRulerDirs(projectDir);
+
+      expect(rulerDirs).toEqual([
+        path.join(projectDir, 'apps', 'web', '.ruler'),
+        path.join(projectDir, 'examples', 'cli', '.ruler'),
+        path.join(projectDir, 'packages', 'core', '.ruler'),
+        path.join(projectDir, '.ruler'),
+      ]);
+    });
   });
 });
