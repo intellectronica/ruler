@@ -1,6 +1,12 @@
 import { McpStrategy } from '../types';
 
-const MCP_SERVER_KEYS = ['servers', 'mcpServers', 'mcp', 'mcp_servers'];
+const MCP_SERVER_KEYS = [
+  'mcp',
+  'mcpServers',
+  'servers',
+  'mcp_servers',
+  'context_servers',
+];
 
 /**
  * Merge native and incoming MCP server configurations according to strategy.
@@ -50,7 +56,11 @@ export function mergeMcp(
   const mergedServers = { ...baseServers, ...incomingServers };
 
   const newBase = { ...base };
-  delete newBase.mcpServers; // Remove old key if present
+  for (const key of MCP_SERVER_KEYS) {
+    if (key !== serverKey) {
+      delete newBase[key];
+    }
+  }
 
   return {
     ...newBase,
