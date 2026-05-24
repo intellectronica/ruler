@@ -11,6 +11,10 @@ import {
   getVSCodeSettingsPath,
 } from '../vscode/settings';
 
+const ROOT_CONFIG_TOML = 'config.toml';
+const RULER_START_MARKER = '# START Ruler Generated Files';
+const RULER_END_MARKER = '# END Ruler Generated Files';
+
 /**
  * Result of reverting an agent configuration
  */
@@ -38,6 +42,65 @@ async function fileExists(filePath: string): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+function isRootConfigToml(filePath: string, projectRoot: string): boolean {
+  return (
+    path.resolve(filePath) ===
+    path.join(path.resolve(projectRoot), ROOT_CONFIG_TOML)
+  );
+}
+
+async function ignoreFileHasRulerGeneratedPath(
+  ignoreFilePath: string,
+  generatedPath: string,
+): Promise<boolean> {
+  try {
+    const content = await fs.readFile(ignoreFilePath, 'utf8');
+    const lines = content.split('\n');
+    let inRulerBlock = false;
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed === RULER_START_MARKER) {
+        inRulerBlock = true;
+        continue;
+      }
+      if (trimmed === RULER_END_MARKER) {
+        inRulerBlock = false;
+        continue;
+      }
+      if (
+        inRulerBlock &&
+        (trimmed === generatedPath || trimmed === generatedPath.slice(1))
+      ) {
+        return true;
+      }
+    }
+  } catch {
+    return false;
+  }
+
+  return false;
+}
+
+async function hasRulerGeneratedProvenance(
+  filePath: string,
+  projectRoot: string,
+): Promise<boolean> {
+  const relativePath = `/${path.relative(projectRoot, filePath).replace(/\\/g, '/')}`;
+  const ignoreFiles = [
+    path.join(projectRoot, '.gitignore'),
+    path.join(projectRoot, '.git', 'info', 'exclude'),
+  ];
+
+  for (const ignoreFile of ignoreFiles) {
+    if (await ignoreFileHasRulerGeneratedPath(ignoreFile, relativePath)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 /**
@@ -75,6 +138,7 @@ async function removeGeneratedFile(
   filePath: string,
   verbose: boolean,
   dryRun: boolean,
+  projectRoot?: string,
 ): Promise<boolean> {
   const fileExistsFlag = await fileExists(filePath);
   const backupExists = await fileExists(`${filePath}.bak`);
@@ -86,6 +150,18 @@ async function removeGeneratedFile(
 
   if (backupExists) {
     logVerbose(`File has backup, skipping removal: ${filePath}`, verbose);
+    return false;
+  }
+
+  if (
+    projectRoot &&
+    isRootConfigToml(filePath, projectRoot) &&
+    !(await hasRulerGeneratedProvenance(filePath, projectRoot))
+  ) {
+    logVerbose(
+      `Preserving root config.toml without backup or Ruler provenance: ${filePath}`,
+      verbose,
+    );
     return false;
   }
 
@@ -336,6 +412,14 @@ async function removeAdditionalAgentFiles(
         if (restored) {
           filesRemoved++;
         }
+      } else if (
+        isRootConfigToml(fullPath, projectRoot) &&
+        !(await hasRulerGeneratedProvenance(fullPath, projectRoot))
+      ) {
+        logVerbose(
+          `Preserving root config.toml without backup or Ruler provenance: ${fullPath}`,
+          verbose,
+        );
       } else {
         if (dryRun) {
           logVerbose(
@@ -470,7 +554,12 @@ export async function revertAgentConfiguration(
         }
       }
     } else {
-      const removed = await removeGeneratedFile(outputPath, verbose, dryRun);
+      const removed = await removeGeneratedFile(
+        outputPath,
+        verbose,
+        dryRun,
+        projectRoot,
+      );
       if (removed) {
         result.removed++;
       }
@@ -504,7 +593,12 @@ export async function revertAgentConfiguration(
           }
         }
       } else {
-        const mcpRemoved = await removeGeneratedFile(mcpPath, verbose, dryRun);
+        const mcpRemoved = await removeGeneratedFile(
+          mcpPath,
+          verbose,
+          dryRun,
+          projectRoot,
+        );
         if (mcpRemoved) {
           result.removed++;
         }
