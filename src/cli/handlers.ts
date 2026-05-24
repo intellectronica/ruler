@@ -50,6 +50,31 @@ function assertNotInsideRulerDir(projectRoot: string): void {
   }
 }
 
+function formatCliError(message: string): string {
+  return message.startsWith(ERROR_PREFIX)
+    ? message
+    : `${ERROR_PREFIX} ${message}`;
+}
+
+async function resolveNestedPreference(
+  argv: ApplyArgs,
+  projectRoot: string,
+  configPath: string | undefined,
+): Promise<boolean> {
+  if (argv.nested !== undefined) {
+    // CLI explicitly set nested (either --nested or --no-nested)
+    return argv.nested;
+  }
+
+  // CLI didn't set nested, check TOML configuration
+  const config = await loadConfig({
+    projectRoot,
+    configPath,
+  });
+  // Use TOML setting if available, otherwise default to false
+  return config.nested ?? false;
+}
+
 /**
  * Handler for the 'apply' command.
  */
@@ -84,27 +109,6 @@ export async function applyHandler(argv: ApplyArgs): Promise<void> {
     gitignoreLocalPreference = undefined; // Let TOML/default decide
   }
 
-  // Determine nested preference: CLI > TOML > Default (false)
-  let nested: boolean;
-
-  if (argv.nested !== undefined) {
-    // CLI explicitly set nested (either --nested or --no-nested)
-    nested = argv.nested;
-  } else {
-    // CLI didn't set nested, check TOML configuration
-    try {
-      const config = await loadConfig({
-        projectRoot,
-        configPath,
-      });
-      // Use TOML setting if available, otherwise default to false
-      nested = config.nested ?? false;
-    } catch {
-      // If config loading fails, use default (false)
-      nested = false;
-    }
-  }
-
   // Determine skills preference: CLI > TOML > Default (enabled)
   let skillsEnabled: boolean | undefined;
   if (argv.skills !== undefined) {
@@ -122,6 +126,9 @@ export async function applyHandler(argv: ApplyArgs): Promise<void> {
   }
 
   try {
+    // Determine nested preference: CLI > TOML > Default (false)
+    const nested = await resolveNestedPreference(argv, projectRoot, configPath);
+
     await applyAllAgentConfigs(
       projectRoot,
       agents,
@@ -141,7 +148,7 @@ export async function applyHandler(argv: ApplyArgs): Promise<void> {
     console.log('Ruler apply completed successfully.');
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    console.error(`${ERROR_PREFIX} ${message}`);
+    console.error(formatCliError(message));
     process.exit(1);
   }
 }
