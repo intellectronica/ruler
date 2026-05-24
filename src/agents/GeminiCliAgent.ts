@@ -17,11 +17,18 @@ export class GeminiCliAgent extends AgentsMdAgent {
     projectRoot: string,
     rulerMcpJson: Record<string, unknown> | null,
     agentConfig?: IAgentConfig,
+    backup = true,
   ): Promise<void> {
     // First, perform idempotent write of AGENTS.md via base class
-    await super.applyRulerConfig(concatenatedRules, projectRoot, null, {
-      outputPath: agentConfig?.outputPath,
-    });
+    await super.applyRulerConfig(
+      concatenatedRules,
+      projectRoot,
+      null,
+      {
+        outputPath: agentConfig?.outputPath,
+      },
+      backup,
+    );
 
     // Prepare .gemini/settings.json with contextFileName and MCP configuration
     const settingsPath = path.join(projectRoot, '.gemini', 'settings.json');

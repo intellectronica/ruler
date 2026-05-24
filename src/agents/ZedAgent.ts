@@ -22,11 +22,18 @@ export class ZedAgent extends AgentsMdAgent {
     projectRoot: string,
     rulerMcpJson: Record<string, unknown> | null,
     agentConfig?: IAgentConfig,
+    backup = true,
   ): Promise<void> {
     // First, perform idempotent AGENTS.md write via base class
-    await super.applyRulerConfig(concatenatedRules, projectRoot, null, {
-      outputPath: agentConfig?.outputPath,
-    });
+    await super.applyRulerConfig(
+      concatenatedRules,
+      projectRoot,
+      null,
+      {
+        outputPath: agentConfig?.outputPath,
+      },
+      backup,
+    );
 
     // Handle MCP server configuration if enabled and provided
     const mcpEnabled = agentConfig?.mcp?.enabled ?? true;

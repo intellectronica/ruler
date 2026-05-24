@@ -17,11 +17,18 @@ export class QwenCodeAgent extends AgentsMdAgent {
     projectRoot: string,
     _rulerMcpJson: Record<string, unknown> | null,
     agentConfig?: IAgentConfig,
+    backup = true,
   ): Promise<void> {
     // First, perform idempotent write of AGENTS.md via base class
-    await super.applyRulerConfig(concatenatedRules, projectRoot, null, {
-      outputPath: agentConfig?.outputPath,
-    });
+    await super.applyRulerConfig(
+      concatenatedRules,
+      projectRoot,
+      null,
+      {
+        outputPath: agentConfig?.outputPath,
+      },
+      backup,
+    );
 
     // Ensure .qwen/settings.json has contextFileName set to AGENTS.md
     const settingsPath = path.join(projectRoot, '.qwen', 'settings.json');
