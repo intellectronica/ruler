@@ -153,6 +153,22 @@ const SKILL_TARGET_TO_IDENTIFIERS = new Map<SkillTarget, readonly string[]>([
   ['antigravity', ['antigravity']],
 ]);
 
+const SKILL_TARGET_PATHS: readonly string[] = [
+  CLAUDE_SKILLS_PATH,
+  CODEX_SKILLS_PATH,
+  OPENCODE_SKILLS_PATH,
+  PI_SKILLS_PATH,
+  GOOSE_SKILLS_PATH,
+  VIBE_SKILLS_PATH,
+  ROO_SKILLS_PATH,
+  GEMINI_SKILLS_PATH,
+  JUNIE_SKILLS_PATH,
+  CURSOR_SKILLS_PATH,
+  WINDSURF_SKILLS_PATH,
+  FACTORY_SKILLS_PATH,
+  ANTIGRAVITY_SKILLS_PATH,
+];
+
 function getSelectedSkillTargets(agents: IAgent[]): Set<SkillTarget> {
   const selectedIdentifiers = new Set(
     agents
@@ -170,6 +186,45 @@ function getSelectedSkillTargets(agents: IAgent[]): Set<SkillTarget> {
   return targets;
 }
 
+function isMissingPathError(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    (error as { code?: string }).code === 'ENOENT'
+  );
+}
+
+async function cleanupSkillsDirectory(
+  projectRoot: string,
+  relativePath: string,
+  dryRun: boolean,
+  verbose: boolean,
+): Promise<void> {
+  const targetPath = path.join(projectRoot, relativePath);
+
+  try {
+    await fs.access(targetPath);
+  } catch (error) {
+    if (isMissingPathError(error)) {
+      return;
+    }
+    throw error;
+  }
+
+  if (dryRun) {
+    logVerboseInfo(`DRY RUN: Would remove ${relativePath}`, verbose, dryRun);
+    return;
+  }
+
+  await fs.rm(targetPath, { recursive: true, force: true });
+  logVerboseInfo(`Removed ${relativePath} (skills disabled)`, verbose, dryRun);
+}
+
+async function createTempSkillsDir(parentDir: string): Promise<string> {
+  return fs.mkdtemp(path.join(parentDir, 'skills.tmp-'));
+}
+
 /**
  * Cleans up skills directories when skills are disabled.
  * This ensures that stale skills from previous runs don't persist when skills are turned off.
@@ -179,291 +234,8 @@ async function cleanupSkillsDirectories(
   dryRun: boolean,
   verbose: boolean,
 ): Promise<void> {
-  const claudeSkillsPath = path.join(projectRoot, CLAUDE_SKILLS_PATH);
-  const codexSkillsPath = path.join(projectRoot, CODEX_SKILLS_PATH);
-  const opencodeSkillsPath = path.join(projectRoot, OPENCODE_SKILLS_PATH);
-  const piSkillsPath = path.join(projectRoot, PI_SKILLS_PATH);
-  const gooseSkillsPath = path.join(projectRoot, GOOSE_SKILLS_PATH);
-  const vibeSkillsPath = path.join(projectRoot, VIBE_SKILLS_PATH);
-  const rooSkillsPath = path.join(projectRoot, ROO_SKILLS_PATH);
-  const geminiSkillsPath = path.join(projectRoot, GEMINI_SKILLS_PATH);
-  const junieSkillsPath = path.join(projectRoot, JUNIE_SKILLS_PATH);
-  const cursorSkillsPath = path.join(projectRoot, CURSOR_SKILLS_PATH);
-  const windsurfSkillsPath = path.join(projectRoot, WINDSURF_SKILLS_PATH);
-  const factorySkillsPath = path.join(projectRoot, FACTORY_SKILLS_PATH);
-  const antigravitySkillsPath = path.join(projectRoot, ANTIGRAVITY_SKILLS_PATH);
-
-  // Clean up .claude/skills
-  try {
-    await fs.access(claudeSkillsPath);
-    if (dryRun) {
-      logVerboseInfo(
-        `DRY RUN: Would remove ${CLAUDE_SKILLS_PATH}`,
-        verbose,
-        dryRun,
-      );
-    } else {
-      await fs.rm(claudeSkillsPath, { recursive: true, force: true });
-      logVerboseInfo(
-        `Removed ${CLAUDE_SKILLS_PATH} (skills disabled)`,
-        verbose,
-        dryRun,
-      );
-    }
-  } catch {
-    // Directory doesn't exist, nothing to clean
-  }
-
-  // Clean up .codex/skills
-  try {
-    await fs.access(codexSkillsPath);
-    if (dryRun) {
-      logVerboseInfo(
-        `DRY RUN: Would remove ${CODEX_SKILLS_PATH}`,
-        verbose,
-        dryRun,
-      );
-    } else {
-      await fs.rm(codexSkillsPath, { recursive: true, force: true });
-      logVerboseInfo(
-        `Removed ${CODEX_SKILLS_PATH} (skills disabled)`,
-        verbose,
-        dryRun,
-      );
-    }
-  } catch {
-    // Directory doesn't exist, nothing to clean
-  }
-
-  // Clean up .opencode/skills
-  try {
-    await fs.access(opencodeSkillsPath);
-    if (dryRun) {
-      logVerboseInfo(
-        `DRY RUN: Would remove ${OPENCODE_SKILLS_PATH}`,
-        verbose,
-        dryRun,
-      );
-    } else {
-      await fs.rm(opencodeSkillsPath, { recursive: true, force: true });
-      logVerboseInfo(
-        `Removed ${OPENCODE_SKILLS_PATH} (skills disabled)`,
-        verbose,
-        dryRun,
-      );
-    }
-  } catch {
-    // Directory doesn't exist, nothing to clean
-  }
-
-  // Clean up .pi/skills
-  try {
-    await fs.access(piSkillsPath);
-    if (dryRun) {
-      logVerboseInfo(
-        `DRY RUN: Would remove ${PI_SKILLS_PATH}`,
-        verbose,
-        dryRun,
-      );
-    } else {
-      await fs.rm(piSkillsPath, { recursive: true, force: true });
-      logVerboseInfo(
-        `Removed ${PI_SKILLS_PATH} (skills disabled)`,
-        verbose,
-        dryRun,
-      );
-    }
-  } catch {
-    // Directory doesn't exist, nothing to clean
-  }
-
-  // Clean up .agents/skills
-  try {
-    await fs.access(gooseSkillsPath);
-    if (dryRun) {
-      logVerboseInfo(
-        `DRY RUN: Would remove ${GOOSE_SKILLS_PATH}`,
-        verbose,
-        dryRun,
-      );
-    } else {
-      await fs.rm(gooseSkillsPath, { recursive: true, force: true });
-      logVerboseInfo(
-        `Removed ${GOOSE_SKILLS_PATH} (skills disabled)`,
-        verbose,
-        dryRun,
-      );
-    }
-  } catch {
-    // Directory doesn't exist, nothing to clean
-  }
-
-  // Clean up .vibe/skills
-  try {
-    await fs.access(vibeSkillsPath);
-    if (dryRun) {
-      logVerboseInfo(
-        `DRY RUN: Would remove ${VIBE_SKILLS_PATH}`,
-        verbose,
-        dryRun,
-      );
-    } else {
-      await fs.rm(vibeSkillsPath, { recursive: true, force: true });
-      logVerboseInfo(
-        `Removed ${VIBE_SKILLS_PATH} (skills disabled)`,
-        verbose,
-        dryRun,
-      );
-    }
-  } catch {
-    // Directory doesn't exist, nothing to clean
-  }
-
-  // Clean up .roo/skills
-  try {
-    await fs.access(rooSkillsPath);
-    if (dryRun) {
-      logVerboseInfo(
-        `DRY RUN: Would remove ${ROO_SKILLS_PATH}`,
-        verbose,
-        dryRun,
-      );
-    } else {
-      await fs.rm(rooSkillsPath, { recursive: true, force: true });
-      logVerboseInfo(
-        `Removed ${ROO_SKILLS_PATH} (skills disabled)`,
-        verbose,
-        dryRun,
-      );
-    }
-  } catch {
-    // Directory doesn't exist, nothing to clean
-  }
-
-  // Clean up .gemini/skills
-  try {
-    await fs.access(geminiSkillsPath);
-    if (dryRun) {
-      logVerboseInfo(
-        `DRY RUN: Would remove ${GEMINI_SKILLS_PATH}`,
-        verbose,
-        dryRun,
-      );
-    } else {
-      await fs.rm(geminiSkillsPath, { recursive: true, force: true });
-      logVerboseInfo(
-        `Removed ${GEMINI_SKILLS_PATH} (skills disabled)`,
-        verbose,
-        dryRun,
-      );
-    }
-  } catch {
-    // Directory doesn't exist, nothing to clean
-  }
-
-  // Clean up .junie/skills
-  try {
-    await fs.access(junieSkillsPath);
-    if (dryRun) {
-      logVerboseInfo(
-        `DRY RUN: Would remove ${JUNIE_SKILLS_PATH}`,
-        verbose,
-        dryRun,
-      );
-    } else {
-      await fs.rm(junieSkillsPath, { recursive: true, force: true });
-      logVerboseInfo(
-        `Removed ${JUNIE_SKILLS_PATH} (skills disabled)`,
-        verbose,
-        dryRun,
-      );
-    }
-  } catch {
-    // Directory doesn't exist, nothing to clean
-  }
-
-  // Clean up .cursor/skills
-  try {
-    await fs.access(cursorSkillsPath);
-    if (dryRun) {
-      logVerboseInfo(
-        `DRY RUN: Would remove ${CURSOR_SKILLS_PATH}`,
-        verbose,
-        dryRun,
-      );
-    } else {
-      await fs.rm(cursorSkillsPath, { recursive: true, force: true });
-      logVerboseInfo(
-        `Removed ${CURSOR_SKILLS_PATH} (skills disabled)`,
-        verbose,
-        dryRun,
-      );
-    }
-  } catch {
-    // Directory doesn't exist, nothing to clean
-  }
-
-  // Clean up .windsurf/skills
-  try {
-    await fs.access(windsurfSkillsPath);
-    if (dryRun) {
-      logVerboseInfo(
-        `DRY RUN: Would remove ${WINDSURF_SKILLS_PATH}`,
-        verbose,
-        dryRun,
-      );
-    } else {
-      await fs.rm(windsurfSkillsPath, { recursive: true, force: true });
-      logVerboseInfo(
-        `Removed ${WINDSURF_SKILLS_PATH} (skills disabled)`,
-        verbose,
-        dryRun,
-      );
-    }
-  } catch {
-    // Directory doesn't exist, nothing to clean
-  }
-
-  // Clean up .factory/skills
-  try {
-    await fs.access(factorySkillsPath);
-    if (dryRun) {
-      logVerboseInfo(
-        `DRY RUN: Would remove ${FACTORY_SKILLS_PATH}`,
-        verbose,
-        dryRun,
-      );
-    } else {
-      await fs.rm(factorySkillsPath, { recursive: true, force: true });
-      logVerboseInfo(
-        `Removed ${FACTORY_SKILLS_PATH} (skills disabled)`,
-        verbose,
-        dryRun,
-      );
-    }
-  } catch {
-    // Directory doesn't exist, nothing to clean
-  }
-
-  // Clean up .agent/skills
-  try {
-    await fs.access(antigravitySkillsPath);
-    if (dryRun) {
-      logVerboseInfo(
-        `DRY RUN: Would remove ${ANTIGRAVITY_SKILLS_PATH}`,
-        verbose,
-        dryRun,
-      );
-    } else {
-      await fs.rm(antigravitySkillsPath, { recursive: true, force: true });
-      logVerboseInfo(
-        `Removed ${ANTIGRAVITY_SKILLS_PATH} (skills disabled)`,
-        verbose,
-        dryRun,
-      );
-    }
-  } catch {
-    // Directory doesn't exist, nothing to clean
+  for (const skillPath of SKILL_TARGET_PATHS) {
+    await cleanupSkillsDirectory(projectRoot, skillPath, dryRun, verbose);
   }
 }
 
@@ -704,7 +476,7 @@ export async function propagateSkillsForClaude(
   await fs.mkdir(claudeDir, { recursive: true });
 
   // Use atomic replace: copy to temp, then rename
-  const tempDir = path.join(claudeDir, `skills.tmp-${Date.now()}`);
+  const tempDir = await createTempSkillsDir(claudeDir);
 
   try {
     // Copy to temp directory
@@ -762,7 +534,7 @@ export async function propagateSkillsForCodex(
   await fs.mkdir(codexDir, { recursive: true });
 
   // Use atomic replace: copy to temp, then rename
-  const tempDir = path.join(codexDir, `skills.tmp-${Date.now()}`);
+  const tempDir = await createTempSkillsDir(codexDir);
 
   try {
     // Copy to temp directory
@@ -820,7 +592,7 @@ export async function propagateSkillsForOpenCode(
   await fs.mkdir(opencodeDir, { recursive: true });
 
   // Use atomic replace: copy to temp, then rename
-  const tempDir = path.join(opencodeDir, `skill.tmp-${Date.now()}`);
+  const tempDir = await createTempSkillsDir(opencodeDir);
 
   try {
     // Copy to temp directory
@@ -878,7 +650,7 @@ export async function propagateSkillsForPi(
   await fs.mkdir(piDir, { recursive: true });
 
   // Use atomic replace: copy to temp, then rename
-  const tempDir = path.join(piDir, `skills.tmp-${Date.now()}`);
+  const tempDir = await createTempSkillsDir(piDir);
 
   try {
     // Copy to temp directory
@@ -936,7 +708,7 @@ export async function propagateSkillsForGoose(
   await fs.mkdir(gooseDir, { recursive: true });
 
   // Use atomic replace: copy to temp, then rename
-  const tempDir = path.join(gooseDir, `skills.tmp-${Date.now()}`);
+  const tempDir = await createTempSkillsDir(gooseDir);
 
   try {
     // Copy to temp directory
@@ -994,7 +766,7 @@ export async function propagateSkillsForVibe(
   await fs.mkdir(vibeDir, { recursive: true });
 
   // Use atomic replace: copy to temp, then rename
-  const tempDir = path.join(vibeDir, `skills.tmp-${Date.now()}`);
+  const tempDir = await createTempSkillsDir(vibeDir);
 
   try {
     // Copy to temp directory
@@ -1052,7 +824,7 @@ export async function propagateSkillsForRoo(
   await fs.mkdir(rooDir, { recursive: true });
 
   // Use atomic replace: copy to temp, then rename
-  const tempDir = path.join(rooDir, `skills.tmp-${Date.now()}`);
+  const tempDir = await createTempSkillsDir(rooDir);
 
   try {
     // Copy to temp directory
@@ -1110,7 +882,7 @@ export async function propagateSkillsForGemini(
   await fs.mkdir(geminiDir, { recursive: true });
 
   // Use atomic replace: copy to temp, then rename
-  const tempDir = path.join(geminiDir, `skills.tmp-${Date.now()}`);
+  const tempDir = await createTempSkillsDir(geminiDir);
 
   try {
     // Copy to temp directory
@@ -1164,7 +936,7 @@ export async function propagateSkillsForJunie(
 
   await fs.mkdir(junieDir, { recursive: true });
 
-  const tempDir = path.join(junieDir, `skills.tmp-${Date.now()}`);
+  const tempDir = await createTempSkillsDir(junieDir);
 
   try {
     await copySkillsDirectory(skillsDir, tempDir);
@@ -1217,7 +989,7 @@ export async function propagateSkillsForCursor(
   await fs.mkdir(cursorDir, { recursive: true });
 
   // Use atomic replace: copy to temp, then rename
-  const tempDir = path.join(cursorDir, `skills.tmp-${Date.now()}`);
+  const tempDir = await createTempSkillsDir(cursorDir);
 
   try {
     // Copy to temp directory
@@ -1275,7 +1047,7 @@ export async function propagateSkillsForWindsurf(
   await fs.mkdir(windsurfDir, { recursive: true });
 
   // Use atomic replace: copy to temp, then rename
-  const tempDir = path.join(windsurfDir, `skills.tmp-${Date.now()}`);
+  const tempDir = await createTempSkillsDir(windsurfDir);
 
   try {
     // Copy to temp directory
@@ -1333,7 +1105,7 @@ export async function propagateSkillsForFactory(
   await fs.mkdir(factoryDir, { recursive: true });
 
   // Use atomic replace: copy to temp, then rename
-  const tempDir = path.join(factoryDir, `skills.tmp-${Date.now()}`);
+  const tempDir = await createTempSkillsDir(factoryDir);
 
   try {
     // Copy to temp directory
@@ -1393,7 +1165,7 @@ export async function propagateSkillsForAntigravity(
   await fs.mkdir(antigravityDir, { recursive: true });
 
   // Use atomic replace: copy to temp, then rename
-  const tempDir = path.join(antigravityDir, `skills.tmp-${Date.now()}`);
+  const tempDir = await createTempSkillsDir(antigravityDir);
 
   try {
     // Copy to temp directory

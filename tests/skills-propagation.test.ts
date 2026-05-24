@@ -298,6 +298,42 @@ describe('Skills Discovery and Validation', () => {
       await expect(fs.access(oldSkill)).rejects.toThrow();
     });
 
+    it('uses a unique temp directory instead of reusing stale temp content', async () => {
+      const { propagateSkillsForClaude } = await import(
+        '../src/core/SkillsProcessor'
+      );
+      const skillsDir = path.join(tmpDir, '.ruler', 'skills');
+      const skill1 = path.join(skillsDir, 'skill1');
+      const staleTempSkill = path.join(
+        tmpDir,
+        '.claude',
+        'skills.tmp-stale',
+        'stale-skill',
+      );
+
+      await fs.mkdir(skill1, { recursive: true });
+      await fs.writeFile(path.join(skill1, SKILL_MD_FILENAME), '# Skill 1');
+      await fs.mkdir(staleTempSkill, { recursive: true });
+      await fs.writeFile(
+        path.join(staleTempSkill, SKILL_MD_FILENAME),
+        '# Stale Skill',
+      );
+
+      await propagateSkillsForClaude(tmpDir, { dryRun: false });
+
+      const claudeSkillsDir = path.join(tmpDir, '.claude', 'skills');
+      await expect(
+        fs.readFile(
+          path.join(claudeSkillsDir, 'skill1', SKILL_MD_FILENAME),
+          'utf8',
+        ),
+      ).resolves.toBe('# Skill 1');
+      await expect(
+        fs.access(path.join(claudeSkillsDir, 'stale-skill')),
+      ).rejects.toThrow();
+      await expect(fs.access(staleTempSkill)).resolves.toBeUndefined();
+    });
+
     it('includes operations in dry-run preview without executing', async () => {
       const { propagateSkillsForClaude } = await import(
         '../src/core/SkillsProcessor'
@@ -1354,6 +1390,24 @@ describe('Skills Discovery and Validation', () => {
       await expect(
         propagateSkills(tmpDir, allAgents, false, false, false),
       ).resolves.toBeUndefined();
+    });
+
+    it('surfaces filesystem errors during cleanup', async () => {
+      const { propagateSkills } = await import('../src/core/SkillsProcessor');
+      const { allAgents } = await import('../src/lib');
+      const claudeSkillsDir = path.join(tmpDir, '.claude', 'skills');
+      const claudeDir = path.dirname(claudeSkillsDir);
+
+      await fs.mkdir(claudeSkillsDir, { recursive: true });
+      await fs.chmod(claudeDir, 0o555);
+
+      try {
+        await expect(
+          propagateSkills(tmpDir, allAgents, false, false, false),
+        ).rejects.toThrow();
+      } finally {
+        await fs.chmod(claudeDir, 0o755);
+      }
     });
   });
 });
