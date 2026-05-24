@@ -429,6 +429,40 @@ command = "sub-cmd"
         true,
       );
     });
+
+    it('does not treat the global ruler directory as a nested output root', async () => {
+      const originalXdgConfigHome = process.env.XDG_CONFIG_HOME;
+      const xdgConfigHome = path.join(tmpDir, 'xdg-config-home');
+      const globalRulerDir = path.join(xdgConfigHome, 'ruler');
+
+      try {
+        process.env.XDG_CONFIG_HOME = xdgConfigHome;
+        await fs.mkdir(globalRulerDir, { recursive: true });
+        await fs.writeFile(
+          path.join(globalRulerDir, 'AGENTS.md'),
+          '# Global Instructions',
+        );
+        await fs.writeFile(
+          path.join(rulerDir, 'AGENTS.md'),
+          '# Project Instructions',
+        );
+
+        const configs = await loadNestedConfigurations(
+          tmpDir,
+          undefined,
+          false,
+          true,
+        );
+
+        expect(configs.map((config) => config.rulerDir)).toEqual([rulerDir]);
+      } finally {
+        if (originalXdgConfigHome === undefined) {
+          delete process.env.XDG_CONFIG_HOME;
+        } else {
+          process.env.XDG_CONFIG_HOME = originalXdgConfigHome;
+        }
+      }
+    });
   });
 
   describe('processHierarchicalConfigurations', () => {

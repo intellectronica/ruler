@@ -2,7 +2,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import os from 'os';
 import { parse as parseTOML } from '@iarna/toml';
-import { execSync } from 'child_process';
+import { execFileSync, execSync } from 'child_process';
 import {
   setupTestProject,
   teardownTestProject,
@@ -215,6 +215,52 @@ output_path = "awesome.md"
     await expect(
       fs.readFile(path.join(testProject.projectRoot, 'awesome.md'), 'utf8'),
     ).resolves.toContain('Rule A');
+  });
+
+  it('does not generate nested apply outputs in XDG_CONFIG_HOME', async () => {
+    const xdgConfigHome = await fs.mkdtemp(
+      path.join(os.tmpdir(), 'ruler-xdg-config-'),
+    );
+    const nestedProject = await setupTestProject({
+      '.ruler/AGENTS.md': '# Project Rule',
+      '.ruler/ruler.toml': `default_agents = ["claude"]\nnested = true\n`,
+    });
+    const globalRulerDir = path.join(xdgConfigHome, 'ruler');
+
+    try {
+      await fs.mkdir(globalRulerDir, { recursive: true });
+      await fs.writeFile(
+        path.join(globalRulerDir, 'AGENTS.md'),
+        '# Global Rule',
+      );
+
+      execFileSync(
+        'node',
+        [
+          'dist/cli/index.js',
+          'apply',
+          '--nested',
+          '--agents',
+          'claude',
+          '--project-root',
+          nestedProject.projectRoot,
+        ],
+        {
+          env: { ...process.env, XDG_CONFIG_HOME: xdgConfigHome },
+          stdio: 'inherit',
+        },
+      );
+
+      await expect(
+        fs.readFile(path.join(nestedProject.projectRoot, 'CLAUDE.md'), 'utf8'),
+      ).resolves.toContain('Project Rule');
+      await expect(
+        fs.stat(path.join(xdgConfigHome, 'CLAUDE.md')),
+      ).rejects.toThrow();
+    } finally {
+      await teardownTestProject(nestedProject.projectRoot);
+      await fs.rm(xdgConfigHome, { recursive: true, force: true });
+    }
   });
 
   describe('gitignore CLI flags', () => {
