@@ -165,6 +165,43 @@ describe('OpenCode MCP Integration', () => {
       });
     });
 
+    it('overwrites existing OpenCode MCP servers while preserving unrelated settings', async () => {
+      const openCodePath = path.join(tmpDir, 'opencode.json');
+
+      const existingConfig = {
+        $schema: 'https://opencode.ai/config.json',
+        mcp: {
+          'existing-server': {
+            type: 'local',
+            command: ['existing-command'],
+            enabled: true,
+          },
+        },
+        otherSetting: 'preserved',
+      };
+      await fs.writeFile(openCodePath, JSON.stringify(existingConfig));
+
+      const rulerMcp = {
+        mcpServers: {
+          'new-server': {
+            command: 'new-command',
+          },
+        },
+      };
+
+      await propagateMcpToOpenCode(rulerMcp, openCodePath, false, 'overwrite');
+
+      const result = JSON.parse(await fs.readFile(openCodePath, 'utf8'));
+
+      expect(result.otherSetting).toBe('preserved');
+      expect(Object.keys(result.mcp)).toEqual(['new-server']);
+      expect(result.mcp['new-server']).toEqual({
+        type: 'local',
+        command: ['new-command'],
+        enabled: true,
+      });
+    });
+
     it('creates minimal opencode.json when no ruler MCP config exists', async () => {
       const openCodePath = path.join(tmpDir, 'opencode.json');
 

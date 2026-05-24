@@ -2,6 +2,7 @@ import * as fs from 'fs/promises';
 import { parse as parseTOML, stringify } from '@iarna/toml';
 import { ensureDirExists } from '../core/FileSystemUtils';
 import * as path from 'path';
+import { McpStrategy } from '../types';
 
 interface StdioServer {
   name: string;
@@ -98,6 +99,7 @@ export async function propagateMcpToOpenHands(
   rulerMcpData: Record<string, unknown> | null,
   openHandsConfigPath: string,
   backup = true,
+  strategy: McpStrategy = 'merge',
 ): Promise<void> {
   const rulerMcp: Record<string, unknown> = rulerMcpData || {};
 
@@ -140,22 +142,28 @@ export async function propagateMcpToOpenHands(
     config.mcp.shttp_servers = [];
   }
 
-  // Build maps for merging existing servers
+  // Build maps for merging existing servers, or start fresh when overwriting.
   const existingStdioServers = new Map<string, StdioServer>(
-    config.mcp.stdio_servers.map((s: StdioServer) => [s.name, s]),
+    strategy === 'overwrite'
+      ? []
+      : config.mcp.stdio_servers.map((s: StdioServer) => [s.name, s]),
   );
 
   const existingSseServers = new Map<string, string | RemoteServerEntry>();
-  config.mcp.sse_servers.forEach((entry: string | RemoteServerEntry) => {
-    const url = typeof entry === 'string' ? entry : entry.url;
-    existingSseServers.set(url, entry);
-  });
+  if (strategy !== 'overwrite') {
+    config.mcp.sse_servers.forEach((entry: string | RemoteServerEntry) => {
+      const url = typeof entry === 'string' ? entry : entry.url;
+      existingSseServers.set(url, entry);
+    });
+  }
 
   const existingShttpServers = new Map<string, string | RemoteServerEntry>();
-  config.mcp.shttp_servers.forEach((entry: string | RemoteServerEntry) => {
-    const url = typeof entry === 'string' ? entry : entry.url;
-    existingShttpServers.set(url, entry);
-  });
+  if (strategy !== 'overwrite') {
+    config.mcp.shttp_servers.forEach((entry: string | RemoteServerEntry) => {
+      const url = typeof entry === 'string' ? entry : entry.url;
+      existingShttpServers.set(url, entry);
+    });
+  }
 
   for (const [name, serverDef] of Object.entries(rulerServers)) {
     if (isRulerMcpServer(serverDef)) {
