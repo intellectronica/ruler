@@ -261,6 +261,7 @@ describe('CLI Handlers', () => {
       expect(loadConfig).toHaveBeenCalledWith({
         projectRoot: mockProjectRoot,
         configPath: undefined,
+        checkGlobal: true,
       });
       expect(applyAllAgentConfigs).toHaveBeenCalledWith(
         mockProjectRoot,
@@ -314,6 +315,42 @@ describe('CLI Handlers', () => {
         false,
         false,
         false, // nested should default to false
+        true,
+        undefined,
+        undefined,
+        undefined,
+      );
+    });
+
+    it('should not read global config while resolving nested for local-only apply', async () => {
+      const argv = {
+        'project-root': mockProjectRoot,
+        mcp: true,
+        'mcp-overwrite': false,
+        verbose: false,
+        'dry-run': false,
+        'local-only': true,
+        backup: true,
+      };
+
+      await applyHandler(argv);
+
+      expect(loadConfig).toHaveBeenCalledWith({
+        projectRoot: mockProjectRoot,
+        configPath: undefined,
+        checkGlobal: false,
+      });
+      expect(applyAllAgentConfigs).toHaveBeenCalledWith(
+        mockProjectRoot,
+        undefined,
+        undefined,
+        true,
+        undefined,
+        undefined,
+        false,
+        false,
+        true,
+        false,
         true,
         undefined,
         undefined,

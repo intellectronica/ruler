@@ -171,6 +171,8 @@ export interface ConfigOptions {
   configPath?: string;
   /** CLI filters from --agents option. */
   cliAgents?: string[];
+  /** Whether implicit config discovery may fall back to XDG_CONFIG_HOME/ruler. */
+  checkGlobal?: boolean;
 }
 
 /**
@@ -182,9 +184,10 @@ export async function loadConfig(
   options: ConfigOptions,
 ): Promise<LoadedConfig> {
   const { projectRoot, configPath, cliAgents } = options;
+  const checkGlobal = options.checkGlobal ?? true;
   const configFile = configPath
     ? path.resolve(configPath)
-    : await resolveImplicitConfigFile(projectRoot);
+    : await resolveImplicitConfigFile(projectRoot, checkGlobal);
 
   const raw = configFile ? await readConfigFile(configFile) : {};
 
@@ -341,10 +344,15 @@ export async function loadConfig(
 
 async function resolveImplicitConfigFile(
   projectRoot: string,
+  checkGlobal: boolean,
 ): Promise<string | undefined> {
   const localConfigFile = path.join(projectRoot, '.ruler', 'ruler.toml');
   if (await configFileExists(localConfigFile)) {
     return localConfigFile;
+  }
+
+  if (!checkGlobal) {
+    return undefined;
   }
 
   const xdgConfigDir =

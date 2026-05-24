@@ -75,6 +75,24 @@ describe('ConfigLoader', () => {
     );
   });
 
+  it('ignores implicit global config when global lookup is disabled', async () => {
+    const globalRulerDir = path.join(
+      process.env.XDG_CONFIG_HOME as string,
+      'ruler',
+    );
+    await fs.mkdir(globalRulerDir, { recursive: true });
+    await fs.writeFile(path.join(globalRulerDir, 'ruler.toml'), 'nested = ');
+
+    const config = await loadConfig({
+      projectRoot: tmpDir,
+      checkGlobal: false,
+    });
+
+    expect(config.defaultAgents).toBeUndefined();
+    expect(config.agentConfigs).toEqual({});
+    expect(config.nested).toBe(false);
+  });
+
   it('throws when an existing implicit local config is unreadable', async () => {
     const configPath = path.join(rulerDir, 'ruler.toml');
     await fs.mkdir(configPath);

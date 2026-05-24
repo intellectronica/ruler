@@ -60,6 +60,7 @@ async function resolveNestedPreference(
   argv: ApplyArgs,
   projectRoot: string,
   configPath: string | undefined,
+  localOnly: boolean,
 ): Promise<boolean> {
   if (argv.nested !== undefined) {
     // CLI explicitly set nested (either --nested or --no-nested)
@@ -70,6 +71,7 @@ async function resolveNestedPreference(
   const config = await loadConfig({
     projectRoot,
     configPath,
+    checkGlobal: !localOnly,
   });
   // Use TOML setting if available, otherwise default to false
   return config.nested ?? false;
@@ -127,7 +129,12 @@ export async function applyHandler(argv: ApplyArgs): Promise<void> {
 
   try {
     // Determine nested preference: CLI > TOML > Default (false)
-    const nested = await resolveNestedPreference(argv, projectRoot, configPath);
+    const nested = await resolveNestedPreference(
+      argv,
+      projectRoot,
+      configPath,
+      localOnly,
+    );
 
     await applyAllAgentConfigs(
       projectRoot,
