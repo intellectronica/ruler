@@ -447,10 +447,7 @@ async function removeAdditionalAgentFiles(
     const restored = await restoreFromBackup(settingsPath, verbose, dryRun);
     if (restored) {
       filesRemoved++;
-      logVerbose(
-        `${actionPrefix} Restored VSCode settings from backup`,
-        verbose,
-      );
+      logVerbose(`${prefix} Restored VSCode settings from backup`, verbose);
     }
   } else if (await fileExists(settingsPath)) {
     try {
@@ -461,12 +458,12 @@ async function removeAdditionalAgentFiles(
           const remainingKeys = Object.keys(settings);
           if (remainingKeys.length === 0) {
             logVerbose(
-              `${actionPrefix} Would remove empty VSCode settings file`,
+              `${prefix} Would remove empty VSCode settings file`,
               verbose,
             );
           } else {
             logVerbose(
-              `${actionPrefix} Would remove augment.advanced section from ${settingsPath}`,
+              `${prefix} Would remove augment.advanced section from ${settingsPath}`,
               verbose,
             );
           }
@@ -480,14 +477,11 @@ async function removeAdditionalAgentFiles(
           const remainingKeys = Object.keys(settings);
           if (remainingKeys.length === 0) {
             await fs.unlink(settingsPath);
-            logVerbose(
-              `${actionPrefix} Removed empty VSCode settings file`,
-              verbose,
-            );
+            logVerbose(`${prefix} Removed empty VSCode settings file`, verbose);
           } else {
             await writeVSCodeSettings(settingsPath, settings);
             logVerbose(
-              `${actionPrefix} Removed augment.advanced section from VSCode settings`,
+              `${prefix} Removed augment.advanced section from VSCode settings`,
               verbose,
             );
           }
