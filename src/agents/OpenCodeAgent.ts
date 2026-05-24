@@ -34,6 +34,7 @@ export class OpenCodeAgent implements IAgent {
       agentConfig?.outputPathConfig ?? outputPaths['mcp'],
     );
 
+    await fs.mkdir(path.dirname(instructionsPath), { recursive: true });
     await fs.writeFile(instructionsPath, concatenatedRules);
 
     // Create OpenCode config with schema and MCP configuration
@@ -69,6 +70,7 @@ export class OpenCodeAgent implements IAgent {
     }
 
     // Always write the config file, even if MCP is empty
+    await fs.mkdir(path.dirname(mcpPath), { recursive: true });
     await fs.writeFile(mcpPath, JSON.stringify(finalMcpConfig, null, 2));
   }
 

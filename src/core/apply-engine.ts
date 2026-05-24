@@ -471,11 +471,15 @@ export async function applyConfigurationsToAgents(
         };
       }
 
+      const mcpForAgentApply = shouldUseEngineManagedMcp(agent)
+        ? null
+        : agentRulerMcpJson;
+
       if (!skipApplyForThisAgent) {
         await agent.applyRulerConfig(
           concatenatedRules,
           projectRoot,
-          agentRulerMcpJson,
+          mcpForAgentApply,
           finalAgentConfig,
           backup,
         );
@@ -522,7 +526,7 @@ async function handleMcpConfiguration(
     return;
   }
 
-  const dest = await getNativeMcpPath(agent.getName(), projectRoot);
+  const dest = await resolveMcpDestination(agent, agentConfig, projectRoot);
   const mcpEnabledForAgent =
     cliMcpEnabled && (agentConfig?.mcp?.enabled ?? config.mcp?.enabled ?? true);
 
@@ -555,6 +559,24 @@ async function handleMcpConfiguration(
     verbose,
     backup,
   );
+}
+
+function shouldUseEngineManagedMcp(agent: IAgent): boolean {
+  return (
+    agent.getIdentifier() === 'codex' || agent.getIdentifier() === 'opencode'
+  );
+}
+
+async function resolveMcpDestination(
+  agent: IAgent,
+  agentConfig: IAgentConfig | undefined,
+  projectRoot: string,
+): Promise<string | null> {
+  if (agentConfig?.outputPathConfig) {
+    return path.resolve(projectRoot, agentConfig.outputPathConfig);
+  }
+
+  return await getNativeMcpPath(agent.getName(), projectRoot);
 }
 
 async function updateGitignoreForMcpFile(
