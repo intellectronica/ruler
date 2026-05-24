@@ -321,6 +321,40 @@ describe('CLI Handlers', () => {
       );
     });
 
+    it('should fail fast when nested config resolution fails', async () => {
+      (loadConfig as jest.Mock).mockRejectedValue(
+        new Error('Invalid configuration file'),
+      );
+
+      const exitSpy = jest
+        .spyOn(process, 'exit')
+        .mockImplementation((code?: string | number | null | undefined) => {
+          throw new Error(`process.exit: ${code}`);
+        });
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      const argv = {
+        'project-root': mockProjectRoot,
+        mcp: true,
+        'mcp-overwrite': false,
+        verbose: false,
+        'dry-run': false,
+        'local-only': false,
+        backup: true,
+      };
+
+      await expect(applyHandler(argv)).rejects.toThrow('process.exit: 1');
+
+      expect(applyAllAgentConfigs).not.toHaveBeenCalled();
+      expect(errorSpy).toHaveBeenCalledWith(
+        '[ruler] Invalid configuration file',
+      );
+      expect(exitSpy).toHaveBeenCalledWith(1);
+
+      exitSpy.mockRestore();
+      errorSpy.mockRestore();
+    });
+
     it('should prefer CLI --nested over TOML nested = false', async () => {
       (loadConfig as jest.Mock).mockResolvedValue({
         defaultAgents: undefined,

@@ -11,14 +11,22 @@ import {
 describe('ConfigLoader', () => {
   let tmpDir: string;
   let rulerDir: string;
+  let originalXdgConfigHome: string | undefined;
 
   beforeEach(async () => {
     tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ruler-config-'));
     rulerDir = path.join(tmpDir, '.ruler');
     await fs.mkdir(rulerDir, { recursive: true });
+    originalXdgConfigHome = process.env.XDG_CONFIG_HOME;
+    process.env.XDG_CONFIG_HOME = path.join(tmpDir, 'xdg-config');
   });
 
   afterEach(async () => {
+    if (originalXdgConfigHome === undefined) {
+      delete process.env.XDG_CONFIG_HOME;
+    } else {
+      process.env.XDG_CONFIG_HOME = originalXdgConfigHome;
+    }
     await fs.rm(tmpDir, { recursive: true, force: true });
   });
 
@@ -27,6 +35,53 @@ describe('ConfigLoader', () => {
     expect(config.defaultAgents).toBeUndefined();
     expect(config.agentConfigs).toEqual({});
     expect(config.cliAgents).toBeUndefined();
+  });
+
+  it('throws when an explicit config file is missing', async () => {
+    const missingConfigPath = path.join(tmpDir, 'missing.toml');
+
+    await expect(
+      loadConfig({ projectRoot: tmpDir, configPath: missingConfigPath }),
+    ).rejects.toThrow(/Configuration file not found/i);
+  });
+
+  it('throws when an explicit config file has invalid TOML', async () => {
+    const configPath = path.join(tmpDir, 'invalid.toml');
+    await fs.writeFile(configPath, 'default_agents = [');
+
+    await expect(
+      loadConfig({ projectRoot: tmpDir, configPath }),
+    ).rejects.toThrow(/Invalid configuration file/i);
+  });
+
+  it('throws when an existing implicit local config has invalid TOML', async () => {
+    await fs.writeFile(path.join(rulerDir, 'ruler.toml'), 'nested = ');
+
+    await expect(loadConfig({ projectRoot: tmpDir })).rejects.toThrow(
+      /Invalid configuration file/i,
+    );
+  });
+
+  it('throws when an existing implicit global config has invalid TOML', async () => {
+    const globalRulerDir = path.join(
+      process.env.XDG_CONFIG_HOME as string,
+      'ruler',
+    );
+    await fs.mkdir(globalRulerDir, { recursive: true });
+    await fs.writeFile(path.join(globalRulerDir, 'ruler.toml'), 'nested = ');
+
+    await expect(loadConfig({ projectRoot: tmpDir })).rejects.toThrow(
+      /Invalid configuration file/i,
+    );
+  });
+
+  it('throws when an existing implicit local config is unreadable', async () => {
+    const configPath = path.join(rulerDir, 'ruler.toml');
+    await fs.mkdir(configPath);
+
+    await expect(loadConfig({ projectRoot: tmpDir })).rejects.toThrow(
+      /Could not read configuration file/i,
+    );
   });
 
   it('returns empty config when file is empty', async () => {

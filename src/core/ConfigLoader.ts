@@ -175,55 +175,18 @@ export interface ConfigOptions {
 
 /**
  * Loads and parses the ruler TOML configuration file, applying defaults.
- * If the file is missing or invalid, returns empty/default config.
+ * Missing implicit configs return defaults. Explicit configs and existing
+ * implicit configs fail fast when missing, unreadable, or invalid.
  */
 export async function loadConfig(
   options: ConfigOptions,
 ): Promise<LoadedConfig> {
   const { projectRoot, configPath, cliAgents } = options;
-  let configFile: string;
+  const configFile = configPath
+    ? path.resolve(configPath)
+    : await resolveImplicitConfigFile(projectRoot);
 
-  if (configPath) {
-    configFile = path.resolve(configPath);
-  } else {
-    // Try local .ruler/ruler.toml first
-    const localConfigFile = path.join(projectRoot, '.ruler', 'ruler.toml');
-    try {
-      await fs.access(localConfigFile);
-      configFile = localConfigFile;
-    } catch {
-      // If local config doesn't exist, try global config
-      const xdgConfigDir =
-        process.env.XDG_CONFIG_HOME || path.join(os.homedir(), '.config');
-      configFile = path.join(xdgConfigDir, 'ruler', 'ruler.toml');
-    }
-  }
-  let raw: Record<string, unknown> = {};
-  try {
-    const text = await fs.readFile(configFile, 'utf8');
-    const parsed = text.trim() ? parseTOML(text) : {};
-    // Strip Symbol properties added by @iarna/toml (required for Zod v4+)
-    raw = stripSymbols(parsed) as Record<string, unknown>;
-
-    // Validate the configuration with zod
-    const validationResult = rulerConfigSchema.safeParse(raw);
-    if (!validationResult.success) {
-      throw createRulerError(
-        'Invalid configuration file format',
-        `File: ${configFile}, Errors: ${validationResult.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join(', ')}`,
-      );
-    }
-  } catch (err) {
-    if (err instanceof Error && (err as ErrnoException).code !== 'ENOENT') {
-      if (err.message.includes('[ruler]')) {
-        throw err; // Re-throw validation errors
-      }
-      console.warn(
-        `[ruler] Warning: could not read config file at ${configFile}: ${err.message}`,
-      );
-    }
-    raw = {};
-  }
+  const raw = configFile ? await readConfigFile(configFile) : {};
 
   const defaultAgents = Array.isArray(raw.default_agents)
     ? raw.default_agents.map((a) => String(a))
@@ -374,4 +337,95 @@ export async function loadConfig(
     nested,
     nestedDefined,
   };
+}
+
+async function resolveImplicitConfigFile(
+  projectRoot: string,
+): Promise<string | undefined> {
+  const localConfigFile = path.join(projectRoot, '.ruler', 'ruler.toml');
+  if (await configFileExists(localConfigFile)) {
+    return localConfigFile;
+  }
+
+  const xdgConfigDir =
+    process.env.XDG_CONFIG_HOME || path.join(os.homedir(), '.config');
+  const globalConfigFile = path.join(xdgConfigDir, 'ruler', 'ruler.toml');
+  if (await configFileExists(globalConfigFile)) {
+    return globalConfigFile;
+  }
+
+  return undefined;
+}
+
+async function configFileExists(configFile: string): Promise<boolean> {
+  try {
+    await fs.access(configFile);
+    return true;
+  } catch (err) {
+    if ((err as ErrnoException).code === 'ENOENT') {
+      return false;
+    }
+    throw createRulerError(
+      'Could not access configuration file',
+      `File: ${configFile}, Error: ${errorMessage(err)}`,
+    );
+  }
+}
+
+async function readConfigFile(
+  configFile: string,
+): Promise<Record<string, unknown>> {
+  const text = await readConfigText(configFile);
+  const parsed = parseConfigText(text, configFile);
+  const raw = stripSymbols(parsed) as Record<string, unknown>;
+  validateConfig(raw, configFile);
+  return raw;
+}
+
+async function readConfigText(configFile: string): Promise<string> {
+  try {
+    return await fs.readFile(configFile, 'utf8');
+  } catch (err) {
+    if ((err as ErrnoException).code === 'ENOENT') {
+      throw createRulerError(
+        'Configuration file not found',
+        `File: ${configFile}`,
+      );
+    }
+    throw createRulerError(
+      'Could not read configuration file',
+      `File: ${configFile}, Error: ${errorMessage(err)}`,
+    );
+  }
+}
+
+function parseConfigText(
+  text: string,
+  configFile: string,
+): Record<string, unknown> {
+  try {
+    return text.trim() ? (parseTOML(text) as Record<string, unknown>) : {};
+  } catch (err) {
+    throw createRulerError(
+      'Invalid configuration file',
+      `File: ${configFile}, Error: ${errorMessage(err)}`,
+    );
+  }
+}
+
+function validateConfig(
+  raw: Record<string, unknown>,
+  configFile: string,
+): void {
+  const validationResult = rulerConfigSchema.safeParse(raw);
+  if (!validationResult.success) {
+    throw createRulerError(
+      'Invalid configuration file format',
+      `File: ${configFile}, Errors: ${validationResult.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join(', ')}`,
+    );
+  }
+}
+
+function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
 }
