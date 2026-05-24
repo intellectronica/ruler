@@ -5,6 +5,14 @@ module.exports = {
   testMatch: ['**/tests/**/*.{test,spec}.ts', '**/*.test.ts'],
   moduleFileExtensions: ['ts', 'js', 'json', 'node'],
   coverageDirectory: 'coverage',
+  collectCoverageFrom: ['src/**/*.ts', '!src/**/*.d.ts'],
+  coverageThreshold: {
+    global: {
+      statements: 90,
+      functions: 90,
+      lines: 90,
+    },
+  },
   // Build the project once before all tests run to prevent race conditions
   globalSetup: './jest.setup.js',
   // CI environments can be slower, especially for integration tests that invoke a build
