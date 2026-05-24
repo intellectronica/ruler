@@ -20,13 +20,21 @@ export function mapRawAgentConfigs(
 
   for (const [key, cfg] of Object.entries(raw)) {
     const lowerKey = key.toLowerCase();
+    const exactMatches = agents.filter(
+      (agent) => agent.getIdentifier().toLowerCase() === lowerKey,
+    );
+
+    // Exact identifier matches take precedence over fuzzy display-name matching.
+    if (exactMatches.length > 0) {
+      for (const agent of exactMatches) {
+        mappedConfigs[agent.getIdentifier()] = cfg;
+      }
+      continue;
+    }
+
     for (const agent of agents) {
       const identifier = agent.getIdentifier();
-      // Exact match with identifier or substring match with display name for backwards compatibility
-      if (
-        identifier === lowerKey ||
-        agent.getName().toLowerCase().includes(lowerKey)
-      ) {
+      if (agent.getName().toLowerCase().includes(lowerKey)) {
         mappedConfigs[identifier] = cfg;
       }
     }

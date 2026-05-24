@@ -152,6 +152,21 @@ describe('resolveSelectedAgents', () => {
     expect(result[0].getIdentifier()).toBe('claude');
   });
 
+  it('should prioritize exact CLI identifier matches over fuzzy display name matches', () => {
+    const agents = [
+      new MockAgent('GitHub Copilot', 'copilot'),
+      new MockAgent('Pi Coding Agent', 'pi'),
+    ];
+    const config: LoadedConfig = {
+      cliAgents: ['pi'],
+      agentConfigs: {},
+    };
+
+    const result = resolveSelectedAgents(config, agents);
+
+    expect(result.map(a => a.getIdentifier())).toEqual(['pi']);
+  });
+
   it('should handle partial name matches in default_agents', () => {
     const config: LoadedConfig = {
       defaultAgents: ['code'], // Should match "Claude Code"
@@ -162,6 +177,21 @@ describe('resolveSelectedAgents', () => {
 
     expect(result).toHaveLength(1);
     expect(result[0].getIdentifier()).toBe('claude');
+  });
+
+  it('should prioritize exact default_agents identifier matches over fuzzy display name matches', () => {
+    const agents = [
+      new MockAgent('GitHub Copilot', 'copilot'),
+      new MockAgent('Pi Coding Agent', 'pi'),
+    ];
+    const config: LoadedConfig = {
+      defaultAgents: ['pi'],
+      agentConfigs: {},
+    };
+
+    const result = resolveSelectedAgents(config, agents);
+
+    expect(result.map(a => a.getIdentifier())).toEqual(['pi']);
   });
 
   it('should include agents with explicit enabled=true even when not in default_agents', () => {

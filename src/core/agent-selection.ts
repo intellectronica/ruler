@@ -2,6 +2,21 @@ import { IAgent } from '../agents/IAgent';
 import { LoadedConfig } from './ConfigLoader';
 import { createRulerError } from '../constants';
 
+export function agentMatchesFilter(
+  agent: IAgent,
+  filter: string,
+  validAgentIdentifiers: Set<string>,
+): boolean {
+  const identifier = agent.getIdentifier().toLowerCase();
+
+  // Exact identifier matches take precedence over fuzzy display-name matching.
+  if (validAgentIdentifiers.has(filter)) {
+    return identifier === filter;
+  }
+
+  return agent.getName().toLowerCase().includes(filter);
+}
+
 /**
  * Resolves which agents should be selected based on configuration.
  * Handles precedence: CLI agents > default_agents > per-agent enabled flags > all agents
@@ -42,11 +57,7 @@ export function resolveSelectedAgents(
     }
 
     selected = allAgents.filter((agent) =>
-      filters.some(
-        (f) =>
-          agent.getIdentifier() === f ||
-          agent.getName().toLowerCase().includes(f),
-      ),
+      filters.some((f) => agentMatchesFilter(agent, f, validAgentIdentifiers)),
     );
   } else if (config.defaultAgents && config.defaultAgents.length > 0) {
     const defaults = config.defaultAgents.map((n) => n.toLowerCase());
@@ -78,8 +89,8 @@ export function resolveSelectedAgents(
       if (override !== undefined) {
         return override;
       }
-      return defaults.some(
-        (d) => identifier === d || agent.getName().toLowerCase().includes(d),
+      return defaults.some((d) =>
+        agentMatchesFilter(agent, d, validAgentIdentifiers),
       );
     });
   } else {
