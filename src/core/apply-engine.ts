@@ -200,23 +200,14 @@ async function findRulerDirectories(
 ): Promise<{ dirs: string[]; primaryDir: string }> {
   if (hierarchical) {
     const dirs = await FileSystemUtils.findAllRulerDirs(projectRoot);
-    const allDirs = [...dirs];
 
-    // Add global config if not local-only
-    if (!localOnly) {
-      const globalDir = await FileSystemUtils.findGlobalRulerDir();
-      if (globalDir) {
-        allDirs.push(globalDir);
-      }
-    }
-
-    if (allDirs.length === 0) {
+    if (dirs.length === 0) {
       throw createRulerError(
         `.ruler directory not found`,
         `Searched from: ${projectRoot}`,
       );
     }
-    return { dirs: allDirs, primaryDir: allDirs[0] };
+    return { dirs, primaryDir: dirs[0] };
   } else {
     const dir = await FileSystemUtils.findRulerDir(projectRoot, !localOnly);
     if (!dir) {
