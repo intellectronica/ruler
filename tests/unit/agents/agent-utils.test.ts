@@ -210,17 +210,32 @@ describe('getAgentOutputPaths', () => {
       ]);
     });
 
-    it('ignores outputPath for multi-path agents', () => {
+    it('uses outputPath as the instructions path for multi-path agents', () => {
       const agent = new MockMultiPathAgent();
       const agentConfig: IAgentConfig = {
-        outputPath: '/ignored/path.md',
+        outputPath: '/custom/output.md',
+      };
+
+      const result = getAgentOutputPaths(agent, tmpDir, agentConfig);
+
+      expect(result).toEqual([
+        '/custom/output.md',
+        path.join(tmpDir, '.mock.conf.yml'),
+        path.join(tmpDir, 'extra.txt'),
+      ]);
+    });
+
+    it('prefers outputPath over outputPathInstructions for multi-path agents', () => {
+      const agent = new MockMultiPathAgent();
+      const agentConfig: IAgentConfig = {
+        outputPath: '/custom/output.md',
         outputPathInstructions: '/custom/instructions.md',
       };
-      
+
       const result = getAgentOutputPaths(agent, tmpDir, agentConfig);
-      
+
       expect(result).toEqual([
-        '/custom/instructions.md',
+        '/custom/output.md',
         path.join(tmpDir, '.mock.conf.yml'),
         path.join(tmpDir, 'extra.txt'),
       ]);

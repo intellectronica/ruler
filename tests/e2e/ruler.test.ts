@@ -363,6 +363,25 @@ output_path = "custom-claude.md"`;
       expect(gitignoreContent).toContain('custom-claude.md');
       expect(gitignoreContent).not.toContain('CLAUDE.md');
     });
+
+    it('tracks generic output_path for multi-path agent instructions in .gitignore', async () => {
+      const toml = `[agents.Aider]
+output_path = "custom-aider.md"`;
+      await fs.writeFile(
+        path.join(testProject.projectRoot, '.ruler', 'ruler.toml'),
+        toml,
+      );
+
+      runRulerWithInheritedStdio(
+        'apply --agents aider',
+        testProject.projectRoot,
+      );
+
+      const gitignorePath = path.join(testProject.projectRoot, '.gitignore');
+      const gitignoreContent = await fs.readFile(gitignorePath, 'utf8');
+      expect(gitignoreContent).toContain('custom-aider.md');
+      expect(gitignoreContent).not.toContain('/AGENTS.md');
+    });
   });
 
   describe('gitignore generation for all configs', () => {
