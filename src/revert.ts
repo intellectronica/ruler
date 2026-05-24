@@ -43,6 +43,7 @@ export async function revertAllAgentConfigs(
     projectRoot,
     cliAgents: includedAgents,
     configPath,
+    checkGlobal: !localOnly,
   });
 
   const rulerDir = await FileSystemUtils.findRulerDir(projectRoot, !localOnly);

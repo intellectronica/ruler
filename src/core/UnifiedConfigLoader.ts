@@ -21,6 +21,7 @@ export interface UnifiedLoadOptions {
   cliAgents?: string[];
   cliMcpEnabled?: boolean;
   cliMcpStrategy?: string;
+  checkGlobal?: boolean;
 }
 
 export async function loadUnifiedConfig(
@@ -28,8 +29,10 @@ export async function loadUnifiedConfig(
 ): Promise<RulerUnifiedConfig> {
   // Resolve the effective .ruler directory (local or global), mirroring the main loader behavior
   const resolvedRulerDir =
-    (await FileSystemUtils.findRulerDir(options.projectRoot, true)) ||
-    path.join(options.projectRoot, '.ruler');
+    (await FileSystemUtils.findRulerDir(
+      options.projectRoot,
+      options.checkGlobal ?? true,
+    )) || path.join(options.projectRoot, '.ruler');
 
   const meta: ConfigMeta = {
     projectRoot: options.projectRoot,

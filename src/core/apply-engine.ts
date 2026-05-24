@@ -66,6 +66,7 @@ async function loadNestedConfigurations(
       rulerDir,
       configPath,
       resolvedNested,
+      localOnly,
     );
     const files = await FileSystemUtils.readMarkdownFiles(rulerDir, {
       includeAgents: shouldIncludeAgentsInRules(config),
@@ -76,6 +77,7 @@ async function loadNestedConfigurations(
         files,
         config,
         configPath,
+        localOnly,
       ),
     );
   }
@@ -96,6 +98,7 @@ async function createHierarchicalConfiguration(
   files: { path: string; content: string }[],
   config: LoadedConfig,
   cliConfigPath: string | undefined,
+  localOnly: boolean,
 ): Promise<HierarchicalRulerConfiguration> {
   await warnAboutLegacyMcpJson(rulerDir);
 
@@ -115,6 +118,7 @@ async function createHierarchicalConfiguration(
   const unifiedConfig = await loadUnifiedConfig({
     projectRoot: directoryRoot,
     configPath: configPathToUse,
+    checkGlobal: !localOnly,
   });
 
   let rulerMcpJson: Record<string, unknown> | null = null;
@@ -136,6 +140,7 @@ async function loadConfigForRulerDir(
   rulerDir: string,
   cliConfigPath: string | undefined,
   resolvedNested: boolean,
+  localOnly: boolean,
 ): Promise<LoadedConfig> {
   const directoryRoot = path.dirname(rulerDir);
   const localConfigPath = path.join(rulerDir, 'ruler.toml');
@@ -151,6 +156,7 @@ async function loadConfigForRulerDir(
   const loaded = await loadConfig({
     projectRoot: directoryRoot,
     configPath: hasLocalConfig ? localConfigPath : cliConfigPath,
+    checkGlobal: !localOnly,
   });
 
   const cloned = cloneLoadedConfig(loaded);
@@ -274,6 +280,7 @@ async function loadSingleConfiguration(
   const config = await loadConfig({
     projectRoot,
     configPath,
+    checkGlobal: !localOnly,
   });
 
   // Read rule files. `.ruler/agents/` is only included when
@@ -287,7 +294,11 @@ async function loadSingleConfiguration(
 
   // Load unified config to get merged MCP configuration
   const { loadUnifiedConfig } = await import('./UnifiedConfigLoader');
-  const unifiedConfig = await loadUnifiedConfig({ projectRoot, configPath });
+  const unifiedConfig = await loadUnifiedConfig({
+    projectRoot,
+    configPath,
+    checkGlobal: !localOnly,
+  });
 
   // Synthesize rulerMcpJson from unified MCP bundle for backward compatibility
   let rulerMcpJson: Record<string, unknown> | null = null;
