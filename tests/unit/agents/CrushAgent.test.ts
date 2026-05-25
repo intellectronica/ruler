@@ -4,6 +4,21 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
 
+async function writeRulerGitignore(
+  tmpDir: string,
+  paths: string[],
+): Promise<void> {
+  await fs.writeFile(
+    path.join(tmpDir, '.gitignore'),
+    [
+      '# START Ruler Generated Files',
+      ...paths.map((filePath) => `/${filePath}`),
+      '# END Ruler Generated Files',
+      '',
+    ].join('\n'),
+  );
+}
+
 describe('CrushAgent', () => {
   const projectRoot = '/tmp/test-project';
   const agent = new CrushAgent();
@@ -228,6 +243,7 @@ describe('CrushAgent', () => {
       const mcpJson = { mcpServers: { 'test-server': { command: 'echo' } } };
 
       await testAgent.applyRulerConfig(rules, tmpDir, mcpJson);
+      await writeRulerGitignore(tmpDir, ['CRUSH.md', '.crush.json']);
 
       const instructionsPath = path.join(tmpDir, 'CRUSH.md');
       const mcpPath = path.join(tmpDir, '.crush.json');
