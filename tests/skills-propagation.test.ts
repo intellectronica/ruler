@@ -1,6 +1,7 @@
 import * as path from 'path';
 import * as fs from 'fs/promises';
 import * as os from 'os';
+import type { PathLike } from 'fs';
 import { discoverSkills } from '../src/core/SkillsProcessor';
 import {
   ANTIGRAVITY_SKILLS_PATH,
@@ -334,84 +335,6 @@ describe('Skills Discovery and Validation', () => {
       await expect(fs.access(staleTempSkill)).resolves.toBeUndefined();
     });
 
-    it('retries transient rename errors before succeeding', async () => {
-      const { propagateSkillsForClaude } = await import(
-        '../src/core/SkillsProcessor'
-      );
-      const skillsDir = path.join(tmpDir, '.ruler', 'skills');
-      const skill1 = path.join(skillsDir, 'skill1');
-      const originalRename = fs.rename;
-      let renameAttempts = 0;
-
-      await fs.mkdir(skill1, { recursive: true });
-      await fs.writeFile(path.join(skill1, SKILL_MD_FILENAME), '# Skill 1');
-
-      const renameSpy = jest
-        .spyOn(fs, 'rename')
-        .mockImplementation(async (...args: Parameters<typeof fs.rename>) => {
-          renameAttempts += 1;
-          if (renameAttempts < 3) {
-            const error = new Error('transient lock') as Error & {
-              code: string;
-            };
-            error.code = 'EPERM';
-            throw error;
-          }
-          return originalRename(...args);
-        });
-
-      try {
-        await propagateSkillsForClaude(tmpDir, { dryRun: false });
-      } finally {
-        renameSpy.mockRestore();
-      }
-
-      expect(renameAttempts).toBe(3);
-      await expect(
-        fs.readFile(
-          path.join(tmpDir, '.claude', 'skills', 'skill1', SKILL_MD_FILENAME),
-          'utf8',
-        ),
-      ).resolves.toBe('# Skill 1');
-    });
-
-    it('falls back to copy-and-remove when rename keeps failing transiently', async () => {
-      const { propagateSkillsForClaude } = await import(
-        '../src/core/SkillsProcessor'
-      );
-      const skillsDir = path.join(tmpDir, '.ruler', 'skills');
-      const skill1 = path.join(skillsDir, 'skill1');
-      let renameAttempts = 0;
-
-      await fs.mkdir(skill1, { recursive: true });
-      await fs.writeFile(path.join(skill1, SKILL_MD_FILENAME), '# Skill 1');
-
-      const renameSpy = jest
-        .spyOn(fs, 'rename')
-        .mockImplementation(async () => {
-          renameAttempts += 1;
-          const error = new Error('transient lock') as Error & {
-            code: string;
-          };
-          error.code = 'EPERM';
-          throw error;
-        });
-
-      try {
-        await propagateSkillsForClaude(tmpDir, { dryRun: false });
-      } finally {
-        renameSpy.mockRestore();
-      }
-
-      expect(renameAttempts).toBeGreaterThan(1);
-      await expect(
-        fs.readFile(
-          path.join(tmpDir, '.claude', 'skills', 'skill1', SKILL_MD_FILENAME),
-          'utf8',
-        ),
-      ).resolves.toBe('# Skill 1');
-    });
-
     it('includes operations in dry-run preview without executing', async () => {
       const { propagateSkillsForClaude } = await import(
         '../src/core/SkillsProcessor'
@@ -440,6 +363,83 @@ describe('Skills Discovery and Validation', () => {
       const steps = await propagateSkillsForClaude(tmpDir, { dryRun: true });
 
       expect(steps).toHaveLength(0);
+    });
+  });
+
+  describe('replaceSkillsDirectory', () => {
+    it('retries transient rename errors before succeeding', async () => {
+      const { replaceSkillsDirectory } = await import('../src/core/SkillsProcessor');
+      const tempDir = path.join(tmpDir, '.claude', 'skills.tmp');
+      const targetDir = path.join(tmpDir, '.claude', 'skills');
+      let renameAttempts = 0;
+
+      await fs.mkdir(tempDir, { recursive: true });
+      await fs.mkdir(path.join(tempDir, 'skill1'), { recursive: true });
+      await fs.writeFile(
+        path.join(tempDir, 'skill1', SKILL_MD_FILENAME),
+        '# Skill 1',
+      );
+
+      const fsOps = {
+        rename: jest.fn(async (oldPath: PathLike, newPath: PathLike) => {
+          renameAttempts += 1;
+          if (renameAttempts < 3) {
+            const error = new Error('transient lock') as Error & {
+              code: string;
+            };
+            error.code = 'EPERM';
+            throw error;
+          }
+          await fs.rename(oldPath, newPath);
+        }),
+        cp: jest.fn(fs.cp),
+        rm: jest.fn(fs.rm),
+      };
+
+      await replaceSkillsDirectory(tempDir, targetDir, fsOps);
+
+      expect(renameAttempts).toBe(3);
+      expect(fsOps.cp).not.toHaveBeenCalled();
+      await expect(
+        fs.readFile(path.join(targetDir, 'skill1', SKILL_MD_FILENAME), 'utf8'),
+      ).resolves.toBe('# Skill 1');
+    });
+
+    it('falls back to copy-and-remove when rename keeps failing transiently', async () => {
+      const { replaceSkillsDirectory } = await import('../src/core/SkillsProcessor');
+      const tempDir = path.join(tmpDir, '.claude', 'skills.tmp');
+      const targetDir = path.join(tmpDir, '.claude', 'skills');
+      let renameAttempts = 0;
+
+      await fs.mkdir(tempDir, { recursive: true });
+      await fs.mkdir(path.join(tempDir, 'skill1'), { recursive: true });
+      await fs.writeFile(
+        path.join(tempDir, 'skill1', SKILL_MD_FILENAME),
+        '# Skill 1',
+      );
+
+      const fsOps = {
+        rename: jest.fn(async () => {
+          renameAttempts += 1;
+          const error = new Error('transient lock') as Error & {
+            code: string;
+          };
+          error.code = 'EPERM';
+          throw error;
+        }),
+        cp: jest.fn(fs.cp),
+        rm: jest.fn(fs.rm),
+      };
+
+      await replaceSkillsDirectory(tempDir, targetDir, fsOps);
+
+      expect(renameAttempts).toBeGreaterThan(1);
+      expect(fsOps.cp).toHaveBeenCalledTimes(1);
+      expect(fsOps.rm).toHaveBeenCalledTimes(1);
+      await expect(
+        fs.readFile(path.join(targetDir, 'skill1', SKILL_MD_FILENAME), 'utf8'),
+      ).resolves.toBe('# Skill 1');
+      await expect(fs.access(tempDir)).rejects.toThrow();
     });
   });
 

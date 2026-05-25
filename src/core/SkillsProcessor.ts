@@ -228,6 +228,7 @@ async function createTempSkillsDir(parentDir: string): Promise<string> {
 const TRANSIENT_RENAME_ERROR_CODES = new Set(['EPERM', 'EBUSY', 'ENOTEMPTY']);
 const RENAME_RETRY_ATTEMPTS = 5;
 const RENAME_RETRY_DELAY_MS = 50;
+type ReplaceSkillsFsOps = Pick<typeof fs, 'rename' | 'cp' | 'rm'>;
 
 function isTransientRenameError(error: unknown): boolean {
   return (
@@ -243,22 +244,20 @@ function wait(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function replaceSkillsDirectory(
+export async function replaceSkillsDirectory(
   tempDir: string,
   targetDir: string,
+  fsOps: ReplaceSkillsFsOps = fs,
 ): Promise<void> {
   let lastError: unknown;
 
   for (let attempt = 1; attempt <= RENAME_RETRY_ATTEMPTS; attempt += 1) {
     try {
-      await fs.rename(tempDir, targetDir);
+      await fsOps.rename(tempDir, targetDir);
       return;
     } catch (error) {
       lastError = error;
-      if (
-        !isTransientRenameError(error) ||
-        attempt === RENAME_RETRY_ATTEMPTS
-      ) {
+      if (!isTransientRenameError(error) || attempt === RENAME_RETRY_ATTEMPTS) {
         break;
       }
       await wait(RENAME_RETRY_DELAY_MS * attempt);
@@ -266,8 +265,8 @@ async function replaceSkillsDirectory(
   }
 
   if (isTransientRenameError(lastError)) {
-    await fs.cp(tempDir, targetDir, { recursive: true, force: true });
-    await fs.rm(tempDir, { recursive: true, force: true });
+    await fsOps.cp(tempDir, targetDir, { recursive: true, force: true });
+    await fsOps.rm(tempDir, { recursive: true, force: true });
     return;
   }
 
