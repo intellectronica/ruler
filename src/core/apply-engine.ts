@@ -12,6 +12,7 @@ import { propagateMcpToOpenHands } from '../mcp/propagateOpenHandsMcp';
 import { propagateMcpToOpenCode } from '../mcp/propagateOpenCodeMcp';
 import { getAgentOutputPaths } from '../agents/agent-utils';
 import { agentSupportsMcp, filterMcpConfigForAgent } from '../mcp/capabilities';
+import { isPathInsideOrEqual } from './path-utils';
 import {
   createRulerError,
   logVerbose,
@@ -587,7 +588,7 @@ async function updateGitignoreForMcpFile(
   generatedPaths: string[],
   backup = true,
 ): Promise<void> {
-  if (dest.startsWith(projectRoot)) {
+  if (isPathInsideOrEqual(projectRoot, dest)) {
     const relativeDest = path.relative(projectRoot, dest);
     generatedPaths.push(relativeDest);
     if (backup) {
@@ -652,7 +653,7 @@ async function applyMcpConfiguration(
   backup = true,
 ): Promise<void> {
   // Prevent writing MCP configs outside the project root (e.g., legacy home-directory targets)
-  if (!dest.startsWith(projectRoot)) {
+  if (!isPathInsideOrEqual(projectRoot, dest)) {
     logVerbose(
       `Skipping MCP config for ${agent.getName()} because target path is outside project: ${dest}`,
       verbose,

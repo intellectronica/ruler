@@ -10,6 +10,7 @@ import {
   writeVSCodeSettings,
   getVSCodeSettingsPath,
 } from '../vscode/settings';
+import { isPathInsideOrEqual } from './path-utils';
 
 const ROOT_CONFIG_TOML = 'config.toml';
 const RULER_START_MARKER = '# START Ruler Generated Files';
@@ -562,7 +563,7 @@ export async function revertAgentConfiguration(
 
   // Handle MCP files
   const mcpPath = await getNativeMcpPath(agent.getName(), projectRoot);
-  if (mcpPath && mcpPath.startsWith(projectRoot)) {
+  if (mcpPath && isPathInsideOrEqual(projectRoot, mcpPath)) {
     if (
       agent.getName() === 'AugmentCode' &&
       mcpPath.endsWith('.vscode/settings.json')

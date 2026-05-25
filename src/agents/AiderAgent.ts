@@ -69,7 +69,9 @@ export class AiderAgent implements IAgent {
       agentConfig?.outputPath ||
       agentConfig?.outputPathInstructions ||
       this.getDefaultOutputPath(projectRoot).instructions;
-    const name = path.basename(agentsPath);
+    const name = path
+      .relative(projectRoot, path.resolve(projectRoot, agentsPath))
+      .replace(/\\/g, '/');
 
     if (!doc.read.includes(name)) {
       doc.read.push(name);

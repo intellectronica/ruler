@@ -28,15 +28,17 @@ export function getAgentOutputPaths(
       paths.push(instructionsPath);
     }
 
-    // Handle config path
-    if ('config' in defaultPaths) {
-      const configPath = agentConfig?.outputPathConfig ?? defaultPaths.config;
+    // Handle config/MCP path
+    const configKey = 'config' in defaultPaths ? 'config' : 'mcp';
+    if (configKey in defaultPaths) {
+      const configPath =
+        agentConfig?.outputPathConfig ?? defaultPaths[configKey];
       paths.push(configPath);
     }
 
     // Handle any other paths in the default paths record
     for (const [key, defaultPath] of Object.entries(defaultPaths)) {
-      if (key !== 'instructions' && key !== 'config') {
+      if (key !== 'instructions' && key !== configKey) {
         // For unknown path types, use the default since we don't have specific config overrides
         paths.push(defaultPath);
       }
