@@ -143,3 +143,4 @@ dist
 .pnp.*
 issue-body.md
 .specstory/
+tmp-fixtures/**/.ruler/
