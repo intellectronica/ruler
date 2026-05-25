@@ -225,6 +225,55 @@ async function createTempSkillsDir(parentDir: string): Promise<string> {
   return fs.mkdtemp(path.join(parentDir, 'skills.tmp-'));
 }
 
+const TRANSIENT_RENAME_ERROR_CODES = new Set(['EPERM', 'EBUSY', 'ENOTEMPTY']);
+const RENAME_RETRY_ATTEMPTS = 5;
+const RENAME_RETRY_DELAY_MS = 50;
+
+function isTransientRenameError(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    typeof (error as { code?: unknown }).code === 'string' &&
+    TRANSIENT_RENAME_ERROR_CODES.has((error as { code: string }).code)
+  );
+}
+
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function replaceSkillsDirectory(
+  tempDir: string,
+  targetDir: string,
+): Promise<void> {
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= RENAME_RETRY_ATTEMPTS; attempt += 1) {
+    try {
+      await fs.rename(tempDir, targetDir);
+      return;
+    } catch (error) {
+      lastError = error;
+      if (
+        !isTransientRenameError(error) ||
+        attempt === RENAME_RETRY_ATTEMPTS
+      ) {
+        break;
+      }
+      await wait(RENAME_RETRY_DELAY_MS * attempt);
+    }
+  }
+
+  if (isTransientRenameError(lastError)) {
+    await fs.cp(tempDir, targetDir, { recursive: true, force: true });
+    await fs.rm(tempDir, { recursive: true, force: true });
+    return;
+  }
+
+  throw lastError;
+}
+
 /**
  * Cleans up skills directories when skills are disabled.
  * This ensures that stale skills from previous runs don't persist when skills are turned off.
@@ -491,7 +540,7 @@ export async function propagateSkillsForClaude(
     }
 
     // Rename temp to target
-    await fs.rename(tempDir, claudeSkillsPath);
+    await replaceSkillsDirectory(tempDir, claudeSkillsPath);
   } catch (error) {
     // Clean up temp directory on error
     try {
@@ -549,7 +598,7 @@ export async function propagateSkillsForCodex(
     }
 
     // Rename temp to target
-    await fs.rename(tempDir, codexSkillsPath);
+    await replaceSkillsDirectory(tempDir, codexSkillsPath);
   } catch (error) {
     // Clean up temp directory on error
     try {
@@ -607,7 +656,7 @@ export async function propagateSkillsForOpenCode(
     }
 
     // Rename temp to target
-    await fs.rename(tempDir, opencodeSkillsPath);
+    await replaceSkillsDirectory(tempDir, opencodeSkillsPath);
   } catch (error) {
     // Clean up temp directory on error
     try {
@@ -665,7 +714,7 @@ export async function propagateSkillsForPi(
     }
 
     // Rename temp to target
-    await fs.rename(tempDir, piSkillsPath);
+    await replaceSkillsDirectory(tempDir, piSkillsPath);
   } catch (error) {
     // Clean up temp directory on error
     try {
@@ -723,7 +772,7 @@ export async function propagateSkillsForGoose(
     }
 
     // Rename temp to target
-    await fs.rename(tempDir, gooseSkillsPath);
+    await replaceSkillsDirectory(tempDir, gooseSkillsPath);
   } catch (error) {
     // Clean up temp directory on error
     try {
@@ -781,7 +830,7 @@ export async function propagateSkillsForVibe(
     }
 
     // Rename temp to target
-    await fs.rename(tempDir, vibeSkillsPath);
+    await replaceSkillsDirectory(tempDir, vibeSkillsPath);
   } catch (error) {
     // Clean up temp directory on error
     try {
@@ -839,7 +888,7 @@ export async function propagateSkillsForRoo(
     }
 
     // Rename temp to target
-    await fs.rename(tempDir, rooSkillsPath);
+    await replaceSkillsDirectory(tempDir, rooSkillsPath);
   } catch (error) {
     // Clean up temp directory on error
     try {
@@ -897,7 +946,7 @@ export async function propagateSkillsForGemini(
     }
 
     // Rename temp to target
-    await fs.rename(tempDir, geminiSkillsPath);
+    await replaceSkillsDirectory(tempDir, geminiSkillsPath);
   } catch (error) {
     // Clean up temp directory on error
     try {
@@ -947,7 +996,7 @@ export async function propagateSkillsForJunie(
       // Target didn't exist, that's fine
     }
 
-    await fs.rename(tempDir, junieSkillsPath);
+    await replaceSkillsDirectory(tempDir, junieSkillsPath);
   } catch (error) {
     try {
       await fs.rm(tempDir, { recursive: true, force: true });
@@ -1004,7 +1053,7 @@ export async function propagateSkillsForCursor(
     }
 
     // Rename temp to target
-    await fs.rename(tempDir, cursorSkillsPath);
+    await replaceSkillsDirectory(tempDir, cursorSkillsPath);
   } catch (error) {
     // Clean up temp directory on error
     try {
@@ -1062,7 +1111,7 @@ export async function propagateSkillsForWindsurf(
     }
 
     // Rename temp to target
-    await fs.rename(tempDir, windsurfSkillsPath);
+    await replaceSkillsDirectory(tempDir, windsurfSkillsPath);
   } catch (error) {
     // Clean up temp directory on error
     try {
@@ -1120,7 +1169,7 @@ export async function propagateSkillsForFactory(
     }
 
     // Rename temp to target
-    await fs.rename(tempDir, factorySkillsPath);
+    await replaceSkillsDirectory(tempDir, factorySkillsPath);
   } catch (error) {
     // Clean up temp directory on error
     try {
@@ -1180,7 +1229,7 @@ export async function propagateSkillsForAntigravity(
     }
 
     // Rename temp to target
-    await fs.rename(tempDir, antigravitySkillsPath);
+    await replaceSkillsDirectory(tempDir, antigravitySkillsPath);
   } catch (error) {
     // Clean up temp directory on error
     try {

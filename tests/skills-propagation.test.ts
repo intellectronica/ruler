@@ -334,6 +334,84 @@ describe('Skills Discovery and Validation', () => {
       await expect(fs.access(staleTempSkill)).resolves.toBeUndefined();
     });
 
+    it('retries transient rename errors before succeeding', async () => {
+      const { propagateSkillsForClaude } = await import(
+        '../src/core/SkillsProcessor'
+      );
+      const skillsDir = path.join(tmpDir, '.ruler', 'skills');
+      const skill1 = path.join(skillsDir, 'skill1');
+      const originalRename = fs.rename;
+      let renameAttempts = 0;
+
+      await fs.mkdir(skill1, { recursive: true });
+      await fs.writeFile(path.join(skill1, SKILL_MD_FILENAME), '# Skill 1');
+
+      const renameSpy = jest
+        .spyOn(fs, 'rename')
+        .mockImplementation(async (...args: Parameters<typeof fs.rename>) => {
+          renameAttempts += 1;
+          if (renameAttempts < 3) {
+            const error = new Error('transient lock') as Error & {
+              code: string;
+            };
+            error.code = 'EPERM';
+            throw error;
+          }
+          return originalRename(...args);
+        });
+
+      try {
+        await propagateSkillsForClaude(tmpDir, { dryRun: false });
+      } finally {
+        renameSpy.mockRestore();
+      }
+
+      expect(renameAttempts).toBe(3);
+      await expect(
+        fs.readFile(
+          path.join(tmpDir, '.claude', 'skills', 'skill1', SKILL_MD_FILENAME),
+          'utf8',
+        ),
+      ).resolves.toBe('# Skill 1');
+    });
+
+    it('falls back to copy-and-remove when rename keeps failing transiently', async () => {
+      const { propagateSkillsForClaude } = await import(
+        '../src/core/SkillsProcessor'
+      );
+      const skillsDir = path.join(tmpDir, '.ruler', 'skills');
+      const skill1 = path.join(skillsDir, 'skill1');
+      let renameAttempts = 0;
+
+      await fs.mkdir(skill1, { recursive: true });
+      await fs.writeFile(path.join(skill1, SKILL_MD_FILENAME), '# Skill 1');
+
+      const renameSpy = jest
+        .spyOn(fs, 'rename')
+        .mockImplementation(async () => {
+          renameAttempts += 1;
+          const error = new Error('transient lock') as Error & {
+            code: string;
+          };
+          error.code = 'EPERM';
+          throw error;
+        });
+
+      try {
+        await propagateSkillsForClaude(tmpDir, { dryRun: false });
+      } finally {
+        renameSpy.mockRestore();
+      }
+
+      expect(renameAttempts).toBeGreaterThan(1);
+      await expect(
+        fs.readFile(
+          path.join(tmpDir, '.claude', 'skills', 'skill1', SKILL_MD_FILENAME),
+          'utf8',
+        ),
+      ).resolves.toBe('# Skill 1');
+    });
+
     it('includes operations in dry-run preview without executing', async () => {
       const { propagateSkillsForClaude } = await import(
         '../src/core/SkillsProcessor'
