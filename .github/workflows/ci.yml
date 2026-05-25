@@ -10,14 +10,22 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    name: Node ${{ matrix.node-version }}
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: ['20.19.0', '22.12.0', '24.x']
     steps:
       - uses: actions/checkout@v4
-      - name: Setup Node.js (latest LTS)
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: lts/*
+          node-version: ${{ matrix.node-version }}
           cache: 'npm'
       - run: npm ci
+      - run: npm run format:check
       - run: npm run lint
       - run: npm test
       - run: npm run build
+      - run: npm audit --omit=dev --audit-level=moderate
+      - run: npm pack --dry-run
