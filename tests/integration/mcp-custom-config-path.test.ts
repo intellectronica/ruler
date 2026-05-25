@@ -104,4 +104,41 @@ args = ["server.js"]
       enabled: true,
     });
   });
+
+  it('skips custom MCP config paths outside the project root', async () => {
+    const outsideDir = `${tmpDir}-outside`;
+    const outsideConfig = path.join(outsideDir, 'opencode.json');
+    const outsideRelative = path.relative(tmpDir, outsideConfig);
+
+    await writeProject(
+      tmpDir,
+      `
+[agents.opencode]
+output_path_config = "${outsideRelative.replace(/\\/g, '/')}"
+
+[mcp_servers.repo]
+command = "node"
+args = ["server.js"]
+`,
+    );
+
+    await applyAllAgentConfigs(
+      tmpDir,
+      ['opencode'],
+      undefined,
+      true,
+      undefined,
+      false,
+      false,
+      false,
+      true,
+    );
+
+    await expect(pathExists(outsideConfig)).resolves.toBe(false);
+
+    const gitignore = (await pathExists(path.join(tmpDir, '.gitignore')))
+      ? await fs.readFile(path.join(tmpDir, '.gitignore'), 'utf8')
+      : '';
+    expect(gitignore).not.toContain(path.basename(outsideDir));
+  });
 });
