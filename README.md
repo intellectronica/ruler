@@ -18,7 +18,7 @@
       </p>
     </td>
     <td style="vertical-align: top; width:33%;">
-      <img src="img/ruler-short.gif" alt="Ruler demo" style="width:300px; height:auto; display:block;" />
+      <img src="https://raw.githubusercontent.com/intellectronica/ruler/main/img/ruler-short.gif" alt="Ruler demo" style="width:300px; height:auto; display:block;" />
     </td>
   </tr>
 </table>
