@@ -457,26 +457,28 @@ export async function applyConfigurationsToAgents(
           agentsMdWritten = true;
         }
       }
-      let finalAgentConfig = agentConfig;
-      if (agent.getIdentifier() === 'augmentcode' && agentRulerMcpJson) {
-        const resolvedStrategy =
-          cliMcpStrategy ??
-          agentConfig?.mcp?.strategy ??
-          config.mcp?.strategy ??
-          'merge';
-
-        finalAgentConfig = {
-          ...agentConfig,
-          mcp: {
-            ...agentConfig?.mcp,
-            strategy: resolvedStrategy,
-          },
-        };
-      }
+      const effectiveMcpEnabled =
+        cliMcpEnabled &&
+        (agentConfig?.mcp?.enabled ?? config.mcp?.enabled ?? true);
+      const effectiveMcpStrategy =
+        cliMcpStrategy ??
+        agentConfig?.mcp?.strategy ??
+        config.mcp?.strategy ??
+        'merge';
+      const finalAgentConfig = {
+        ...agentConfig,
+        mcp: {
+          ...agentConfig?.mcp,
+          enabled: effectiveMcpEnabled,
+          strategy: effectiveMcpStrategy,
+        },
+      };
 
       const mcpForAgentApply = shouldUseEngineManagedMcp(agent)
         ? null
-        : agentRulerMcpJson;
+        : effectiveMcpEnabled
+          ? agentRulerMcpJson
+          : null;
 
       if (!skipApplyForThisAgent) {
         await agent.applyRulerConfig(

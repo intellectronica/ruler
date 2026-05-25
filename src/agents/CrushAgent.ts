@@ -75,6 +75,8 @@ export class CrushAgent implements IAgent {
     // Always transform from mcpServers ({ mcpServers: ... }) to { mcp: ... } for Crush
     let finalMcpConfig: { mcp: Record<string, unknown> } = { mcp: {} };
 
+    const strategy = agentConfig?.mcp?.strategy ?? 'merge';
+
     try {
       const existingMcpConfig = JSON.parse(await fs.readFile(mcpPath, 'utf-8'));
       if (existingMcpConfig && typeof existingMcpConfig === 'object') {
@@ -84,7 +86,7 @@ export class CrushAgent implements IAgent {
         finalMcpConfig = {
           ...existingMcpConfig,
           mcp: {
-            ...(existingMcpConfig.mcp || {}),
+            ...(strategy === 'merge' ? existingMcpConfig.mcp || {} : {}),
             ...transformedServers,
           },
         };
