@@ -22,6 +22,12 @@ export interface GitignoreConfig {
   local?: boolean;
 }
 
+/** Backup configuration for .bak file generation. */
+export interface BackupConfig {
+  /** Enable or disable creation of .bak backup files. */
+  enabled?: boolean;
+}
+
 /** Skills configuration for automatic skills distribution. */
 export interface SkillsConfig {
   /** Enable or disable skills support. */

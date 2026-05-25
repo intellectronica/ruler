@@ -7,6 +7,7 @@ import {
   McpConfig,
   GlobalMcpConfig,
   GitignoreConfig,
+  BackupConfig,
   SkillsConfig,
   SubagentsConfig,
 } from '../types';
@@ -85,6 +86,11 @@ const rulerConfigSchema = z.object({
       local: z.boolean().optional(),
     })
     .optional(),
+  backup: z
+    .object({
+      enabled: z.boolean().optional(),
+    })
+    .optional(),
   skills: z
     .object({
       enabled: z.boolean().optional(),
@@ -152,6 +158,8 @@ export interface LoadedConfig {
   mcp?: GlobalMcpConfig;
   /** Gitignore configuration section. */
   gitignore?: GitignoreConfig;
+  /** Backup configuration section. */
+  backup?: BackupConfig;
   /** Skills configuration section. */
   skills?: SkillsConfig;
   /** Subagents configuration section. */
@@ -273,6 +281,15 @@ export async function loadConfig(
     gitignoreConfig.local = rawGitignoreSection.local;
   }
 
+  const rawBackupSection =
+    raw.backup && typeof raw.backup === 'object' && !Array.isArray(raw.backup)
+      ? (raw.backup as Record<string, unknown>)
+      : {};
+  const backupConfig: BackupConfig = {};
+  if (typeof rawBackupSection.enabled === 'boolean') {
+    backupConfig.enabled = rawBackupSection.enabled;
+  }
+
   const rawSkillsSection =
     raw.skills && typeof raw.skills === 'object' && !Array.isArray(raw.skills)
       ? (raw.skills as Record<string, unknown>)
@@ -335,6 +352,7 @@ export async function loadConfig(
     cliAgents,
     mcp: globalMcpConfig,
     gitignore: gitignoreConfig,
+    backup: backupConfig,
     skills: skillsConfig,
     subagents: subagentsConfig,
     nested,

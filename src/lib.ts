@@ -34,6 +34,21 @@ function resolveSkillsEnabled(
 }
 
 /**
+ * Resolves backup enabled state based on precedence:
+ * CLI flag > ruler.toml > default (enabled).
+ */
+function resolveBackupEnabled(
+  cliFlag: boolean | undefined,
+  configSetting: boolean | undefined,
+): boolean {
+  return cliFlag !== undefined
+    ? cliFlag
+    : configSetting !== undefined
+      ? configSetting
+      : true; // default to enabled
+}
+
+/**
  * Resolves subagents enabled state based on precedence:
  * CLI flag > ruler.toml > default (disabled).
  *
@@ -80,7 +95,7 @@ export async function applyAllAgentConfigs(
   dryRun = false,
   localOnly = false,
   nested = false,
-  backup = true,
+  backup?: boolean,
   skillsEnabled?: boolean,
   cliGitignoreLocal?: boolean,
   subagentsEnabled?: boolean,
@@ -175,6 +190,10 @@ export async function applyAllAgentConfigs(
     const subagentsCleanupOrphaned = resolveSubagentsCleanupOrphaned(
       rootConfig.subagents?.cleanup_orphaned,
     );
+    const backupEnabledResolved = resolveBackupEnabled(
+      backup,
+      rootConfig.backup?.enabled,
+    );
     {
       const { propagateSubagents } = await import('./core/SubagentsProcessor');
       for (const configEntry of hierarchicalConfigs) {
@@ -201,7 +220,7 @@ export async function applyAllAgentConfigs(
       dryRun,
       cliMcpEnabled,
       cliMcpStrategy,
-      backup,
+      backupEnabledResolved,
     );
   } else {
     const singleConfig = await loadSingleConfiguration(
@@ -254,6 +273,10 @@ export async function applyAllAgentConfigs(
     const subagentsCleanupOrphanedSingle = resolveSubagentsCleanupOrphaned(
       singleConfig.config.subagents?.cleanup_orphaned,
     );
+    const backupEnabledResolvedSingle = resolveBackupEnabled(
+      backup,
+      singleConfig.config.backup?.enabled,
+    );
     {
       const { propagateSubagents } = await import('./core/SubagentsProcessor');
       await propagateSubagents(
@@ -274,7 +297,7 @@ export async function applyAllAgentConfigs(
       dryRun,
       cliMcpEnabled,
       cliMcpStrategy,
-      backup,
+      backupEnabledResolvedSingle,
     );
   }
 

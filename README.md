@@ -241,7 +241,7 @@ The `apply` command looks for `.ruler/` in the current directory tree, reading t
 | `--gitignore-local`            | Write managed ignore entries to `.git/info/exclude` instead.           |
 | `--nested`                     | Enable nested rule loading (default: inherit from config or disabled). |
 | `--no-nested`                  | Disable nested rule loading even if `nested = true` in config.         |
-| `--backup`                     | Enable creation of `.bak` backup files (default: enabled).             |
+| `--backup`                     | Enable creation of `.bak` backup files (default: from config or enabled). |
 | `--no-backup`                  | Disable creation of `.bak` backup files.                               |
 | `--skills`                     | Enable skills support (experimental, default: enabled).                |
 | `--no-skills`                  | Disable skills support.                                                |
@@ -411,6 +411,11 @@ Authorization = "Bearer your-token"
 enabled = true
 # Write managed entries to .git/info/exclude instead of .gitignore (default: false)
 local = false
+
+# --- Backup Configuration ---
+[backup]
+# Enable/disable creation of .bak backup files (default: true)
+enabled = true
 
 # --- Agent-Specific Configurations ---
 [agents.copilot]
@@ -907,6 +912,12 @@ dist/
 
 - **CLI flags**: `--gitignore`, `--no-gitignore`, `--gitignore-local`, `--no-gitignore-local`
 - **Configuration**: `[gitignore].enabled` and `[gitignore].local` in `ruler.toml`
+- **Default**: enabled
+
+### Backup Control
+
+- **CLI flags**: `--backup`, `--no-backup`
+- **Configuration**: `[backup].enabled` in `ruler.toml`
 - **Default**: enabled
 
 ## Practical Usage Scenarios
