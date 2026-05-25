@@ -2,6 +2,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import os from 'os';
 import {
+  backupFile,
   findRulerDir,
   readMarkdownFiles,
 } from '../../../src/core/FileSystemUtils';
@@ -31,6 +32,21 @@ describe('FileSystemUtils', () => {
       await fs.mkdir(someDir, { recursive: true });
       const found = await findRulerDir(someDir, false); // Don't check global config
       expect(found).toBeNull();
+    });
+  });
+
+  describe('backupFile', () => {
+    it('does not overwrite an existing backup', async () => {
+      const filePath = path.join(tmpDir, 'backup-target.txt');
+
+      await fs.writeFile(filePath, 'original');
+      await backupFile(filePath);
+      await fs.writeFile(filePath, 'generated');
+      await backupFile(filePath);
+
+      await expect(fs.readFile(`${filePath}.bak`, 'utf8')).resolves.toBe(
+        'original',
+      );
     });
   });
 

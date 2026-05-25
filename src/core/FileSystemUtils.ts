@@ -242,11 +242,20 @@ export async function writeGeneratedFile(
 
 /**
  * Creates a backup of the given filePath by copying it to filePath.bak if it exists.
+ * Keeps an existing backup intact so repeated applies preserve the original file.
  */
 export async function backupFile(filePath: string): Promise<void> {
+  const backupPath = `${filePath}.bak`;
+
   try {
-    await fs.access(filePath);
-    await fs.copyFile(filePath, `${filePath}.bak`);
+    await fs.access(backupPath);
+    return;
+  } catch {
+    // continue if no backup exists yet
+  }
+
+  try {
+    await fs.copyFile(filePath, backupPath);
   } catch {
     // ignore if file does not exist
   }
