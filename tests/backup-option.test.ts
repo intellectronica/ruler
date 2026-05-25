@@ -66,6 +66,59 @@ describe('backup option', () => {
     expect(targetContent).toContain('Some test rules here.');
   });
 
+  it('does not create .bak files when [backup] enabled=false in TOML', async () => {
+    const customProject = await setupTestProject({
+      '.ruler/AGENTS.md': '# Test Rules\n\nSome test rules here.',
+      '.ruler/ruler.toml':
+        'default_agents = ["copilot"]\n\n[backup]\nenabled = false\n',
+      'AGENTS.md': '# Existing file\nThis should not be backed up.',
+    });
+
+    try {
+      const { projectRoot } = customProject;
+      const targetFile = path.join(projectRoot, 'AGENTS.md');
+      const backupFile = path.join(projectRoot, 'AGENTS.md.bak');
+
+      runRuler('apply', projectRoot);
+
+      const backupExists = await fs
+        .access(backupFile)
+        .then(() => true)
+        .catch(() => false);
+      expect(backupExists).toBe(false);
+
+      const targetContent = await fs.readFile(targetFile, 'utf8');
+      expect(targetContent).toContain('# Test Rules');
+      expect(targetContent).toContain('Some test rules here.');
+    } finally {
+      await teardownTestProject(customProject.projectRoot);
+    }
+  });
+
+  it('CLI --backup overrides [backup] enabled=false in TOML', async () => {
+    const customProject = await setupTestProject({
+      '.ruler/AGENTS.md': '# Test Rules\n\nSome test rules here.',
+      '.ruler/ruler.toml':
+        'default_agents = ["copilot"]\n\n[backup]\nenabled = false\n',
+      'AGENTS.md': '# Existing file\nThis should be backed up.',
+    });
+
+    try {
+      const { projectRoot } = customProject;
+      const backupFile = path.join(projectRoot, 'AGENTS.md.bak');
+
+      runRuler('apply --backup', projectRoot);
+
+      const backupExists = await fs
+        .access(backupFile)
+        .then(() => true)
+        .catch(() => false);
+      expect(backupExists).toBe(true);
+    } finally {
+      await teardownTestProject(customProject.projectRoot);
+    }
+  });
+
   it('does not add .bak paths to .gitignore with --no-backup', async () => {
     const { projectRoot } = testProject;
     const gitignoreFile = path.join(projectRoot, '.gitignore');

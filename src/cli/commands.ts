@@ -75,8 +75,7 @@ export function run(): void {
           .option('backup', {
             type: 'boolean',
             description:
-              'Enable/disable creation of .bak backup files (default: enabled)',
-            default: true,
+              'Enable/disable creation of .bak backup files (default: from config or enabled)',
           })
           .option('skills', {
             type: 'boolean',

@@ -19,7 +19,7 @@ export interface ApplyArgs {
   'dry-run': boolean;
   'local-only': boolean;
   nested?: boolean;
-  backup: boolean;
+  backup?: boolean;
   skills?: boolean;
   subagents?: boolean;
 }
@@ -214,6 +214,9 @@ export async function initHandler(argv: InitArgs): Promise<void> {
 # [gitignore]
 # enabled = true
 # local = false  # set true to write generated ignores to .git/info/exclude instead
+
+# [backup]
+# enabled = true  # set false to disable .bak backup files
 
 # --- Agent Specific Configurations ---
 # You can enable/disable agents and override their default output paths here.

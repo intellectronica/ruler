@@ -263,6 +263,40 @@ describe('ConfigLoader', () => {
     });
   });
 
+  describe('backup configuration', () => {
+    it('parses [backup] section with enabled = true', async () => {
+      const content = `
+        [backup]
+        enabled = true
+      `;
+      await fs.writeFile(path.join(rulerDir, 'ruler.toml'), content);
+      const config = await loadConfig({ projectRoot: tmpDir });
+      expect(config.backup).toBeDefined();
+      expect(config.backup?.enabled).toBe(true);
+    });
+
+    it('parses [backup] section with enabled = false', async () => {
+      const content = `
+        [backup]
+        enabled = false
+      `;
+      await fs.writeFile(path.join(rulerDir, 'ruler.toml'), content);
+      const config = await loadConfig({ projectRoot: tmpDir });
+      expect(config.backup).toBeDefined();
+      expect(config.backup?.enabled).toBe(false);
+    });
+
+    it('handles missing [backup] section', async () => {
+      const content = `
+        default_agents = ["A"]
+      `;
+      await fs.writeFile(path.join(rulerDir, 'ruler.toml'), content);
+      const config = await loadConfig({ projectRoot: tmpDir });
+      expect(config.backup).toBeDefined();
+      expect(config.backup?.enabled).toBeUndefined();
+    });
+  });
+
   describe('subagent control via [agents] (and legacy [subagents])', () => {
     let warnSpy: jest.SpyInstance;
 
