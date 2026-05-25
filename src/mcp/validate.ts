@@ -5,11 +5,18 @@
  * @throws Error if validation fails.
  */
 export function validateMcp(data: unknown): void {
+  const mcpServers =
+    data && typeof data === 'object'
+      ? (data as Record<string, unknown>).mcpServers
+      : undefined;
+
   if (
     !data ||
     typeof data !== 'object' ||
     !('mcpServers' in data) ||
-    typeof (data as Record<string, unknown>).mcpServers !== 'object'
+    !mcpServers ||
+    typeof mcpServers !== 'object' ||
+    Array.isArray(mcpServers)
   ) {
     throw new Error(
       '[ruler] Invalid MCP config: must contain an object property "mcpServers" (Ruler style)',

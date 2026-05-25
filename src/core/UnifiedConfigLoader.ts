@@ -53,11 +53,16 @@ export async function loadUnifiedConfig(
     tomlRaw = text.trim() ? parseTOML(text) : {};
     meta.configFile = tomlFile;
   } catch (err) {
-    if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
+    if (
+      options.configPath ||
+      (err as NodeJS.ErrnoException).code !== 'ENOENT'
+    ) {
       diagnostics.push({
-        severity: 'warning',
+        severity: options.configPath ? 'error' : 'warning',
         code: 'TOML_READ_ERROR',
-        message: 'Failed to read ruler.toml',
+        message: options.configPath
+          ? 'Failed to read explicit config file'
+          : 'Failed to read ruler.toml',
         file: tomlFile,
         detail: (err as Error).message,
       });
@@ -106,36 +111,44 @@ export async function loadUnifiedConfig(
     skills: skillsConfig,
   };
 
+  const includeAgentsInRules = (() => {
+    if (!tomlRaw || typeof tomlRaw !== 'object') return false;
+    const raw = tomlRaw as Record<string, unknown>;
+    const agents = raw.agents as Record<string, unknown> | undefined;
+    const subagents = raw.subagents as Record<string, unknown> | undefined;
+    return (
+      (agents &&
+        typeof agents === 'object' &&
+        agents.include_in_rules === true) ||
+      (subagents &&
+        typeof subagents === 'object' &&
+        subagents.include_in_rules === true)
+    );
+  })();
+
   // Collect rule markdown files
   let ruleFiles: RuleFile[] = [];
   try {
-    const dirEntries = await fs.readdir(meta.rulerDir, { withFileTypes: true });
-    const mdFiles = dirEntries
-      .filter((e) => e.isFile() && e.name.toLowerCase().endsWith('.md'))
-      .map((e) => path.join(meta.rulerDir, e.name));
-    // Sort lexicographically then ensure AGENTS.md first
-    mdFiles.sort((a, b) => a.localeCompare(b));
-    mdFiles.sort((a, b) => {
-      const aIs = /agents\.md$/i.test(a);
-      const bIs = /agents\.md$/i.test(b);
-      if (aIs && !bIs) return -1;
-      if (bIs && !aIs) return 1;
-      return 0;
+    const mdFiles = await FileSystemUtils.readMarkdownFiles(meta.rulerDir, {
+      includeAgents: includeAgentsInRules,
     });
     let order = 0;
     ruleFiles = await Promise.all(
       mdFiles.map(async (file) => {
-        const content = await fs.readFile(file, 'utf8');
-        const stat = await fs.stat(file);
+        const stat = await fs.stat(file.path);
+        const relativeFromRuler = path.relative(meta.rulerDir, file.path);
+        const relativePath = relativeFromRuler.startsWith('..')
+          ? path.relative(path.dirname(meta.rulerDir), file.path)
+          : relativeFromRuler;
         return {
-          path: file,
-          relativePath: path.basename(file),
-          content,
-          contentHash: sha256(content),
+          path: file.path,
+          relativePath: relativePath.replace(/\\/g, '/'),
+          content: file.content,
+          contentHash: sha256(file.content),
           mtimeMs: stat.mtimeMs,
           size: stat.size,
           order: order++,
-          primary: /agents\.md$/i.test(file),
+          primary: /(^|[/\\])agents\.md$/i.test(relativePath),
         } as RuleFile;
       }),
     );
@@ -315,14 +328,36 @@ export async function loadUnifiedConfig(
 
       const parsedObj = parsed as Record<string, unknown>;
       const serversRaw =
-        (parsedObj.mcpServers as unknown) ||
-        (parsedObj.servers as unknown) ||
-        {};
-      if (serversRaw && typeof serversRaw === 'object') {
+        'mcpServers' in parsedObj
+          ? parsedObj.mcpServers
+          : 'servers' in parsedObj
+            ? parsedObj.servers
+            : undefined;
+      if (
+        !serversRaw ||
+        typeof serversRaw !== 'object' ||
+        Array.isArray(serversRaw)
+      ) {
+        diagnostics.push({
+          severity: 'warning',
+          code: 'MCP_INVALID_SHAPE',
+          message:
+            'mcp.json must contain a non-array object in "mcpServers" or "servers"',
+          file: mcpFile,
+        });
+      } else {
         for (const [name, def] of Object.entries(
           serversRaw as Record<string, Record<string, unknown>>,
         )) {
-          if (!def || typeof def !== 'object') continue;
+          if (!def || typeof def !== 'object' || Array.isArray(def)) {
+            diagnostics.push({
+              severity: 'warning',
+              code: 'MCP_INVALID_SERVER',
+              message: `MCP server '${name}' must be an object`,
+              file: mcpFile,
+            });
+            continue;
+          }
           const server: McpServerDef = {};
           if (typeof def.command === 'string') server.command = def.command;
           if (Array.isArray(def.command)) server.command = def.command[0];
