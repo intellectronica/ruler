@@ -10,15 +10,51 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22.12.0'
           registry-url: 'https://registry.npmjs.org/'
       - run: npm ci
+      - name: Validate release target
+        run: |
+          PACKAGE_NAME="$(node -p "require('./package.json').name")"
+          VERSION="$(node -p "require('./package.json').version")"
+          EXPECTED_TAG="v${VERSION}"
+
+          if [ "${{ github.event_name }}" = "release" ]; then
+            RELEASE_TAG="${{ github.event.release.tag_name }}"
+          elif [ "${{ github.ref_type }}" = "tag" ]; then
+            RELEASE_TAG="${GITHUB_REF_NAME}"
+          else
+            echo "::error::Manual release workflow runs must be started from tag ${EXPECTED_TAG}."
+            exit 1
+          fi
+
+          if [ "${RELEASE_TAG}" != "${EXPECTED_TAG}" ]; then
+            echo "::error::Release tag ${RELEASE_TAG} does not match package version ${VERSION}; expected ${EXPECTED_TAG}."
+            exit 1
+          fi
+
+          git fetch --force --tags origin
+          git fetch origin main
+          TAG_SHA="$(git rev-list -n 1 "${RELEASE_TAG}")"
+          MAIN_SHA="$(git rev-parse origin/main)"
+          if [ "${TAG_SHA}" != "${MAIN_SHA}" ]; then
+            echo "::error::Release tag ${RELEASE_TAG} (${TAG_SHA}) must point at origin/main (${MAIN_SHA})."
+            exit 1
+          fi
+
+          if npm view "${PACKAGE_NAME}@${VERSION}" version >/dev/null 2>&1; then
+            echo "::error::${PACKAGE_NAME}@${VERSION} is already published to npm."
+            exit 1
+          fi
       - run: npm run lint
       - run: npm test
       - run: npm run build
+      - run: npm pack --dry-run
       - run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
