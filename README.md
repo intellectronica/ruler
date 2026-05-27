@@ -224,7 +224,7 @@ project/
 ruler apply [options]
 ```
 
-The `apply` command looks for `.ruler/` in the current directory tree, reading the first match. If no such directory is found, it will look for a global configuration in `$XDG_CONFIG_HOME/ruler`.
+The `apply` command searches upward from `--project-root` (default: current directory) for the nearest `.ruler/` directory. If no local `.ruler/` directory is found, it falls back to `$XDG_CONFIG_HOME/ruler`.
 
 ### Options
 
