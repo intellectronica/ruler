@@ -364,7 +364,10 @@ async function resolveImplicitConfigFile(
   projectRoot: string,
   checkGlobal: boolean,
 ): Promise<string | undefined> {
-  const localConfigFile = path.join(projectRoot, '.ruler', 'ruler.toml');
+  const localRulerDir = await findNearestLocalRulerDir(projectRoot);
+  const localConfigFile = localRulerDir
+    ? path.join(localRulerDir, 'ruler.toml')
+    : path.join(projectRoot, '.ruler', 'ruler.toml');
   if (await configFileExists(localConfigFile)) {
     return localConfigFile;
   }
@@ -378,6 +381,32 @@ async function resolveImplicitConfigFile(
   const globalConfigFile = path.join(xdgConfigDir, 'ruler', 'ruler.toml');
   if (await configFileExists(globalConfigFile)) {
     return globalConfigFile;
+  }
+
+  return undefined;
+}
+
+async function findNearestLocalRulerDir(
+  startPath: string,
+): Promise<string | undefined> {
+  let current = path.resolve(startPath);
+
+  while (current) {
+    const candidate = path.join(current, '.ruler');
+    try {
+      const stat = await fs.stat(candidate);
+      if (stat.isDirectory()) {
+        return candidate;
+      }
+    } catch {
+      // Keep walking; missing or inaccessible candidates simply do not match.
+    }
+
+    const parent = path.dirname(current);
+    if (parent === current) {
+      return undefined;
+    }
+    current = parent;
   }
 
   return undefined;
