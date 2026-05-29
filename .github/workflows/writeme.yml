@@ -8,8 +8,8 @@ on:
   workflow_dispatch: {}
 
 permissions:
-  contents: write        # Allow Copilot agent to create a branch/PR
-  pull-requests: write   # Allow PR operations
+  contents: write # Allow Copilot agent to create a branch/PR
+  pull-requests: write # Allow PR operations
 
 jobs:
   create-copilot-job:
@@ -59,14 +59,14 @@ jobs:
           echo "$BODY" | jq . >&2 || echo "$BODY" >&2
 
           RESP=$(curl -sS -w "\nHTTP_STATUS:%{http_code}" -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -H "Copilot-Integration-Id: copilot-github-actions" -H "User-Agent: scheduled-copilot-workflow" -H "Accept: application/json" https://api.githubcopilot.com/agents/swe/jobs/intellectronica/ruler -d "$BODY")
-          
+
           # Extract status code and response body
           RESPONSE_BODY=$(echo "$RESP" | sed -n '1,/HTTP_STATUS:/p' | sed '$d')
           STATUS_CODE=$(echo "$RESP" | grep "HTTP_STATUS:" | cut -d: -f2)
-          
+
           echo "HTTP Status Code: $STATUS_CODE" >&2
           echo "Response Body: $RESPONSE_BODY" >&2
-          
+
           # Check if response is just "Unauthorized"
           if [ "$RESPONSE_BODY" = "Unauthorized" ]; then
             echo "Authentication failed: Token may be invalid or missing required scopes" >&2

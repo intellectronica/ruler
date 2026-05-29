@@ -55,9 +55,11 @@ jobs:
             echo "::error::${PACKAGE_NAME}@${VERSION} is already published to npm."
             exit 1
           fi
+      - run: npm run format:check
       - run: npm run lint
       - run: npm test
       - run: npm run build
+      - run: npm audit --omit=dev --audit-level=moderate
       - run: npm pack --dry-run
       - run: npm publish --access public
         env:

@@ -24,7 +24,7 @@ args = ["-y", "@modelcontextprotocol/server-git", "--repository", "."]
 
     testProject = await setupTestProject({
       '.ruler/ruler.toml': toml,
-      '.idx/mcp.json': '{"mcpServers": {}}' // Empty native config for Firebase Studio
+      '.idx/mcp.json': '{"mcpServers": {}}', // Empty native config for Firebase Studio
     });
   });
 
@@ -44,13 +44,13 @@ args = ["-y", "@modelcontextprotocol/server-git", "--repository", "."]
     expect(config.mcpServers).toHaveProperty('repo');
     expect(config.mcpServers.repo).toEqual({
       command: 'node',
-      args: ['scripts/repo-mcp.js']
+      args: ['scripts/repo-mcp.js'],
     });
 
     expect(config.mcpServers).toHaveProperty('git');
     expect(config.mcpServers.git).toEqual({
       command: 'npx',
-      args: ['-y', '@modelcontextprotocol/server-git', '--repository', '.']
+      args: ['-y', '@modelcontextprotocol/server-git', '--repository', '.'],
     });
 
     // Ensure no 'type' property exists at server entries

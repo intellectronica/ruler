@@ -37,13 +37,15 @@ describe('Agent Lowercase Identifiers', () => {
       windsurf: 'Windsurf',
       cline: 'Cline',
       aider: 'Aider',
-      kilocode: 'Kilo Code'
+      kilocode: 'Kilo Code',
     };
 
     Object.entries(expectedIdentifiers).forEach(([identifier, AgentClass]) => {
       it(`${AgentClass.name} returns "${expectedDisplayNames[identifier as keyof typeof expectedDisplayNames]}"`, () => {
         const agent = new AgentClass();
-        expect(agent.getName()).toBe(expectedDisplayNames[identifier as keyof typeof expectedDisplayNames]);
+        expect(agent.getName()).toBe(
+          expectedDisplayNames[identifier as keyof typeof expectedDisplayNames],
+        );
       });
     });
   });

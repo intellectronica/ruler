@@ -22,33 +22,38 @@ describe('TOML Edge Cases', () => {
       mcpServers: {
         'special-chars': {
           command: 'echo "quoted command"',
-          args: ['arg with spaces', 'arg"with"quotes', 'arg,with,commas', 'unicode: 🚀'],
+          args: [
+            'arg with spaces',
+            'arg"with"quotes',
+            'arg,with,commas',
+            'unicode: 🚀',
+          ],
           env: {
-            'VAR_WITH_QUOTES': 'value "with" quotes',
-            'VAR_WITH_COMMA': 'value,with,comma',
-            'VAR_WITH_UNICODE': '🌟 unicode value',
-            'VAR_WITH_NEWLINE': 'line1\nline2',
-          }
+            VAR_WITH_QUOTES: 'value "with" quotes',
+            VAR_WITH_COMMA: 'value,with,comma',
+            VAR_WITH_UNICODE: '🌟 unicode value',
+            VAR_WITH_NEWLINE: 'line1\nline2',
+          },
         },
         'empty-arrays': {
           command: 'test-empty',
           args: [],
-          env: {}
+          env: {},
         },
         'complex-nested': {
           command: 'complex',
           args: ['path/to/file.txt', '--flag=value'],
           env: {
-            'NESTED_JSON': '{"key": "value", "count": 42}',
-            'PATH_WITH_SPACES': '/path with spaces/to/file',
+            NESTED_JSON: '{"key": "value", "count": 42}',
+            PATH_WITH_SPACES: '/path with spaces/to/file',
           },
           headers: {
-            'Authorization': 'Bearer token-with-special-chars!@#$%',
+            Authorization: 'Bearer token-with-special-chars!@#$%',
             'Content-Type': 'application/json; charset=utf-8',
-            'X-Custom-Header': 'value with "quotes" and \'single quotes\''
-          }
-        }
-      }
+            'X-Custom-Header': 'value with "quotes" and \'single quotes\'',
+          },
+        },
+      },
     };
 
     // Apply the configuration
@@ -57,12 +62,12 @@ describe('TOML Edge Cases', () => {
       tmpDir,
       rulerMcp,
       { mcp: { strategy: 'merge' } },
-      false
+      false,
     );
 
     const configPath = path.join(tmpDir, '.codex', 'config.toml');
     const configContent = await fs.readFile(configPath, 'utf8');
-    
+
     console.log('Generated TOML:');
     console.log(configContent);
     console.log('---');
@@ -97,44 +102,52 @@ describe('TOML Edge Cases', () => {
     expect(specialCharsServer.command).toBe('echo "quoted command"');
     expect(specialCharsServer.args).toEqual([
       'arg with spaces',
-      'arg"with"quotes', 
+      'arg"with"quotes',
       'arg,with,commas',
-      'unicode: 🚀'
+      'unicode: 🚀',
     ]);
-    expect(specialCharsServer.env['VAR_WITH_QUOTES']).toBe('value "with" quotes');
+    expect(specialCharsServer.env['VAR_WITH_QUOTES']).toBe(
+      'value "with" quotes',
+    );
     expect(specialCharsServer.env['VAR_WITH_UNICODE']).toBe('🌟 unicode value');
 
     const complexServer = parsedConfig.mcp_servers['complex-nested'];
-    expect(complexServer.headers['Authorization']).toBe('Bearer token-with-special-chars!@#$%');
-    expect(complexServer.headers['X-Custom-Header']).toBe('value with "quotes" and \'single quotes\'');
-    expect(complexServer.env['NESTED_JSON']).toBe('{"key": "value", "count": 42}');
+    expect(complexServer.headers['Authorization']).toBe(
+      'Bearer token-with-special-chars!@#$%',
+    );
+    expect(complexServer.headers['X-Custom-Header']).toBe(
+      'value with "quotes" and \'single quotes\'',
+    );
+    expect(complexServer.env['NESTED_JSON']).toBe(
+      '{"key": "value", "count": 42}',
+    );
   });
 
   it('should handle empty and minimal configurations', async () => {
     const rulerMcp = {
       mcpServers: {
-        'minimal': {
-          command: 'minimal-cmd'
+        minimal: {
+          command: 'minimal-cmd',
           // No args, env, or headers
-        }
-      }
+        },
+      },
     };
 
     await agent.applyRulerConfig(
       '# Minimal test',
-      tmpDir, 
+      tmpDir,
       rulerMcp,
       { mcp: { strategy: 'merge' } },
-      false
+      false,
     );
 
     const configPath = path.join(tmpDir, '.codex', 'config.toml');
     const configContent = await fs.readFile(configPath, 'utf8');
-    
+
     // Should parse without errors
     const { parse } = require('@iarna/toml');
     const parsedConfig = parse(configContent);
-    
+
     expect(parsedConfig.mcp_servers.minimal.command).toBe('minimal-cmd');
     expect(parsedConfig.mcp_servers.minimal.args).toBeUndefined();
     expect(parsedConfig.mcp_servers.minimal.env).toBeUndefined();
@@ -144,15 +157,15 @@ describe('TOML Edge Cases', () => {
     const rulerMcp = {
       mcpServers: {
         'server-with-dashes': {
-          command: 'cmd1'
+          command: 'cmd1',
         },
-        'server_with_underscores': {
-          command: 'cmd2'
+        server_with_underscores: {
+          command: 'cmd2',
         },
         'server.with.dots': {
-          command: 'cmd3'
-        }
-      }
+          command: 'cmd3',
+        },
+      },
     };
 
     await agent.applyRulerConfig(
@@ -160,16 +173,16 @@ describe('TOML Edge Cases', () => {
       tmpDir,
       rulerMcp,
       { mcp: { strategy: 'merge' } },
-      false
+      false,
     );
 
     const configPath = path.join(tmpDir, '.codex', 'config.toml');
     const configContent = await fs.readFile(configPath, 'utf8');
-    
+
     // Should parse without errors
     const { parse } = require('@iarna/toml');
     const parsedConfig = parse(configContent);
-    
+
     expect(parsedConfig.mcp_servers).toHaveProperty('server-with-dashes');
     expect(parsedConfig.mcp_servers).toHaveProperty('server_with_underscores');
     expect(parsedConfig.mcp_servers['server.with.dots']).toBeDefined();

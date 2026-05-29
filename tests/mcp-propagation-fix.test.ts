@@ -58,7 +58,7 @@ describe('MCP Propagation with Merged Config', () => {
 
     // Ensure the legacy server is NOT included
     expect(parsed.mcp.stdio_servers).not.toContainEqual(
-      expect.objectContaining({ name: 'legacy-server' })
+      expect.objectContaining({ name: 'legacy-server' }),
     );
   });
 

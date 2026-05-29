@@ -228,28 +228,28 @@ The `apply` command searches upward from `--project-root` (default: current dire
 
 ### Options
 
-| Option                         | Description                                                            |
-| ------------------------------ | ---------------------------------------------------------------------- |
-| `--project-root <path>`        | Project root path (default: current directory).                        |
-| `--agents <agent1,agent2,...>` | Comma-separated agent names to target (see supported list below).      |
-| `--config <path>`              | Custom `ruler.toml` path.                                              |
-| `--mcp` / `--with-mcp`         | Enable applying MCP server configurations (default: true).             |
-| `--no-mcp`                     | Disable applying MCP server configurations.                            |
-| `--mcp-overwrite`              | Overwrite native MCP config instead of merging.                        |
-| `--gitignore`                  | Enable automatic .gitignore updates (default: true).                   |
-| `--no-gitignore`               | Disable automatic .gitignore updates.                                  |
-| `--gitignore-local`            | Write managed ignore entries to `.git/info/exclude` instead.           |
-| `--nested`                     | Enable nested rule loading (default: inherit from config or disabled). |
-| `--no-nested`                  | Disable nested rule loading even if `nested = true` in config.         |
+| Option                         | Description                                                               |
+| ------------------------------ | ------------------------------------------------------------------------- |
+| `--project-root <path>`        | Project root path (default: current directory).                           |
+| `--agents <agent1,agent2,...>` | Comma-separated agent names to target (see supported list below).         |
+| `--config <path>`              | Custom `ruler.toml` path.                                                 |
+| `--mcp` / `--with-mcp`         | Enable applying MCP server configurations (default: true).                |
+| `--no-mcp`                     | Disable applying MCP server configurations.                               |
+| `--mcp-overwrite`              | Overwrite native MCP config instead of merging.                           |
+| `--gitignore`                  | Enable automatic .gitignore updates (default: true).                      |
+| `--no-gitignore`               | Disable automatic .gitignore updates.                                     |
+| `--gitignore-local`            | Write managed ignore entries to `.git/info/exclude` instead.              |
+| `--nested`                     | Enable nested rule loading (default: inherit from config or disabled).    |
+| `--no-nested`                  | Disable nested rule loading even if `nested = true` in config.            |
 | `--backup`                     | Enable creation of `.bak` backup files (default: from config or enabled). |
-| `--no-backup`                  | Disable creation of `.bak` backup files.                               |
-| `--skills`                     | Enable skills support (experimental, default: enabled).                |
-| `--no-skills`                  | Disable skills support.                                                |
-| `--subagents`                  | Enable subagents support (experimental, default: disabled).            |
-| `--no-subagents`               | Disable subagents support.                                             |
-| `--dry-run`                    | Preview changes without writing files.                                 |
-| `--local-only`                 | Skip `$XDG_CONFIG_HOME` when looking for configuration.                |
-| `--verbose` / `-v`             | Display detailed output during execution.                              |
+| `--no-backup`                  | Disable creation of `.bak` backup files.                                  |
+| `--skills`                     | Enable skills support (experimental, default: enabled).                   |
+| `--no-skills`                  | Disable skills support.                                                   |
+| `--subagents`                  | Enable subagents support (experimental, default: disabled).               |
+| `--no-subagents`               | Disable subagents support.                                                |
+| `--dry-run`                    | Preview changes without writing files.                                    |
+| `--local-only`                 | Skip `$XDG_CONFIG_HOME` when looking for configuration.                   |
+| `--verbose` / `-v`             | Display detailed output during execution.                                 |
 
 ### Common Examples
 

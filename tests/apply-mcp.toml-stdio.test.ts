@@ -22,7 +22,7 @@ args = ["-y", "@modelcontextprotocol/server-git", "--repository", "."]
 
     testProject = await setupTestProject({
       '.ruler/ruler.toml': toml,
-      '.vscode/mcp.json': '{"mcpServers": {}}'  // Empty native config
+      '.vscode/mcp.json': '{"mcpServers": {}}', // Empty native config
     });
   });
 
@@ -32,26 +32,26 @@ args = ["-y", "@modelcontextprotocol/server-git", "--repository", "."]
 
   it('applies TOML-defined stdio MCP servers to native config', async () => {
     const { projectRoot } = testProject;
-    
+
     runRuler('apply --agents copilot', projectRoot);
-    
+
     const nativePath = path.join(projectRoot, '.vscode', 'mcp.json');
     const content = await fs.readFile(nativePath, 'utf8');
     const config = JSON.parse(content);
-    
+
     expect(config.servers).toHaveProperty('repo');
     expect(config.servers.repo).toEqual({
       command: 'node',
       args: ['scripts/repo-mcp.js'],
       env: { API_KEY: 'abc123' },
-      type: 'stdio'
+      type: 'stdio',
     });
-    
+
     expect(config.servers).toHaveProperty('git');
     expect(config.servers.git).toEqual({
       command: 'npx',
       args: ['-y', '@modelcontextprotocol/server-git', '--repository', '.'],
-      type: 'stdio'
+      type: 'stdio',
     });
   });
 });
