@@ -122,6 +122,23 @@ describe('OpenCode MCP Integration', () => {
       expect(result.mcp['remote-with-timeout'].timeout).toBe(45);
     });
 
+    it('throws without overwriting invalid existing OpenCode config', async () => {
+      const openCodePath = path.join(tmpDir, 'opencode.json');
+      const invalidConfig = '{ invalid json';
+      await fs.writeFile(openCodePath, invalidConfig);
+
+      await expect(
+        propagateMcpToOpenCode(
+          { mcpServers: { repo: { command: 'node' } } },
+          openCodePath,
+        ),
+      ).rejects.toThrow(/Invalid OpenCode config/i);
+
+      await expect(fs.readFile(openCodePath, 'utf8')).resolves.toBe(
+        invalidConfig,
+      );
+    });
+
     it('merges with existing OpenCode configuration', async () => {
       const openCodePath = path.join(tmpDir, 'opencode.json');
 

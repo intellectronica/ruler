@@ -107,11 +107,24 @@ export async function propagateMcpToOpenCode(
 
   // Read existing OpenCode config if it exists
   let existingConfig: Partial<OpenCodeConfig> & Record<string, unknown> = {};
+  let existingContent: string | undefined;
   try {
-    const existingContent = await fs.readFile(openCodeConfigPath, 'utf8');
-    existingConfig = JSON.parse(existingContent);
-  } catch {
-    // File doesn't exist, we'll create it
+    existingContent = await fs.readFile(openCodeConfigPath, 'utf8');
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+      throw new Error(
+        `Could not read OpenCode config at ${openCodeConfigPath}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+  if (existingContent !== undefined) {
+    try {
+      existingConfig = JSON.parse(existingContent);
+    } catch (error) {
+      throw new Error(
+        `Invalid OpenCode config at ${openCodeConfigPath}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
   }
 
   // Transform ruler MCP to OpenCode format
