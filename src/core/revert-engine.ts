@@ -5,6 +5,7 @@ import { IAgentConfig } from './ConfigLoader';
 import { getAgentOutputPaths } from '../agents/agent-utils';
 import { getNativeMcpPath } from '../paths/mcp';
 import { logVerbose, actionPrefix } from '../constants';
+import { resolveIgnoreFilePath } from './GitignoreUtils';
 import {
   readVSCodeSettings,
   writeVSCodeSettings,
@@ -93,8 +94,8 @@ async function hasRulerGeneratedProvenance(
 
   const relativePath = `/${path.relative(projectRoot, filePath).replace(/\\/g, '/')}`;
   const ignoreFiles = [
-    path.join(projectRoot, '.gitignore'),
-    path.join(projectRoot, '.git', 'info', 'exclude'),
+    await resolveIgnoreFilePath(projectRoot, '.gitignore'),
+    await resolveIgnoreFilePath(projectRoot, '.git/info/exclude'),
   ];
 
   for (const ignoreFile of ignoreFiles) {

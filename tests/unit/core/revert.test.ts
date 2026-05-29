@@ -473,6 +473,36 @@ describe('Revert Core Functions', () => {
         consoleLogSpy.mockRestore();
       }
     });
+
+    it('recognises generated files listed in the real worktree exclude file', async () => {
+      const actualGitDir = path.join(tmpDir, '.git-worktree');
+      await fs.mkdir(path.join(actualGitDir, 'info'), { recursive: true });
+      await fs.writeFile(
+        path.join(tmpDir, '.git'),
+        `gitdir: ${actualGitDir}\n`,
+      );
+      await fs.writeFile(
+        path.join(actualGitDir, 'info', 'exclude'),
+        [
+          '# START Ruler Generated Files',
+          '/CLAUDE.md',
+          '# END Ruler Generated Files',
+          '',
+        ].join('\n'),
+      );
+      await fs.writeFile(path.join(tmpDir, 'CLAUDE.md'), 'Claude content');
+
+      await revertAllAgentConfigs(
+        tmpDir,
+        ['claude'],
+        undefined,
+        false,
+        false,
+        false,
+      );
+
+      await expect(fs.access(path.join(tmpDir, 'CLAUDE.md'))).rejects.toThrow();
+    });
   });
 
   describe('dry-run logging patterns', () => {

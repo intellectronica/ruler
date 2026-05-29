@@ -17,7 +17,7 @@ export async function updateGitignore(
   paths: string[],
   ignoreFile = '.gitignore',
 ): Promise<void> {
-  const gitignorePath = path.join(projectRoot, ignoreFile);
+  const gitignorePath = await resolveIgnoreFilePath(projectRoot, ignoreFile);
 
   // Read existing .gitignore or start with empty content
   let existingContent = '';
@@ -76,6 +76,41 @@ export async function updateGitignore(
   // Write the updated content
   await fs.mkdir(path.dirname(gitignorePath), { recursive: true });
   await fs.writeFile(gitignorePath, newContent);
+}
+
+/**
+ * Resolves ignore files Ruler manages. Linked worktrees store `.git` as a
+ * file containing a `gitdir:` pointer, so `.git/info/exclude` must be resolved
+ * through that pointer.
+ */
+export async function resolveIgnoreFilePath(
+  projectRoot: string,
+  ignoreFile: string,
+): Promise<string> {
+  if (ignoreFile !== '.git/info/exclude') {
+    return path.join(projectRoot, ignoreFile);
+  }
+
+  const dotGitPath = path.join(projectRoot, '.git');
+  try {
+    const dotGitStat = await fs.lstat(dotGitPath);
+    if (dotGitStat.isFile()) {
+      const dotGitContent = await fs.readFile(dotGitPath, 'utf8');
+      const gitDirMatch = dotGitContent.match(/^gitdir:\s*(.+)\s*$/m);
+      if (gitDirMatch) {
+        const gitDir = gitDirMatch[1];
+        const resolvedGitDir = path.isAbsolute(gitDir)
+          ? gitDir
+          : path.resolve(projectRoot, gitDir);
+        return path.join(resolvedGitDir, 'info', 'exclude');
+      }
+    }
+  } catch {
+    // Fall back to the historical project-root path for non-git test fixtures
+    // and unusual repositories where `.git` cannot be inspected.
+  }
+
+  return path.join(projectRoot, ignoreFile);
 }
 
 /**
