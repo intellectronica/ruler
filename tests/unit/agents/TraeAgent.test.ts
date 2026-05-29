@@ -60,10 +60,10 @@ describe('TraeAgent', () => {
 
     it('uses custom output path when provided', async () => {
       const customPath = path.join(tmpDir, 'custom-guidelines.md');
-      await agent.applyRulerConfig('custom guidelines', tmpDir, null, { 
-        outputPath: customPath 
+      await agent.applyRulerConfig('custom guidelines', tmpDir, null, {
+        outputPath: customPath,
       });
-      
+
       const content = await fs.readFile(customPath, 'utf8');
       expect(content).toBe('custom guidelines');
     });
@@ -73,19 +73,19 @@ describe('TraeAgent', () => {
         mcpServers: {
           filesystem: {
             command: 'npx',
-            args: ['-y', '@modelcontextprotocol/server-filesystem', tmpDir]
-          }
-        }
+            args: ['-y', '@modelcontextprotocol/server-filesystem', tmpDir],
+          },
+        },
       };
 
       await agent.applyRulerConfig('test guidelines', tmpDir, mcpConfig);
 
       // Only the rules file should be created, no additional MCP configuration
       const rulesPath = path.join(tmpDir, '.trae', 'rules', 'project_rules.md');
-      
+
       const rulesContent = await fs.readFile(rulesPath, 'utf8');
       expect(rulesContent).toBe('test guidelines');
-      
+
       // No additional files should be created since Trae doesn't support MCP
       const traeDir = path.join(tmpDir, '.trae');
       const traeContents = await fs.readdir(traeDir, { recursive: true });
@@ -128,7 +128,13 @@ describe('TraeAgent', () => {
       await fs.mkdir(path.dirname(target), { recursive: true });
       await fs.writeFile(target, 'original content');
 
-      await agent.applyRulerConfig('new content', tmpDir, null, undefined, false);
+      await agent.applyRulerConfig(
+        'new content',
+        tmpDir,
+        null,
+        undefined,
+        false,
+      );
 
       const content = await fs.readFile(target, 'utf8');
       expect(content).toBe('new content');

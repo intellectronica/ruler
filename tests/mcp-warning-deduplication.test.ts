@@ -11,7 +11,7 @@ describe('mcp.json warning deduplication', () => {
   beforeEach(async () => {
     testProject = await setupTestProject({
       '.ruler/instructions.md': '# Test rules',
-      '.ruler/mcp.json': '{"mcpServers":{}}'
+      '.ruler/mcp.json': '{"mcpServers":{}}',
     });
   });
 
@@ -22,11 +22,13 @@ describe('mcp.json warning deduplication', () => {
   it('shows exactly one warning per apply call', async () => {
     const { projectRoot } = testProject;
     const output = runRulerAll('apply', projectRoot);
-    
+
     // Count occurrences of the warning
-    const warningMatches = output.match(/\[ruler\] Warning: Using legacy \.ruler\/mcp\.json/g);
+    const warningMatches = output.match(
+      /\[ruler\] Warning: Using legacy \.ruler\/mcp\.json/g,
+    );
     const warningCount = warningMatches ? warningMatches.length : 0;
-    
+
     expect(warningCount).toBe(1);
     expect(output).toContain(warningText);
   });

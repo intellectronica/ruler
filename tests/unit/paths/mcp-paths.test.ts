@@ -11,14 +11,14 @@ describe('MCP Path Resolution', () => {
       // Test all agents that currently have home directory paths
       const agentsToTest = [
         'Windsurf',
-        'OpenAI Codex CLI', 
+        'OpenAI Codex CLI',
         'Cursor',
-        'OpenCode'
+        'OpenCode',
       ];
 
       for (const agent of agentsToTest) {
         const mcpPath = await getNativeMcpPath(agent, projectRoot);
-        
+
         // If a path is returned, it must be within the project root
         if (mcpPath) {
           expect(mcpPath.startsWith(projectRoot)).toBe(true);
@@ -30,7 +30,7 @@ describe('MCP Path Resolution', () => {
     it('should return project-local paths for all supported agents', async () => {
       const supportedAgents = [
         'GitHub Copilot',
-        'Visual Studio', 
+        'Visual Studio',
         'Cursor',
         'Windsurf',
         'Claude Code',
@@ -49,10 +49,10 @@ describe('MCP Path Resolution', () => {
 
       for (const agent of supportedAgents) {
         const mcpPath = await getNativeMcpPath(agent, projectRoot);
-        
+
         // All supported agents should return a path
         expect(mcpPath).not.toBeNull();
-        
+
         // And it should be within the project root
         if (mcpPath) {
           expect(mcpPath.startsWith(projectRoot)).toBe(true);
@@ -110,7 +110,9 @@ describe('MCP Path Resolution', () => {
 
       it('Kiro should use project-local path', async () => {
         const mcpPath = await getNativeMcpPath('Kiro', projectRoot);
-        expect(mcpPath).toBe(path.join(projectRoot, '.kiro', 'settings', 'mcp.json'));
+        expect(mcpPath).toBe(
+          path.join(projectRoot, '.kiro', 'settings', 'mcp.json'),
+        );
       });
     });
   });

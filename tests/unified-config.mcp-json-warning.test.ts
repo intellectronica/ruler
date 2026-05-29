@@ -14,7 +14,7 @@ describe('legacy mcp.json warning', () => {
 
     testProject = await setupTestProject({
       '.ruler/ruler.toml': toml,
-      '.ruler/mcp.json': JSON.stringify(json, null, 2)
+      '.ruler/mcp.json': JSON.stringify(json, null, 2),
     });
   });
 
@@ -26,9 +26,9 @@ describe('legacy mcp.json warning', () => {
     const { projectRoot } = testProject;
     const { loadUnifiedConfig } = require('../dist/core/UnifiedConfigLoader');
     const config = await loadUnifiedConfig({ projectRoot });
-    
-    const deprecationDiagnostic = config.diagnostics.find((d: any) => 
-      d.code === 'MCP_JSON_DEPRECATED'
+
+    const deprecationDiagnostic = config.diagnostics.find(
+      (d: any) => d.code === 'MCP_JSON_DEPRECATED',
     );
     expect(deprecationDiagnostic).toBeTruthy();
     expect(deprecationDiagnostic.severity).toBe('warning');

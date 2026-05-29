@@ -19,7 +19,8 @@ url = "https://example.com"
 
     testProject = await setupTestProject({
       '.ruler/ruler.toml': toml,
-      '.vscode/mcp.json': '{"servers": {"existing": {"command": "existing-cmd"}}}' 
+      '.vscode/mcp.json':
+        '{"servers": {"existing": {"command": "existing-cmd"}}}',
     });
   });
 
@@ -29,12 +30,12 @@ url = "https://example.com"
 
   it('does not apply TOML MCP servers when MCP is disabled', async () => {
     const { projectRoot } = testProject;
-    
+
     const nativePath = path.join(projectRoot, '.vscode', 'mcp.json');
     const before = await fs.readFile(nativePath, 'utf8');
-    
+
     runRuler('apply --agents copilot', projectRoot);
-    
+
     const after = await fs.readFile(nativePath, 'utf8');
     expect(after).toEqual(before);
   });

@@ -22,19 +22,19 @@ url = "https://toml.example.com"
       mcpServers: {
         repo: {
           command: 'uvx',
-          args: ['old-repo-mcp']
+          args: ['old-repo-mcp'],
         },
         git: {
           command: 'npx',
-          args: ['mcp-git']
-        }
-      }
+          args: ['mcp-git'],
+        },
+      },
     };
 
     testProject = await setupTestProject({
       '.ruler/ruler.toml': toml,
       '.ruler/mcp.json': JSON.stringify(mcpJson, null, 2),
-      '.vscode/mcp.json': '{"mcpServers": {}}'  // Empty native config
+      '.vscode/mcp.json': '{"mcpServers": {}}', // Empty native config
     });
   });
 
@@ -44,31 +44,31 @@ url = "https://toml.example.com"
 
   it('merges TOML and JSON MCP servers with TOML taking precedence', async () => {
     const { projectRoot } = testProject;
-    
+
     runRuler('apply --agents copilot', projectRoot);
-    
+
     const nativePath = path.join(projectRoot, '.vscode', 'mcp.json');
     const content = await fs.readFile(nativePath, 'utf8');
     const config = JSON.parse(content);
-    
+
     // TOML should override JSON for 'repo' server
     expect(config.servers.repo).toEqual({
       command: 'node',
       args: ['scripts/new-repo-mcp.js'],
-      type: 'stdio'
+      type: 'stdio',
     });
-    
+
     // TOML-only server should be present
     expect(config.servers.search).toEqual({
       url: 'https://toml.example.com',
-      type: 'remote'
+      type: 'remote',
     });
-    
+
     // JSON-only server should be present
     expect(config.servers.git).toEqual({
       command: 'npx',
       args: ['mcp-git'],
-      type: 'stdio'
+      type: 'stdio',
     });
   });
 });

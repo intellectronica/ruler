@@ -368,7 +368,9 @@ describe('Skills Discovery and Validation', () => {
 
   describe('replaceSkillsDirectory', () => {
     it('retries transient rename errors before succeeding', async () => {
-      const { replaceSkillsDirectory } = await import('../src/core/SkillsProcessor');
+      const { replaceSkillsDirectory } = await import(
+        '../src/core/SkillsProcessor'
+      );
       const tempDir = path.join(tmpDir, '.claude', 'skills.tmp');
       const targetDir = path.join(tmpDir, '.claude', 'skills');
       let renameAttempts = 0;
@@ -406,7 +408,9 @@ describe('Skills Discovery and Validation', () => {
     });
 
     it('falls back to copy-and-remove when rename keeps failing transiently', async () => {
-      const { replaceSkillsDirectory } = await import('../src/core/SkillsProcessor');
+      const { replaceSkillsDirectory } = await import(
+        '../src/core/SkillsProcessor'
+      );
       const tempDir = path.join(tmpDir, '.claude', 'skills.tmp');
       const targetDir = path.join(tmpDir, '.claude', 'skills');
       let renameAttempts = 0;

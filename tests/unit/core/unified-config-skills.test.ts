@@ -3,7 +3,14 @@ import * as path from 'path';
 import { loadUnifiedConfig } from '../../../src/core/UnifiedConfigLoader';
 
 describe('UnifiedConfigLoader (skills)', () => {
-  const tmpRoot = path.join(__dirname, '..', '..', '..', 'tmp-fixtures', 'unified-skills');
+  const tmpRoot = path.join(
+    __dirname,
+    '..',
+    '..',
+    '..',
+    'tmp-fixtures',
+    'unified-skills',
+  );
   const rulerDir = path.join(tmpRoot, '.ruler');
   const tomlPath = path.join(rulerDir, 'ruler.toml');
 

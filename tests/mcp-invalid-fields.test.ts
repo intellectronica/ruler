@@ -21,15 +21,15 @@ url = "https://example.com"
 `;
 
     testProject = await setupTestProject({
-      '.ruler/ruler.toml': toml
+      '.ruler/ruler.toml': toml,
     });
 
     const { projectRoot } = testProject;
     const { loadUnifiedConfig } = require('../dist/core/UnifiedConfigLoader');
     const config = await loadUnifiedConfig({ projectRoot });
 
-    const fieldConflictError = config.diagnostics.find((d: any) => 
-      d.code === 'MCP_TOML_FIELD_CONFLICT'
+    const fieldConflictError = config.diagnostics.find(
+      (d: any) => d.code === 'MCP_TOML_FIELD_CONFLICT',
     );
     expect(fieldConflictError).toBeTruthy();
     expect(fieldConflictError.severity).toBe('warning');
@@ -46,15 +46,15 @@ headers = { Authorization = "Bearer token" }
 `;
 
     testProject = await setupTestProject({
-      '.ruler/ruler.toml': toml
+      '.ruler/ruler.toml': toml,
     });
 
     const { projectRoot } = testProject;
     const { loadUnifiedConfig } = require('../dist/core/UnifiedConfigLoader');
     const config = await loadUnifiedConfig({ projectRoot });
 
-    const fieldConflictError = config.diagnostics.find((d: any) => 
-      d.code === 'MCP_TOML_FIELD_CONFLICT'
+    const fieldConflictError = config.diagnostics.find(
+      (d: any) => d.code === 'MCP_TOML_FIELD_CONFLICT',
     );
     expect(fieldConflictError).toBeTruthy();
     expect(fieldConflictError.severity).toBe('warning');
@@ -71,15 +71,15 @@ env = { API_KEY = "secret" }
 `;
 
     testProject = await setupTestProject({
-      '.ruler/ruler.toml': toml
+      '.ruler/ruler.toml': toml,
     });
 
     const { projectRoot } = testProject;
     const { loadUnifiedConfig } = require('../dist/core/UnifiedConfigLoader');
     const config = await loadUnifiedConfig({ projectRoot });
 
-    const fieldConflictError = config.diagnostics.find((d: any) => 
-      d.code === 'MCP_TOML_FIELD_CONFLICT'
+    const fieldConflictError = config.diagnostics.find(
+      (d: any) => d.code === 'MCP_TOML_FIELD_CONFLICT',
     );
     expect(fieldConflictError).toBeTruthy();
     expect(fieldConflictError.severity).toBe('warning');
@@ -95,18 +95,20 @@ args = ["some", "args"]
 `;
 
     testProject = await setupTestProject({
-      '.ruler/ruler.toml': toml
+      '.ruler/ruler.toml': toml,
     });
 
     const { projectRoot } = testProject;
     const { loadUnifiedConfig } = require('../dist/core/UnifiedConfigLoader');
     const config = await loadUnifiedConfig({ projectRoot });
 
-    const invalidServerError = config.diagnostics.find((d: any) => 
-      d.code === 'MCP_TOML_INVALID_SERVER'
+    const invalidServerError = config.diagnostics.find(
+      (d: any) => d.code === 'MCP_TOML_INVALID_SERVER',
     );
     expect(invalidServerError).toBeTruthy();
     expect(invalidServerError.severity).toBe('warning');
-    expect(invalidServerError.message).toContain('must have at least one of command or url');
+    expect(invalidServerError.message).toContain(
+      'must have at least one of command or url',
+    );
   });
 });

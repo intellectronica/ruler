@@ -7,12 +7,17 @@ describe('Lowercase Identifiers Integration', () => {
   let tmpDir: string;
 
   beforeEach(async () => {
-    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ruler-lowercase-integration-'));
-    
+    tmpDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), 'ruler-lowercase-integration-'),
+    );
+
     // Create .ruler directory with basic files
     const rulerDir = path.join(tmpDir, '.ruler');
     await fs.mkdir(rulerDir, { recursive: true });
-    await fs.writeFile(path.join(rulerDir, 'instructions.md'), '# Test instructions');
+    await fs.writeFile(
+      path.join(rulerDir, 'instructions.md'),
+      '# Test instructions',
+    );
   });
 
   afterEach(async () => {
@@ -28,7 +33,10 @@ enabled = true
 [agents.Claude]  
 enabled = true
 `;
-    await fs.writeFile(path.join(tmpDir, '.ruler', 'ruler.toml'), configContent);
+    await fs.writeFile(
+      path.join(tmpDir, '.ruler', 'ruler.toml'),
+      configContent,
+    );
 
     // Test with lowercase CLI identifiers - this should work
     await expect(
@@ -41,7 +49,7 @@ enabled = true
         false, // no gitignore
         false, // not verbose
         true, // dry run
-      )
+      ),
     ).resolves.not.toThrow();
   });
 
@@ -55,7 +63,10 @@ enabled = true
 [agents.claude]
 enabled = true
 `;
-    await fs.writeFile(path.join(tmpDir, '.ruler', 'ruler.toml'), configContent);
+    await fs.writeFile(
+      path.join(tmpDir, '.ruler', 'ruler.toml'),
+      configContent,
+    );
 
     // Test that lowercase default_agents work
     await expect(
@@ -68,7 +79,7 @@ enabled = true
         false, // no gitignore
         false, // not verbose
         true, // dry run
-      )
+      ),
     ).resolves.not.toThrow();
   });
 
@@ -84,7 +95,10 @@ enabled = false
 [agents.aider]
 enabled = true
 `;
-    await fs.writeFile(path.join(tmpDir, '.ruler', 'ruler.toml'), configContent);
+    await fs.writeFile(
+      path.join(tmpDir, '.ruler', 'ruler.toml'),
+      configContent,
+    );
 
     // Test with lowercase CLI filters
     await expect(
@@ -97,7 +111,7 @@ enabled = true
         false, // no gitignore
         false, // not verbose
         true, // dry run
-      )
+      ),
     ).resolves.not.toThrow();
   });
 });

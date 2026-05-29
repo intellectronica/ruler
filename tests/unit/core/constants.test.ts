@@ -1,4 +1,11 @@
-import { logVerbose, logInfo, logWarn, logError, logVerboseInfo, actionPrefix } from '../../../src/constants';
+import {
+  logVerbose,
+  logInfo,
+  logWarn,
+  logError,
+  logVerboseInfo,
+  actionPrefix,
+} from '../../../src/constants';
 
 describe('constants', () => {
   describe('logVerbose', () => {
@@ -18,7 +25,9 @@ describe('constants', () => {
     it('calls console.error when isVerbose is true', () => {
       logVerbose('test message', true);
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith('[ruler:verbose] test message');
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        '[ruler:verbose] test message',
+      );
       expect(consoleLogSpy).not.toHaveBeenCalled();
     });
 
@@ -34,7 +43,9 @@ describe('constants', () => {
       logVerbose(message, true);
 
       expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
-      expect(consoleErrorSpy).toHaveBeenCalledWith(`[ruler:verbose] ${message}`);
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        `[ruler:verbose] ${message}`,
+      );
     });
   });
 
@@ -63,7 +74,9 @@ describe('constants', () => {
 
       it('uses [ruler:dry-run] prefix when dryRun is true', () => {
         logInfo('test message', true);
-        expect(consoleLogSpy).toHaveBeenCalledWith('[ruler:dry-run] test message');
+        expect(consoleLogSpy).toHaveBeenCalledWith(
+          '[ruler:dry-run] test message',
+        );
       });
     });
 
@@ -75,7 +88,9 @@ describe('constants', () => {
 
       it('uses [ruler:dry-run] prefix when dryRun is true', () => {
         logWarn('warning message', true);
-        expect(consoleWarnSpy).toHaveBeenCalledWith('[ruler:dry-run] warning message');
+        expect(consoleWarnSpy).toHaveBeenCalledWith(
+          '[ruler:dry-run] warning message',
+        );
       });
     });
 
@@ -87,7 +102,9 @@ describe('constants', () => {
 
       it('uses [ruler:dry-run] prefix when dryRun is true', () => {
         logError('error message', true);
-        expect(consoleErrorSpy).toHaveBeenCalledWith('[ruler:dry-run] error message');
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+          '[ruler:dry-run] error message',
+        );
       });
     });
 
@@ -104,7 +121,9 @@ describe('constants', () => {
 
       it('logs to stdout with [ruler:dry-run] prefix when isVerbose and dryRun are true', () => {
         logVerboseInfo('verbose message', true, true);
-        expect(consoleLogSpy).toHaveBeenCalledWith('[ruler:dry-run] verbose message');
+        expect(consoleLogSpy).toHaveBeenCalledWith(
+          '[ruler:dry-run] verbose message',
+        );
       });
     });
   });

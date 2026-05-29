@@ -10,7 +10,7 @@ describe('CLI legacy mcp.json warning', () => {
   beforeEach(async () => {
     testProject = await setupTestProject({
       '.ruler/instructions.md': '# Legacy rules',
-      '.ruler/mcp.json': '{"mcpServers":{}}'
+      '.ruler/mcp.json': '{"mcpServers":{}}',
     });
   });
 
@@ -20,7 +20,7 @@ describe('CLI legacy mcp.json warning', () => {
 
   it('prints warning', async () => {
     const { projectRoot } = testProject;
-  const output = runRulerAll('apply', projectRoot);
+    const output = runRulerAll('apply', projectRoot);
     expect(output).toContain(warningText);
   });
 });

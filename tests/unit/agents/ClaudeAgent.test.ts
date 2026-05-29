@@ -33,7 +33,9 @@ describe('ClaudeAgent', () => {
   it('should have the correct default output path', () => {
     const agent = new ClaudeAgent();
     const projectRoot = '/test/project';
-    expect(agent.getDefaultOutputPath(projectRoot)).toBe(path.join(projectRoot, 'CLAUDE.md'));
+    expect(agent.getDefaultOutputPath(projectRoot)).toBe(
+      path.join(projectRoot, 'CLAUDE.md'),
+    );
   });
 
   it('writes rules to CLAUDE.md file', async () => {
