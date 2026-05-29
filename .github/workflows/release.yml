@@ -19,14 +19,18 @@ jobs:
           registry-url: 'https://registry.npmjs.org/'
       - run: npm ci
       - name: Validate release target
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_TYPE: ${{ github.ref_type }}
+          RELEASE_TAG_FROM_EVENT: ${{ github.event.release.tag_name }}
         run: |
           PACKAGE_NAME="$(node -p "require('./package.json').name")"
           VERSION="$(node -p "require('./package.json').version")"
           EXPECTED_TAG="v${VERSION}"
 
-          if [ "${{ github.event_name }}" = "release" ]; then
-            RELEASE_TAG="${{ github.event.release.tag_name }}"
-          elif [ "${{ github.ref_type }}" = "tag" ]; then
+          if [ "${EVENT_NAME}" = "release" ]; then
+            RELEASE_TAG="${RELEASE_TAG_FROM_EVENT}"
+          elif [ "${REF_TYPE}" = "tag" ]; then
             RELEASE_TAG="${GITHUB_REF_NAME}"
           else
             echo "::error::Manual release workflow runs must be started from tag ${EXPECTED_TAG}."
