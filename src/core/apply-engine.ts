@@ -190,6 +190,7 @@ function cloneLoadedConfig(config: LoadedConfig): LoadedConfig {
     cliAgents: config.cliAgents ? [...config.cliAgents] : undefined,
     mcp: config.mcp ? { ...config.mcp } : undefined,
     gitignore: config.gitignore ? { ...config.gitignore } : undefined,
+    backup: config.backup ? { ...config.backup } : undefined,
     skills: config.skills ? { ...config.skills } : undefined,
     subagents: config.subagents ? { ...config.subagents } : undefined,
     nested: config.nested,
