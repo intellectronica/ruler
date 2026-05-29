@@ -116,6 +116,22 @@ describe('ConfigLoader', () => {
     expect(config.defaultAgents).toEqual(['A', 'B']);
   });
 
+  it('loads implicit config from the nearest ancestor .ruler directory', async () => {
+    const childDir = path.join(tmpDir, 'packages', 'app');
+    await fs.mkdir(childDir, { recursive: true });
+    await fs.writeFile(
+      path.join(rulerDir, 'ruler.toml'),
+      `default_agents = ["claude"]`,
+    );
+
+    const config = await loadConfig({
+      projectRoot: childDir,
+      checkGlobal: false,
+    });
+
+    expect(config.defaultAgents).toEqual(['claude']);
+  });
+
   it('parses nested configuration option', async () => {
     const content = `nested = true`;
     await fs.writeFile(path.join(rulerDir, 'ruler.toml'), content);
