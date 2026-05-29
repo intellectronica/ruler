@@ -7,7 +7,12 @@ import { loadConfig, LoadedConfig, IAgentConfig } from './ConfigLoader';
 import { updateGitignore as updateGitignoreUtil } from './GitignoreUtils';
 import { IAgent } from '../agents/IAgent';
 import { mergeMcp } from '../mcp/merge';
-import { getNativeMcpPath, readNativeMcp, writeNativeMcp } from '../paths/mcp';
+import {
+  getNativeMcpPath,
+  readNativeMcp,
+  readNativeMcpToml,
+  writeNativeMcp,
+} from '../paths/mcp';
 import { propagateMcpToOpenHands } from '../mcp/propagateOpenHandsMcp';
 import { propagateMcpToOpenCode } from '../mcp/propagateOpenCodeMcp';
 import { getAgentOutputPaths } from '../agents/agent-utils';
@@ -929,19 +934,12 @@ async function applyStandardMcpConfiguration(
     const CODEX_AGENT_ID = 'codex';
     const isCodexToml =
       agent.getIdentifier() === CODEX_AGENT_ID && dest.endsWith('.toml');
-    let existing = await readNativeMcp(dest);
-    if (isCodexToml) {
-      try {
-        const tomlContent = await fs.readFile(dest, 'utf8');
-        existing = parseTOML(tomlContent) as Record<string, unknown>;
-      } catch (error) {
-        logVerbose(
-          `Failed to read Codex MCP TOML at ${dest}: ${(error as Error).message}`,
-          verbose,
-        );
-        // ignore missing or invalid TOML, fall back to previously read value
-      }
-    }
+    const existing = isCodexToml
+      ? await readNativeMcpToml(
+          dest,
+          (text) => parseTOML(text) as Record<string, unknown>,
+        )
+      : await readNativeMcp(dest);
     let merged = mergeMcp(existing, mcpToMerge, strategy, serverKey);
     if (isCodexToml) {
       const { [serverKey]: servers, ...rest } = merged as Record<

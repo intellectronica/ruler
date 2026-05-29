@@ -68,6 +68,22 @@ stdio_servers = [
     });
   });
 
+  it('throws without overwriting invalid existing config.toml', async () => {
+    const invalidConfig = '[mcp';
+    await fs.writeFile(openHandsConfigPath, invalidConfig);
+
+    await expect(
+      propagateMcpToOpenHands(
+        { mcpServers: { git: { command: 'npx', args: ['mcp-git'] } } },
+        openHandsConfigPath,
+      ),
+    ).rejects.toThrow(/Invalid OpenHands config/i);
+
+    await expect(fs.readFile(openHandsConfigPath, 'utf8')).resolves.toBe(
+      invalidConfig,
+    );
+  });
+
   it('overwrites MCP server sections while preserving unrelated settings', async () => {
     const rulerMcp = {
       mcpServers: {

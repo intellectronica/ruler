@@ -86,6 +86,16 @@ describe('KiloCode MCP Integration', () => {
       expect(config).toEqual({});
     });
 
+    it('throws for invalid existing MCP JSON', async () => {
+      const mcpPath = path.join(tmpDir, '.kilocode', 'mcp.json');
+      await fs.mkdir(path.dirname(mcpPath), { recursive: true });
+      await fs.writeFile(mcpPath, '{ invalid json');
+
+      await expect(readNativeMcp(mcpPath)).rejects.toThrow(
+        /Invalid MCP config/i,
+      );
+    });
+
     it('merges MCP configurations correctly', async () => {
       const existing = {
         mcpServers: {

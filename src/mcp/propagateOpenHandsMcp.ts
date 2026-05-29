@@ -122,11 +122,24 @@ export async function propagateMcpToOpenHands(
       shttp_servers?: (string | RemoteServerEntry)[];
     };
   } = {};
+  let tomlContent: string | undefined;
   try {
-    const tomlContent = await fs.readFile(openHandsConfigPath, 'utf8');
-    config = parseTOML(tomlContent);
-  } catch {
-    // File doesn't exist, we'll create it.
+    tomlContent = await fs.readFile(openHandsConfigPath, 'utf8');
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+      throw new Error(
+        `Could not read OpenHands config at ${openHandsConfigPath}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+  if (tomlContent !== undefined) {
+    try {
+      config = parseTOML(tomlContent);
+    } catch (error) {
+      throw new Error(
+        `Invalid OpenHands config at ${openHandsConfigPath}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
   }
 
   if (!config.mcp) {
