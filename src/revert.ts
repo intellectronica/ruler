@@ -1,4 +1,3 @@
-import * as path from 'path';
 import { promises as fs } from 'fs';
 import * as FileSystemUtils from './core/FileSystemUtils';
 import { loadConfig } from './core/ConfigLoader';
@@ -14,6 +13,7 @@ import {
   resolveSelectedAgents,
 } from './core/agent-selection';
 import { mapRawAgentConfigs } from './core/config-utils';
+import { resolveIgnoreFilePath } from './core/GitignoreUtils';
 
 const agents: IAgent[] = allAgents;
 const RULER_IGNORE_START_MARKER = '# START Ruler Generated Files';
@@ -206,7 +206,7 @@ async function cleanIgnoreFile(
   verbose: boolean,
   dryRun: boolean,
 ): Promise<boolean> {
-  const ignorePath = path.join(projectRoot, ignoreFile);
+  const ignorePath = await resolveIgnoreFilePath(projectRoot, ignoreFile);
 
   try {
     await fs.access(ignorePath);

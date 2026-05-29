@@ -174,6 +174,24 @@ CLAUDE.md
       expect(content).not.toContain(tmpDir);
     });
 
+    it('writes local ignores to the real gitdir for linked worktrees', async () => {
+      const actualGitDir = path.join(tmpDir, '.git-worktree');
+      await fs.mkdir(actualGitDir, { recursive: true });
+      await fs.writeFile(
+        path.join(tmpDir, '.git'),
+        `gitdir: ${actualGitDir}\n`,
+      );
+
+      await updateGitignore(tmpDir, ['CLAUDE.md'], '.git/info/exclude');
+
+      const excludePath = path.join(actualGitDir, 'info', 'exclude');
+      const content = await fs.readFile(excludePath, 'utf8');
+      expect(content).toContain('/CLAUDE.md');
+      await expect(
+        fs.access(path.join(tmpDir, '.git', 'info', 'exclude')),
+      ).rejects.toThrow();
+    });
+
     it('handles multiple Ruler blocks by updating the first one', async () => {
       const paths = ['CLAUDE.md'];
       const gitignorePath = path.join(tmpDir, '.gitignore');
