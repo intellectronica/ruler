@@ -3,7 +3,16 @@ name: Release
 on:
   release:
     types: [created]
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Existing release tag to publish, for release recovery runs'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
 
 jobs:
   publish:
@@ -15,7 +24,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22.12.0'
+          node-version: '24'
           registry-url: 'https://registry.npmjs.org/'
       - run: npm ci
       - name: Validate release target
@@ -23,6 +32,7 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
           REF_TYPE: ${{ github.ref_type }}
           RELEASE_TAG_FROM_EVENT: ${{ github.event.release.tag_name }}
+          RELEASE_TAG_FROM_INPUT: ${{ inputs.release_tag }}
         run: |
           PACKAGE_NAME="$(node -p "require('./package.json').name")"
           VERSION="$(node -p "require('./package.json').version")"
@@ -30,10 +40,12 @@ jobs:
 
           if [ "${EVENT_NAME}" = "release" ]; then
             RELEASE_TAG="${RELEASE_TAG_FROM_EVENT}"
+          elif [ -n "${RELEASE_TAG_FROM_INPUT}" ]; then
+            RELEASE_TAG="${RELEASE_TAG_FROM_INPUT}"
           elif [ "${REF_TYPE}" = "tag" ]; then
             RELEASE_TAG="${GITHUB_REF_NAME}"
           else
-            echo "::error::Manual release workflow runs must be started from tag ${EXPECTED_TAG}."
+            echo "::error::Manual release workflow runs must be started from tag ${EXPECTED_TAG} or provide release_tag=${EXPECTED_TAG}."
             exit 1
           fi
 
@@ -46,8 +58,8 @@ jobs:
           git fetch origin main
           TAG_SHA="$(git rev-list -n 1 "${RELEASE_TAG}")"
           MAIN_SHA="$(git rev-parse origin/main)"
-          if [ "${TAG_SHA}" != "${MAIN_SHA}" ]; then
-            echo "::error::Release tag ${RELEASE_TAG} (${TAG_SHA}) must point at origin/main (${MAIN_SHA})."
+          if [ "${TAG_SHA}" != "${MAIN_SHA}" ] && ! git diff --quiet "${TAG_SHA}" "${MAIN_SHA}" -- package.json package-lock.json tsconfig.json README.md LICENSE src; then
+            echo "::error::Release tag ${RELEASE_TAG} (${TAG_SHA}) must point at origin/main (${MAIN_SHA}) or have identical package contents."
             exit 1
           fi
 
@@ -61,6 +73,4 @@ jobs:
       - run: npm run build
       - run: npm audit --omit=dev --audit-level=moderate
       - run: npm pack --dry-run
-      - run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - run: npm publish --access public --provenance
