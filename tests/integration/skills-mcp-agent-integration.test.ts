@@ -270,7 +270,7 @@ args = ["server.js"]
       try {
         await applyAllAgentConfigs(
           tmpDir,
-          ['codex', 'zed'],
+          ['codex', 'jules'],
           undefined,
           true,
           undefined,

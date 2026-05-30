@@ -30,7 +30,7 @@ describe('Skills MCP Integration', () => {
     await fs.writeFile(path.join(skillDir, SKILL_MD_FILENAME), '# Test Skill');
 
     const unsupportedAgent = allAgents.find(
-      (agent) => agent.getIdentifier() === 'zed',
+      (agent) => agent.getIdentifier() === 'jules',
     );
 
     expect(unsupportedAgent).toBeDefined();

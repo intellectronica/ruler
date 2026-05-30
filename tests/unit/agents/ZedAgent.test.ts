@@ -29,6 +29,11 @@ describe('ZedAgent', () => {
     expect(agent.getMcpServerKey()).toBe('context_servers');
   });
 
+  it('should support native skills', () => {
+    const agent = new ZedAgent();
+    expect(agent.supportsNativeSkills()).toBe(true);
+  });
+
   it('writes AGENTS.md via base class', async () => {
     const { projectRoot } = await setupTestProject({
       '.ruler/AGENTS.md': 'Rule A',

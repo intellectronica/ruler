@@ -142,7 +142,7 @@ const SKILL_TARGET_TO_IDENTIFIERS = new Map<SkillTarget, readonly string[]>([
   ['codex', ['codex']],
   ['opencode', ['opencode']],
   ['pi', ['pi']],
-  ['goose', ['goose', 'amp']],
+  ['goose', ['goose', 'amp', 'zed']],
   ['vibe', ['mistral']],
   ['roo', ['roo']],
   ['gemini', ['gemini-cli']],
@@ -413,7 +413,7 @@ export async function propagateSkills(
 
   if (selectedTargets.has('goose')) {
     logVerboseInfo(
-      `Copying skills to ${GOOSE_SKILLS_PATH} for Goose and Amp`,
+      `Copying skills to ${GOOSE_SKILLS_PATH} for Goose, Amp and Zed`,
       verbose,
       dryRun,
     );

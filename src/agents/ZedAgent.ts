@@ -127,6 +127,10 @@ export class ZedAgent extends AgentsMdAgent {
     return true;
   }
 
+  supportsNativeSkills(): boolean {
+    return true;
+  }
+
   /**
    * Transform MCP server configuration from ruler format to Zed format.
    * Converts "type": "stdio" to "source": "custom" and preserves other fields.
