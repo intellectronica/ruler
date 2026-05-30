@@ -80,7 +80,7 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | Goose                  | `.goosehints`                                  | -                                                | `.agents/skills/`         | -                            |
 | Qwen Code              | `AGENTS.md`                                    | `.qwen/settings.json`                            | -                         | -                            |
 | RooCode                | `AGENTS.md`                                    | `.roo/mcp.json`                                  | `.roo/skills/`            | -                            |
-| Zed                    | `AGENTS.md`                                    | `.zed/settings.json` (project root, never $HOME) | -                         | -                            |
+| Zed                    | `AGENTS.md`                                    | `.zed/settings.json` (project root, never $HOME) | `.agents/skills/`         | -                            |
 | Trae AI                | `.trae/rules/project_rules.md`                 | -                                                | -                         | -                            |
 | Warp                   | `WARP.md`                                      | -                                                | -                         | -                            |
 | Kiro                   | `.kiro/steering/ruler_kiro_instructions.md`    | `.kiro/settings/mcp.json`                        | -                         | -                            |
@@ -597,6 +597,7 @@ Skills are specialized knowledge packages that extend AI agent capabilities with
   - **Pi Coding Agent**: `.pi/skills/`
   - **Goose**: `.agents/skills/`
   - **Amp**: `.agents/skills/` (shared with Goose)
+  - **Zed**: `.agents/skills/` (shared with Goose)
   - **Antigravity**: `.agent/skills/`
   - **Factory Droid**: `.factory/skills/`
   - **Mistral Vibe**: `.vibe/skills/`
@@ -663,7 +664,7 @@ When skills support is enabled and gitignore integration is active, Ruler automa
 - `.codex/skills/` (for OpenAI Codex CLI)
 - `.opencode/skills/` (for OpenCode)
 - `.pi/skills/` (for Pi Coding Agent)
-- `.agents/skills/` (for Goose and Amp)
+- `.agents/skills/` (for Goose, Amp, and Zed)
 - `.agent/skills/` (for Antigravity)
 - `.factory/skills/` (for Factory Droid)
 - `.vibe/skills/` (for Mistral Vibe)
@@ -724,7 +725,7 @@ ruler apply
 #    - OpenAI Codex CLI: .codex/skills/my-skill/
 #    - OpenCode: .opencode/skills/my-skill/
 #    - Pi Coding Agent: .pi/skills/my-skill/
-#    - Goose & Amp: .agents/skills/my-skill/
+#    - Goose, Amp & Zed: .agents/skills/my-skill/
 #    - Antigravity: .agent/skills/my-skill/
 #    - Factory Droid: .factory/skills/my-skill/
 #    - Mistral Vibe: .vibe/skills/my-skill/
