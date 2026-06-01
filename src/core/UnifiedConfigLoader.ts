@@ -24,6 +24,24 @@ export interface UnifiedLoadOptions {
   checkGlobal?: boolean;
 }
 
+const KNOWN_MCP_SERVER_FIELDS = new Set([
+  'type',
+  'command',
+  'args',
+  'env',
+  'url',
+  'headers',
+  'timeout',
+]);
+
+function copyAdditionalMcpServerFields(
+  def: Record<string, unknown>,
+): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(def).filter(([key]) => !KNOWN_MCP_SERVER_FIELDS.has(key)),
+  );
+}
+
 export async function loadUnifiedConfig(
   options: UnifiedLoadOptions,
 ): Promise<RulerUnifiedConfig> {
@@ -181,7 +199,7 @@ export async function loadUnifiedConfig(
       for (const [name, def] of Object.entries(mcpServersRaw)) {
         if (!def || typeof def !== 'object') continue;
         const serverDef = def as Record<string, unknown>;
-        const server: McpServerDef = {};
+        const server: McpServerDef = copyAdditionalMcpServerFields(serverDef);
 
         // Parse command and args
         if (typeof serverDef.command === 'string') {
@@ -358,7 +376,7 @@ export async function loadUnifiedConfig(
             });
             continue;
           }
-          const server: McpServerDef = {};
+          const server: McpServerDef = copyAdditionalMcpServerFields(def);
           if (typeof def.command === 'string') server.command = def.command;
           if (Array.isArray(def.command)) server.command = def.command[0];
           if (Array.isArray(def.args)) server.args = def.args.map(String);
