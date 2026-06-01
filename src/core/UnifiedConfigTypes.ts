@@ -77,6 +77,7 @@ export interface McpBundle {
 }
 
 export interface McpServerDef {
+  [key: string]: unknown;
   type?: 'stdio' | 'local' | 'remote';
   command?: string;
   args?: string[];
