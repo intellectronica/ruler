@@ -514,6 +514,20 @@ Authorization = "Bearer your-token"
 "X-API-Version" = "v1"
 ```
 
+Agent-specific MCP servers can be defined under `[agents.<agent>.mcp_servers.<name>]`.
+They are applied only to that agent and override global servers with the same name:
+
+```toml
+[agents.cursor.mcp_servers.slack]
+url = "https://mcp.slack.com/mcp"
+auth = { CLIENT_ID = "CURSOR_ID" }
+
+[agents.claude.mcp_servers.slack]
+type = "http"
+url = "https://mcp.slack.com/mcp"
+oauth = { clientId = "CLAUDE_ID", callbackPort = 3118 }
+```
+
 ### Legacy `.ruler/mcp.json` (Deprecated)
 
 For backward compatibility, you can still use the JSON format; a warning is issued encouraging migration to TOML. The file is no longer created during `ruler init`.

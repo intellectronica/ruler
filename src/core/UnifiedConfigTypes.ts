@@ -46,6 +46,7 @@ export interface AgentTomlConfig {
   outputPathInstructions?: string;
   outputPathConfig?: string;
   mcp?: McpConfig;
+  mcpServers?: Record<string, McpServerDef>;
   source: AgentConfigSourceMeta;
 }
 
@@ -78,7 +79,7 @@ export interface McpBundle {
 
 export interface McpServerDef {
   [key: string]: unknown;
-  type?: 'stdio' | 'local' | 'remote';
+  type?: string;
   command?: string;
   args?: string[];
   env?: Record<string, string>;
