@@ -15,6 +15,10 @@ describe('claude-http-type', () => {
 [mcp_servers.grep]
 url = "https://mcp.grep.app"
 
+[mcp_servers.grep.oauth]
+clientId = "CLAUDE_ID"
+callbackPort = 3118
+
 [mcp_servers.local_server]
 command = "npx"
 args = ["mcp-fs", "/tmp"]
@@ -48,6 +52,10 @@ args = ["mcp-fs", "/tmp"]
     expect(claudeResult.mcpServers.grep).toBeDefined();
     expect(claudeResult.mcpServers.grep.type).toBe('http');
     expect(claudeResult.mcpServers.grep.url).toBe('https://mcp.grep.app');
+    expect(claudeResult.mcpServers.grep.oauth).toEqual({
+      clientId: 'CLAUDE_ID',
+      callbackPort: 3118,
+    });
 
     // Command-based server should still have type 'stdio'
     expect(claudeResult.mcpServers.local_server).toBeDefined();
