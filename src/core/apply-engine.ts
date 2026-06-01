@@ -186,6 +186,14 @@ function cloneLoadedConfig(config: LoadedConfig): LoadedConfig {
     clonedAgentConfigs[agent] = {
       ...agentConfig,
       mcp: agentConfig.mcp ? { ...agentConfig.mcp } : undefined,
+      mcpServers: agentConfig.mcpServers
+        ? Object.fromEntries(
+            Object.entries(agentConfig.mcpServers).map(([name, server]) => [
+              name,
+              { ...server },
+            ]),
+          )
+        : undefined,
     };
   }
 
@@ -429,7 +437,10 @@ export async function applyConfigurationsToAgents(
     logInfo(`Applying rules for ${agent.getName()}...`, dryRun);
     logVerbose(`Processing agent: ${agent.getName()}`, verbose);
     const agentConfig = config.agentConfigs[agent.getIdentifier()];
-    const agentRulerMcpJson = rulerMcpJson;
+    const agentRulerMcpJson = mergeAgentMcpServers(
+      rulerMcpJson,
+      agentConfig,
+    );
 
     // Collect output paths for .gitignore
     const outputPaths = getAgentOutputPaths(agent, projectRoot, agentConfig);
@@ -576,6 +587,25 @@ function shouldUseEngineManagedMcp(agent: IAgent): boolean {
   return (
     agent.getIdentifier() === 'codex' || agent.getIdentifier() === 'opencode'
   );
+}
+
+function mergeAgentMcpServers(
+  rulerMcpJson: Record<string, unknown> | null,
+  agentConfig: IAgentConfig | undefined,
+): Record<string, unknown> | null {
+  const baseServers =
+    rulerMcpJson?.mcpServers && typeof rulerMcpJson.mcpServers === 'object'
+      ? (rulerMcpJson.mcpServers as Record<string, unknown>)
+      : {};
+  const agentServers = agentConfig?.mcpServers ?? {};
+  const mergedServers = {
+    ...baseServers,
+    ...agentServers,
+  };
+
+  return Object.keys(mergedServers).length > 0
+    ? { mcpServers: mergedServers }
+    : null;
 }
 
 async function resolveMcpDestination(

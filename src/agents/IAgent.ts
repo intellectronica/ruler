@@ -16,6 +16,8 @@ export interface IAgentConfig {
   outputPathConfig?: string;
   /** MCP propagation config for this agent. */
   mcp?: McpConfig;
+  /** Agent-scoped MCP server definitions. */
+  mcpServers?: Record<string, Record<string, unknown>>;
 }
 
 export interface IAgent {

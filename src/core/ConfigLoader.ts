@@ -142,6 +142,31 @@ export interface IAgentConfig {
   outputPathConfig?: string;
   /** MCP propagation config for this agent. */
   mcp?: McpConfig;
+  /** Agent-scoped MCP server definitions. */
+  mcpServers?: Record<string, Record<string, unknown>>;
+}
+
+function parseAgentMcpServers(
+  sectionObj: Record<string, unknown>,
+): Record<string, Record<string, unknown>> | undefined {
+  if (
+    !sectionObj.mcp_servers ||
+    typeof sectionObj.mcp_servers !== 'object' ||
+    Array.isArray(sectionObj.mcp_servers)
+  ) {
+    return undefined;
+  }
+
+  const servers: Record<string, Record<string, unknown>> = {};
+  for (const [name, def] of Object.entries(
+    sectionObj.mcp_servers as Record<string, unknown>,
+  )) {
+    if (def && typeof def === 'object' && !Array.isArray(def)) {
+      servers[name] = { ...(def as Record<string, unknown>) };
+    }
+  }
+
+  return Object.keys(servers).length > 0 ? servers : undefined;
 }
 
 /**
@@ -248,6 +273,7 @@ export async function loadConfig(
         }
         cfg.mcp = mcpCfg;
       }
+      cfg.mcpServers = parseAgentMcpServers(sectionObj);
       agentConfigs[name] = cfg;
     }
   }
