@@ -437,10 +437,7 @@ export async function applyConfigurationsToAgents(
     logInfo(`Applying rules for ${agent.getName()}...`, dryRun);
     logVerbose(`Processing agent: ${agent.getName()}`, verbose);
     const agentConfig = config.agentConfigs[agent.getIdentifier()];
-    const agentRulerMcpJson = mergeAgentMcpServers(
-      rulerMcpJson,
-      agentConfig,
-    );
+    const agentRulerMcpJson = mergeAgentMcpServers(rulerMcpJson, agentConfig);
 
     // Collect output paths for .gitignore
     const outputPaths = getAgentOutputPaths(agent, projectRoot, agentConfig);
