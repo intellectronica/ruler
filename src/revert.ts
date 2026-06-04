@@ -7,6 +7,7 @@ import { createRulerError, logVerbose, actionPrefix } from './constants';
 import {
   revertAgentConfiguration,
   cleanUpAuxiliaryFiles,
+  cleanUpAgentDirectories,
 } from './core/revert-engine';
 import {
   agentMatchesFilter,
@@ -115,12 +116,14 @@ export async function revertAllAgentConfigs(
     `Selected agents: ${selected.map((a) => a.getName()).join(', ')}`,
     verbose,
   );
+  const isFullRevert = !config.cliAgents || config.cliAgents.length === 0;
 
   // Revert configurations for each agent
   let totalFilesProcessed = 0;
   let totalFilesRestored = 0;
   let totalFilesRemoved = 0;
   let totalBackupsRemoved = 0;
+  let totalDirectoriesRemoved = 0;
 
   for (const agent of selected) {
     const prefix = actionPrefix(dryRun);
@@ -140,21 +143,29 @@ export async function revertAllAgentConfigs(
     totalFilesRestored += result.restored;
     totalFilesRemoved += result.removed;
     totalBackupsRemoved += result.backupsRemoved;
+
+    if (!isFullRevert) {
+      totalDirectoriesRemoved += await cleanUpAgentDirectories(
+        agent,
+        projectRoot,
+        agentConfig,
+        verbose,
+        dryRun,
+      );
+    }
   }
 
-  // Clean up auxiliary files and directories
-  const cleanupResult = await cleanUpAuxiliaryFiles(
-    projectRoot,
-    verbose,
-    dryRun,
-  );
+  // Clean up auxiliary files and directories only when reverting all agents.
+  const cleanupResult = isFullRevert
+    ? await cleanUpAuxiliaryFiles(projectRoot, verbose, dryRun)
+    : { additionalFilesRemoved: 0, directoriesRemoved: 0 };
   totalFilesRemoved += cleanupResult.additionalFilesRemoved;
+  totalDirectoriesRemoved += cleanupResult.directoriesRemoved;
 
   // Clean managed ignore blocks if reverting all agents.
-  const cleanedIgnoreFiles =
-    !config.cliAgents || config.cliAgents.length === 0
-      ? await cleanManagedIgnoreFiles(projectRoot, verbose, dryRun)
-      : [];
+  const cleanedIgnoreFiles = isFullRevert
+    ? await cleanManagedIgnoreFiles(projectRoot, verbose, dryRun)
+    : [];
 
   // Display summary
   const prefix = actionPrefix(dryRun);
@@ -171,10 +182,8 @@ export async function revertAllAgentConfigs(
   if (!keepBackups) {
     console.log(`  Backup files removed: ${totalBackupsRemoved}`);
   }
-  if (cleanupResult.directoriesRemoved > 0) {
-    console.log(
-      `  Empty directories removed: ${cleanupResult.directoriesRemoved}`,
-    );
+  if (totalDirectoriesRemoved > 0) {
+    console.log(`  Empty directories removed: ${totalDirectoriesRemoved}`);
   }
   for (const ignoreFile of cleanedIgnoreFiles) {
     console.log(`  ${ignoreFile} cleaned: yes`);
