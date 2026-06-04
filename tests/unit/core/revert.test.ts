@@ -474,6 +474,40 @@ describe('Revert Core Functions', () => {
       }
     });
 
+    it('leaves .gitignore unchanged when the only end marker appears before the start marker', async () => {
+      const gitignoreContent = [
+        'node_modules/',
+        '# END Ruler Generated Files',
+        'important-user-pattern',
+        '# START Ruler Generated Files',
+        'another-user-pattern',
+        '',
+      ].join('\n');
+      await fs.writeFile(path.join(tmpDir, '.gitignore'), gitignoreContent);
+
+      const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
+
+      try {
+        await revertAllAgentConfigs(
+          tmpDir,
+          undefined,
+          undefined,
+          false,
+          false,
+          false,
+        );
+
+        expect(consoleLogSpy).not.toHaveBeenCalledWith(
+          '  .gitignore cleaned: yes',
+        );
+        await expect(
+          fs.readFile(path.join(tmpDir, '.gitignore'), 'utf8'),
+        ).resolves.toBe(gitignoreContent);
+      } finally {
+        consoleLogSpy.mockRestore();
+      }
+    });
+
     it('recognises generated files listed in the real worktree exclude file', async () => {
       const actualGitDir = path.join(tmpDir, '.git-worktree');
       await fs.mkdir(path.join(actualGitDir, 'info'), { recursive: true });

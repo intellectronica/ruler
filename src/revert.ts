@@ -218,9 +218,17 @@ async function cleanIgnoreFile(
   const content = await fs.readFile(ignorePath, 'utf8');
 
   const startIndex = content.indexOf(RULER_IGNORE_START_MARKER);
-  const endIndex = content.indexOf(RULER_IGNORE_END_MARKER);
+  if (startIndex === -1) {
+    logVerbose(`No ruler-managed block found in ${ignoreFile}`, verbose);
+    return false;
+  }
 
-  if (startIndex === -1 || endIndex === -1) {
+  const endIndex = content.indexOf(
+    RULER_IGNORE_END_MARKER,
+    startIndex + RULER_IGNORE_START_MARKER.length,
+  );
+
+  if (endIndex === -1) {
     logVerbose(`No ruler-managed block found in ${ignoreFile}`, verbose);
     return false;
   }
