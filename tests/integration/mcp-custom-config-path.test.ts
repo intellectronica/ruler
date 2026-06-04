@@ -2,6 +2,7 @@ import { promises as fs } from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { applyAllAgentConfigs } from '../../src/lib';
+import { revertAllAgentConfigs } from '../../src/revert';
 
 async function pathExists(filePath: string): Promise<boolean> {
   try {
@@ -103,6 +104,40 @@ args = ["server.js"]
       command: ['node', 'server.js'],
       enabled: true,
     });
+  });
+
+  it('reverts MCP config written to output_path_config', async () => {
+    await writeProject(
+      tmpDir,
+      `
+[agents.opencode]
+output_path_config = "custom/opencode.json"
+
+[mcp_servers.repo]
+command = "node"
+args = ["server.js"]
+`,
+    );
+
+    await applyAllAgentConfigs(tmpDir, ['opencode']);
+
+    const customPath = path.join(tmpDir, 'custom', 'opencode.json');
+    const defaultPath = path.join(tmpDir, 'opencode.json');
+
+    await expect(pathExists(customPath)).resolves.toBe(true);
+    await expect(pathExists(defaultPath)).resolves.toBe(false);
+
+    await revertAllAgentConfigs(
+      tmpDir,
+      ['opencode'],
+      undefined,
+      false,
+      false,
+      false,
+    );
+
+    await expect(pathExists(customPath)).resolves.toBe(false);
+    await expect(pathExists(defaultPath)).resolves.toBe(false);
   });
 
   it('rejects custom MCP config paths outside the project root', async () => {
