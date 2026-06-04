@@ -43,6 +43,12 @@ describe('Revert Agent Integration', () => {
         path.join(tmpDir, 'CLAUDE.md'),
         `${GENERATED_MARKER}\nClaude content`,
       );
+      await fs.mkdir(path.join(tmpDir, '.gemini'), { recursive: true });
+      await fs.writeFile(
+        path.join(tmpDir, '.gemini', 'settings.json'),
+        '{"contextFileName":"AGENTS.md"}',
+      );
+      await writeRulerGitignore(tmpDir, ['.gemini/settings.json']);
       await fs.writeFile(path.join(tmpDir, 'AGENTS.md'), 'Agents content');
 
       await revertAllAgentConfigs(
@@ -57,6 +63,9 @@ describe('Revert Agent Integration', () => {
       await expect(fs.access(path.join(tmpDir, 'CLAUDE.md'))).rejects.toThrow();
       await expect(
         fs.access(path.join(tmpDir, 'AGENTS.md')),
+      ).resolves.toBeUndefined();
+      await expect(
+        fs.access(path.join(tmpDir, '.gemini', 'settings.json')),
       ).resolves.toBeUndefined();
     });
 

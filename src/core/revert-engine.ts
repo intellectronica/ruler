@@ -648,3 +648,43 @@ export async function cleanUpAuxiliaryFiles(
     directoriesRemoved,
   };
 }
+
+export async function cleanUpAgentDirectories(
+  agent: IAgent,
+  projectRoot: string,
+  agentConfig: IAgentConfig | undefined,
+  verbose: boolean,
+  dryRun: boolean,
+): Promise<number> {
+  const candidateFiles = getAgentOutputPaths(agent, projectRoot, agentConfig);
+  const mcpPath = await getNativeMcpPath(agent.getName(), projectRoot);
+  if (mcpPath && isPathInsideOrEqual(projectRoot, mcpPath)) {
+    candidateFiles.push(mcpPath);
+  }
+
+  const candidateDirs = [
+    ...new Set(candidateFiles.map((filePath) => path.dirname(filePath))),
+  ];
+
+  let directoriesRemoved = 0;
+  const resolvedProjectRoot = path.resolve(projectRoot);
+
+  for (const candidateDir of candidateDirs) {
+    let currentDir = path.resolve(candidateDir);
+
+    while (
+      currentDir !== resolvedProjectRoot &&
+      isPathInsideOrEqual(resolvedProjectRoot, currentDir)
+    ) {
+      const removed = await removeEmptyDirectory(currentDir, verbose, dryRun);
+      if (!removed) {
+        break;
+      }
+
+      directoriesRemoved++;
+      currentDir = path.dirname(currentDir);
+    }
+  }
+
+  return directoriesRemoved;
+}
