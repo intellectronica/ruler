@@ -2,6 +2,7 @@ import { promises as fs } from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { SKILLS_DIR, RULER_SUBAGENTS_PATH } from '../constants';
+import { isPathInsideOrEqual } from './path-utils';
 
 const SUBAGENTS_DIR_NAME = path.basename(RULER_SUBAGENTS_PATH);
 
@@ -103,6 +104,8 @@ export async function readMarkdownFiles(
 ): Promise<{ path: string; content: string }[]> {
   const mdFiles: { path: string; content: string }[] = [];
   const includeAgents = options.includeAgents === true;
+  const realRulerDir = await fs.realpath(rulerDir);
+  const visitedDirectories = new Set<string>();
   // Tracks whether we skipped a `.ruler/agents` subtree so the root-AGENTS.md
   // fallback below still recognises ruler content as present and does not
   // resurrect a previously generated root AGENTS.md (which may itself contain
@@ -111,6 +114,18 @@ export async function readMarkdownFiles(
 
   // Gather all markdown files (recursive) first
   async function walk(dir: string) {
+    let realDir: string;
+    try {
+      realDir = await fs.realpath(dir);
+    } catch {
+      return;
+    }
+
+    if (visitedDirectories.has(realDir)) {
+      return;
+    }
+    visitedDirectories.add(realDir);
+
     const entries = await fs.readdir(dir, { withFileTypes: true });
     for (const entry of entries) {
       const fullPath = path.join(dir, entry.name);
@@ -119,6 +134,10 @@ export async function readMarkdownFiles(
       let isFile = entry.isFile();
       if (entry.isSymbolicLink()) {
         try {
+          const realTarget = await fs.realpath(fullPath);
+          if (!isPathInsideOrEqual(realRulerDir, realTarget)) {
+            continue;
+          }
           const stat = await fs.stat(fullPath);
           isDir = stat.isDirectory();
           isFile = stat.isFile();
