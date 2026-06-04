@@ -105,7 +105,7 @@ args = ["server.js"]
     });
   });
 
-  it('skips custom MCP config paths outside the project root', async () => {
+  it('rejects custom MCP config paths outside the project root', async () => {
     const outsideDir = `${tmpDir}-outside`;
     const outsideConfig = path.join(outsideDir, 'opencode.json');
     const outsideRelative = path.relative(tmpDir, outsideConfig);
@@ -122,17 +122,19 @@ args = ["server.js"]
 `,
     );
 
-    await applyAllAgentConfigs(
-      tmpDir,
-      ['opencode'],
-      undefined,
-      true,
-      undefined,
-      false,
-      false,
-      false,
-      true,
-    );
+    await expect(
+      applyAllAgentConfigs(
+        tmpDir,
+        ['opencode'],
+        undefined,
+        true,
+        undefined,
+        false,
+        false,
+        false,
+        true,
+      ),
+    ).rejects.toThrow(/Configured output path is outside the project root/i);
 
     await expect(pathExists(outsideConfig)).resolves.toBe(false);
 
