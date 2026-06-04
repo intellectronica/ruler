@@ -65,7 +65,7 @@ describe('FileSystemUtils', () => {
       expect(files[1].content).toBe('contentB');
     });
 
-    it('reads symlinked markdown files', async () => {
+    it('skips symlinked markdown files outside .ruler', async () => {
       const rulerDir = path.join(tmpDir, '.ruler-symlink-file');
       await fs.mkdir(rulerDir, { recursive: true });
       const realFile = path.join(tmpDir, 'external.md');
@@ -73,12 +73,25 @@ describe('FileSystemUtils', () => {
       const linkPath = path.join(rulerDir, 'linked.md');
       await fs.symlink(realFile, linkPath);
       const files = await readMarkdownFiles(rulerDir);
-      expect(files.map((f) => f.path)).toContain(linkPath);
-      const linked = files.find((f) => f.path === linkPath);
-      expect(linked?.content).toBe('symlinked content');
+      expect(files.map((f) => f.path)).not.toContain(linkPath);
     });
 
-    it('follows symlinked directories', async () => {
+    it('reads symlinked markdown files inside .ruler', async () => {
+      const rulerDir = path.join(tmpDir, '.ruler-internal-symlink-file');
+      await fs.mkdir(path.join(rulerDir, 'real'), { recursive: true });
+      const realFile = path.join(rulerDir, 'real', 'source.md');
+      await fs.writeFile(realFile, 'internal symlinked content');
+      const linkPath = path.join(rulerDir, 'linked.md');
+      await fs.symlink(realFile, linkPath);
+
+      const files = await readMarkdownFiles(rulerDir);
+
+      expect(files.map((f) => f.path)).toContain(linkPath);
+      const linked = files.find((f) => f.path === linkPath);
+      expect(linked?.content).toBe('internal symlinked content');
+    });
+
+    it('skips symlinked directories outside .ruler', async () => {
       const rulerDir = path.join(tmpDir, '.ruler-symlink-dir');
       await fs.mkdir(rulerDir, { recursive: true });
       const realDir = path.join(tmpDir, 'external-dir');
@@ -89,9 +102,38 @@ describe('FileSystemUtils', () => {
       await fs.symlink(realDir, linkPath);
       const files = await readMarkdownFiles(rulerDir);
       const deepFile = path.join(linkPath, 'deep.md');
+      expect(files.map((f) => f.path)).not.toContain(deepFile);
+    });
+
+    it('follows symlinked directories inside .ruler', async () => {
+      const rulerDir = path.join(tmpDir, '.ruler-internal-symlink-dir');
+      await fs.mkdir(rulerDir, { recursive: true });
+      const realDir = path.join(rulerDir, 'real-dir');
+      await fs.mkdir(realDir, { recursive: true });
+      const realFile = path.join(realDir, 'deep.md');
+      await fs.writeFile(realFile, 'deep content');
+      const linkPath = path.join(rulerDir, 'linked-dir');
+      await fs.symlink(realDir, linkPath);
+
+      const files = await readMarkdownFiles(rulerDir);
+      const deepFile = path.join(linkPath, 'deep.md');
+
       expect(files.map((f) => f.path)).toContain(deepFile);
       const deep = files.find((f) => f.path === deepFile);
       expect(deep?.content).toBe('deep content');
+    });
+
+    it('does not recurse through symlink cycles', async () => {
+      const rulerDir = path.join(tmpDir, '.ruler-symlink-cycle');
+      await fs.mkdir(rulerDir, { recursive: true });
+      await fs.writeFile(path.join(rulerDir, 'rules.md'), 'content');
+      await fs.symlink(rulerDir, path.join(rulerDir, 'self'));
+
+      const files = await readMarkdownFiles(rulerDir);
+
+      expect(files.map((f) => path.relative(rulerDir, f.path))).toEqual([
+        'rules.md',
+      ]);
     });
 
     it('skips broken symlinks gracefully', async () => {
