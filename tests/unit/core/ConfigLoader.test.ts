@@ -195,6 +195,23 @@ describe('ConfigLoader', () => {
     );
   });
 
+  it.each([
+    ['output_path', '../outside.md'],
+    ['output_path_instructions', '../outside-instructions.md'],
+    ['output_path_config', '../outside-config.json'],
+    ['output_path', path.join(os.tmpdir(), 'ruler-outside-output.md')],
+  ])('rejects unsafe %s outside project root', async (key, configuredPath) => {
+    const content = `
+      [agents.A]
+      ${key} = ${JSON.stringify(configuredPath)}
+    `;
+    await fs.writeFile(path.join(rulerDir, 'ruler.toml'), content);
+
+    await expect(loadConfig({ projectRoot: tmpDir })).rejects.toThrow(
+      /Configured output path is outside the project root/i,
+    );
+  });
+
   it('loads config from custom path via configPath option', async () => {
     const altDir = path.join(tmpDir, 'alt');
     await fs.mkdir(altDir, { recursive: true });

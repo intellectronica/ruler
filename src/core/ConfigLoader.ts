@@ -3,6 +3,7 @@ import * as path from 'path';
 import * as os from 'os';
 import { parse as parseTOML } from '@iarna/toml';
 import { z } from 'zod';
+import { isPathInsideOrEqual } from './path-utils';
 import {
   McpConfig,
   GlobalMcpConfig,
@@ -245,18 +246,27 @@ export async function loadConfig(
         cfg.enabled = sectionObj.enabled;
       }
       if (typeof sectionObj.output_path === 'string') {
-        cfg.outputPath = path.resolve(projectRoot, sectionObj.output_path);
+        cfg.outputPath = resolveProjectOutputPath(
+          projectRoot,
+          sectionObj.output_path,
+          configFile,
+          `[agents.${name}].output_path`,
+        );
       }
       if (typeof sectionObj.output_path_instructions === 'string') {
-        cfg.outputPathInstructions = path.resolve(
+        cfg.outputPathInstructions = resolveProjectOutputPath(
           projectRoot,
           sectionObj.output_path_instructions,
+          configFile,
+          `[agents.${name}].output_path_instructions`,
         );
       }
       if (typeof sectionObj.output_path_config === 'string') {
-        cfg.outputPathConfig = path.resolve(
+        cfg.outputPathConfig = resolveProjectOutputPath(
           projectRoot,
           sectionObj.output_path_config,
+          configFile,
+          `[agents.${name}].output_path_config`,
         );
       }
       if (sectionObj.mcp && typeof sectionObj.mcp === 'object') {
@@ -384,6 +394,31 @@ export async function loadConfig(
     nested,
     nestedDefined,
   };
+}
+
+function resolveProjectOutputPath(
+  projectRoot: string,
+  configuredPath: string,
+  configFile: string | undefined,
+  fieldName: string,
+): string {
+  const resolvedPath = path.resolve(projectRoot, configuredPath);
+
+  if (!isPathInsideOrEqual(projectRoot, resolvedPath)) {
+    throw createRulerError(
+      'Configured output path is outside the project root',
+      [
+        configFile ? `File: ${configFile}` : undefined,
+        `Field: ${fieldName}`,
+        `Path: ${configuredPath}`,
+        `Project root: ${projectRoot}`,
+      ]
+        .filter(Boolean)
+        .join(', '),
+    );
+  }
+
+  return resolvedPath;
 }
 
 async function resolveImplicitConfigFile(
