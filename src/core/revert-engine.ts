@@ -34,6 +34,18 @@ export interface CleanUpResult {
   directoriesRemoved: number;
 }
 
+async function resolveMcpPathForRevert(
+  agent: IAgent,
+  projectRoot: string,
+  agentConfig: IAgentConfig | undefined,
+): Promise<string | null> {
+  if (agentConfig?.outputPathConfig) {
+    return path.resolve(projectRoot, agentConfig.outputPathConfig);
+  }
+
+  return await getNativeMcpPath(agent.getName(), projectRoot);
+}
+
 /**
  * Checks if a file exists.
  */
@@ -561,7 +573,11 @@ export async function revertAgentConfiguration(
   }
 
   // Handle MCP files
-  const mcpPath = await getNativeMcpPath(agent.getName(), projectRoot);
+  const mcpPath = await resolveMcpPathForRevert(
+    agent,
+    projectRoot,
+    agentConfig,
+  );
   if (mcpPath && isPathInsideOrEqual(projectRoot, mcpPath)) {
     if (
       agent.getName() === 'AugmentCode' &&
