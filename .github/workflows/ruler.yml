@@ -4,13 +4,17 @@ on:
   push:
   workflow_dispatch: {}
 
+concurrency:
+  group: ruler-apply-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: write
   pull-requests: read
 
 jobs:
   apply-ruler:
-    if: ${{ !contains(github.event.head_commit.message, 'Ruler:') }}
+    if: ${{ (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch') && !contains(github.event.head_commit.message || '', 'Ruler:') }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -23,10 +27,17 @@ jobs:
         with:
           node-version: 'lts/*'
           check-latest: true
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build ruler
+        run: npm run build
 
       - name: Run ruler apply
         run: |
-          npx -y @intellectronica/ruler@latest apply --no-gitignore --no-backup --agents=agentsmd,copilot
+          node dist/cli/index.js apply --no-gitignore --no-backup --agents=agentsmd,copilot
 
       - name: Commit and push changes
         run: |
