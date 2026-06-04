@@ -27,6 +27,7 @@ jobs:
           node-version: '24'
           registry-url: 'https://registry.npmjs.org/'
       - run: npm ci
+      - run: npm run check:package-lock
       - name: Validate release target
         env:
           EVENT_NAME: ${{ github.event_name }}
