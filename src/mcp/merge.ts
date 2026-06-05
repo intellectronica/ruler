@@ -8,6 +8,40 @@ const MCP_SERVER_KEYS = [
   'context_servers',
 ];
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function collectMcpServers(
+  config: Record<string, unknown>,
+  serverKey: string,
+): Record<string, unknown> {
+  const servers: Record<string, unknown> = {};
+  const aliases = MCP_SERVER_KEYS.filter((key) => key !== serverKey);
+
+  for (const key of [...aliases, serverKey]) {
+    const value = config[key];
+    if (isRecord(value)) {
+      Object.assign(servers, value);
+    }
+  }
+
+  return servers;
+}
+
+function removeServerAliases(
+  config: Record<string, unknown>,
+  serverKey: string,
+): Record<string, unknown> {
+  const result = { ...config };
+  for (const key of MCP_SERVER_KEYS) {
+    if (key !== serverKey) {
+      delete result[key];
+    }
+  }
+  return result;
+}
+
 /**
  * Merge native and incoming MCP server configurations according to strategy.
  * @param base Existing native MCP config object.
@@ -23,44 +57,19 @@ export function mergeMcp(
   serverKey: string,
 ): Record<string, unknown> {
   if (strategy === 'overwrite') {
-    // Ensure the incoming object uses the correct server key.
-    // Transform from the standard (Crush) MCP config format
-    const incomingServers =
-      (incoming[serverKey] as Record<string, unknown>) ||
-      (incoming.mcpServers as Record<string, unknown>) ||
-      (incoming.mcp as Record<string, unknown>) ||
-      {};
-    const preservedBase = { ...base };
-    for (const key of MCP_SERVER_KEYS) {
-      if (key !== serverKey) {
-        delete preservedBase[key];
-      }
-    }
+    const incomingServers = collectMcpServers(incoming, serverKey);
+    const preservedBase = removeServerAliases(base, serverKey);
     return {
       ...preservedBase,
       [serverKey]: incomingServers,
     };
   }
 
-  const baseServers =
-    (base[serverKey] as Record<string, unknown>) ||
-    (base.mcpServers as Record<string, unknown>) ||
-    (base.mcp as Record<string, unknown>) ||
-    {};
-  const incomingServers =
-    (incoming[serverKey] as Record<string, unknown>) ||
-    (incoming.mcpServers as Record<string, unknown>) ||
-    (incoming.mcp as Record<string, unknown>) ||
-    {};
+  const baseServers = collectMcpServers(base, serverKey);
+  const incomingServers = collectMcpServers(incoming, serverKey);
 
   const mergedServers = { ...baseServers, ...incomingServers };
-
-  const newBase = { ...base };
-  for (const key of MCP_SERVER_KEYS) {
-    if (key !== serverKey) {
-      delete newBase[key];
-    }
-  }
+  const newBase = removeServerAliases(base, serverKey);
 
   return {
     ...newBase,
