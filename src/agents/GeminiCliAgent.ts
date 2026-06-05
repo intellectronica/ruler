@@ -37,8 +37,11 @@ export class GeminiCliAgent extends AgentsMdAgent {
       backup,
     );
 
-    // Prepare .gemini/settings.json with contextFileName and MCP configuration
-    const settingsPath = path.join(projectRoot, '.gemini', 'settings.json');
+    // Prepare settings with contextFileName and MCP configuration
+    const settingsPath = path.resolve(
+      projectRoot,
+      agentConfig?.outputPathConfig ?? path.join('.gemini', 'settings.json'),
+    );
     let existingSettings: Record<string, unknown> = {};
     try {
       const raw = await fs.readFile(settingsPath, 'utf8');

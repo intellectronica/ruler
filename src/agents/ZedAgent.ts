@@ -38,7 +38,10 @@ export class ZedAgent extends AgentsMdAgent {
     // Handle MCP server configuration if enabled and provided
     const mcpEnabled = agentConfig?.mcp?.enabled ?? true;
     if (mcpEnabled && rulerMcpJson) {
-      const zedSettingsPath = path.join(projectRoot, '.zed', 'settings.json');
+      const zedSettingsPath = path.resolve(
+        projectRoot,
+        agentConfig?.outputPathConfig ?? path.join('.zed', 'settings.json'),
+      );
 
       // Read existing settings
       let existingSettings: Record<string, unknown> = {};
