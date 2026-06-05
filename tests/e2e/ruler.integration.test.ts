@@ -69,7 +69,6 @@ url = "https://api.example.com/mcp"
 
 [mcp_servers.remote_api.headers]
 Authorization = "Bearer test-token-12345"
-"X-API-Version" = "v1"
 "Content-Type" = "application/json"
 
 # Agent-specific configuration - enable MCP for key agents

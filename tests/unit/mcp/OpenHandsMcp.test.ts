@@ -284,7 +284,7 @@ stdio_servers = [
     });
   });
 
-  it('should fallback to simple URL when headers contain non-auth headers', async () => {
+  it('should reject remote headers that OpenHands cannot represent', async () => {
     const rulerMcp = {
       mcpServers: {
         complex_api: {
@@ -298,15 +298,13 @@ stdio_servers = [
       },
     };
 
-    await propagateMcpToOpenHands(rulerMcp, openHandsConfigPath);
+    await expect(
+      propagateMcpToOpenHands(rulerMcp, openHandsConfigPath),
+    ).rejects.toThrow(
+      /OpenHands MCP remote server "complex_api" has unsupported headers/,
+    );
 
-    const content = await fs.readFile(openHandsConfigPath, 'utf8');
-    const parsed = parseTOML(content);
-    const mcp: any = parsed.mcp;
-
-    expect(mcp.shttp_servers).toHaveLength(1);
-    // Should be simple URL string (no api_key extraction due to extra headers)
-    expect(mcp.shttp_servers[0]).toBe('https://complex.example.com/mcp');
+    await expect(fs.access(openHandsConfigPath)).rejects.toThrow();
   });
 
   it('should merge remote servers with existing OpenHands config', async () => {

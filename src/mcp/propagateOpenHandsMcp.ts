@@ -65,13 +65,23 @@ function extractApiKey(headers?: Record<string, string>): string | null {
 }
 
 function createRemoteServerEntry(
+  name: string,
   url: string,
   headers?: Record<string, string>,
 ): string | RemoteServerEntry {
+  const hasHeaders = headers && Object.keys(headers).length > 0;
   const apiKey = extractApiKey(headers);
-  if (apiKey) {
-    return { url, api_key: apiKey };
+
+  if (hasHeaders) {
+    if (apiKey) {
+      return { url, api_key: apiKey };
+    }
+
+    throw new Error(
+      `OpenHands MCP remote server "${name}" has unsupported headers. OpenHands config.toml can only represent a Bearer Authorization header as api_key.`,
+    );
   }
+
   return url;
 }
 
@@ -190,7 +200,11 @@ export async function propagateMcpToOpenHands(
       } else if (serverDef.url) {
         // Remote server
         const classification = classifyRemoteServer(serverDef.url);
-        const entry = createRemoteServerEntry(serverDef.url, serverDef.headers);
+        const entry = createRemoteServerEntry(
+          name,
+          serverDef.url,
+          serverDef.headers,
+        );
 
         if (classification === 'sse') {
           existingSseServers.set(serverDef.url, entry);
