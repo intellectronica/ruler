@@ -106,6 +106,83 @@ args = ["server.js"]
     });
   });
 
+  it('writes Gemini MCP config only to output_path_config', async () => {
+    await writeProject(
+      tmpDir,
+      `
+[agents.gemini-cli]
+output_path_config = "custom/gemini-settings.json"
+
+[mcp_servers.repo]
+command = "node"
+args = ["server.js"]
+`,
+    );
+
+    await applyAllAgentConfigs(
+      tmpDir,
+      ['gemini-cli'],
+      undefined,
+      true,
+      undefined,
+      false,
+      false,
+      false,
+      true,
+    );
+
+    const customPath = path.join(tmpDir, 'custom', 'gemini-settings.json');
+    const defaultPath = path.join(tmpDir, '.gemini', 'settings.json');
+
+    await expect(pathExists(customPath)).resolves.toBe(true);
+    await expect(pathExists(defaultPath)).resolves.toBe(false);
+
+    const config = JSON.parse(await fs.readFile(customPath, 'utf8'));
+    expect(config.mcpServers.repo).toEqual({
+      command: 'node',
+      args: ['server.js'],
+    });
+  });
+
+  it('writes Zed MCP config only to output_path_config', async () => {
+    await writeProject(
+      tmpDir,
+      `
+[agents.zed]
+output_path_config = "custom/zed-settings.json"
+
+[mcp_servers.repo]
+command = "node"
+args = ["server.js"]
+`,
+    );
+
+    await applyAllAgentConfigs(
+      tmpDir,
+      ['zed'],
+      undefined,
+      true,
+      undefined,
+      false,
+      false,
+      false,
+      true,
+    );
+
+    const customPath = path.join(tmpDir, 'custom', 'zed-settings.json');
+    const defaultPath = path.join(tmpDir, '.zed', 'settings.json');
+
+    await expect(pathExists(customPath)).resolves.toBe(true);
+    await expect(pathExists(defaultPath)).resolves.toBe(false);
+
+    const config = JSON.parse(await fs.readFile(customPath, 'utf8'));
+    expect(config.context_servers.repo).toEqual({
+      command: 'node',
+      args: ['server.js'],
+      source: 'custom',
+    });
+  });
+
   it('reverts MCP config written to output_path_config', async () => {
     await writeProject(
       tmpDir,
