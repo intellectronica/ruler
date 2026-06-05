@@ -1,6 +1,7 @@
 import { IAgent, IAgentConfig } from './IAgent';
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import { backupFile } from '../core/FileSystemUtils';
 
 export class OpenCodeAgent implements IAgent {
   getIdentifier(): string {
@@ -23,6 +24,7 @@ export class OpenCodeAgent implements IAgent {
     projectRoot: string,
     rulerMcpJson: Record<string, unknown> | null,
     agentConfig?: IAgentConfig,
+    backup = true,
   ): Promise<void> {
     const outputPaths = this.getDefaultOutputPath(projectRoot);
     const instructionsPath = path.resolve(
@@ -37,6 +39,9 @@ export class OpenCodeAgent implements IAgent {
     );
 
     await fs.mkdir(path.dirname(instructionsPath), { recursive: true });
+    if (backup) {
+      await backupFile(instructionsPath);
+    }
     await fs.writeFile(instructionsPath, concatenatedRules);
 
     if (!rulerMcpJson) {
@@ -75,6 +80,9 @@ export class OpenCodeAgent implements IAgent {
 
     // Always write the config file, even if MCP is empty
     await fs.mkdir(path.dirname(mcpPath), { recursive: true });
+    if (backup) {
+      await backupFile(mcpPath);
+    }
     await fs.writeFile(mcpPath, JSON.stringify(finalMcpConfig, null, 2));
   }
 
