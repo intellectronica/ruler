@@ -220,6 +220,50 @@ describe('CrushAgent', () => {
     });
   });
 
+  it('should back up existing generated files before overwriting', async () => {
+    const instructionsPath = path.join(projectRoot, 'CRUSH.md');
+    const mcpPath = path.join(projectRoot, '.crush.json');
+    await fs.writeFile(instructionsPath, 'Original Crush instructions');
+    await fs.writeFile(
+      mcpPath,
+      JSON.stringify({ mcp: { existing: { command: 'ls' } } }, null, 2),
+    );
+
+    await agent.applyRulerConfig('new rules', projectRoot, {
+      mcpServers: { next: { command: 'pwd' } },
+    });
+
+    await expect(fs.readFile(`${instructionsPath}.bak`, 'utf8')).resolves.toBe(
+      'Original Crush instructions',
+    );
+    await expect(
+      fs
+        .readFile(`${mcpPath}.bak`, 'utf8')
+        .then((content) => JSON.parse(content)),
+    ).resolves.toEqual({ mcp: { existing: { command: 'ls' } } });
+  });
+
+  it('should not create backups when backup is disabled', async () => {
+    const instructionsPath = path.join(projectRoot, 'CRUSH.md');
+    const mcpPath = path.join(projectRoot, '.crush.json');
+    await fs.writeFile(instructionsPath, 'Original Crush instructions');
+    await fs.writeFile(
+      mcpPath,
+      JSON.stringify({ mcp: { existing: { command: 'ls' } } }, null, 2),
+    );
+
+    await agent.applyRulerConfig(
+      'new rules',
+      projectRoot,
+      { mcpServers: { next: { command: 'pwd' } } },
+      undefined,
+      false,
+    );
+
+    await expect(fs.access(`${instructionsPath}.bak`)).rejects.toThrow();
+    await expect(fs.access(`${mcpPath}.bak`)).rejects.toThrow();
+  });
+
   describe('backup and revert functionality', () => {
     let tmpDir: string;
     let testAgent: CrushAgent;

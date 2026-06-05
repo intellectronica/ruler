@@ -94,4 +94,60 @@ timeout = 45
       timeout: 45,
     });
   });
+
+  it('should back up existing OpenCode instructions before overwriting', async () => {
+    const rulerDir = path.join(tmpDir, '.ruler');
+    await fs.mkdir(rulerDir, { recursive: true });
+    await fs.writeFile(path.join(rulerDir, 'AGENTS.md'), '# New Rules');
+
+    const instructionsPath = path.join(tmpDir, 'AGENTS.md');
+    await fs.writeFile(instructionsPath, 'Original OpenCode instructions');
+
+    await applyAllAgentConfigs(
+      tmpDir,
+      ['opencode'],
+      undefined,
+      true,
+      undefined,
+      false,
+      false,
+      false,
+      true,
+    );
+
+    await expect(fs.readFile(`${instructionsPath}.bak`, 'utf8')).resolves.toBe(
+      'Original OpenCode instructions',
+    );
+    await expect(fs.readFile(instructionsPath, 'utf8')).resolves.toContain(
+      '# New Rules',
+    );
+  });
+
+  it('should not back up existing OpenCode instructions when backup is disabled', async () => {
+    const rulerDir = path.join(tmpDir, '.ruler');
+    await fs.mkdir(rulerDir, { recursive: true });
+    await fs.writeFile(path.join(rulerDir, 'AGENTS.md'), '# New Rules');
+
+    const instructionsPath = path.join(tmpDir, 'AGENTS.md');
+    await fs.writeFile(instructionsPath, 'Original OpenCode instructions');
+
+    await applyAllAgentConfigs(
+      tmpDir,
+      ['opencode'],
+      undefined,
+      true,
+      undefined,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+    );
+
+    await expect(fs.access(`${instructionsPath}.bak`)).rejects.toThrow();
+    await expect(fs.readFile(instructionsPath, 'utf8')).resolves.toContain(
+      '# New Rules',
+    );
+  });
 });

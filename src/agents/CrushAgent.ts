@@ -1,6 +1,7 @@
 import { IAgent, IAgentConfig } from './IAgent';
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import { backupFile } from '../core/FileSystemUtils';
 
 export class CrushAgent implements IAgent {
   getIdentifier(): string {
@@ -62,14 +63,24 @@ export class CrushAgent implements IAgent {
     projectRoot: string,
     rulerMcpJson: Record<string, unknown> | null,
     agentConfig?: IAgentConfig,
+    backup = true,
   ): Promise<void> {
     const outputPaths = this.getDefaultOutputPath(projectRoot);
-    const instructionsPath =
+    const instructionsPath = path.resolve(
+      projectRoot,
       agentConfig?.outputPath ??
-      agentConfig?.outputPathInstructions ??
-      outputPaths['instructions'];
-    const mcpPath = agentConfig?.outputPathConfig ?? outputPaths['mcp'];
+        agentConfig?.outputPathInstructions ??
+        outputPaths['instructions'],
+    );
+    const mcpPath = path.resolve(
+      projectRoot,
+      agentConfig?.outputPathConfig ?? outputPaths['mcp'],
+    );
 
+    await fs.mkdir(path.dirname(instructionsPath), { recursive: true });
+    if (backup) {
+      await backupFile(instructionsPath);
+    }
     await fs.writeFile(instructionsPath, concatenatedRules);
 
     // Always transform from mcpServers ({ mcpServers: ... }) to { mcp: ... } for Crush
@@ -110,6 +121,10 @@ export class CrushAgent implements IAgent {
     }
 
     if (Object.keys(finalMcpConfig.mcp).length > 0) {
+      await fs.mkdir(path.dirname(mcpPath), { recursive: true });
+      if (backup) {
+        await backupFile(mcpPath);
+      }
       await fs.writeFile(mcpPath, JSON.stringify(finalMcpConfig, null, 2));
     }
   }
