@@ -1,17 +1,26 @@
 import { mergeMcp } from '../../../src/mcp/merge';
 
 describe('mergeMcp', () => {
-  it('removes alternate server aliases when writing the target key', () => {
+  it('normalises all recognised server containers into the requested key', () => {
     const result = mergeMcp(
       {
-        mcp: {
-          existing: { command: 'existing-command' },
-        },
         otherSetting: true,
+        servers: {
+          fromServers: { url: 'https://servers.example.com' },
+          duplicate: { url: 'https://servers-wins.example.com' },
+        },
+        mcpServers: {
+          fromMcpServers: { command: 'node' },
+          duplicate: { url: 'https://mcpservers.example.com' },
+        },
+        mcp: {
+          fromMcp: { url: 'https://mcp.example.com' },
+        },
       },
       {
         mcpServers: {
-          incoming: { command: 'incoming-command' },
+          incoming: { command: 'incoming' },
+          duplicate: { url: 'https://incoming.example.com' },
         },
       },
       'merge',
@@ -21,8 +30,40 @@ describe('mergeMcp', () => {
     expect(result).toEqual({
       otherSetting: true,
       servers: {
-        existing: { command: 'existing-command' },
-        incoming: { command: 'incoming-command' },
+        fromMcp: { url: 'https://mcp.example.com' },
+        fromMcpServers: { command: 'node' },
+        fromServers: { url: 'https://servers.example.com' },
+        duplicate: { url: 'https://incoming.example.com' },
+        incoming: { command: 'incoming' },
+      },
+    });
+  });
+
+  it('normalises incoming server containers when overwriting', () => {
+    const result = mergeMcp(
+      {
+        otherSetting: true,
+        servers: {
+          stale: { command: 'old' },
+        },
+      },
+      {
+        mcp: {
+          fromMcp: { command: 'mcp' },
+        },
+        mcpServers: {
+          fromMcpServers: { command: 'mcpServers' },
+        },
+      },
+      'overwrite',
+      'servers',
+    );
+
+    expect(result).toEqual({
+      otherSetting: true,
+      servers: {
+        fromMcp: { command: 'mcp' },
+        fromMcpServers: { command: 'mcpServers' },
       },
     });
   });
