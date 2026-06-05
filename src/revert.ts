@@ -179,9 +179,7 @@ export async function revertAllAgentConfigs(
   console.log(`  Files processed: ${totalFilesProcessed}`);
   console.log(`  Files restored from backup: ${totalFilesRestored}`);
   console.log(`  Generated files removed: ${totalFilesRemoved}`);
-  if (!keepBackups) {
-    console.log(`  Backup files removed: ${totalBackupsRemoved}`);
-  }
+  console.log(`  Backup files removed: ${totalBackupsRemoved}`);
   if (totalDirectoriesRemoved > 0) {
     console.log(`  Empty directories removed: ${totalDirectoriesRemoved}`);
   }
