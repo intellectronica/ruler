@@ -12,6 +12,13 @@ export class GeminiCliAgent extends AgentsMdAgent {
     return 'Gemini CLI';
   }
 
+  private getContextFileName(projectRoot: string, agentConfig?: IAgentConfig) {
+    const outputPath = agentConfig?.outputPath ?? 'AGENTS.md';
+    return path
+      .relative(projectRoot, path.resolve(projectRoot, outputPath))
+      .replace(/\\/g, '/');
+  }
+
   async applyRulerConfig(
     concatenatedRules: string,
     projectRoot: string,
@@ -44,7 +51,7 @@ export class GeminiCliAgent extends AgentsMdAgent {
 
     const updated = {
       ...existingSettings,
-      contextFileName: 'AGENTS.md',
+      contextFileName: this.getContextFileName(projectRoot, agentConfig),
     } as Record<string, unknown>;
 
     // Handle MCP server configuration if provided

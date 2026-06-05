@@ -5,6 +5,13 @@ import { AgentsMdAgent } from '../../../src/agents/AgentsMdAgent';
 import { setupTestProject, teardownTestProject } from '../../harness';
 
 describe('QwenCodeAgent', () => {
+  async function readQwenSettings(
+    projectRoot: string,
+  ): Promise<Record<string, unknown>> {
+    const settingsPath = path.join(projectRoot, '.qwen', 'settings.json');
+    return JSON.parse(await fs.readFile(settingsPath, 'utf8'));
+  }
+
   it('should be defined', () => {
     expect(new QwenCodeAgent()).toBeDefined();
   });
@@ -40,6 +47,29 @@ describe('QwenCodeAgent', () => {
       const settingsRaw = await fs.readFile(settingsPath, 'utf8');
       const settings = JSON.parse(settingsRaw);
       expect(settings.contextFileName).toBe('AGENTS.md');
+    } finally {
+      await teardownTestProject(projectRoot);
+    }
+  });
+
+  it('sets contextFileName to a custom output path', async () => {
+    const { projectRoot } = await setupTestProject({
+      '.ruler/AGENTS.md': 'Rule A',
+    });
+    try {
+      const agent = new QwenCodeAgent();
+      const customOutputPath = path.join('docs', 'QWEN.md');
+
+      await agent.applyRulerConfig('Rules', projectRoot, null, {
+        outputPath: customOutputPath,
+      });
+
+      await expect(
+        fs.readFile(path.join(projectRoot, customOutputPath), 'utf8'),
+      ).resolves.toContain('Rules');
+
+      const settings = await readQwenSettings(projectRoot);
+      expect(settings.contextFileName).toBe('docs/QWEN.md');
     } finally {
       await teardownTestProject(projectRoot);
     }

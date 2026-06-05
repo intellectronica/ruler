@@ -57,6 +57,29 @@ describe('GeminiCliAgent', () => {
     }
   });
 
+  it('sets contextFileName to a custom output path', async () => {
+    const { projectRoot } = await setupTestProject({
+      '.ruler/AGENTS.md': 'Rule A',
+    });
+    try {
+      const agent = new GeminiCliAgent();
+      const customOutputPath = path.join('docs', 'GEMINI.md');
+
+      await agent.applyRulerConfig('Rules', projectRoot, null, {
+        outputPath: customOutputPath,
+      });
+
+      await expect(
+        fs.readFile(path.join(projectRoot, customOutputPath), 'utf8'),
+      ).resolves.toContain('Rules');
+
+      const settings = await readGeminiSettings(projectRoot);
+      expect(settings.contextFileName).toBe('docs/GEMINI.md');
+    } finally {
+      await teardownTestProject(projectRoot);
+    }
+  });
+
   it('preserves existing settings and adds/updates contextFileName', async () => {
     const { projectRoot } = await setupTestProject({
       '.ruler/AGENTS.md': 'Rule X',
