@@ -215,7 +215,7 @@ describe('Revert Core Functions', () => {
       consoleErrorSpy.mockRestore();
     });
 
-    it('should remove consumed backup when keep-backups is true', async () => {
+    it('should keep consumed backup when keep-backups is true', async () => {
       const filePath = path.join(tmpDir, 'CLAUDE.md');
       const backupPath = `${filePath}.bak`;
 
@@ -231,7 +231,7 @@ describe('Revert Core Functions', () => {
         false,
       );
 
-      await expect(fs.access(backupPath)).rejects.toThrow();
+      await expect(fs.access(backupPath)).resolves.toBeUndefined();
 
       const restoredContent = await fs.readFile(filePath, 'utf8');
       expect(restoredContent).toBe('Original content');
