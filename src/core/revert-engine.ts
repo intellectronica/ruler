@@ -518,7 +518,7 @@ async function removeAdditionalAgentFiles(
  * @param agent The agent to revert
  * @param projectRoot Root directory of the project
  * @param agentConfig Agent-specific configuration
- * @param _keepBackups Retained for API compatibility; restored backups are consumed
+ * @param keepBackups Whether restored backup files should be preserved
  * @param verbose Whether to enable verbose logging
  * @param dryRun Whether to perform a dry run
  * @returns Promise resolving to revert statistics
@@ -527,7 +527,7 @@ export async function revertAgentConfiguration(
   agent: IAgent,
   projectRoot: string,
   agentConfig: IAgentConfig | undefined,
-  _keepBackups: boolean,
+  keepBackups: boolean,
   verbose: boolean,
   dryRun: boolean,
 ): Promise<RevertAgentResult> {
@@ -549,9 +549,15 @@ export async function revertAgentConfiguration(
     if (restored) {
       result.restored++;
 
-      const backupRemoved = await removeBackupFile(outputPath, verbose, dryRun);
-      if (backupRemoved) {
-        result.backupsRemoved++;
+      if (!keepBackups) {
+        const backupRemoved = await removeBackupFile(
+          outputPath,
+          verbose,
+          dryRun,
+        );
+        if (backupRemoved) {
+          result.backupsRemoved++;
+        }
       }
     } else {
       const removed = await removeGeneratedFile(
@@ -586,13 +592,15 @@ export async function revertAgentConfiguration(
       if (mcpRestored) {
         result.restored++;
 
-        const mcpBackupRemoved = await removeBackupFile(
-          mcpPath,
-          verbose,
-          dryRun,
-        );
-        if (mcpBackupRemoved) {
-          result.backupsRemoved++;
+        if (!keepBackups) {
+          const mcpBackupRemoved = await removeBackupFile(
+            mcpPath,
+            verbose,
+            dryRun,
+          );
+          if (mcpBackupRemoved) {
+            result.backupsRemoved++;
+          }
         }
       } else {
         const mcpRemoved = await removeGeneratedFile(

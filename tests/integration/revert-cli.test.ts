@@ -81,7 +81,7 @@ describe('Revert CLI Integration', () => {
       expect(output).not.toContain('Reverting OpenAI Codex CLI');
     });
 
-    it('should remove consumed backup after --keep-backups restore', async () => {
+    it('should keep consumed backup after --keep-backups restore', async () => {
       const filePath = path.join(tmpDir, 'CLAUDE.md');
       const backupPath = `${filePath}.bak`;
 
@@ -95,7 +95,7 @@ describe('Revert CLI Integration', () => {
         },
       );
 
-      await expect(fs.access(backupPath)).rejects.toThrow();
+      await expect(fs.access(backupPath)).resolves.toBeUndefined();
     });
 
     it('should handle --verbose option', () => {

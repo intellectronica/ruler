@@ -170,7 +170,7 @@ describe('revert-engine', () => {
       );
     });
 
-    it('should remove consumed backups when keepBackups is true', async () => {
+    it('should keep consumed backups when keepBackups is true', async () => {
       const agent = new MockAgent('Claude Code', 'claude');
       const configPath = path.join(tmpDir, '.claude', 'config.json');
       const backupPath = `${configPath}.bak`;
@@ -191,14 +191,14 @@ describe('revert-engine', () => {
 
       expect(result.restored).toBe(1);
       expect(result.removed).toBe(0);
-      expect(result.backupsRemoved).toBe(1);
+      expect(result.backupsRemoved).toBe(0);
 
-      // A consumed backup must not remain stale after restore.
+      // keepBackups preserves the restored backup for inspection.
       const backupExists = await fs
         .access(backupPath)
         .then(() => true)
         .catch(() => false);
-      expect(backupExists).toBe(false);
+      expect(backupExists).toBe(true);
     });
 
     it('should handle dry run mode', async () => {
