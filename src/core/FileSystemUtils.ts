@@ -32,6 +32,23 @@ function shouldSkipNestedDiscoveryDir(dirName: string): boolean {
   );
 }
 
+async function isSymbolicLink(filePath: string): Promise<boolean> {
+  try {
+    return (await fs.lstat(filePath)).isSymbolicLink();
+  } catch {
+    return false;
+  }
+}
+
+async function assertNotSymbolicLink(
+  filePath: string,
+  action: string,
+): Promise<void> {
+  if (await isSymbolicLink(filePath)) {
+    throw new Error(`${action}: ${filePath}`);
+  }
+}
+
 /**
  * Searches upwards from startPath to find a directory named .ruler.
  * If not found locally and checkGlobal is true, checks for global config at XDG_CONFIG_HOME/ruler.
@@ -223,7 +240,19 @@ export async function readMarkdownFiles(
     const repoRoot = path.dirname(rulerDir); // .ruler parent
     const rootAgentsPath = path.join(repoRoot, 'AGENTS.md');
     if (path.resolve(rootAgentsPath) !== path.resolve(topLevelAgents)) {
-      const stat = await fs.stat(rootAgentsPath);
+      const rootAgentsStat = await fs.lstat(rootAgentsPath);
+      if (rootAgentsStat.isSymbolicLink()) {
+        const [realRepoRoot, realRootAgentsPath] = await Promise.all([
+          fs.realpath(repoRoot),
+          fs.realpath(rootAgentsPath),
+        ]);
+        if (!isPathInsideOrEqual(realRepoRoot, realRootAgentsPath)) {
+          return ordered;
+        }
+      }
+      const stat = rootAgentsStat.isSymbolicLink()
+        ? await fs.stat(rootAgentsPath)
+        : rootAgentsStat;
       if (stat.isFile()) {
         const content = await fs.readFile(rootAgentsPath, 'utf8');
 
@@ -265,6 +294,10 @@ export async function writeGeneratedFile(
   content: string,
 ): Promise<void> {
   await fs.mkdir(path.dirname(filePath), { recursive: true });
+  await assertNotSymbolicLink(
+    filePath,
+    'Refusing to write generated file through symlink',
+  );
   await fs.writeFile(filePath, content, 'utf8');
 }
 
@@ -274,6 +307,7 @@ export async function writeGeneratedFile(
  */
 export async function backupFile(filePath: string): Promise<void> {
   const backupPath = `${filePath}.bak`;
+  await assertNotSymbolicLink(filePath, 'Refusing to back up symlinked file');
 
   try {
     await fs.access(backupPath);

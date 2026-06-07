@@ -5,6 +5,7 @@ import {
   backupFile,
   findRulerDir,
   readMarkdownFiles,
+  writeGeneratedFile,
 } from '../../../src/core/FileSystemUtils';
 
 describe('FileSystemUtils', () => {
@@ -47,6 +48,32 @@ describe('FileSystemUtils', () => {
       await expect(fs.readFile(`${filePath}.bak`, 'utf8')).resolves.toBe(
         'original',
       );
+    });
+
+    it('refuses to back up a symlinked output file', async () => {
+      const outsidePath = path.join(tmpDir, 'backup-outside.txt');
+      const linkPath = path.join(tmpDir, 'backup-link.txt');
+      await fs.writeFile(outsidePath, 'outside');
+      await fs.symlink(outsidePath, linkPath);
+
+      await expect(backupFile(linkPath)).rejects.toThrow(
+        'Refusing to back up symlinked file',
+      );
+      await expect(fs.stat(`${linkPath}.bak`)).rejects.toThrow();
+    });
+  });
+
+  describe('writeGeneratedFile', () => {
+    it('refuses to write through a symlinked output file', async () => {
+      const outsidePath = path.join(tmpDir, 'write-outside.txt');
+      const linkPath = path.join(tmpDir, 'write-link.txt');
+      await fs.writeFile(outsidePath, 'outside');
+      await fs.symlink(outsidePath, linkPath);
+
+      await expect(writeGeneratedFile(linkPath, 'generated')).rejects.toThrow(
+        'Refusing to write generated file through symlink',
+      );
+      await expect(fs.readFile(outsidePath, 'utf8')).resolves.toBe('outside');
     });
   });
 
@@ -143,6 +170,25 @@ describe('FileSystemUtils', () => {
       await fs.symlink('/nonexistent/path/file.md', linkPath);
       const files = await readMarkdownFiles(rulerDir);
       expect(files.map((f) => f.path)).not.toContain(linkPath);
+    });
+
+    it('skips root AGENTS.md when it is a symlink outside the repository', async () => {
+      const projectDir = path.join(tmpDir, 'root-agents-outside-link');
+      const rulerDir = path.join(projectDir, '.ruler');
+      const outsidePath = path.join(tmpDir, 'external-root-agents.md');
+      const rootAgentsPath = path.join(projectDir, 'AGENTS.md');
+      await fs.mkdir(rulerDir, { recursive: true });
+      await fs.writeFile(path.join(rulerDir, 'AGENTS.md'), 'ruler content');
+      await fs.writeFile(outsidePath, 'external root content');
+      await fs.symlink(outsidePath, rootAgentsPath);
+
+      const files = await readMarkdownFiles(rulerDir);
+
+      expect(files.map((f) => f.path)).not.toContain(rootAgentsPath);
+      expect(files.map((f) => f.content)).not.toContain(
+        'external root content',
+      );
+      expect(files.map((f) => f.content)).toContain('ruler content');
     });
   });
 });

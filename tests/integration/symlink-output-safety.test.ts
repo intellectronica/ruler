@@ -1,0 +1,54 @@
+import * as fs from 'fs/promises';
+import * as path from 'path';
+import { execFileSync } from 'child_process';
+import { setupTestProject, teardownTestProject } from '../harness';
+
+describe('Symlink output safety', () => {
+  let projectRoot: string;
+  let outsideFile: string;
+
+  beforeEach(async () => {
+    const project = await setupTestProject({
+      '.ruler/AGENTS.md': 'Ruler rules',
+    });
+    projectRoot = project.projectRoot;
+    outsideFile = path.join(
+      projectRoot,
+      '..',
+      `${path.basename(projectRoot)}-outside.md`,
+    );
+    await fs.writeFile(outsideFile, 'outside original');
+  });
+
+  afterEach(async () => {
+    await teardownTestProject(projectRoot);
+    await fs.rm(outsideFile, { force: true });
+  });
+
+  it('does not overwrite a root AGENTS.md symlink target outside the project', async () => {
+    await fs.symlink(outsideFile, path.join(projectRoot, 'AGENTS.md'));
+
+    expect(() =>
+      execFileSync(
+        'node',
+        [
+          path.resolve('dist/cli/index.js'),
+          'apply',
+          '--project-root',
+          projectRoot,
+          '--agents',
+          'agentsmd',
+          '--no-backup',
+          '--no-gitignore',
+        ],
+        {
+          stdio: 'pipe',
+        },
+      ),
+    ).toThrow();
+
+    await expect(fs.readFile(outsideFile, 'utf8')).resolves.toBe(
+      'outside original',
+    );
+  });
+});
