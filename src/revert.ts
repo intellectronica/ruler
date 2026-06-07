@@ -35,18 +35,6 @@ export async function revertAllAgentConfigs(
   dryRun = false,
   localOnly = false,
 ): Promise<void> {
-  logVerbose(
-    `Loading configuration for revert from project root: ${projectRoot}`,
-    verbose,
-  );
-
-  const config = await loadConfig({
-    projectRoot,
-    cliAgents: includedAgents,
-    configPath,
-    checkGlobal: !localOnly,
-  });
-
   const rulerDir = await FileSystemUtils.findRulerDir(projectRoot, !localOnly);
   if (!rulerDir) {
     throw createRulerError(
@@ -54,6 +42,23 @@ export async function revertAllAgentConfigs(
       `Searched from: ${projectRoot}`,
     );
   }
+  const effectiveProjectRoot = FileSystemUtils.resolveProjectRootForRulerDir(
+    projectRoot,
+    rulerDir,
+  );
+
+  logVerbose(
+    `Loading configuration for revert from project root: ${effectiveProjectRoot}`,
+    verbose,
+  );
+
+  const config = await loadConfig({
+    projectRoot: effectiveProjectRoot,
+    cliAgents: includedAgents,
+    configPath,
+    checkGlobal: !localOnly,
+  });
+
   logVerbose(`Found .ruler directory at: ${rulerDir}`, verbose);
 
   // Normalize per-agent config keys to agent identifiers
@@ -132,7 +137,7 @@ export async function revertAllAgentConfigs(
     const agentConfig = config.agentConfigs[agent.getIdentifier()];
     const result = await revertAgentConfiguration(
       agent,
-      projectRoot,
+      effectiveProjectRoot,
       agentConfig,
       keepBackups,
       verbose,
@@ -147,7 +152,7 @@ export async function revertAllAgentConfigs(
     if (!isFullRevert) {
       totalDirectoriesRemoved += await cleanUpAgentDirectories(
         agent,
-        projectRoot,
+        effectiveProjectRoot,
         agentConfig,
         verbose,
         dryRun,
@@ -157,14 +162,14 @@ export async function revertAllAgentConfigs(
 
   // Clean up auxiliary files and directories only when reverting all agents.
   const cleanupResult = isFullRevert
-    ? await cleanUpAuxiliaryFiles(projectRoot, verbose, dryRun)
+    ? await cleanUpAuxiliaryFiles(effectiveProjectRoot, verbose, dryRun)
     : { additionalFilesRemoved: 0, directoriesRemoved: 0 };
   totalFilesRemoved += cleanupResult.additionalFilesRemoved;
   totalDirectoriesRemoved += cleanupResult.directoriesRemoved;
 
   // Clean managed ignore blocks if reverting all agents.
   const cleanedIgnoreFiles = isFullRevert
-    ? await cleanManagedIgnoreFiles(projectRoot, verbose, dryRun)
+    ? await cleanManagedIgnoreFiles(effectiveProjectRoot, verbose, dryRun)
     : [];
 
   // Display summary

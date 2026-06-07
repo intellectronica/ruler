@@ -79,6 +79,15 @@ export async function findRulerDir(
   return null;
 }
 
+export function resolveProjectRootForRulerDir(
+  requestedProjectRoot: string,
+  rulerDir: string,
+): string {
+  return path.basename(rulerDir) === '.ruler'
+    ? path.dirname(rulerDir)
+    : requestedProjectRoot;
+}
+
 /**
  * Options for {@link readMarkdownFiles}.
  */

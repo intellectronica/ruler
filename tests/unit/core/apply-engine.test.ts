@@ -492,12 +492,14 @@ command = "sub-cmd"
       const configurations: HierarchicalRulerConfiguration[] = [
         {
           rulerDir: rootRulerDir,
+          projectRoot: tmpDir,
           config: { agentConfigs: { recording: {} } } as LoadedConfig,
           concatenatedRules: '# Root',
           rulerMcpJson: { mcpServers: { root: { command: 'root' } } },
         },
         {
           rulerDir: nestedRulerDir,
+          projectRoot: path.join(tmpDir, 'nested'),
           config: { agentConfigs: { recording: {} } } as LoadedConfig,
           concatenatedRules: '# Nested',
           rulerMcpJson: {
