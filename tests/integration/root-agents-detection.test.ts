@@ -1,5 +1,6 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import { execFileSync } from 'child_process';
 import {
   setupTestProject,
   teardownTestProject,
@@ -27,7 +28,12 @@ describe('Root AGENTS.md detection', () => {
   afterEach(async () => {
     // Clean generated outputs between tests
     await fs.rm(path.join(projectRoot, 'AGENTS.md'), { force: true });
+    await fs.rm(path.join(projectRoot, 'AGENTS.md.bak'), { force: true });
     await fs.rm(path.join(projectRoot, '.github'), {
+      recursive: true,
+      force: true,
+    });
+    await fs.rm(path.join(projectRoot, 'subdir'), {
       recursive: true,
       force: true,
     });
@@ -70,5 +76,55 @@ describe('Root AGENTS.md detection', () => {
     expect(codexOutput).toContain('Extra inner file');
     // Should NOT include a Source section for root AGENTS.md
     expect(codexOutput).not.toMatch(/<!-- Source: AGENTS.md -->$/m);
+  });
+
+  it('writes generated files at the discovered project root when apply runs from a subdirectory', async () => {
+    const subdir = path.join(projectRoot, 'subdir');
+    await fs.mkdir(subdir);
+
+    execFileSync(
+      'node',
+      [
+        path.resolve('dist/cli/index.js'),
+        'apply',
+        '--agents',
+        'agentsmd',
+        '--no-backup',
+        '--no-gitignore',
+      ],
+      {
+        cwd: subdir,
+        stdio: 'pipe',
+      },
+    );
+
+    await expect(
+      fs.readFile(path.join(projectRoot, 'AGENTS.md'), 'utf8'),
+    ).resolves.toContain('Inner rules file');
+    await expect(fs.stat(path.join(subdir, 'AGENTS.md'))).rejects.toThrow();
+  });
+
+  it('reverts generated files at the discovered project root when revert runs from a subdirectory', async () => {
+    const subdir = path.join(projectRoot, 'subdir');
+    await fs.mkdir(subdir);
+
+    runRulerWithInheritedStdio(
+      'apply --agents agentsmd --no-backup --no-gitignore',
+      projectRoot,
+    );
+
+    execFileSync(
+      'node',
+      [path.resolve('dist/cli/index.js'), 'revert', '--agents', 'agentsmd'],
+      {
+        cwd: subdir,
+        stdio: 'pipe',
+      },
+    );
+
+    await expect(
+      fs.stat(path.join(projectRoot, 'AGENTS.md')),
+    ).rejects.toThrow();
+    await expect(fs.stat(path.join(subdir, 'AGENTS.md'))).rejects.toThrow();
   });
 });

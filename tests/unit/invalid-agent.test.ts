@@ -45,15 +45,25 @@ jest.mock('fs', () => {
   };
 });
 
-jest.mock('../../src/core/FileSystemUtils', () => ({
-  findRulerDir: jest.fn().mockResolvedValue('/test/.ruler'),
-  readMarkdownFiles: jest.fn().mockResolvedValue([
-    {
-      path: '/test/.ruler/AGENTS.md',
-      content: '# Test Instructions',
-    },
-  ]),
-}));
+jest.mock('../../src/core/FileSystemUtils', () => {
+  const pathModule = jest.requireActual('path');
+  return {
+    findRulerDir: jest.fn().mockResolvedValue('/test/.ruler'),
+    resolveProjectRootForRulerDir: jest
+      .fn()
+      .mockImplementation((requestedProjectRoot, rulerDir) =>
+        pathModule.basename(rulerDir) === '.ruler'
+          ? pathModule.dirname(rulerDir)
+          : requestedProjectRoot,
+      ),
+    readMarkdownFiles: jest.fn().mockResolvedValue([
+      {
+        path: '/test/.ruler/AGENTS.md',
+        content: '# Test Instructions',
+      },
+    ]),
+  };
+});
 
 jest.mock('../../src/core/GitignoreUtils', () => ({
   updateGitignore: jest.fn().mockResolvedValue(undefined),

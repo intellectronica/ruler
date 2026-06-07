@@ -112,6 +112,7 @@ export async function applyAllAgentConfigs(
   let selectedAgents: IAgent[];
   let generatedPaths: string[];
   let loadedConfig: LoadedConfig;
+  let outputProjectRoot = projectRoot;
 
   if (nested) {
     const hierarchicalConfigs = await loadNestedConfigurations(
@@ -228,6 +229,8 @@ export async function applyAllAgentConfigs(
       configPath,
       localOnly,
     );
+    const singleProjectRoot = singleConfig.projectRoot;
+    outputProjectRoot = singleProjectRoot;
 
     loadedConfig = singleConfig.config;
     singleConfig.config.cliAgents = includedAgents;
@@ -257,7 +260,7 @@ export async function applyAllAgentConfigs(
     if (skillsEnabledResolved) {
       const { propagateSkills } = await import('./core/SkillsProcessor');
       await propagateSkills(
-        projectRoot,
+        singleProjectRoot,
         selectedAgents,
         skillsEnabledResolved,
         verbose,
@@ -280,7 +283,7 @@ export async function applyAllAgentConfigs(
     {
       const { propagateSubagents } = await import('./core/SubagentsProcessor');
       await propagateSubagents(
-        projectRoot,
+        singleProjectRoot,
         selectedAgents,
         subagentsEnabledResolvedSingle,
         subagentsCleanupOrphanedSingle,
@@ -292,7 +295,7 @@ export async function applyAllAgentConfigs(
     generatedPaths = await processSingleConfiguration(
       selectedAgents,
       singleConfig,
-      projectRoot,
+      singleProjectRoot,
       verbose,
       dryRun,
       cliMcpEnabled,
@@ -311,7 +314,7 @@ export async function applyAllAgentConfigs(
     // Skills enabled by default or explicitly
     const { getSkillsGitignorePaths } = await import('./core/SkillsProcessor');
     const skillsPaths = await getSkillsGitignorePaths(
-      projectRoot,
+      outputProjectRoot,
       selectedAgents,
     );
     allGeneratedPaths = [...allGeneratedPaths, ...skillsPaths];
@@ -327,14 +330,14 @@ export async function applyAllAgentConfigs(
       './core/SubagentsProcessor'
     );
     const subagentPaths = await getSubagentsGitignorePaths(
-      projectRoot,
+      outputProjectRoot,
       selectedAgents,
     );
     allGeneratedPaths = [...allGeneratedPaths, ...subagentPaths];
   }
 
   await updateGitignore(
-    projectRoot,
+    outputProjectRoot,
     allGeneratedPaths,
     loadedConfig,
     cliGitignoreEnabled,

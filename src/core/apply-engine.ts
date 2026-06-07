@@ -34,6 +34,7 @@ export interface RulerConfiguration {
   config: LoadedConfig;
   concatenatedRules: string;
   rulerMcpJson: Record<string, unknown> | null;
+  projectRoot: string;
 }
 
 /**
@@ -139,6 +140,7 @@ async function createHierarchicalConfiguration(
     config,
     concatenatedRules,
     rulerMcpJson,
+    projectRoot: directoryRoot,
   };
 }
 
@@ -281,10 +283,14 @@ async function loadSingleConfiguration(
 
   // Warn about legacy mcp.json
   await warnAboutLegacyMcpJson(primaryDir);
+  const effectiveProjectRoot = FileSystemUtils.resolveProjectRootForRulerDir(
+    projectRoot,
+    primaryDir,
+  );
 
   // Load the ruler.toml configuration
   const config = await loadConfig({
-    projectRoot,
+    projectRoot: effectiveProjectRoot,
     configPath,
     checkGlobal: !localOnly,
   });
@@ -301,7 +307,7 @@ async function loadSingleConfiguration(
   // Load unified config to get merged MCP configuration
   const { loadUnifiedConfig } = await import('./UnifiedConfigLoader');
   const unifiedConfig = await loadUnifiedConfig({
-    projectRoot,
+    projectRoot: effectiveProjectRoot,
     configPath,
     checkGlobal: !localOnly,
   });
@@ -318,6 +324,7 @@ async function loadSingleConfiguration(
     config,
     concatenatedRules,
     rulerMcpJson,
+    projectRoot: effectiveProjectRoot,
   };
 }
 
