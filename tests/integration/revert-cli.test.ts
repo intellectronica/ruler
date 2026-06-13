@@ -242,5 +242,30 @@ describe('Revert CLI Integration', () => {
 
       await expect(fs.access(outputPath)).rejects.toThrow();
     });
+
+    it('should revert generated rule output without backup or gitignore provenance', async () => {
+      const outputPath = path.join(tmpDir, 'CLAUDE.md');
+
+      execSync(
+        `node dist/cli/index.js apply --project-root ${tmpDir} --agents claude --no-backup --no-gitignore`,
+        { stdio: 'inherit' },
+      );
+
+      const generated = await fs.readFile(outputPath, 'utf8');
+      expect(generated.trimStart().startsWith('<!-- Source: .ruler/')).toBe(
+        true,
+      );
+      await expect(fs.access(`${outputPath}.bak`)).rejects.toThrow();
+      await expect(
+        fs.access(path.join(tmpDir, '.gitignore')),
+      ).rejects.toThrow();
+
+      execSync(
+        `node dist/cli/index.js revert --project-root ${tmpDir} --agents claude`,
+        { stdio: 'inherit' },
+      );
+
+      await expect(fs.access(outputPath)).rejects.toThrow();
+    });
   });
 });
