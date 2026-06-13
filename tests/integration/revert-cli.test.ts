@@ -217,5 +217,30 @@ describe('Revert CLI Integration', () => {
       await expect(fs.access(path.join(tmpDir, 'CLAUDE.md'))).rejects.toThrow();
       await expect(fs.access(path.join(tmpDir, 'AGENTS.md'))).rejects.toThrow();
     });
+
+    it('should not restore stale generated content after repeated apply', async () => {
+      const sourcePath = path.join(tmpDir, '.ruler', 'instructions.md');
+      const outputPath = path.join(tmpDir, 'AGENTS.md');
+      const backupPath = `${outputPath}.bak`;
+
+      execSync(
+        `node dist/cli/index.js apply --project-root ${tmpDir} --agents agentsmd --no-gitignore`,
+        { stdio: 'inherit' },
+      );
+      await fs.writeFile(sourcePath, 'Changed Rule');
+      execSync(
+        `node dist/cli/index.js apply --project-root ${tmpDir} --agents agentsmd --no-gitignore`,
+        { stdio: 'inherit' },
+      );
+
+      await expect(fs.access(backupPath)).rejects.toThrow();
+
+      execSync(
+        `node dist/cli/index.js revert --project-root ${tmpDir} --agents agentsmd`,
+        { stdio: 'inherit' },
+      );
+
+      await expect(fs.access(outputPath)).rejects.toThrow();
+    });
   });
 });
