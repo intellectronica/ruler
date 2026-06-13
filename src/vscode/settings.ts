@@ -1,6 +1,7 @@
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import { McpStrategy } from '../types';
+import { writeGeneratedFile } from '../core/FileSystemUtils';
 
 /**
  * VSCode settings.json structure for Augment MCP configuration
@@ -47,8 +48,7 @@ export async function writeVSCodeSettings(
   settingsPath: string,
   settings: VSCodeSettings,
 ): Promise<void> {
-  await fs.mkdir(path.dirname(settingsPath), { recursive: true });
-  await fs.writeFile(settingsPath, JSON.stringify(settings, null, 4));
+  await writeGeneratedFile(settingsPath, JSON.stringify(settings, null, 4));
 }
 
 /**
