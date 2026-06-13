@@ -27,8 +27,6 @@ jobs:
         with:
           node-version: '24'
           registry-url: 'https://registry.npmjs.org/'
-      - run: npm ci
-      - run: npm run check:package-lock
       - name: Validate release target
         env:
           EVENT_NAME: ${{ github.event_name }}
@@ -75,6 +73,8 @@ jobs:
             echo "::error::${PACKAGE_NAME}@${VERSION} is already published to npm."
             exit 1
           fi
+      - run: npm ci
+      - run: npm run check:package-lock
       - run: npm run format:check
       - run: npm run lint
       - run: npm test
