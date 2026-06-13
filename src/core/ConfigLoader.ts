@@ -163,11 +163,30 @@ function parseAgentMcpServers(
     sectionObj.mcp_servers as Record<string, unknown>,
   )) {
     if (def && typeof def === 'object' && !Array.isArray(def)) {
-      servers[name] = { ...(def as Record<string, unknown>) };
+      servers[name] = normalizeAgentMcpServer(def as Record<string, unknown>);
     }
   }
 
   return Object.keys(servers).length > 0 ? servers : undefined;
+}
+
+function normalizeAgentMcpServer(
+  def: Record<string, unknown>,
+): Record<string, unknown> {
+  const server = { ...def };
+  const hasCommand = typeof server.command === 'string';
+  const hasUrl = typeof server.url === 'string';
+
+  if (hasCommand && hasUrl) {
+    delete server.command;
+    delete server.args;
+    delete server.env;
+    if (typeof server.type !== 'string') {
+      server.type = 'remote';
+    }
+  }
+
+  return server;
 }
 
 /**

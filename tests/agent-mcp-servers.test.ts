@@ -48,4 +48,32 @@ oauth = { clientId = "CLAUDE_ID", callbackPort = 3118 }
       oauth: { clientId: 'CLAUDE_ID', callbackPort: 3118 },
     });
   });
+
+  it('normalizes mixed agent-specific server definitions as remote servers', async () => {
+    const toml = `
+[agents.cursor.mcp_servers.search]
+command = "node"
+args = ["local-server.js"]
+env = { LOCAL_ONLY = "1" }
+url = "https://search.example.com/mcp"
+headers = { Authorization = "Bearer remote-token" }
+`;
+
+    testProject = await setupTestProject({
+      '.ruler/AGENTS.md': '# Test instructions',
+      '.ruler/ruler.toml': toml,
+    });
+
+    const { projectRoot } = testProject;
+    runRuler('apply --agents cursor', projectRoot);
+
+    const cursorMcp = JSON.parse(
+      await fs.readFile(path.join(projectRoot, '.cursor', 'mcp.json'), 'utf8'),
+    );
+    expect(cursorMcp.mcpServers.search).toEqual({
+      type: 'remote',
+      url: 'https://search.example.com/mcp',
+      headers: { Authorization: 'Bearer remote-token' },
+    });
+  });
 });
