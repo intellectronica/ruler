@@ -142,14 +142,16 @@ export async function propagateMcpToOpenCode(
             ...transformedConfig.mcp,
           },
   };
+  const finalContent = JSON.stringify(finalConfig, null, 2) + '\n';
+
+  if (existingContent === finalContent) {
+    return;
+  }
 
   await ensureDirExists(path.dirname(openCodeConfigPath));
   if (backup) {
     const { backupFile } = await import('../core/FileSystemUtils');
     await backupFile(openCodeConfigPath);
   }
-  await fs.writeFile(
-    openCodeConfigPath,
-    JSON.stringify(finalConfig, null, 2) + '\n',
-  );
+  await fs.writeFile(openCodeConfigPath, finalContent);
 }

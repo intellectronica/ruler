@@ -246,5 +246,28 @@ describe('OpenCode MCP Integration', () => {
       expect(result.$schema).toBe('https://opencode.ai/config.json');
       expect(result.mcp).toEqual({});
     });
+
+    it('does not rewrite or back up unchanged generated config', async () => {
+      const openCodePath = path.join(tmpDir, 'opencode.json');
+      const rulerMcp = {
+        mcpServers: {
+          repo: {
+            command: 'node',
+            args: ['server.js'],
+          },
+        },
+      };
+
+      await propagateMcpToOpenCode(rulerMcp, openCodePath);
+      const statBefore = await fs.stat(openCodePath);
+      const contentBefore = await fs.readFile(openCodePath, 'utf8');
+
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      await propagateMcpToOpenCode(rulerMcp, openCodePath);
+
+      await expect(fs.access(`${openCodePath}.bak`)).rejects.toThrow();
+      expect(await fs.readFile(openCodePath, 'utf8')).toBe(contentBefore);
+      expect((await fs.stat(openCodePath)).mtimeMs).toBe(statBefore.mtimeMs);
+    });
   });
 });

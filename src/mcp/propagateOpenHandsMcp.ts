@@ -223,11 +223,16 @@ export async function propagateMcpToOpenHands(
   config.mcp.shttp_servers = normalizeRemoteServerArray(
     Array.from(existingShttpServers.values()),
   );
+  const finalContent = stringify(config);
+
+  if (tomlContent === finalContent) {
+    return;
+  }
 
   await ensureDirExists(path.dirname(openHandsConfigPath));
   if (backup) {
     const { backupFile } = await import('../core/FileSystemUtils');
     await backupFile(openHandsConfigPath);
   }
-  await fs.writeFile(openHandsConfigPath, stringify(config));
+  await fs.writeFile(openHandsConfigPath, finalContent);
 }
