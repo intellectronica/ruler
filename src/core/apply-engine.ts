@@ -751,6 +751,7 @@ async function applyMcpConfiguration(
     dest,
     agentConfig,
     config,
+    projectRoot,
     cliMcpStrategy,
     dryRun,
     verbose,
@@ -926,6 +927,7 @@ async function applyStandardMcpConfiguration(
   dest: string,
   agentConfig: IAgentConfig | undefined,
   config: LoadedConfig,
+  projectRoot: string,
   cliMcpStrategy: McpStrategy | undefined,
   dryRun: boolean,
   verbose: boolean,
@@ -1053,9 +1055,10 @@ async function applyStandardMcpConfiguration(
         await FileSystemUtils.writeGeneratedFile(
           dest,
           stringify(toWrite as Record<string, unknown>),
+          projectRoot,
         );
       } else {
-        await writeNativeMcp(dest, toWrite);
+        await writeNativeMcp(dest, toWrite, projectRoot);
       }
     } else {
       logVerbose(

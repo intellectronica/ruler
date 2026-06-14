@@ -133,7 +133,8 @@ export async function readNativeMcpToml(
 export async function writeNativeMcp(
   filePath: string,
   data: unknown,
+  containmentRoot?: string,
 ): Promise<void> {
   const text = JSON.stringify(data, null, 2) + '\n';
-  await writeGeneratedFile(filePath, text);
+  await writeGeneratedFile(filePath, text, containmentRoot);
 }
