@@ -1,5 +1,5 @@
 import * as fs from 'fs/promises';
-import { ensureDirExists } from '../core/FileSystemUtils';
+import { ensureDirExists, writeGeneratedFile } from '../core/FileSystemUtils';
 import * as path from 'path';
 import { McpStrategy } from '../types';
 
@@ -153,5 +153,5 @@ export async function propagateMcpToOpenCode(
     const { backupFile } = await import('../core/FileSystemUtils');
     await backupFile(openCodeConfigPath);
   }
-  await fs.writeFile(openCodeConfigPath, finalContent);
+  await writeGeneratedFile(openCodeConfigPath, finalContent);
 }

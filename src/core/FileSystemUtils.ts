@@ -49,6 +49,35 @@ async function assertNotSymbolicLink(
   }
 }
 
+async function assertContainingDirectoryInsideRoot(
+  filePath: string,
+  rootPath: string,
+  action: string,
+): Promise<void> {
+  const realRoot = await fs.realpath(rootPath);
+  let current = path.dirname(path.resolve(filePath));
+
+  while (true) {
+    try {
+      const realCurrent = await fs.realpath(current);
+      if (!isPathInsideOrEqual(realRoot, realCurrent)) {
+        throw new Error(`${action}: ${filePath}`);
+      }
+      return;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+        throw error;
+      }
+    }
+
+    const parent = path.dirname(current);
+    if (parent === current) {
+      return;
+    }
+    current = parent;
+  }
+}
+
 /**
  * Searches upwards from startPath to find a directory named .ruler.
  * If not found locally and checkGlobal is true, checks for global config at XDG_CONFIG_HOME/ruler.
@@ -292,12 +321,27 @@ export async function readMarkdownFiles(
 export async function writeGeneratedFile(
   filePath: string,
   content: string,
+  containmentRoot?: string,
 ): Promise<void> {
+  if (containmentRoot) {
+    await assertContainingDirectoryInsideRoot(
+      filePath,
+      containmentRoot,
+      'Refusing to write generated file through symlinked directory',
+    );
+  }
   await fs.mkdir(path.dirname(filePath), { recursive: true });
   await assertNotSymbolicLink(
     filePath,
     'Refusing to write generated file through symlink',
   );
+  if (containmentRoot) {
+    await assertContainingDirectoryInsideRoot(
+      filePath,
+      containmentRoot,
+      'Refusing to write generated file through symlinked directory',
+    );
+  }
   await fs.writeFile(filePath, content, 'utf8');
 }
 

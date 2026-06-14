@@ -1,5 +1,6 @@
 import { promises as fs } from 'fs';
 import * as path from 'path';
+import { writeGeneratedFile } from './FileSystemUtils';
 
 const RULER_START_MARKER = '# START Ruler Generated Files';
 const RULER_END_MARKER = '# END Ruler Generated Files';
@@ -74,8 +75,7 @@ export async function updateGitignore(
   const newContent = updateGitignoreContent(existingContent, allRulerPaths);
 
   // Write the updated content
-  await fs.mkdir(path.dirname(gitignorePath), { recursive: true });
-  await fs.writeFile(gitignorePath, newContent);
+  await writeGeneratedFile(gitignorePath, newContent);
 }
 
 /**

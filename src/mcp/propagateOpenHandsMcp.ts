@@ -1,6 +1,6 @@
 import * as fs from 'fs/promises';
 import { parse as parseTOML, stringify } from '@iarna/toml';
-import { ensureDirExists } from '../core/FileSystemUtils';
+import { ensureDirExists, writeGeneratedFile } from '../core/FileSystemUtils';
 import * as path from 'path';
 import { McpStrategy } from '../types';
 
@@ -234,5 +234,5 @@ export async function propagateMcpToOpenHands(
     const { backupFile } = await import('../core/FileSystemUtils');
     await backupFile(openHandsConfigPath);
   }
-  await fs.writeFile(openHandsConfigPath, finalContent);
+  await writeGeneratedFile(openHandsConfigPath, finalContent);
 }

@@ -1,5 +1,6 @@
 import * as path from 'path';
 import { promises as fs } from 'fs';
+import { writeGeneratedFile } from '../core/FileSystemUtils';
 
 /** Determine the native MCP config path for a given agent. */
 export async function getNativeMcpPath(
@@ -132,8 +133,8 @@ export async function readNativeMcpToml(
 export async function writeNativeMcp(
   filePath: string,
   data: unknown,
+  containmentRoot?: string,
 ): Promise<void> {
-  await fs.mkdir(path.dirname(filePath), { recursive: true });
   const text = JSON.stringify(data, null, 2) + '\n';
-  await fs.writeFile(filePath, text, 'utf8');
+  await writeGeneratedFile(filePath, text, containmentRoot);
 }

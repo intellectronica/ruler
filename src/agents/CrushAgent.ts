@@ -1,7 +1,7 @@
 import { IAgent, IAgentConfig } from './IAgent';
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { backupFile } from '../core/FileSystemUtils';
+import { backupFile, writeGeneratedFile } from '../core/FileSystemUtils';
 
 export class CrushAgent implements IAgent {
   getIdentifier(): string {
@@ -81,7 +81,7 @@ export class CrushAgent implements IAgent {
     if (backup) {
       await backupFile(instructionsPath);
     }
-    await fs.writeFile(instructionsPath, concatenatedRules);
+    await writeGeneratedFile(instructionsPath, concatenatedRules);
 
     // Always transform from mcpServers ({ mcpServers: ... }) to { mcp: ... } for Crush
     let finalMcpConfig: { mcp: Record<string, unknown> } = { mcp: {} };
@@ -125,7 +125,10 @@ export class CrushAgent implements IAgent {
       if (backup) {
         await backupFile(mcpPath);
       }
-      await fs.writeFile(mcpPath, JSON.stringify(finalMcpConfig, null, 2));
+      await writeGeneratedFile(
+        mcpPath,
+        JSON.stringify(finalMcpConfig, null, 2),
+      );
     }
   }
 

@@ -2,6 +2,7 @@ import * as path from 'path';
 import { promises as fs } from 'fs';
 import { AgentsMdAgent } from './AgentsMdAgent';
 import { IAgentConfig } from './IAgent';
+import { writeGeneratedFile } from '../core/FileSystemUtils';
 
 /**
  * Zed editor agent adapter.
@@ -110,8 +111,7 @@ export class ZedAgent extends AgentsMdAgent {
       }
 
       // Write updated settings
-      await fs.mkdir(path.dirname(zedSettingsPath), { recursive: true });
-      await fs.writeFile(
+      await writeGeneratedFile(
         zedSettingsPath,
         JSON.stringify(mergedSettings, null, 2),
       );
