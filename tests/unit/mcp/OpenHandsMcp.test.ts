@@ -409,4 +409,26 @@ url = "https://api.example.com/mcp"
       api_key: 'new-token',
     });
   });
+
+  it('does not rewrite or back up unchanged generated config', async () => {
+    const rulerMcp = {
+      mcpServers: {
+        fs: { command: 'npx', args: ['mcp-fs'] },
+        api: { url: 'https://api.example.com/mcp' },
+      },
+    };
+
+    await propagateMcpToOpenHands(rulerMcp, openHandsConfigPath);
+    const statBefore = await fs.stat(openHandsConfigPath);
+    const contentBefore = await fs.readFile(openHandsConfigPath, 'utf8');
+
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    await propagateMcpToOpenHands(rulerMcp, openHandsConfigPath);
+
+    await expect(fs.access(`${openHandsConfigPath}.bak`)).rejects.toThrow();
+    expect(await fs.readFile(openHandsConfigPath, 'utf8')).toBe(contentBefore);
+    expect((await fs.stat(openHandsConfigPath)).mtimeMs).toBe(
+      statBefore.mtimeMs,
+    );
+  });
 });
