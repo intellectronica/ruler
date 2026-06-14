@@ -52,6 +52,7 @@ oauth = { clientId = "CLAUDE_ID", callbackPort = 3118 }
   it('normalizes mixed agent-specific server definitions as remote servers', async () => {
     const toml = `
 [agents.cursor.mcp_servers.search]
+type = "stdio"
 command = "node"
 args = ["local-server.js"]
 env = { LOCAL_ONLY = "1" }

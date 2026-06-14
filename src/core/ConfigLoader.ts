@@ -181,9 +181,7 @@ function normalizeAgentMcpServer(
     delete server.command;
     delete server.args;
     delete server.env;
-    if (typeof server.type !== 'string') {
-      server.type = 'remote';
-    }
+    server.type = 'remote';
   }
 
   return server;
