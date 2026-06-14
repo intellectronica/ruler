@@ -145,6 +145,36 @@ describe('revert-engine', () => {
       expect(fileExists).toBe(false);
     });
 
+    it('should remove source-marked global generated files when no backup exists', async () => {
+      const agent = new MockAgent('Claude Code', 'claude');
+      const configPath = path.join(tmpDir, '.claude', 'config.json');
+
+      await fs.mkdir(path.dirname(configPath), { recursive: true });
+      await fs.writeFile(
+        configPath,
+        '\n\n<!-- Source: ruler/AGENTS.md -->\n\ngenerated content\n',
+      );
+
+      const result = await revertAgentConfiguration(
+        agent,
+        tmpDir,
+        undefined,
+        false,
+        false,
+        false,
+      );
+
+      expect(result.restored).toBe(0);
+      expect(result.removed).toBe(1);
+      expect(result.backupsRemoved).toBe(0);
+
+      const fileExists = await fs
+        .access(configPath)
+        .then(() => true)
+        .catch(() => false);
+      expect(fileExists).toBe(false);
+    });
+
     it('should preserve unmarked files when no backup exists', async () => {
       const agent = new MockAgent('Claude Code', 'claude');
       const configPath = path.join(tmpDir, '.claude', 'config.json');
