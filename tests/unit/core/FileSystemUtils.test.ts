@@ -34,6 +34,32 @@ describe('FileSystemUtils', () => {
       const found = await findRulerDir(someDir, false); // Don't check global config
       expect(found).toBeNull();
     });
+
+    it('does not log an error when optional global config is absent', async () => {
+      const originalXdgConfigHome = process.env.XDG_CONFIG_HOME;
+      const xdgConfigHome = path.join(tmpDir, 'missing-global-config');
+      process.env.XDG_CONFIG_HOME = xdgConfigHome;
+      const consoleErrorSpy = jest
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+
+      try {
+        const projectDir = path.join(tmpDir, 'project-without-ruler');
+        await fs.mkdir(projectDir, { recursive: true });
+
+        const found = await findRulerDir(projectDir, true);
+
+        expect(found).toBeNull();
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      } finally {
+        consoleErrorSpy.mockRestore();
+        if (originalXdgConfigHome === undefined) {
+          delete process.env.XDG_CONFIG_HOME;
+        } else {
+          process.env.XDG_CONFIG_HOME = originalXdgConfigHome;
+        }
+      }
+    });
   });
 
   describe('backupFile', () => {

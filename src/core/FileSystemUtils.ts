@@ -125,6 +125,9 @@ export async function findRulerDir(
         return globalConfigDir;
       }
     } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
+        return null;
+      }
       console.error(
         `[ruler] Error checking global config directory ${globalConfigDir}:`,
         err,
