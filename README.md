@@ -953,9 +953,9 @@ ruler apply
 
 ### Scenario 2: Working with worktrees
 
-When using the default `git add worktree` command (which is also run by agents apps such as Claude code or Codex through the interface), the gitignored files are not copied over. You will need to ask your agent to run `ruler apply` at the start of every session.  
+When using the default `git add worktree` command (which is also run by agents apps such as Claude code or Codex through the interface), the gitignored files are not copied over. You will need to ask your agent to run `ruler apply` at the start of every session.
 
-As an alternative you can commit your default agents files to source control. 
+As an alternative you can commit your default agents files to source control.
 
 ```toml
 # .ruler/ruler.toml
