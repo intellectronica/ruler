@@ -1243,7 +1243,7 @@ describe('Skills Discovery and Validation', () => {
         fs.access(path.join(tmpDir, CLAUDE_SKILLS_PATH)),
       ).rejects.toThrow();
       await expect(
-        fs.access(path.join(tmpDir, '.codex', 'skills')),
+        fs.access(path.join(tmpDir, '.agents', 'skills')),
       ).rejects.toThrow();
       await expect(
         fs.access(path.join(tmpDir, '.opencode', 'skills')),

@@ -59,7 +59,7 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | AGENTS.md              | `AGENTS.md`                                    | (pseudo-agent ensuring root `AGENTS.md` exists)  | -                         | -                            |
 | GitHub Copilot         | `AGENTS.md`                                    | `.vscode/mcp.json`                               | `.claude/skills/`         | `.github/agents/`            |
 | Claude Code            | `CLAUDE.md`                                    | `.mcp.json`                                      | `.claude/skills/`         | `.claude/agents/`            |
-| OpenAI Codex CLI       | `AGENTS.md`                                    | `.codex/config.toml`                             | `.codex/skills/`          | `.codex/agents/` (`.toml`)   |
+| OpenAI Codex CLI       | `AGENTS.md`                                    | `.codex/config.toml`                             | `.agents/skills/`         | `.codex/agents/` (`.toml`)   |
 | Pi Coding Agent        | `AGENTS.md`                                    | -                                                | `.pi/skills/`             | -                            |
 | Jules                  | `AGENTS.md`                                    | -                                                | -                         | -                            |
 | Cursor                 | `AGENTS.md`                                    | `.cursor/mcp.json`                               | `.cursor/skills/`         | `.cursor/agents/`            |
@@ -606,7 +606,7 @@ Skills are specialized knowledge packages that extend AI agent capabilities with
   - **Claude Code**: `.claude/skills/`
   - **GitHub Copilot**: `.claude/skills/` (shared with Claude Code)
   - **Kilo Code**: `.claude/skills/` (shared with Claude Code)
-  - **OpenAI Codex CLI**: `.codex/skills/`
+  - **OpenAI Codex CLI**: `.agents/skills/` (shared with Goose, Amp, and Zed)
   - **OpenCode**: `.opencode/skills/`
   - **Pi Coding Agent**: `.pi/skills/`
   - **Goose**: `.agents/skills/`
@@ -675,10 +675,9 @@ If you run Ruler for agents that do not support native skills, Ruler logs a warn
 When skills support is enabled and gitignore integration is active, Ruler automatically adds:
 
 - `.claude/skills/` (for Claude Code, GitHub Copilot, and Kilo Code)
-- `.codex/skills/` (for OpenAI Codex CLI)
+- `.agents/skills/` (for OpenAI Codex CLI, Goose, Amp, and Zed)
 - `.opencode/skills/` (for OpenCode)
 - `.pi/skills/` (for Pi Coding Agent)
-- `.agents/skills/` (for Goose, Amp, and Zed)
 - `.agent/skills/` (for Antigravity)
 - `.factory/skills/` (for Factory Droid)
 - `.vibe/skills/` (for Mistral Vibe)
@@ -736,10 +735,10 @@ ruler apply
 
 # 3. Skills are now available to compatible agents:
 #    - Claude Code, GitHub Copilot & Kilo Code: .claude/skills/my-skill/
-#    - OpenAI Codex CLI: .codex/skills/my-skill/
+#    - OpenAI Codex CLI: .agents/skills/my-skill/ (shared with Goose, Amp & Zed)
 #    - OpenCode: .opencode/skills/my-skill/
 #    - Pi Coding Agent: .pi/skills/my-skill/
-#    - Goose, Amp & Zed: .agents/skills/my-skill/
+#    - Goose, Amp, Zed & OpenAI Codex CLI: .agents/skills/my-skill/
 #    - Antigravity: .agent/skills/my-skill/
 #    - Factory Droid: .factory/skills/my-skill/
 #    - Mistral Vibe: .vibe/skills/my-skill/

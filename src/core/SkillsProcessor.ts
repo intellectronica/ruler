@@ -94,9 +94,12 @@ export async function getSkillsGitignorePaths(
     antigravity: ANTIGRAVITY_SKILLS_PATH,
   };
 
-  return Array.from(selectedTargets).map((target) =>
-    path.join(projectRoot, targetPaths[target]),
+  const pathSet = new Set(
+    Array.from(selectedTargets).map((target) =>
+      path.join(projectRoot, targetPaths[target]),
+    ),
   );
+  return Array.from(pathSet);
 }
 
 /**
@@ -153,21 +156,23 @@ const SKILL_TARGET_TO_IDENTIFIERS = new Map<SkillTarget, readonly string[]>([
   ['antigravity', ['antigravity']],
 ]);
 
-const SKILL_TARGET_PATHS: readonly string[] = [
-  CLAUDE_SKILLS_PATH,
-  CODEX_SKILLS_PATH,
-  OPENCODE_SKILLS_PATH,
-  PI_SKILLS_PATH,
-  GOOSE_SKILLS_PATH,
-  VIBE_SKILLS_PATH,
-  ROO_SKILLS_PATH,
-  GEMINI_SKILLS_PATH,
-  JUNIE_SKILLS_PATH,
-  CURSOR_SKILLS_PATH,
-  WINDSURF_SKILLS_PATH,
-  FACTORY_SKILLS_PATH,
-  ANTIGRAVITY_SKILLS_PATH,
-];
+const SKILL_TARGET_PATHS: readonly string[] = Array.from(
+  new Set([
+    CLAUDE_SKILLS_PATH,
+    CODEX_SKILLS_PATH,
+    OPENCODE_SKILLS_PATH,
+    PI_SKILLS_PATH,
+    GOOSE_SKILLS_PATH,
+    VIBE_SKILLS_PATH,
+    ROO_SKILLS_PATH,
+    GEMINI_SKILLS_PATH,
+    JUNIE_SKILLS_PATH,
+    CURSOR_SKILLS_PATH,
+    WINDSURF_SKILLS_PATH,
+    FACTORY_SKILLS_PATH,
+    ANTIGRAVITY_SKILLS_PATH,
+  ]),
+);
 
 function getSelectedSkillTargets(agents: IAgent[]): Set<SkillTarget> {
   const selectedIdentifiers = new Set(
@@ -554,7 +559,7 @@ export async function propagateSkillsForClaude(
 }
 
 /**
- * Propagates skills for OpenAI Codex CLI by copying .ruler/skills to .codex/skills.
+ * Propagates skills for OpenAI Codex CLI by copying .ruler/skills to .agents/skills.
  * Uses atomic replace to ensure safe overwriting of existing skills.
  * Returns dry-run steps if dryRun is true, otherwise returns empty array.
  */
@@ -563,8 +568,8 @@ export async function propagateSkillsForCodex(
   options: { dryRun: boolean },
 ): Promise<string[]> {
   const skillsDir = path.join(projectRoot, RULER_SKILLS_PATH);
-  const codexSkillsPath = path.join(projectRoot, CODEX_SKILLS_PATH);
-  const codexDir = path.dirname(codexSkillsPath);
+  const agentsSkillsPath = path.join(projectRoot, CODEX_SKILLS_PATH);
+  const agentsDir = path.dirname(agentsSkillsPath);
 
   // Check if source skills directory exists
   try {
@@ -578,11 +583,11 @@ export async function propagateSkillsForCodex(
     return [`Copy skills from ${RULER_SKILLS_PATH} to ${CODEX_SKILLS_PATH}`];
   }
 
-  // Ensure .codex directory exists
-  await fs.mkdir(codexDir, { recursive: true });
+  // Ensure .agents directory exists
+  await fs.mkdir(agentsDir, { recursive: true });
 
   // Use atomic replace: copy to temp, then rename
-  const tempDir = await createTempSkillsDir(codexDir);
+  const tempDir = await createTempSkillsDir(agentsDir);
 
   try {
     // Copy to temp directory
@@ -591,13 +596,13 @@ export async function propagateSkillsForCodex(
     // Atomically replace the target
     // First, remove existing target if it exists
     try {
-      await fs.rm(codexSkillsPath, { recursive: true, force: true });
+      await fs.rm(agentsSkillsPath, { recursive: true, force: true });
     } catch {
       // Target didn't exist, that's fine
     }
 
     // Rename temp to target
-    await replaceSkillsDirectory(tempDir, codexSkillsPath);
+    await replaceSkillsDirectory(tempDir, agentsSkillsPath);
   } catch (error) {
     // Clean up temp directory on error
     try {
