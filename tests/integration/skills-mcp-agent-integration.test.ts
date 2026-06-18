@@ -36,7 +36,7 @@ describe('Skills Agent Integration', () => {
       );
     });
 
-    it('adds skills to .codex/skills for Codex CLI (native skills)', async () => {
+    it('adds skills to .agents/skills for Codex CLI (native skills)', async () => {
       await applyAllAgentConfigs(
         tmpDir,
         ['codex'],
@@ -52,8 +52,8 @@ describe('Skills Agent Integration', () => {
         true, // skills enabled
       );
 
-      // Check that .codex/skills exists and contains the test skill
-      const codexSkillsPath = path.join(tmpDir, '.codex', 'skills');
+      // Check that .agents/skills exists and contains the test skill
+      const codexSkillsPath = path.join(tmpDir, '.agents', 'skills');
       const testSkillPath = path.join(codexSkillsPath, 'test-skill');
       const skillMdPath = path.join(testSkillPath, SKILL_MD_FILENAME);
 
@@ -204,7 +204,7 @@ describe('Skills Agent Integration', () => {
         false, // skills disabled
       );
 
-      const codexSkillsPath = path.join(tmpDir, '.codex', 'skills');
+      const codexSkillsPath = path.join(tmpDir, '.agents', 'skills');
       const geminiSkillsPath = path.join(tmpDir, '.gemini', 'skills');
 
       await expect(fs.access(codexSkillsPath)).rejects.toThrow();
@@ -252,8 +252,8 @@ args = ["server.js"]
         true, // skills enabled
       );
 
-      // Check that .codex/skills exists and contains the test skill (native skills)
-      const codexSkillsPath = path.join(tmpDir, '.codex', 'skills');
+      // Check that .agents/skills exists and contains the test skill (native skills)
+      const codexSkillsPath = path.join(tmpDir, '.agents', 'skills');
       const testSkillPath = path.join(codexSkillsPath, 'test-skill');
       const skillMdPath = path.join(testSkillPath, SKILL_MD_FILENAME);
 
@@ -285,7 +285,7 @@ args = ["server.js"]
 
         const codexSkillsPath = path.join(
           tmpDir,
-          '.codex',
+          '.agents',
           'skills',
           'test-skill',
         );
@@ -317,7 +317,7 @@ args = ["server.js"]
       );
 
       // All agents should have native skills
-      const codexSkillsPath = path.join(tmpDir, '.codex', 'skills');
+      const codexSkillsPath = path.join(tmpDir, '.agents', 'skills');
       const claudeSkillsPath = path.join(tmpDir, '.claude', 'skills');
       const geminiSkillsPath = path.join(tmpDir, '.gemini', 'skills');
 
