@@ -951,7 +951,81 @@ ruler init
 ruler apply
 ```
 
-### Scenario 2: Complex Projects with Nested Rules
+### Scenario 2: Working with worktrees
+
+When using the default `git add worktree` command (which is also run by agents apps such as Claude code or Codex through the interface), the gitignored files are not copied over. You will need to ask your agent to run `ruler apply` at the start of every session.  
+
+As an alternative you can commit your default agents files to source control. 
+
+```toml
+# .ruler/ruler.toml
+default_agents = ["claude", "codex"]
+
+[gitignore]
+enabled = false
+```
+
+```ignore
+# Do not ignore AGENTS.md and CLAUDE.md
+/.claude/*
+!/.claude/skills/
+/.codex/*
+!/.codex/skills/
+/.cursor
+/AGENTS.md.bak
+/CLAUDE.md.bak
+```
+
+To avoid having other contributors commit instructions outside of .ruler you can setup a github action to check there is no diff when running `ruler apply` in CI.
+
+```yml
+# .github/workflows/ruler-check/yml
+
+# Verifies the committed agent files (AGENTS.md, CLAUDE.md, skills) match the .ruler/ source.
+# They are committed so a fresh clone/worktree has guidance immediately; this guards against drift.
+name: Ruler guidance in sync
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - 'build/**'
+
+permissions:
+  contents: read
+
+env:
+  CI_NODE_VERSION: 24.15.0
+
+jobs:
+  ruler-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v5
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.CI_NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Verify committed agent files match .ruler/
+        run: |
+          pnpm dlx @intellectronica/ruler@0.3.42 apply --no-gitignore --no-mcp
+          DRIFT="$(git status --porcelain -- AGENTS.md CLAUDE.md .claude/skills .codex/skills)"
+          if [ -n "$DRIFT" ]; then
+            echo "::error::Committed agent files are out of sync with .ruler/. Run 'pnpm dlx @intellectronica/ruler apply --no-gitignore --no-mcp' and commit the result."
+            echo "$DRIFT"
+            git --no-pager diff -- AGENTS.md CLAUDE.md .claude/skills .codex/skills
+            exit 1
+          fi
+          echo "Agent files are in sync with .ruler/."
+```
+
+### Scenario 3: Complex Projects with Nested Rules
 
 For large projects with multiple components or services, enable nested rule loading so each directory keeps its own rules and MCP bundle:
 
@@ -983,13 +1057,13 @@ This creates context-specific instructions for different parts of your project w
 > [!NOTE]
 > The CLI prints "Nested mode is experimental and may change in future releases." the first time nested processing runs. Expect refinements in future versions.
 
-### Scenario 3: Team Standardization
+### Scenario 4: Team Standardization
 
 1. Create `.ruler/coding_standards.md`, `.ruler/api_usage.md`
 2. Commit the `.ruler` directory to your repository
 3. Team members pull changes and run `ruler apply` to update their local AI agent configurations
 
-### Scenario 4: Project-Specific Context for AI
+### Scenario 5: Project-Specific Context for AI
 
 1. Detail your project's architecture in `.ruler/project_overview.md`
 2. Describe primary data structures in `.ruler/data_models.md`
