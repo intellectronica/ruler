@@ -501,6 +501,24 @@ describe('ConfigLoader', () => {
       }
     });
 
+    it('rejects unknown top-level keys with an actionable error', async () => {
+      const content = 'defaults_agents = ["claude"]\n';
+      await fs.writeFile(path.join(rulerDir, 'ruler.toml'), content);
+
+      await expect(loadConfig({ projectRoot: tmpDir })).rejects.toThrow(
+        /defaults_agents/i,
+      );
+    });
+
+    it('rejects unknown per-agent config keys with an actionable error', async () => {
+      const content = '[agents.claude]\noutpt_path = "CLAUDE.md"\n';
+      await fs.writeFile(path.join(rulerDir, 'ruler.toml'), content);
+
+      await expect(loadConfig({ projectRoot: tmpDir })).rejects.toThrow(
+        /agents\.claude\.outpt_path/i,
+      );
+    });
+
     // Independence per spec: global `[agents].enabled` controls native
     // subagent propagation only; `[agents.<name>].enabled` controls
     // top-level output for that coding-agent integration. Neither should

@@ -42,6 +42,7 @@ const mcpConfigSchema = z
     enabled: z.boolean().optional(),
     merge_strategy: z.enum(['merge', 'overwrite']).optional(),
   })
+  .strict()
   .optional();
 
 const agentConfigSchema = z
@@ -51,7 +52,11 @@ const agentConfigSchema = z
     output_path_instructions: z.string().optional(),
     output_path_config: z.string().optional(),
     mcp: mcpConfigSchema,
+    mcp_servers: z
+      .record(z.string(), z.record(z.string(), z.unknown()))
+      .optional(),
   })
+  .strict()
   .optional();
 
 // `[agents]` is a heterogeneous table that holds two unrelated kinds of keys:
@@ -65,51 +70,61 @@ const SUBAGENT_RESERVED_KEYS = new Set([
   'cleanup_orphaned',
 ]);
 
-const rulerConfigSchema = z.object({
-  default_agents: z.array(z.string()).optional(),
-  agents: z
-    .object({
-      enabled: z.boolean().optional(),
-      include_in_rules: z.boolean().optional(),
-      cleanup_orphaned: z.boolean().optional(),
-    })
-    .catchall(agentConfigSchema)
-    .optional(),
-  mcp: z
-    .object({
-      enabled: z.boolean().optional(),
-      merge_strategy: z.enum(['merge', 'overwrite']).optional(),
-    })
-    .optional(),
-  gitignore: z
-    .object({
-      enabled: z.boolean().optional(),
-      local: z.boolean().optional(),
-    })
-    .optional(),
-  backup: z
-    .object({
-      enabled: z.boolean().optional(),
-    })
-    .optional(),
-  skills: z
-    .object({
-      enabled: z.boolean().optional(),
-    })
-    .optional(),
-  // Deprecated: kept in the schema only so that legacy `[subagents]` blocks
-  // are preserved through validation. The parser reads from here as a
-  // fallback when the new `[agents]` keys are absent and emits a one-time
-  // deprecation warning. Remove in the next minor release.
-  subagents: z
-    .object({
-      enabled: z.boolean().optional(),
-      include_in_rules: z.boolean().optional(),
-      cleanup_orphaned: z.boolean().optional(),
-    })
-    .optional(),
-  nested: z.boolean().optional(),
-});
+const rulerConfigSchema = z
+  .object({
+    default_agents: z.array(z.string()).optional(),
+    agents: z
+      .object({
+        enabled: z.boolean().optional(),
+        include_in_rules: z.boolean().optional(),
+        cleanup_orphaned: z.boolean().optional(),
+      })
+      .catchall(agentConfigSchema)
+      .optional(),
+    mcp: z
+      .object({
+        enabled: z.boolean().optional(),
+        merge_strategy: z.enum(['merge', 'overwrite']).optional(),
+      })
+      .strict()
+      .optional(),
+    mcp_servers: z
+      .record(z.string(), z.record(z.string(), z.unknown()))
+      .optional(),
+    gitignore: z
+      .object({
+        enabled: z.boolean().optional(),
+        local: z.boolean().optional(),
+      })
+      .strict()
+      .optional(),
+    backup: z
+      .object({
+        enabled: z.boolean().optional(),
+      })
+      .strict()
+      .optional(),
+    skills: z
+      .object({
+        enabled: z.boolean().optional(),
+      })
+      .strict()
+      .optional(),
+    // Deprecated: kept in the schema only so that legacy `[subagents]` blocks
+    // are preserved through validation. The parser reads from here as a
+    // fallback when the new `[agents]` keys are absent and emits a one-time
+    // deprecation warning. Remove in the next minor release.
+    subagents: z
+      .object({
+        enabled: z.boolean().optional(),
+        include_in_rules: z.boolean().optional(),
+        cleanup_orphaned: z.boolean().optional(),
+      })
+      .strict()
+      .optional(),
+    nested: z.boolean().optional(),
+  })
+  .strict();
 
 /**
  * Recursively creates a new object with only enumerable string keys,
@@ -554,9 +569,21 @@ function validateConfig(
   if (!validationResult.success) {
     throw createRulerError(
       'Invalid configuration file format',
-      `File: ${configFile}, Errors: ${validationResult.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join(', ')}`,
+      `File: ${configFile}, Errors: ${validationResult.error.issues.map(formatZodIssue).join(', ')}`,
     );
   }
+}
+
+function formatZodIssue(issue: z.core.$ZodIssue): string {
+  const basePath = issue.path.join('.');
+  if (issue.code === 'unrecognized_keys') {
+    const keys = (issue as z.core.$ZodIssueUnrecognizedKeys).keys;
+    return keys
+      .map((key) => (basePath ? `${basePath}.${key}` : key))
+      .join(', ');
+  }
+
+  return `${basePath}: ${issue.message}`;
 }
 
 function errorMessage(err: unknown): string {

@@ -31,18 +31,27 @@ export function resolveSelectedAgents(
 ): IAgent[] {
   // CLI --agents > config.default_agents > per-agent.enabled flags > default all
   let selected = allAgents;
+  const validAgentIdentifiers = new Set(
+    allAgents.map((agent) => agent.getIdentifier()),
+  );
+  const validAgentNames = new Set(
+    allAgents.map((agent) => agent.getName().toLowerCase()),
+  );
+
+  const invalidConfiguredAgents = Object.keys(config.agentConfigs).filter(
+    (identifier) => !validAgentIdentifiers.has(identifier),
+  );
+  if (invalidConfiguredAgents.length > 0) {
+    throw createRulerError(
+      `Invalid agent configured: ${invalidConfiguredAgents.join(', ')}`,
+      `Valid agents are: ${[...validAgentIdentifiers].join(', ')}`,
+    );
+  }
 
   if (config.cliAgents && config.cliAgents.length > 0) {
     const filters = config.cliAgents.map((n) => n.toLowerCase());
 
     // Check if any of the specified agents don't exist
-    const validAgentIdentifiers = new Set(
-      allAgents.map((agent) => agent.getIdentifier()),
-    );
-    const validAgentNames = new Set(
-      allAgents.map((agent) => agent.getName().toLowerCase()),
-    );
-
     const invalidAgents = filters.filter(
       (filter) =>
         !validAgentIdentifiers.has(filter) &&
@@ -63,13 +72,6 @@ export function resolveSelectedAgents(
     const defaults = config.defaultAgents.map((n) => n.toLowerCase());
 
     // Check if any of the default agents don't exist
-    const validAgentIdentifiers = new Set(
-      allAgents.map((agent) => agent.getIdentifier()),
-    );
-    const validAgentNames = new Set(
-      allAgents.map((agent) => agent.getName().toLowerCase()),
-    );
-
     const invalidAgents = defaults.filter(
       (filter) =>
         !validAgentIdentifiers.has(filter) &&
