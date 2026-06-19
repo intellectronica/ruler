@@ -47,8 +47,13 @@ export async function readVSCodeSettings(
 export async function writeVSCodeSettings(
   settingsPath: string,
   settings: VSCodeSettings,
+  containmentRoot?: string,
 ): Promise<void> {
-  await writeGeneratedFile(settingsPath, JSON.stringify(settings, null, 4));
+  await writeGeneratedFile(
+    settingsPath,
+    JSON.stringify(settings, null, 4),
+    containmentRoot,
+  );
 }
 
 /**

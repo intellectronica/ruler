@@ -56,8 +56,8 @@ describe('WarpAgent', () => {
     );
     await agent.applyRulerConfig('rules', base, null);
     const expected = path.join(base, 'WARP.md');
-    expect(backupFile).toHaveBeenCalledWith(expected);
-    expect(writeGeneratedFile).toHaveBeenCalledWith(expected, 'rules');
+    expect(backupFile).toHaveBeenCalledWith(expected, base);
+    expect(writeGeneratedFile).toHaveBeenCalledWith(expected, 'rules', base);
   });
 
   it('should apply ruler config to custom output path', async () => {
@@ -71,8 +71,8 @@ describe('WarpAgent', () => {
       outputPath: 'CUSTOM.md',
     });
     const expected = path.join(base, 'CUSTOM.md');
-    expect(backupFile).toHaveBeenCalledWith(expected);
-    expect(writeGeneratedFile).toHaveBeenCalledWith(expected, 'rules');
+    expect(backupFile).toHaveBeenCalledWith(expected, base);
+    expect(writeGeneratedFile).toHaveBeenCalledWith(expected, 'rules', base);
   });
 
   describe('integration with backup and revert functionality', () => {

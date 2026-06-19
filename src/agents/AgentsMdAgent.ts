@@ -3,6 +3,7 @@ import { promises as fs } from 'fs';
 import { AbstractAgent } from './AbstractAgent';
 import { IAgentConfig } from './IAgent';
 import {
+  assertManagedPathInsideRoot,
   backupFile,
   ensureDirExists,
   writeGeneratedFile,
@@ -36,6 +37,11 @@ export class AgentsMdAgent extends AbstractAgent {
     const output =
       agentConfig?.outputPath ?? this.getDefaultOutputPath(projectRoot);
     const absolutePath = path.resolve(projectRoot, output);
+    await assertManagedPathInsideRoot(
+      absolutePath,
+      projectRoot,
+      'Refusing to write generated file outside project',
+    );
     await ensureDirExists(path.dirname(absolutePath));
 
     // Add marker comment to the content to identify it as generated
@@ -56,9 +62,9 @@ export class AgentsMdAgent extends AbstractAgent {
 
     // Backup (only if file existed and backup is enabled) then write new content
     if (backup) {
-      await backupFile(absolutePath);
+      await backupFile(absolutePath, projectRoot);
     }
-    await writeGeneratedFile(absolutePath, contentWithMarker);
+    await writeGeneratedFile(absolutePath, contentWithMarker, projectRoot);
   }
 
   getMcpServerKey(): string {

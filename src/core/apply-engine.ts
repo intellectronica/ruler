@@ -713,6 +713,7 @@ async function applyMcpConfiguration(
     return await applyOpenHandsMcpConfiguration(
       agentMcpJson,
       dest,
+      projectRoot,
       cliMcpStrategy ?? agentConfig?.mcp?.strategy ?? config.mcp?.strategy,
       dryRun,
       verbose,
@@ -724,6 +725,7 @@ async function applyMcpConfiguration(
     return await applyOpenCodeMcpConfiguration(
       agentMcpJson,
       dest,
+      projectRoot,
       cliMcpStrategy ?? agentConfig?.mcp?.strategy ?? config.mcp?.strategy,
       dryRun,
       verbose,
@@ -762,6 +764,7 @@ async function applyMcpConfiguration(
 async function applyOpenHandsMcpConfiguration(
   filteredMcpJson: Record<string, unknown>,
   dest: string,
+  projectRoot: string,
   strategy: McpStrategy | undefined,
   dryRun: boolean,
   verbose: boolean,
@@ -773,13 +776,20 @@ async function applyOpenHandsMcpConfiguration(
       verbose,
     );
   } else {
-    await propagateMcpToOpenHands(filteredMcpJson, dest, backup, strategy);
+    await propagateMcpToOpenHands(
+      filteredMcpJson,
+      dest,
+      backup,
+      strategy,
+      projectRoot,
+    );
   }
 }
 
 async function applyOpenCodeMcpConfiguration(
   filteredMcpJson: Record<string, unknown>,
   dest: string,
+  projectRoot: string,
   strategy: McpStrategy | undefined,
   dryRun: boolean,
   verbose: boolean,
@@ -791,7 +801,13 @@ async function applyOpenCodeMcpConfiguration(
       verbose,
     );
   } else {
-    await propagateMcpToOpenCode(filteredMcpJson, dest, backup, strategy);
+    await propagateMcpToOpenCode(
+      filteredMcpJson,
+      dest,
+      backup,
+      strategy,
+      projectRoot,
+    );
   }
 }
 
@@ -1049,7 +1065,7 @@ async function applyStandardMcpConfiguration(
     if (currentContent !== newContent) {
       if (backup) {
         const { backupFile } = await import('../core/FileSystemUtils');
-        await backupFile(dest);
+        await backupFile(dest, projectRoot);
       }
       if (isCodexToml) {
         await FileSystemUtils.writeGeneratedFile(

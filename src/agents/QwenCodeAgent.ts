@@ -55,7 +55,11 @@ export class QwenCodeAgent extends AgentsMdAgent {
       contextFileName: this.getContextFileName(projectRoot, agentConfig),
     } as Record<string, unknown>;
 
-    await writeGeneratedFile(settingsPath, JSON.stringify(updated, null, 2));
+    await writeGeneratedFile(
+      settingsPath,
+      JSON.stringify(updated, null, 2),
+      projectRoot,
+    );
   }
 
   // Ensure MCP merging uses the correct key for Qwen Code (.qwen/settings.json)

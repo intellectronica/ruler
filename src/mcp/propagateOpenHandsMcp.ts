@@ -1,6 +1,10 @@
 import * as fs from 'fs/promises';
 import { parse as parseTOML, stringify } from '@iarna/toml';
-import { ensureDirExists, writeGeneratedFile } from '../core/FileSystemUtils';
+import {
+  assertManagedPathInsideRoot,
+  ensureDirExists,
+  writeGeneratedFile,
+} from '../core/FileSystemUtils';
 import * as path from 'path';
 import { McpStrategy } from '../types';
 
@@ -110,8 +114,16 @@ export async function propagateMcpToOpenHands(
   openHandsConfigPath: string,
   backup = true,
   strategy: McpStrategy = 'merge',
+  containmentRoot?: string,
 ): Promise<void> {
   const rulerMcp: Record<string, unknown> = rulerMcpData || {};
+  if (containmentRoot) {
+    await assertManagedPathInsideRoot(
+      openHandsConfigPath,
+      containmentRoot,
+      'Refusing to write generated file outside project',
+    );
+  }
 
   // Always use the legacy Ruler MCP config format as input (top-level "mcpServers" key)
   const rulerServers = rulerMcp.mcpServers || {};
@@ -232,7 +244,7 @@ export async function propagateMcpToOpenHands(
   await ensureDirExists(path.dirname(openHandsConfigPath));
   if (backup) {
     const { backupFile } = await import('../core/FileSystemUtils');
-    await backupFile(openHandsConfigPath);
+    await backupFile(openHandsConfigPath, containmentRoot);
   }
-  await writeGeneratedFile(openHandsConfigPath, finalContent);
+  await writeGeneratedFile(openHandsConfigPath, finalContent, containmentRoot);
 }

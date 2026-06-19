@@ -54,6 +54,7 @@ describe('OpenCodeAgent', () => {
     expect(mockedWriteGeneratedFile).toHaveBeenCalledWith(
       '/root/AGENTS.md',
       'rules',
+      '/root',
     );
     expect(mockedWriteGeneratedFile).toHaveBeenCalledTimes(1);
   });
@@ -75,6 +76,7 @@ describe('OpenCodeAgent', () => {
     expect(mockedWriteGeneratedFile).toHaveBeenCalledWith(
       '/root/AGENTS.md',
       'rules',
+      '/root',
     );
     expect(mockedWriteGeneratedFile).toHaveBeenCalledWith(
       '/root/opencode.json',
@@ -91,6 +93,7 @@ describe('OpenCodeAgent', () => {
         null,
         2,
       ),
+      '/root',
     );
   });
 
@@ -114,6 +117,7 @@ describe('OpenCodeAgent', () => {
     expect(mockedWriteGeneratedFile).toHaveBeenCalledWith(
       '/root/CUSTOM.md',
       'rules',
+      '/root',
     );
     expect(mockedWriteGeneratedFile).toHaveBeenCalledWith(
       '/root/custom-opencode.json',
@@ -130,6 +134,7 @@ describe('OpenCodeAgent', () => {
         null,
         2,
       ),
+      '/root',
     );
   });
 
@@ -144,6 +149,7 @@ describe('OpenCodeAgent', () => {
     expect(mockedWriteGeneratedFile).toHaveBeenCalledWith(
       '/root/CUSTOM.md',
       'rules',
+      '/root',
     );
   });
 });

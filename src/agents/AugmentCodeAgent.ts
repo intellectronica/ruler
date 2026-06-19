@@ -24,10 +24,11 @@ export class AugmentCodeAgent implements IAgent {
   ): Promise<void> {
     const output =
       agentConfig?.outputPath ?? this.getDefaultOutputPath(projectRoot);
+    const absolutePath = path.resolve(projectRoot, output);
     if (backup) {
-      await backupFile(output);
+      await backupFile(absolutePath, projectRoot);
     }
-    await writeGeneratedFile(output, concatenatedRules);
+    await writeGeneratedFile(absolutePath, concatenatedRules, projectRoot);
 
     // AugmentCode does not support MCP servers
     // MCP configuration is ignored for this agent

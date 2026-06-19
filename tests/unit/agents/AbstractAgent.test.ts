@@ -106,18 +106,18 @@ describe('AbstractAgent', () => {
       expect(content).toBe(rules);
     });
 
-    it('resolves relative paths correctly', async () => {
+    it('rejects relative output paths that escape the project root', async () => {
       const rules = 'Relative path rules';
-      const relativePath = '../outside/test.md';
+      const relativePath = `../${path.basename(tmpDir)}-outside/test.md`;
 
-      // This should resolve relative to the project root
-      await agent.applyRulerConfig(rules, tmpDir, null, {
-        outputPath: relativePath,
-      });
+      await expect(
+        agent.applyRulerConfig(rules, tmpDir, null, {
+          outputPath: relativePath,
+        }),
+      ).rejects.toThrow('Refusing to write generated file');
 
       const expectedPath = path.resolve(tmpDir, relativePath);
-      const content = await fs.readFile(expectedPath, 'utf8');
-      expect(content).toBe(rules);
+      await expect(fs.access(path.dirname(expectedPath))).rejects.toThrow();
     });
 
     it('handles absolute paths correctly', async () => {

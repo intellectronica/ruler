@@ -102,7 +102,11 @@ export class GeminiCliAgent extends AgentsMdAgent {
       }
     }
 
-    await writeGeneratedFile(settingsPath, JSON.stringify(updated, null, 2));
+    await writeGeneratedFile(
+      settingsPath,
+      JSON.stringify(updated, null, 2),
+      projectRoot,
+    );
   }
 
   // Ensure MCP merging uses the correct key for Gemini (.gemini/settings.json)

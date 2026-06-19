@@ -48,10 +48,14 @@ describe('JunieAgent', () => {
     await agent.applyRulerConfig('rules', '/root', null);
 
     expect(ensureDirExists).toHaveBeenCalledWith('/root/.junie');
-    expect(backupFile).toHaveBeenCalledWith('/root/.junie/guidelines.md');
+    expect(backupFile).toHaveBeenCalledWith(
+      '/root/.junie/guidelines.md',
+      '/root',
+    );
     expect(writeGeneratedFile).toHaveBeenCalledWith(
       '/root/.junie/guidelines.md',
       'rules',
+      '/root',
     );
   });
 
@@ -68,10 +72,14 @@ describe('JunieAgent', () => {
     });
 
     expect(ensureDirExists).toHaveBeenCalledWith('/custom/path');
-    expect(backupFile).toHaveBeenCalledWith('/custom/path/guidelines.md');
+    expect(backupFile).toHaveBeenCalledWith(
+      '/custom/path/guidelines.md',
+      '/root',
+    );
     expect(writeGeneratedFile).toHaveBeenCalledWith(
       '/custom/path/guidelines.md',
       'rules',
+      '/root',
     );
   });
 });

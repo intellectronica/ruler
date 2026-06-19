@@ -1,6 +1,7 @@
 import * as path from 'path';
 import { IAgent, IAgentConfig } from './IAgent';
 import {
+  assertManagedPathInsideRoot,
   backupFile,
   writeGeneratedFile,
   ensureDirExists,
@@ -44,11 +45,16 @@ export abstract class AbstractAgent implements IAgent {
     const output =
       agentConfig?.outputPath ?? this.getDefaultOutputPath(projectRoot);
     const absolutePath = path.resolve(projectRoot, output);
+    await assertManagedPathInsideRoot(
+      absolutePath,
+      projectRoot,
+      'Refusing to write generated file outside project',
+    );
     await ensureDirExists(path.dirname(absolutePath));
     if (backup) {
-      await backupFile(absolutePath);
+      await backupFile(absolutePath, projectRoot);
     }
-    await writeGeneratedFile(absolutePath, concatenatedRules);
+    await writeGeneratedFile(absolutePath, concatenatedRules, projectRoot);
   }
 
   /**
