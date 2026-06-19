@@ -975,7 +975,10 @@ async function applyStandardMcpConfiguration(
   } else {
     // Transform MCP config for agent-specific compatibility
     let mcpToMerge = filteredMcpJson;
-    if (agent.getIdentifier() === 'claude') {
+    if (
+      agent.getIdentifier() === 'claude' ||
+      agent.getIdentifier() === 'aider'
+    ) {
       mcpToMerge = transformMcpForClaude(filteredMcpJson);
     } else if (agent.getIdentifier() === 'kilocode') {
       mcpToMerge = transformMcpForKiloCode(filteredMcpJson);
