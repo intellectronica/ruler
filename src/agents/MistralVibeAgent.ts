@@ -176,7 +176,7 @@ export class MistralVibeAgent implements IAgent {
       // Convert to TOML and write
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const tomlContent = stringify(updatedConfig as any);
-      await writeGeneratedFile(configPath, tomlContent);
+      await writeGeneratedFile(configPath, tomlContent, projectRoot);
     }
   }
 

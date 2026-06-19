@@ -148,7 +148,7 @@ export class CodexCliAgent implements IAgent {
       // @iarna/toml should handle the formatting properly
       const tomlContent = stringify(finalConfig);
 
-      await writeGeneratedFile(configPath, tomlContent);
+      await writeGeneratedFile(configPath, tomlContent, projectRoot);
     }
   }
 

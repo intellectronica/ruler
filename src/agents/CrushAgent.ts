@@ -79,9 +79,9 @@ export class CrushAgent implements IAgent {
 
     await fs.mkdir(path.dirname(instructionsPath), { recursive: true });
     if (backup) {
-      await backupFile(instructionsPath);
+      await backupFile(instructionsPath, projectRoot);
     }
-    await writeGeneratedFile(instructionsPath, concatenatedRules);
+    await writeGeneratedFile(instructionsPath, concatenatedRules, projectRoot);
 
     // Always transform from mcpServers ({ mcpServers: ... }) to { mcp: ... } for Crush
     let finalMcpConfig: { mcp: Record<string, unknown> } = { mcp: {} };
@@ -123,11 +123,12 @@ export class CrushAgent implements IAgent {
     if (Object.keys(finalMcpConfig.mcp).length > 0) {
       await fs.mkdir(path.dirname(mcpPath), { recursive: true });
       if (backup) {
-        await backupFile(mcpPath);
+        await backupFile(mcpPath, projectRoot);
       }
       await writeGeneratedFile(
         mcpPath,
         JSON.stringify(finalMcpConfig, null, 2),
+        projectRoot,
       );
     }
   }

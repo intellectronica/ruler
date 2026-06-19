@@ -79,6 +79,26 @@ async function assertContainingDirectoryInsideRoot(
   }
 }
 
+export async function assertManagedPathInsideRoot(
+  managedPath: string,
+  rootPath: string,
+  action: string,
+): Promise<void> {
+  const realRoot = await fs.realpath(rootPath);
+  await assertContainingDirectoryInsideRoot(managedPath, rootPath, action);
+
+  try {
+    const realManagedPath = await fs.realpath(managedPath);
+    if (!isPathInsideOrEqual(realRoot, realManagedPath)) {
+      throw new Error(`${action}: ${managedPath}`);
+    }
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+      throw error;
+    }
+  }
+}
+
 async function isRulerGeneratedFile(filePath: string): Promise<boolean> {
   try {
     const content = await fs.readFile(filePath, 'utf8');
@@ -362,9 +382,28 @@ export async function writeGeneratedFile(
  * Creates a backup of the given filePath by copying it to filePath.bak if it exists.
  * Keeps an existing backup intact so repeated applies preserve the original file.
  */
-export async function backupFile(filePath: string): Promise<void> {
+export async function backupFile(
+  filePath: string,
+  containmentRoot?: string,
+): Promise<void> {
   const backupPath = `${filePath}.bak`;
+  if (containmentRoot) {
+    await assertManagedPathInsideRoot(
+      filePath,
+      containmentRoot,
+      'Refusing to back up generated file through symlinked directory',
+    );
+    await assertManagedPathInsideRoot(
+      backupPath,
+      containmentRoot,
+      'Refusing to create backup file through symlinked directory',
+    );
+  }
   await assertNotSymbolicLink(filePath, 'Refusing to back up symlinked file');
+  await assertNotSymbolicLink(
+    backupPath,
+    'Refusing to use symlinked backup file',
+  );
 
   try {
     await fs.access(backupPath);

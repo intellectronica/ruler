@@ -2,6 +2,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { IAgent, IAgentConfig } from './IAgent';
 import {
+  assertManagedPathInsideRoot,
   backupFile,
   writeGeneratedFile,
   ensureDirExists,
@@ -57,6 +58,11 @@ export class FirebenderAgent implements IAgent {
     backup = true,
   ): Promise<void> {
     const rulesPath = this.resolveOutputPath(projectRoot, agentConfig);
+    await assertManagedPathInsideRoot(
+      rulesPath,
+      projectRoot,
+      'Refusing to write generated file outside project',
+    );
     await ensureDirExists(path.dirname(rulesPath));
 
     const firebenderConfig = await this.loadExistingConfig(rulesPath);
@@ -77,7 +83,7 @@ export class FirebenderAgent implements IAgent {
       );
     }
 
-    await this.saveConfig(rulesPath, firebenderConfig, backup);
+    await this.saveConfig(rulesPath, firebenderConfig, backup, projectRoot);
   }
 
   private resolveOutputPath(
@@ -173,14 +179,15 @@ export class FirebenderAgent implements IAgent {
     rulesPath: string,
     config: FirebenderConfig,
     backup: boolean,
+    projectRoot: string,
   ): Promise<void> {
     const updatedContent = JSON.stringify(config, null, 2);
 
     if (backup) {
-      await backupFile(rulesPath);
+      await backupFile(rulesPath, projectRoot);
     }
 
-    await writeGeneratedFile(rulesPath, updatedContent);
+    await writeGeneratedFile(rulesPath, updatedContent, projectRoot);
   }
 
   /**

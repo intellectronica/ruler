@@ -40,9 +40,9 @@ export class OpenCodeAgent implements IAgent {
 
     await fs.mkdir(path.dirname(instructionsPath), { recursive: true });
     if (backup) {
-      await backupFile(instructionsPath);
+      await backupFile(instructionsPath, projectRoot);
     }
-    await writeGeneratedFile(instructionsPath, concatenatedRules);
+    await writeGeneratedFile(instructionsPath, concatenatedRules, projectRoot);
 
     if (!rulerMcpJson) {
       return;
@@ -81,9 +81,13 @@ export class OpenCodeAgent implements IAgent {
     // Always write the config file, even if MCP is empty
     await fs.mkdir(path.dirname(mcpPath), { recursive: true });
     if (backup) {
-      await backupFile(mcpPath);
+      await backupFile(mcpPath, projectRoot);
     }
-    await writeGeneratedFile(mcpPath, JSON.stringify(finalMcpConfig, null, 2));
+    await writeGeneratedFile(
+      mcpPath,
+      JSON.stringify(finalMcpConfig, null, 2),
+      projectRoot,
+    );
   }
 
   supportsMcpStdio(): boolean {

@@ -12,6 +12,7 @@ import {
   getVSCodeSettingsPath,
 } from '../vscode/settings';
 import { isPathInsideOrEqual } from './path-utils';
+import { assertManagedPathInsideRoot } from './FileSystemUtils';
 
 const RULER_START_MARKER = '# START Ruler Generated Files';
 const RULER_END_MARKER = '# END Ruler Generated Files';
@@ -138,6 +139,7 @@ async function restoreFromBackup(
   filePath: string,
   verbose: boolean,
   dryRun: boolean,
+  projectRoot?: string,
 ): Promise<boolean> {
   const backupPath = `${filePath}.bak`;
   const backupExists = await fileExists(backupPath);
@@ -152,6 +154,18 @@ async function restoreFromBackup(
   if (dryRun) {
     logVerbose(`${prefix} Would restore: ${filePath} from backup`, verbose);
   } else {
+    if (projectRoot) {
+      await assertManagedPathInsideRoot(
+        filePath,
+        projectRoot,
+        'Refusing to restore backup through symlinked output path',
+      );
+      await assertManagedPathInsideRoot(
+        backupPath,
+        projectRoot,
+        'Refusing to restore from backup through symlinked backup path',
+      );
+    }
     await fs.copyFile(backupPath, filePath);
     logVerbose(`${prefix} Restored: ${filePath} from backup`, verbose);
   }
@@ -197,6 +211,13 @@ async function removeGeneratedFile(
   if (dryRun) {
     logVerbose(`${prefix} Would remove generated file: ${filePath}`, verbose);
   } else {
+    if (projectRoot) {
+      await assertManagedPathInsideRoot(
+        filePath,
+        projectRoot,
+        'Refusing to remove generated file through symlinked path',
+      );
+    }
     await fs.unlink(filePath);
     logVerbose(`${prefix} Removed generated file: ${filePath}`, verbose);
   }
@@ -211,6 +232,7 @@ async function removeBackupFile(
   filePath: string,
   verbose: boolean,
   dryRun: boolean,
+  projectRoot?: string,
 ): Promise<boolean> {
   const backupPath = `${filePath}.bak`;
   const backupExists = await fileExists(backupPath);
@@ -224,6 +246,13 @@ async function removeBackupFile(
   if (dryRun) {
     logVerbose(`${prefix} Would remove backup file: ${backupPath}`, verbose);
   } else {
+    if (projectRoot) {
+      await assertManagedPathInsideRoot(
+        backupPath,
+        projectRoot,
+        'Refusing to remove backup file through symlinked path',
+      );
+    }
     await fs.unlink(backupPath);
     logVerbose(`${prefix} Removed backup file: ${backupPath}`, verbose);
   }
@@ -435,7 +464,12 @@ async function removeAdditionalAgentFiles(
 
       const backupExists = await fileExists(`${fullPath}.bak`);
       if (backupExists) {
-        const restored = await restoreFromBackup(fullPath, verbose, dryRun);
+        const restored = await restoreFromBackup(
+          fullPath,
+          verbose,
+          dryRun,
+          projectRoot,
+        );
         if (restored) {
           filesRemoved++;
         }
@@ -468,7 +502,12 @@ async function removeAdditionalAgentFiles(
   const backupPath = `${settingsPath}.bak`;
 
   if (await fileExists(backupPath)) {
-    const restored = await restoreFromBackup(settingsPath, verbose, dryRun);
+    const restored = await restoreFromBackup(
+      settingsPath,
+      verbose,
+      dryRun,
+      projectRoot,
+    );
     if (restored) {
       filesRemoved++;
       logVerbose(`${prefix} Restored VSCode settings from backup`, verbose);
@@ -500,10 +539,15 @@ async function removeAdditionalAgentFiles(
 
           const remainingKeys = Object.keys(settings);
           if (remainingKeys.length === 0) {
+            await assertManagedPathInsideRoot(
+              settingsPath,
+              projectRoot,
+              'Refusing to remove VSCode settings through symlinked path',
+            );
             await fs.unlink(settingsPath);
             logVerbose(`${prefix} Removed empty VSCode settings file`, verbose);
           } else {
-            await writeVSCodeSettings(settingsPath, settings);
+            await writeVSCodeSettings(settingsPath, settings, projectRoot);
             logVerbose(
               `${prefix} Removed augment.advanced section from VSCode settings`,
               verbose,
@@ -557,7 +601,12 @@ export async function revertAgentConfiguration(
   );
 
   for (const outputPath of outputPaths) {
-    const restored = await restoreFromBackup(outputPath, verbose, dryRun);
+    const restored = await restoreFromBackup(
+      outputPath,
+      verbose,
+      dryRun,
+      projectRoot,
+    );
     if (restored) {
       result.restored++;
 
@@ -566,6 +615,7 @@ export async function revertAgentConfiguration(
           outputPath,
           verbose,
           dryRun,
+          projectRoot,
         );
         if (backupRemoved) {
           result.backupsRemoved++;
@@ -600,7 +650,12 @@ export async function revertAgentConfiguration(
         verbose,
       );
     } else {
-      const mcpRestored = await restoreFromBackup(mcpPath, verbose, dryRun);
+      const mcpRestored = await restoreFromBackup(
+        mcpPath,
+        verbose,
+        dryRun,
+        projectRoot,
+      );
       if (mcpRestored) {
         result.restored++;
 
@@ -609,6 +664,7 @@ export async function revertAgentConfiguration(
             mcpPath,
             verbose,
             dryRun,
+            projectRoot,
           );
           if (mcpBackupRemoved) {
             result.backupsRemoved++;

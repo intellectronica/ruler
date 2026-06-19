@@ -3,6 +3,7 @@ import { promises as fs } from 'fs';
 import { IAgent, IAgentConfig } from './IAgent';
 import { AgentsMdAgent } from './AgentsMdAgent';
 import {
+  assertManagedPathInsideRoot,
   backupFile,
   ensureDirExists,
   writeGeneratedFile,
@@ -59,6 +60,11 @@ export class RooCodeAgent implements IAgent {
       agentConfig?.outputPathConfig ?? outputPaths['mcp'],
     );
 
+    await assertManagedPathInsideRoot(
+      mcpPath,
+      projectRoot,
+      'Refusing to write generated file outside project',
+    );
     await ensureDirExists(path.dirname(mcpPath));
 
     // Create base structure with mcpServers
@@ -118,9 +124,9 @@ export class RooCodeAgent implements IAgent {
 
     // Backup (only if file existed and backup is enabled) then write new content
     if (backup) {
-      await backupFile(mcpPath);
+      await backupFile(mcpPath, projectRoot);
     }
-    await writeGeneratedFile(mcpPath, newContent);
+    await writeGeneratedFile(mcpPath, newContent, projectRoot);
   }
 
   supportsMcpStdio(): boolean {

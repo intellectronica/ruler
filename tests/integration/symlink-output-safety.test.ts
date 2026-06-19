@@ -137,4 +137,124 @@ describe('Symlink output safety', () => {
       await fs.rm(outsideDir, { recursive: true, force: true });
     }
   });
+
+  it('does not write agent output through a symlinked parent directory outside the project', async () => {
+    const outsideDir = path.join(
+      projectRoot,
+      '..',
+      `${path.basename(projectRoot)}-outside-agent-dir`,
+    );
+    await fs.mkdir(outsideDir);
+    await fs.symlink(outsideDir, path.join(projectRoot, 'linked'));
+    await fs.writeFile(
+      path.join(projectRoot, '.ruler', 'ruler.toml'),
+      ['[agents.claude]', 'output_path = "linked/CLAUDE.md"', ''].join('\n'),
+    );
+
+    try {
+      expect(() =>
+        execFileSync(
+          'node',
+          [
+            path.resolve('dist/cli/index.js'),
+            'apply',
+            '--project-root',
+            projectRoot,
+            '--agents',
+            'claude',
+            '--no-backup',
+            '--no-gitignore',
+          ],
+          {
+            stdio: 'pipe',
+          },
+        ),
+      ).toThrow();
+
+      await expect(
+        fs.access(path.join(outsideDir, 'CLAUDE.md')),
+      ).rejects.toThrow();
+    } finally {
+      await fs.rm(outsideDir, { recursive: true, force: true });
+    }
+  });
+
+  it('does not create an MCP backup through a symlinked parent directory outside the project', async () => {
+    const outsideDir = path.join(
+      projectRoot,
+      '..',
+      `${path.basename(projectRoot)}-outside-mcp-dir`,
+    );
+    await fs.mkdir(outsideDir);
+    await fs.writeFile(path.join(outsideDir, 'mcp.json'), '{"existing":true}');
+    await fs.writeFile(
+      path.join(projectRoot, '.ruler', 'ruler.toml'),
+      [
+        '[mcp_servers.filesystem]',
+        'command = "node"',
+        'args = ["server.js"]',
+        '',
+      ].join('\n'),
+    );
+    await fs.symlink(outsideDir, path.join(projectRoot, '.vscode'));
+
+    try {
+      expect(() =>
+        execFileSync(
+          'node',
+          [
+            path.resolve('dist/cli/index.js'),
+            'apply',
+            '--project-root',
+            projectRoot,
+            '--agents',
+            'copilot',
+            '--no-gitignore',
+          ],
+          {
+            stdio: 'pipe',
+          },
+        ),
+      ).toThrow();
+
+      await expect(
+        fs.readFile(path.join(outsideDir, 'mcp.json'), 'utf8'),
+      ).resolves.toBe('{"existing":true}');
+      await expect(
+        fs.access(path.join(outsideDir, 'mcp.json.bak')),
+      ).rejects.toThrow();
+    } finally {
+      await fs.rm(outsideDir, { recursive: true, force: true });
+    }
+  });
+
+  it('does not restore a backup through a symlinked output file outside the project', async () => {
+    const outputPath = path.join(projectRoot, 'CLAUDE.md');
+    await fs.symlink(outsideFile, outputPath);
+    await fs.writeFile(`${outputPath}.bak`, 'backup content');
+
+    expect(() =>
+      execFileSync(
+        'node',
+        [
+          path.resolve('dist/cli/index.js'),
+          'revert',
+          '--project-root',
+          projectRoot,
+          '--agents',
+          'claude',
+        ],
+        {
+          stdio: 'pipe',
+        },
+      ),
+    ).toThrow();
+
+    await expect(fs.readFile(outsideFile, 'utf8')).resolves.toBe(
+      'outside original',
+    );
+    await expect(fs.readFile(`${outputPath}.bak`, 'utf8')).resolves.toBe(
+      'backup content',
+    );
+  });
 });

@@ -14,6 +14,7 @@ import {
 import type { SubagentInfo, SubagentFrontmatter } from '../types';
 import { loadSubagentFile, mapToolsForCopilot } from './SubagentsUtils';
 import type { IAgent } from '../agents/IAgent';
+import { assertManagedPathInsideRoot } from './FileSystemUtils';
 
 /**
  * Discovers subagent definitions in `.ruler/agents/`.
@@ -176,8 +177,14 @@ function ensureBodyFormatting(body: string | undefined): string {
 async function writeAgentsDirectoryAtomic(
   targetDir: string,
   files: { name: string; content: string }[],
+  projectRoot: string,
 ): Promise<void> {
   const parent = path.dirname(targetDir);
+  await assertManagedPathInsideRoot(
+    targetDir,
+    projectRoot,
+    'Refusing to replace subagents directory through symlinked path',
+  );
   await fs.mkdir(parent, { recursive: true });
 
   const tempDir = path.join(parent, `agents.tmp-${Date.now()}`);
@@ -338,7 +345,7 @@ export async function propagateSubagentsForClaude(
     name: getSourceRelativeMdPath(s),
     content: buildClaudeFile(s),
   }));
-  await writeAgentsDirectoryAtomic(targetDir, files);
+  await writeAgentsDirectoryAtomic(targetDir, files, projectRoot);
   return [];
 }
 
@@ -359,7 +366,7 @@ export async function propagateSubagentsForCursor(
     name: getSourceRelativeMdPath(s),
     content: buildCursorFile(s),
   }));
-  await writeAgentsDirectoryAtomic(targetDir, files);
+  await writeAgentsDirectoryAtomic(targetDir, files, projectRoot);
   return [];
 }
 
@@ -380,7 +387,7 @@ export async function propagateSubagentsForCodex(
     name: withExtension(getSourceRelativeMdPath(s), '.toml'),
     content: buildCodexFile(s),
   }));
-  await writeAgentsDirectoryAtomic(targetDir, files);
+  await writeAgentsDirectoryAtomic(targetDir, files, projectRoot);
   return [];
 }
 
@@ -409,7 +416,7 @@ export async function propagateSubagentsForCopilot(
     name: getSourceRelativeMdPath(s),
     content: buildCopilotFile(s, false, verbose).content,
   }));
-  await writeAgentsDirectoryAtomic(targetDir, files);
+  await writeAgentsDirectoryAtomic(targetDir, files, projectRoot);
   return [];
 }
 
@@ -433,6 +440,11 @@ async function cleanupSubagentsDir(
     logVerboseInfo(`DRY RUN: Would remove ${relPath}`, verbose, dryRun);
     return;
   }
+  await assertManagedPathInsideRoot(
+    target,
+    projectRoot,
+    'Refusing to remove subagents directory through symlinked path',
+  );
   await fs.rm(target, { recursive: true, force: true });
   logVerboseInfo(`Removed ${relPath} (subagents disabled)`, verbose, dryRun);
 }

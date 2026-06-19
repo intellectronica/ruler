@@ -114,6 +114,7 @@ export class ZedAgent extends AgentsMdAgent {
       await writeGeneratedFile(
         zedSettingsPath,
         JSON.stringify(mergedSettings, null, 2),
+        projectRoot,
       );
     }
   }

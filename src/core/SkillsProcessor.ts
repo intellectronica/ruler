@@ -21,6 +21,7 @@ import {
 } from '../constants';
 import { walkSkillsTree, copySkillsDirectory } from './SkillsUtils';
 import type { IAgent } from '../agents/IAgent';
+import { assertManagedPathInsideRoot } from './FileSystemUtils';
 
 /**
  * Discovers skills in the project's .ruler/skills directory.
@@ -222,11 +223,26 @@ async function cleanupSkillsDirectory(
     return;
   }
 
+  await assertManagedPathInsideRoot(
+    targetPath,
+    projectRoot,
+    'Refusing to remove skills directory through symlinked path',
+  );
   await fs.rm(targetPath, { recursive: true, force: true });
   logVerboseInfo(`Removed ${relativePath} (skills disabled)`, verbose, dryRun);
 }
 
-async function createTempSkillsDir(parentDir: string): Promise<string> {
+async function createTempSkillsDir(
+  parentDir: string,
+  containmentRoot?: string,
+): Promise<string> {
+  if (containmentRoot) {
+    await assertManagedPathInsideRoot(
+      parentDir,
+      containmentRoot,
+      'Refusing to create temporary skills directory through symlinked path',
+    );
+  }
   return fs.mkdtemp(path.join(parentDir, 'skills.tmp-'));
 }
 
@@ -253,7 +269,16 @@ export async function replaceSkillsDirectory(
   tempDir: string,
   targetDir: string,
   fsOps: ReplaceSkillsFsOps = fs,
+  containmentRoot?: string,
 ): Promise<void> {
+  if (containmentRoot) {
+    await assertManagedPathInsideRoot(
+      targetDir,
+      containmentRoot,
+      'Refusing to replace skills directory through symlinked path',
+    );
+  }
+
   let lastError: unknown;
 
   for (let attempt = 1; attempt <= RENAME_RETRY_ATTEMPTS; attempt += 1) {
@@ -529,7 +554,7 @@ export async function propagateSkillsForClaude(
   await fs.mkdir(claudeDir, { recursive: true });
 
   // Use atomic replace: copy to temp, then rename
-  const tempDir = await createTempSkillsDir(claudeDir);
+  const tempDir = await createTempSkillsDir(claudeDir, projectRoot);
 
   try {
     // Copy to temp directory
@@ -544,7 +569,7 @@ export async function propagateSkillsForClaude(
     }
 
     // Rename temp to target
-    await replaceSkillsDirectory(tempDir, claudeSkillsPath);
+    await replaceSkillsDirectory(tempDir, claudeSkillsPath, fs, projectRoot);
   } catch (error) {
     // Clean up temp directory on error
     try {
@@ -587,7 +612,7 @@ export async function propagateSkillsForCodex(
   await fs.mkdir(agentsDir, { recursive: true });
 
   // Use atomic replace: copy to temp, then rename
-  const tempDir = await createTempSkillsDir(agentsDir);
+  const tempDir = await createTempSkillsDir(agentsDir, projectRoot);
 
   try {
     // Copy to temp directory
@@ -602,7 +627,7 @@ export async function propagateSkillsForCodex(
     }
 
     // Rename temp to target
-    await replaceSkillsDirectory(tempDir, agentsSkillsPath);
+    await replaceSkillsDirectory(tempDir, agentsSkillsPath, fs, projectRoot);
   } catch (error) {
     // Clean up temp directory on error
     try {
@@ -645,7 +670,7 @@ export async function propagateSkillsForOpenCode(
   await fs.mkdir(opencodeDir, { recursive: true });
 
   // Use atomic replace: copy to temp, then rename
-  const tempDir = await createTempSkillsDir(opencodeDir);
+  const tempDir = await createTempSkillsDir(opencodeDir, projectRoot);
 
   try {
     // Copy to temp directory
@@ -660,7 +685,7 @@ export async function propagateSkillsForOpenCode(
     }
 
     // Rename temp to target
-    await replaceSkillsDirectory(tempDir, opencodeSkillsPath);
+    await replaceSkillsDirectory(tempDir, opencodeSkillsPath, fs, projectRoot);
   } catch (error) {
     // Clean up temp directory on error
     try {
@@ -703,7 +728,7 @@ export async function propagateSkillsForPi(
   await fs.mkdir(piDir, { recursive: true });
 
   // Use atomic replace: copy to temp, then rename
-  const tempDir = await createTempSkillsDir(piDir);
+  const tempDir = await createTempSkillsDir(piDir, projectRoot);
 
   try {
     // Copy to temp directory
@@ -718,7 +743,7 @@ export async function propagateSkillsForPi(
     }
 
     // Rename temp to target
-    await replaceSkillsDirectory(tempDir, piSkillsPath);
+    await replaceSkillsDirectory(tempDir, piSkillsPath, fs, projectRoot);
   } catch (error) {
     // Clean up temp directory on error
     try {
@@ -761,7 +786,7 @@ export async function propagateSkillsForGoose(
   await fs.mkdir(gooseDir, { recursive: true });
 
   // Use atomic replace: copy to temp, then rename
-  const tempDir = await createTempSkillsDir(gooseDir);
+  const tempDir = await createTempSkillsDir(gooseDir, projectRoot);
 
   try {
     // Copy to temp directory
@@ -776,7 +801,7 @@ export async function propagateSkillsForGoose(
     }
 
     // Rename temp to target
-    await replaceSkillsDirectory(tempDir, gooseSkillsPath);
+    await replaceSkillsDirectory(tempDir, gooseSkillsPath, fs, projectRoot);
   } catch (error) {
     // Clean up temp directory on error
     try {
@@ -819,7 +844,7 @@ export async function propagateSkillsForVibe(
   await fs.mkdir(vibeDir, { recursive: true });
 
   // Use atomic replace: copy to temp, then rename
-  const tempDir = await createTempSkillsDir(vibeDir);
+  const tempDir = await createTempSkillsDir(vibeDir, projectRoot);
 
   try {
     // Copy to temp directory
@@ -834,7 +859,7 @@ export async function propagateSkillsForVibe(
     }
 
     // Rename temp to target
-    await replaceSkillsDirectory(tempDir, vibeSkillsPath);
+    await replaceSkillsDirectory(tempDir, vibeSkillsPath, fs, projectRoot);
   } catch (error) {
     // Clean up temp directory on error
     try {
@@ -877,7 +902,7 @@ export async function propagateSkillsForRoo(
   await fs.mkdir(rooDir, { recursive: true });
 
   // Use atomic replace: copy to temp, then rename
-  const tempDir = await createTempSkillsDir(rooDir);
+  const tempDir = await createTempSkillsDir(rooDir, projectRoot);
 
   try {
     // Copy to temp directory
@@ -892,7 +917,7 @@ export async function propagateSkillsForRoo(
     }
 
     // Rename temp to target
-    await replaceSkillsDirectory(tempDir, rooSkillsPath);
+    await replaceSkillsDirectory(tempDir, rooSkillsPath, fs, projectRoot);
   } catch (error) {
     // Clean up temp directory on error
     try {
@@ -935,7 +960,7 @@ export async function propagateSkillsForGemini(
   await fs.mkdir(geminiDir, { recursive: true });
 
   // Use atomic replace: copy to temp, then rename
-  const tempDir = await createTempSkillsDir(geminiDir);
+  const tempDir = await createTempSkillsDir(geminiDir, projectRoot);
 
   try {
     // Copy to temp directory
@@ -950,7 +975,7 @@ export async function propagateSkillsForGemini(
     }
 
     // Rename temp to target
-    await replaceSkillsDirectory(tempDir, geminiSkillsPath);
+    await replaceSkillsDirectory(tempDir, geminiSkillsPath, fs, projectRoot);
   } catch (error) {
     // Clean up temp directory on error
     try {
@@ -989,7 +1014,7 @@ export async function propagateSkillsForJunie(
 
   await fs.mkdir(junieDir, { recursive: true });
 
-  const tempDir = await createTempSkillsDir(junieDir);
+  const tempDir = await createTempSkillsDir(junieDir, projectRoot);
 
   try {
     await copySkillsDirectory(skillsDir, tempDir);
@@ -1000,7 +1025,7 @@ export async function propagateSkillsForJunie(
       // Target didn't exist, that's fine
     }
 
-    await replaceSkillsDirectory(tempDir, junieSkillsPath);
+    await replaceSkillsDirectory(tempDir, junieSkillsPath, fs, projectRoot);
   } catch (error) {
     try {
       await fs.rm(tempDir, { recursive: true, force: true });
@@ -1042,7 +1067,7 @@ export async function propagateSkillsForCursor(
   await fs.mkdir(cursorDir, { recursive: true });
 
   // Use atomic replace: copy to temp, then rename
-  const tempDir = await createTempSkillsDir(cursorDir);
+  const tempDir = await createTempSkillsDir(cursorDir, projectRoot);
 
   try {
     // Copy to temp directory
@@ -1057,7 +1082,7 @@ export async function propagateSkillsForCursor(
     }
 
     // Rename temp to target
-    await replaceSkillsDirectory(tempDir, cursorSkillsPath);
+    await replaceSkillsDirectory(tempDir, cursorSkillsPath, fs, projectRoot);
   } catch (error) {
     // Clean up temp directory on error
     try {
@@ -1100,7 +1125,7 @@ export async function propagateSkillsForWindsurf(
   await fs.mkdir(windsurfDir, { recursive: true });
 
   // Use atomic replace: copy to temp, then rename
-  const tempDir = await createTempSkillsDir(windsurfDir);
+  const tempDir = await createTempSkillsDir(windsurfDir, projectRoot);
 
   try {
     // Copy to temp directory
@@ -1115,7 +1140,7 @@ export async function propagateSkillsForWindsurf(
     }
 
     // Rename temp to target
-    await replaceSkillsDirectory(tempDir, windsurfSkillsPath);
+    await replaceSkillsDirectory(tempDir, windsurfSkillsPath, fs, projectRoot);
   } catch (error) {
     // Clean up temp directory on error
     try {
@@ -1158,7 +1183,7 @@ export async function propagateSkillsForFactory(
   await fs.mkdir(factoryDir, { recursive: true });
 
   // Use atomic replace: copy to temp, then rename
-  const tempDir = await createTempSkillsDir(factoryDir);
+  const tempDir = await createTempSkillsDir(factoryDir, projectRoot);
 
   try {
     // Copy to temp directory
@@ -1173,7 +1198,7 @@ export async function propagateSkillsForFactory(
     }
 
     // Rename temp to target
-    await replaceSkillsDirectory(tempDir, factorySkillsPath);
+    await replaceSkillsDirectory(tempDir, factorySkillsPath, fs, projectRoot);
   } catch (error) {
     // Clean up temp directory on error
     try {
@@ -1218,7 +1243,7 @@ export async function propagateSkillsForAntigravity(
   await fs.mkdir(antigravityDir, { recursive: true });
 
   // Use atomic replace: copy to temp, then rename
-  const tempDir = await createTempSkillsDir(antigravityDir);
+  const tempDir = await createTempSkillsDir(antigravityDir, projectRoot);
 
   try {
     // Copy to temp directory
@@ -1233,7 +1258,12 @@ export async function propagateSkillsForAntigravity(
     }
 
     // Rename temp to target
-    await replaceSkillsDirectory(tempDir, antigravitySkillsPath);
+    await replaceSkillsDirectory(
+      tempDir,
+      antigravitySkillsPath,
+      fs,
+      projectRoot,
+    );
   } catch (error) {
     // Clean up temp directory on error
     try {

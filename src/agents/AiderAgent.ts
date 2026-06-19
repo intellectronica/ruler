@@ -53,7 +53,7 @@ export class AiderAgent implements IAgent {
     try {
       await fs.access(cfgPath);
       if (backup) {
-        await backupFile(cfgPath);
+        await backupFile(cfgPath, projectRoot);
       }
       const raw = await fs.readFile(cfgPath, 'utf8');
       doc = (yaml.load(raw) || {}) as AiderConfig;
@@ -77,7 +77,7 @@ export class AiderAgent implements IAgent {
       doc.read.push(name);
     }
     const yamlStr = yaml.dump(doc);
-    await writeGeneratedFile(cfgPath, yamlStr);
+    await writeGeneratedFile(cfgPath, yamlStr, projectRoot);
   }
   getDefaultOutputPath(projectRoot: string): Record<string, string> {
     return {

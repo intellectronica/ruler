@@ -1,5 +1,9 @@
 import * as fs from 'fs/promises';
-import { ensureDirExists, writeGeneratedFile } from '../core/FileSystemUtils';
+import {
+  assertManagedPathInsideRoot,
+  ensureDirExists,
+  writeGeneratedFile,
+} from '../core/FileSystemUtils';
 import * as path from 'path';
 import { McpStrategy } from '../types';
 
@@ -102,8 +106,16 @@ export async function propagateMcpToOpenCode(
   openCodeConfigPath: string,
   backup = true,
   strategy: McpStrategy = 'merge',
+  containmentRoot?: string,
 ): Promise<void> {
   const rulerMcp: RulerMcp = rulerMcpData || {};
+  if (containmentRoot) {
+    await assertManagedPathInsideRoot(
+      openCodeConfigPath,
+      containmentRoot,
+      'Refusing to write generated file outside project',
+    );
+  }
 
   // Read existing OpenCode config if it exists
   let existingConfig: Partial<OpenCodeConfig> & Record<string, unknown> = {};
@@ -151,7 +163,7 @@ export async function propagateMcpToOpenCode(
   await ensureDirExists(path.dirname(openCodeConfigPath));
   if (backup) {
     const { backupFile } = await import('../core/FileSystemUtils');
-    await backupFile(openCodeConfigPath);
+    await backupFile(openCodeConfigPath, containmentRoot);
   }
-  await writeGeneratedFile(openCodeConfigPath, finalContent);
+  await writeGeneratedFile(openCodeConfigPath, finalContent, containmentRoot);
 }

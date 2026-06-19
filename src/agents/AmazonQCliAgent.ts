@@ -2,6 +2,7 @@ import * as path from 'path';
 import { promises as fs } from 'fs';
 import { IAgent, IAgentConfig } from './IAgent';
 import {
+  assertManagedPathInsideRoot,
   backupFile,
   writeGeneratedFile,
   ensureDirExists,
@@ -36,11 +37,16 @@ export class AmazonQCliAgent implements IAgent {
     );
 
     // Write rules file to .amazonq/rules/
+    await assertManagedPathInsideRoot(
+      rulesPath,
+      projectRoot,
+      'Refusing to write generated file outside project',
+    );
     await ensureDirExists(path.dirname(rulesPath));
     if (backup) {
-      await backupFile(rulesPath);
+      await backupFile(rulesPath, projectRoot);
     }
-    await writeGeneratedFile(rulesPath, concatenatedRules);
+    await writeGeneratedFile(rulesPath, concatenatedRules, projectRoot);
 
     // Handle MCP configuration if enabled and provided
     const mcpEnabled = agentConfig?.mcp?.enabled ?? true;
@@ -51,6 +57,11 @@ export class AmazonQCliAgent implements IAgent {
       );
       const mcpStrategy = agentConfig?.mcp?.strategy ?? 'merge';
 
+      await assertManagedPathInsideRoot(
+        mcpPath,
+        projectRoot,
+        'Refusing to write generated file outside project',
+      );
       await ensureDirExists(path.dirname(mcpPath));
 
       let existingMcpConfig: Record<string, unknown> = {};
@@ -73,9 +84,13 @@ export class AmazonQCliAgent implements IAgent {
       );
 
       if (backup) {
-        await backupFile(mcpPath);
+        await backupFile(mcpPath, projectRoot);
       }
-      await writeGeneratedFile(mcpPath, JSON.stringify(mergedConfig, null, 2));
+      await writeGeneratedFile(
+        mcpPath,
+        JSON.stringify(mergedConfig, null, 2),
+        projectRoot,
+      );
     }
   }
 
