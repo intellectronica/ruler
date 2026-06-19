@@ -83,11 +83,12 @@ export class AiderAgent implements IAgent {
     return {
       instructions: path.join(projectRoot, 'AGENTS.md'),
       config: path.join(projectRoot, '.aider.conf.yml'),
+      mcp: path.join(projectRoot, '.mcp.json'),
     };
   }
 
   getMcpServerKey(): string {
-    return this.agentsMdAgent.getMcpServerKey();
+    return 'mcpServers';
   }
 
   supportsMcpStdio(): boolean {

@@ -75,6 +75,25 @@ describe('mcp-empty-server-key-fix', () => {
     ]);
   });
 
+  it('writes Aider native MCP configuration with the mcpServers key', async () => {
+    const { projectRoot } = testProject;
+
+    runRulerWithInheritedStdio('apply --agents aider', projectRoot);
+
+    const aiderResultText = await fs.readFile(
+      path.join(projectRoot, '.mcp.json'),
+      'utf8',
+    );
+    const aiderResult = JSON.parse(aiderResultText);
+
+    expect(aiderResult.mcpServers).toBeDefined();
+    expect(aiderResult['']).toBeUndefined();
+    expect(aiderResult.mcpServers.ruler_server).toEqual({
+      type: 'http',
+      url: 'http://ruler.com',
+    });
+  });
+
   it('should not create empty string key when applying to multiple agents including ones with empty getMcpServerKey', async () => {
     const { projectRoot } = testProject;
 
