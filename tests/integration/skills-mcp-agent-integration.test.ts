@@ -219,7 +219,7 @@ describe('Skills Agent Integration', () => {
       await fs.writeFile(
         path.join(rulerDir, 'ruler.toml'),
         `
-[mcp.servers.existing-server]
+[mcp_servers.existing-server]
 command = "node"
 args = ["server.js"]
 `,

@@ -122,6 +122,18 @@ describe('resolveSelectedAgents', () => {
     ]);
   });
 
+  it('should throw error for unknown configured agent names', () => {
+    const config: LoadedConfig = {
+      agentConfigs: {
+        claudee: { enabled: false },
+      },
+    };
+
+    expect(() => resolveSelectedAgents(config, mockAgents)).toThrow(
+      'Invalid agent configured: claudee',
+    );
+  });
+
   it('should select all agents when no configuration is provided', () => {
     const config: LoadedConfig = {
       agentConfigs: {},
