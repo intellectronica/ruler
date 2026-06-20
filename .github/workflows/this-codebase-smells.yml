@@ -32,10 +32,10 @@ jobs:
             echo "Not 16:00 Europe/Zurich; skipping subsequent steps."
           fi
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         if: ${{ steps.gate.outputs.run != 'false' }}
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         if: ${{ steps.gate.outputs.run != 'false' }}
         with:
           node-version: '22'
