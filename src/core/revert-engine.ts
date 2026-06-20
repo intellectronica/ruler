@@ -594,13 +594,21 @@ export async function revertAgentConfiguration(
   };
 
   const outputPaths = getAgentOutputPaths(agent, projectRoot, agentConfig);
+  const processedPaths = new Set<string>();
 
   logVerbose(
     `Agent ${agent.getName()} output paths: ${outputPaths.join(', ')}`,
     verbose,
   );
 
-  for (const outputPath of outputPaths) {
+  const processPath = async (outputPath: string): Promise<void> => {
+    const resolvedPath = path.resolve(projectRoot, outputPath);
+    if (processedPaths.has(resolvedPath)) {
+      logVerbose(`Skipping already processed path: ${outputPath}`, verbose);
+      return;
+    }
+    processedPaths.add(resolvedPath);
+
     const restored = await restoreFromBackup(
       outputPath,
       verbose,
@@ -632,6 +640,10 @@ export async function revertAgentConfiguration(
         result.removed++;
       }
     }
+  };
+
+  for (const outputPath of outputPaths) {
+    await processPath(outputPath);
   }
 
   // Handle MCP files
@@ -650,37 +662,7 @@ export async function revertAgentConfiguration(
         verbose,
       );
     } else {
-      const mcpRestored = await restoreFromBackup(
-        mcpPath,
-        verbose,
-        dryRun,
-        projectRoot,
-      );
-      if (mcpRestored) {
-        result.restored++;
-
-        if (!keepBackups) {
-          const mcpBackupRemoved = await removeBackupFile(
-            mcpPath,
-            verbose,
-            dryRun,
-            projectRoot,
-          );
-          if (mcpBackupRemoved) {
-            result.backupsRemoved++;
-          }
-        }
-      } else {
-        const mcpRemoved = await removeGeneratedFile(
-          mcpPath,
-          verbose,
-          dryRun,
-          projectRoot,
-        );
-        if (mcpRemoved) {
-          result.removed++;
-        }
-      }
+      await processPath(mcpPath);
     }
   }
 
