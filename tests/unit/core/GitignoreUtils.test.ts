@@ -212,5 +212,24 @@ duplicate-block.md
       // Should still contain the duplicate block
       expect(content).toContain('duplicate-block.md');
     });
+
+    it('preserves entries after an unterminated Ruler start marker', async () => {
+      const paths = ['CLAUDE.md'];
+      const gitignorePath = path.join(tmpDir, '.gitignore');
+      const initialContent = `node_modules/
+# START Ruler Generated Files
+*.log
+dist/
+`;
+      await fs.writeFile(gitignorePath, initialContent);
+
+      await updateGitignore(tmpDir, paths);
+
+      const content = await fs.readFile(gitignorePath, 'utf8');
+      expect(content).toContain('# START Ruler Generated Files\n*.log\ndist/');
+      expect(content).toContain('/CLAUDE.md');
+      expect(content).toContain('# END Ruler Generated Files');
+      expect(content.match(/# START Ruler Generated Files/g)).toHaveLength(2);
+    });
   });
 });
