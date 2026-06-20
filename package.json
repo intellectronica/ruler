@@ -14,7 +14,7 @@
     "test:integration": "jest tests/e2e/ruler.integration.test.ts --verbose",
     "build": "tsc",
     "check:package-lock": "node -e \"const pkg=require('./package.json'); const lock=require('./package-lock.json'); const root=lock.packages?.['']; if (lock.version !== pkg.version || root?.version !== pkg.version) { console.error('package-lock.json version metadata must match package.json version'); process.exit(1); }\"",
-    "prepare": "npm run build"
+    "prepublishOnly": "npm run build"
   },
   "repository": {
     "type": "git",
