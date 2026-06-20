@@ -1,6 +1,7 @@
 import * as path from 'path';
 import * as os from 'os';
-import { getNativeMcpPath } from '../../../src/paths/mcp';
+import { promises as fs } from 'fs';
+import { getNativeMcpPath, readNativeMcp } from '../../../src/paths/mcp';
 
 describe('MCP Path Resolution', () => {
   const projectRoot = '/test/project';
@@ -114,6 +115,37 @@ describe('MCP Path Resolution', () => {
           path.join(projectRoot, '.kiro', 'settings', 'mcp.json'),
         );
       });
+    });
+  });
+
+  describe('readNativeMcp', () => {
+    let tmpDir: string;
+
+    beforeEach(async () => {
+      tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ruler-native-mcp-'));
+    });
+
+    afterEach(async () => {
+      await fs.rm(tmpDir, { recursive: true, force: true });
+    });
+
+    it('returns an empty object when the native config is missing', async () => {
+      await expect(
+        readNativeMcp(path.join(tmpDir, 'mcp.json')),
+      ).resolves.toEqual({});
+    });
+
+    it.each([
+      ['null', 'null'],
+      ['array', '[]'],
+    ])('rejects %s native MCP config content', async (_name, content) => {
+      const mcpPath = path.join(tmpDir, 'mcp.json');
+      await fs.writeFile(mcpPath, content);
+
+      await expect(readNativeMcp(mcpPath)).rejects.toThrow(
+        `Invalid MCP config at ${mcpPath}: must be a JSON object`,
+      );
+      await expect(fs.readFile(mcpPath, 'utf8')).resolves.toBe(content);
     });
   });
 });

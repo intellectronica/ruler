@@ -2,6 +2,10 @@ import * as path from 'path';
 import { promises as fs } from 'fs';
 import { writeGeneratedFile } from '../core/FileSystemUtils';
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
 /** Determine the native MCP config path for a given agent. */
 export async function getNativeMcpPath(
   adapterName: string,
@@ -95,7 +99,11 @@ export async function readNativeMcp(
   }
 
   try {
-    return JSON.parse(text) as Record<string, unknown>;
+    const parsed = JSON.parse(text) as unknown;
+    if (!isRecord(parsed)) {
+      throw new Error('must be a JSON object');
+    }
+    return parsed;
   } catch (error) {
     throw new Error(
       `Invalid MCP config at ${filePath}: ${error instanceof Error ? error.message : String(error)}`,
