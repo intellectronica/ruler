@@ -268,6 +268,64 @@ args = ["-y", "existing-mcp"]
       expect(parsed.mcp_servers).toHaveLength(2);
     });
 
+    it('throws without overwriting invalid existing TOML config', async () => {
+      const configPath = path.join(tmpDir, '.vibe', 'config.toml');
+      const invalidConfig = '[mcp_servers';
+      await fs.mkdir(path.dirname(configPath), { recursive: true });
+      await fs.writeFile(configPath, invalidConfig);
+
+      const mcpJson = {
+        mcpServers: {
+          new_server: {
+            command: 'npx',
+            args: ['-y', 'new-mcp'],
+          },
+        },
+      };
+
+      await expect(
+        agent.applyRulerConfig('rules', tmpDir, mcpJson, {
+          mcp: { enabled: true, strategy: 'merge' },
+        }),
+      ).rejects.toThrow(`Invalid Mistral config at ${configPath}`);
+
+      await expect(fs.readFile(configPath, 'utf8')).resolves.toBe(
+        invalidConfig,
+      );
+      await expect(fs.access(`${configPath}.bak`)).rejects.toThrow();
+    });
+
+    it('backs up valid existing TOML config before writing changes', async () => {
+      const configPath = path.join(tmpDir, '.vibe', 'config.toml');
+      const existingConfig = `
+system_prompt_id = "custom_prompt"
+
+[[mcp_servers]]
+name = "existing_server"
+transport = "stdio"
+command = "npx"
+`;
+      await fs.mkdir(path.dirname(configPath), { recursive: true });
+      await fs.writeFile(configPath, existingConfig);
+
+      const mcpJson = {
+        mcpServers: {
+          new_server: {
+            command: 'npx',
+            args: ['-y', 'new-mcp'],
+          },
+        },
+      };
+
+      await agent.applyRulerConfig('rules', tmpDir, mcpJson, {
+        mcp: { enabled: true, strategy: 'merge' },
+      });
+
+      await expect(fs.readFile(`${configPath}.bak`, 'utf8')).resolves.toBe(
+        existingConfig,
+      );
+    });
+
     it('uses custom config path when provided', async () => {
       const customPath = path.join(tmpDir, 'custom', 'vibe.toml');
       await fs.mkdir(path.dirname(customPath), { recursive: true });

@@ -3,7 +3,7 @@ import { promises as fs } from 'fs';
 import { parse as parseTOML, stringify } from '@iarna/toml';
 import { IAgent, IAgentConfig } from './IAgent';
 import { AgentsMdAgent } from './AgentsMdAgent';
-import { writeGeneratedFile } from '../core/FileSystemUtils';
+import { backupFile, writeGeneratedFile } from '../core/FileSystemUtils';
 import { DEFAULT_RULES_FILENAME } from '../constants';
 
 /**
@@ -145,11 +145,20 @@ export class MistralVibeAgent implements IAgent {
 
       // Read existing TOML config if it exists
       let existingConfig: VibeConfig = {};
+      let configExists = false;
       try {
         const existingContent = await fs.readFile(configPath, 'utf8');
+        configExists = true;
         existingConfig = parseTOML(existingContent) as VibeConfig;
-      } catch {
-        // File doesn't exist or can't be parsed, use empty config
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+          // Missing config starts from an empty config.
+          existingConfig = {};
+        } else {
+          throw new Error(
+            `Invalid Mistral config at ${configPath}: ${error instanceof Error ? error.message : String(error)}`,
+          );
+        }
       }
 
       // Create the updated config
@@ -176,6 +185,9 @@ export class MistralVibeAgent implements IAgent {
       // Convert to TOML and write
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const tomlContent = stringify(updatedConfig as any);
+      if (configExists && backup) {
+        await backupFile(configPath, projectRoot);
+      }
       await writeGeneratedFile(configPath, tomlContent, projectRoot);
     }
   }
