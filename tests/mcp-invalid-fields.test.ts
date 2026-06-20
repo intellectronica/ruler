@@ -111,4 +111,66 @@ args = ["some", "args"]
       'must have at least one of command or url',
     );
   });
+
+  it('diagnoses legacy JSON server with both command and url', async () => {
+    testProject = await setupTestProject({
+      '.ruler/mcp.json': JSON.stringify(
+        {
+          mcpServers: {
+            invalid: {
+              command: 'node',
+              url: 'https://example.com',
+            },
+          },
+        },
+        null,
+        2,
+      ),
+    });
+
+    const { projectRoot } = testProject;
+    const { loadUnifiedConfig } = require('../dist/core/UnifiedConfigLoader');
+    const config = await loadUnifiedConfig({ projectRoot });
+
+    const fieldConflictError = config.diagnostics.find(
+      (d: any) => d.code === 'MCP_JSON_FIELD_CONFLICT',
+    );
+    expect(fieldConflictError).toBeTruthy();
+    expect(fieldConflictError.severity).toBe('warning');
+    expect(fieldConflictError.message).toContain('both command and url');
+    expect(config.mcp.servers.invalid).toEqual({
+      url: 'https://example.com',
+      type: 'remote',
+    });
+  });
+
+  it('diagnoses and skips legacy JSON server with neither command nor url', async () => {
+    testProject = await setupTestProject({
+      '.ruler/mcp.json': JSON.stringify(
+        {
+          mcpServers: {
+            invalid: {
+              args: ['some', 'args'],
+            },
+          },
+        },
+        null,
+        2,
+      ),
+    });
+
+    const { projectRoot } = testProject;
+    const { loadUnifiedConfig } = require('../dist/core/UnifiedConfigLoader');
+    const config = await loadUnifiedConfig({ projectRoot });
+
+    const invalidServerError = config.diagnostics.find(
+      (d: any) => d.code === 'MCP_JSON_INVALID_SERVER',
+    );
+    expect(invalidServerError).toBeTruthy();
+    expect(invalidServerError.severity).toBe('warning');
+    expect(invalidServerError.message).toContain(
+      'must have at least one of command or url',
+    );
+    expect(config.mcp.servers).toEqual({});
+  });
 });
