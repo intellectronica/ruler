@@ -5,9 +5,14 @@ import { writeGeneratedFile } from './FileSystemUtils';
 const RULER_START_MARKER = '# START Ruler Generated Files';
 const RULER_END_MARKER = '# END Ruler Generated Files';
 
-interface RulerBlockRange {
+export interface RulerBlockRange {
   start: number;
   end: number;
+}
+
+export interface RemoveRulerBlocksResult {
+  content: string;
+  removed: boolean;
 }
 
 /**
@@ -142,7 +147,7 @@ function getExistingPathsExcludingRulerBlock(content: string): string[] {
   return paths;
 }
 
-function findCompleteRulerBlocks(lines: string[]): RulerBlockRange[] {
+export function findCompleteRulerBlocks(lines: string[]): RulerBlockRange[] {
   const ranges: RulerBlockRange[] = [];
 
   for (let index = 0; index < lines.length; index++) {
@@ -166,6 +171,34 @@ function findCompleteRulerBlocks(lines: string[]): RulerBlockRange[] {
   return ranges;
 }
 
+export function removeCompleteRulerBlocks(
+  content: string,
+): RemoveRulerBlocksResult {
+  const lines = content.split('\n');
+  const rulerBlocks = findCompleteRulerBlocks(lines);
+
+  if (rulerBlocks.length === 0) {
+    return { content, removed: false };
+  }
+
+  const retainedLines: string[] = [];
+
+  for (let index = 0; index < lines.length; index++) {
+    const block = rulerBlocks.find((range) => range.start === index);
+    if (block) {
+      index = block.end;
+      continue;
+    }
+
+    retainedLines.push(lines[index]);
+  }
+
+  return {
+    content: retainedLines.join('\n').replace(/\n{3,}/g, '\n\n'),
+    removed: true,
+  };
+}
+
 /**
  * Updates the .gitignore content by replacing or adding the Ruler block.
  */
@@ -174,15 +207,23 @@ function updateGitignoreContent(
   rulerPaths: string[],
 ): string {
   const lines = existingContent.split('\n');
-  const firstRulerBlock = findCompleteRulerBlocks(lines)[0];
+  const rulerBlocks = findCompleteRulerBlocks(lines);
   const newLines: string[] = [];
+  let replacedFirstBlock = false;
 
   for (let index = 0; index < lines.length; index++) {
-    if (firstRulerBlock && index === firstRulerBlock.start) {
-      newLines.push(lines[index]);
+    const block = rulerBlocks.find((range) => range.start === index);
+    if (block && !replacedFirstBlock) {
+      newLines.push(lines[block.start]);
       rulerPaths.forEach((p) => newLines.push(p));
-      newLines.push(lines[firstRulerBlock.end]);
-      index = firstRulerBlock.end;
+      newLines.push(lines[block.end]);
+      replacedFirstBlock = true;
+      index = block.end;
+      continue;
+    }
+
+    if (block) {
+      index = block.end;
       continue;
     }
 
@@ -190,7 +231,7 @@ function updateGitignoreContent(
   }
 
   // If no Ruler block exists, add one at the end
-  if (!firstRulerBlock) {
+  if (rulerBlocks.length === 0) {
     // Add blank line if content exists and doesn't end with blank line
     if (existingContent.trim() && !existingContent.endsWith('\n\n')) {
       newLines.push('');
