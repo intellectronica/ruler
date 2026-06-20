@@ -1,6 +1,6 @@
 {
   "name": "@intellectronica/ruler",
-  "version": "0.3.42",
+  "version": "0.3.43",
   "description": "Ruler — apply the same rules to all coding agents",
   "main": "dist/lib.js",
   "types": "dist/lib.d.ts",
