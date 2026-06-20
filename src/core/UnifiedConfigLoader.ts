@@ -396,6 +396,53 @@ export async function loadUnifiedConfig(
           if (typeof def.timeout === 'number') {
             server.timeout = def.timeout;
           }
+
+          const hasCommand = !!server.command;
+          const hasUrl = !!server.url;
+
+          if (!hasCommand && !hasUrl) {
+            diagnostics.push({
+              severity: 'warning',
+              code: 'MCP_JSON_INVALID_SERVER',
+              message: `MCP server '${name}' must have at least one of command or url`,
+              file: mcpFile,
+            });
+            continue;
+          }
+
+          if (hasCommand && hasUrl) {
+            diagnostics.push({
+              severity: 'warning',
+              code: 'MCP_JSON_FIELD_CONFLICT',
+              message: `MCP server '${name}' has both command and url - using url (remote)`,
+              file: mcpFile,
+            });
+          }
+
+          if (hasCommand && server.headers) {
+            diagnostics.push({
+              severity: 'warning',
+              code: 'MCP_JSON_FIELD_CONFLICT',
+              message: `MCP server '${name}' has headers with command (should be used with url only)`,
+              file: mcpFile,
+            });
+          }
+
+          if (hasUrl && server.env) {
+            diagnostics.push({
+              severity: 'warning',
+              code: 'MCP_JSON_FIELD_CONFLICT',
+              message: `MCP server '${name}' has env with url (should be used with command only)`,
+              file: mcpFile,
+            });
+          }
+
+          if (hasCommand && hasUrl) {
+            delete server.command;
+            delete server.args;
+            delete server.env;
+          }
+
           // Derive type
           if (server.url) server.type = 'remote';
           else if (server.command) server.type = 'stdio';
