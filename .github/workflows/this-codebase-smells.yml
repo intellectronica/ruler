@@ -58,7 +58,6 @@ jobs:
           # Read the prompt and run Copilot CLI in programmatic mode
           copilot_args=(
             -p "$(cat .github/workflows/this-codebase-smells/prompt.md)"
-            --allow-tool 'shell(*)'
             --allow-tool 'read_file(*)'
             --allow-tool 'glob(*)'
           )
