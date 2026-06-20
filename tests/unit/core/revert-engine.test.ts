@@ -50,7 +50,7 @@ class MockAgent implements IAgent {
     // Mock implementation
   }
 
-  getDefaultOutputPath(projectRoot: string): string {
+  getDefaultOutputPath(projectRoot: string): string | Record<string, string> {
     return `${projectRoot}/.${this.identifier}/config.json`;
   }
 
@@ -66,6 +66,19 @@ class MockOpenHandsAgent extends MockAgent {
 
   getDefaultOutputPath(projectRoot: string): string {
     return path.join(projectRoot, '.openhands', 'microagents', 'repo.md');
+  }
+}
+
+class MockCodexAgent extends MockAgent {
+  constructor() {
+    super('OpenAI Codex CLI', 'codex');
+  }
+
+  getDefaultOutputPath(projectRoot: string): Record<string, string> {
+    return {
+      instructions: path.join(projectRoot, 'AGENTS.md'),
+      config: path.join(projectRoot, '.codex', 'config.toml'),
+    };
   }
 }
 
@@ -331,6 +344,34 @@ describe('revert-engine', () => {
       expect(result.backupsRemoved).toBe(1);
       await expect(fs.readFile(configPath, 'utf8')).resolves.toBe(
         '[core]\nworkspace_base = "/tmp/project"\n',
+      );
+      await expect(fs.access(backupPath)).rejects.toThrow();
+    });
+
+    it('should process overlapping output and MCP paths only once', async () => {
+      const agent = new MockCodexAgent();
+      const configPath = path.join(tmpDir, '.codex', 'config.toml');
+      const backupPath = `${configPath}.bak`;
+
+      await fs.mkdir(path.dirname(configPath), { recursive: true });
+      await fs.writeFile(configPath, '[mcp_servers.generated]\n');
+      await fs.writeFile(backupPath, '[model]\nname = "user-model"\n');
+      await writeRulerGitignore(tmpDir, ['.codex/config.toml']);
+
+      const result = await revertAgentConfiguration(
+        agent,
+        tmpDir,
+        undefined,
+        false,
+        false,
+        false,
+      );
+
+      expect(result.restored).toBe(1);
+      expect(result.removed).toBe(0);
+      expect(result.backupsRemoved).toBe(1);
+      await expect(fs.readFile(configPath, 'utf8')).resolves.toBe(
+        '[model]\nname = "user-model"\n',
       );
       await expect(fs.access(backupPath)).rejects.toThrow();
     });
