@@ -369,6 +369,76 @@ describe('Revert Core Functions', () => {
       expect(content).toBe('node_modules/\n\n*.log\n');
     });
 
+    it('removes every complete ruler-managed block from .gitignore', async () => {
+      await fs.writeFile(
+        path.join(tmpDir, '.gitignore'),
+        [
+          'node_modules/',
+          '',
+          '# START Ruler Generated Files',
+          '/AGENTS.md',
+          '# END Ruler Generated Files',
+          '',
+          '*.log',
+          '',
+          '# START Ruler Generated Files',
+          '/CLAUDE.md',
+          '# END Ruler Generated Files',
+          '',
+        ].join('\n'),
+      );
+
+      await revertAllAgentConfigs(
+        tmpDir,
+        undefined,
+        undefined,
+        false,
+        false,
+        false,
+      );
+
+      const content = await fs.readFile(
+        path.join(tmpDir, '.gitignore'),
+        'utf8',
+      );
+      expect(content).toBe('node_modules/\n\n*.log\n\n');
+      expect(content).not.toContain('# START Ruler Generated Files');
+    });
+
+    it('ignores ruler marker text that is not on a complete marker line', async () => {
+      const gitignoreContent = [
+        'node_modules/',
+        'literal-# START Ruler Generated Files',
+        'important-user-pattern',
+        '# END Ruler Generated Files-suffix',
+        '*.log',
+        '',
+      ].join('\n');
+      await fs.writeFile(path.join(tmpDir, '.gitignore'), gitignoreContent);
+
+      const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
+
+      try {
+        await revertAllAgentConfigs(
+          tmpDir,
+          undefined,
+          undefined,
+          false,
+          false,
+          false,
+        );
+
+        expect(consoleLogSpy).not.toHaveBeenCalledWith(
+          '  .gitignore cleaned: yes',
+        );
+        await expect(
+          fs.readFile(path.join(tmpDir, '.gitignore'), 'utf8'),
+        ).resolves.toBe(gitignoreContent);
+      } finally {
+        consoleLogSpy.mockRestore();
+      }
+    });
+
     it('removes the ruler-managed block from .git/info/exclude', async () => {
       const excludePath = path.join(tmpDir, '.git', 'info', 'exclude');
       await fs.mkdir(path.dirname(excludePath), { recursive: true });

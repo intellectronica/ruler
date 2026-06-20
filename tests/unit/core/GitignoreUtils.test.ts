@@ -192,7 +192,7 @@ CLAUDE.md
       ).rejects.toThrow();
     });
 
-    it('handles multiple Ruler blocks by updating the first one', async () => {
+    it('removes duplicate complete Ruler blocks when updating', async () => {
       const paths = ['CLAUDE.md'];
       const gitignorePath = path.join(tmpDir, '.gitignore');
       const initialContent = `# START Ruler Generated Files
@@ -209,8 +209,8 @@ duplicate-block.md
       const content = await fs.readFile(gitignorePath, 'utf8');
       expect(content).toContain('/CLAUDE.md');
       expect(content).not.toContain('old-file.md');
-      // Should still contain the duplicate block
-      expect(content).toContain('duplicate-block.md');
+      expect(content).not.toContain('duplicate-block.md');
+      expect(content.match(/# START Ruler Generated Files/g)).toHaveLength(1);
     });
 
     it('preserves entries after an unterminated Ruler start marker', async () => {
