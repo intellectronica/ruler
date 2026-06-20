@@ -33,10 +33,16 @@ jobs:
           REF_TYPE: ${{ github.ref_type }}
           RELEASE_TAG_FROM_EVENT: ${{ github.event.release.tag_name }}
           RELEASE_TAG_FROM_INPUT: ${{ inputs.release_tag }}
+          RELEASE_PRERELEASE: ${{ github.event.release.prerelease }}
         run: |
           PACKAGE_NAME="$(node -p "require('./package.json').name")"
           VERSION="$(node -p "require('./package.json').version")"
           EXPECTED_TAG="v${VERSION}"
+
+          if [ "${EVENT_NAME}" = "release" ] && [ "${RELEASE_PRERELEASE}" = "true" ]; then
+            echo "::error::GitHub prereleases must not be published to npm latest."
+            exit 1
+          fi
 
           if [ "${EVENT_NAME}" = "release" ]; then
             RELEASE_TAG="${RELEASE_TAG_FROM_EVENT}"
