@@ -12,7 +12,10 @@ import {
   getVSCodeSettingsPath,
 } from '../vscode/settings';
 import { isPathInsideOrEqual } from './path-utils';
-import { assertManagedPathInsideRoot } from './FileSystemUtils';
+import {
+  assertManagedPathInsideRoot,
+  assertNotSymbolicLink,
+} from './FileSystemUtils';
 
 const RULER_START_MARKER = '# START Ruler Generated Files';
 const RULER_END_MARKER = '# END Ruler Generated Files';
@@ -166,6 +169,14 @@ async function restoreFromBackup(
         'Refusing to restore from backup through symlinked backup path',
       );
     }
+    await assertNotSymbolicLink(
+      filePath,
+      'Refusing to restore backup through symlinked output path',
+    );
+    await assertNotSymbolicLink(
+      backupPath,
+      'Refusing to restore from symlinked backup path',
+    );
     await fs.copyFile(backupPath, filePath);
     logVerbose(`${prefix} Restored: ${filePath} from backup`, verbose);
   }
@@ -218,6 +229,10 @@ async function removeGeneratedFile(
         'Refusing to remove generated file through symlinked path',
       );
     }
+    await assertNotSymbolicLink(
+      filePath,
+      'Refusing to remove symlinked generated file',
+    );
     await fs.unlink(filePath);
     logVerbose(`${prefix} Removed generated file: ${filePath}`, verbose);
   }
@@ -253,6 +268,10 @@ async function removeBackupFile(
         'Refusing to remove backup file through symlinked path',
       );
     }
+    await assertNotSymbolicLink(
+      backupPath,
+      'Refusing to remove symlinked backup file',
+    );
     await fs.unlink(backupPath);
     logVerbose(`${prefix} Removed backup file: ${backupPath}`, verbose);
   }
@@ -485,6 +504,15 @@ async function removeAdditionalAgentFiles(
             verbose,
           );
         } else {
+          await assertManagedPathInsideRoot(
+            fullPath,
+            projectRoot,
+            'Refusing to remove additional file through symlinked path',
+          );
+          await assertNotSymbolicLink(
+            fullPath,
+            'Refusing to remove symlinked additional file',
+          );
           await fs.unlink(fullPath);
           logVerbose(`${prefix} Removed additional file: ${fullPath}`, verbose);
         }

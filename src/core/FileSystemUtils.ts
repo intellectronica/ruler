@@ -41,7 +41,7 @@ async function isSymbolicLink(filePath: string): Promise<boolean> {
   }
 }
 
-async function assertNotSymbolicLink(
+export async function assertNotSymbolicLink(
   filePath: string,
   action: string,
 ): Promise<void> {

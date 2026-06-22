@@ -228,6 +228,16 @@ async function cleanIgnoreFile(
     return false;
   }
 
+  await FileSystemUtils.assertManagedPathInsideRoot(
+    ignorePath,
+    projectRoot,
+    `Refusing to clean ${ignoreFile} through symlinked path`,
+  );
+  await FileSystemUtils.assertNotSymbolicLink(
+    ignorePath,
+    `Refusing to clean symlinked ${ignoreFile}`,
+  );
+
   const content = await fs.readFile(ignorePath, 'utf8');
   const cleaned = removeCompleteRulerBlocks(content);
   if (!cleaned.removed) {
