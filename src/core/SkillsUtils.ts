@@ -111,7 +111,11 @@ export function formatValidationWarnings(warnings: string[]): string {
  * Recursively copies a directory and all its contents.
  */
 async function copyRecursive(src: string, dest: string): Promise<void> {
-  const stat = await fs.stat(src);
+  const stat = await fs.lstat(src);
+
+  if (stat.isSymbolicLink()) {
+    return;
+  }
 
   if (stat.isDirectory()) {
     await fs.mkdir(dest, { recursive: true });

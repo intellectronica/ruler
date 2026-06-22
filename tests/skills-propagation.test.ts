@@ -227,6 +227,47 @@ describe('Skills Discovery and Validation', () => {
       const copiedSkill1 = path.join(destDir, 'skill1', SKILL_MD_FILENAME);
       expect(await fs.readFile(copiedSkill1, 'utf8')).toBe('# Skill 1');
     });
+
+    it('does not follow symlinked files while copying skills', async () => {
+      const { copySkillsDirectory } = await import('../src/core/SkillsUtils');
+      const skillsDir = path.join(tmpDir, '.ruler', 'skills');
+      const skill1 = path.join(skillsDir, 'skill1');
+      const outsideDir = path.join(tmpDir, 'outside');
+      const outsideFile = path.join(outsideDir, 'secret.txt');
+
+      await fs.mkdir(skill1, { recursive: true });
+      await fs.mkdir(outsideDir, { recursive: true });
+      await fs.writeFile(path.join(skill1, SKILL_MD_FILENAME), '# Skill 1');
+      await fs.writeFile(outsideFile, 'secret');
+      await fs.symlink(outsideFile, path.join(skill1, 'leak.txt'));
+
+      const destDir = path.join(tmpDir, '.claude', 'skills');
+      await copySkillsDirectory(skillsDir, destDir);
+
+      await expect(
+        fs.access(path.join(destDir, 'skill1', 'leak.txt')),
+      ).rejects.toThrow();
+    });
+
+    it('does not follow symlinked directories while copying skills', async () => {
+      const { copySkillsDirectory } = await import('../src/core/SkillsUtils');
+      const skillsDir = path.join(tmpDir, '.ruler', 'skills');
+      const skill1 = path.join(skillsDir, 'skill1');
+      const outsideDir = path.join(tmpDir, 'outside');
+
+      await fs.mkdir(skill1, { recursive: true });
+      await fs.mkdir(outsideDir, { recursive: true });
+      await fs.writeFile(path.join(skill1, SKILL_MD_FILENAME), '# Skill 1');
+      await fs.writeFile(path.join(outsideDir, 'secret.txt'), 'secret');
+      await fs.symlink(outsideDir, path.join(skill1, 'linked-dir'));
+
+      const destDir = path.join(tmpDir, '.claude', 'skills');
+      await copySkillsDirectory(skillsDir, destDir);
+
+      await expect(
+        fs.access(path.join(destDir, 'skill1', 'linked-dir')),
+      ).rejects.toThrow();
+    });
   });
 
   describe('propagateSkillsForClaude', () => {
