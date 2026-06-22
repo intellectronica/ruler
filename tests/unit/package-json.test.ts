@@ -13,4 +13,19 @@ describe('package manifest', () => {
     expect(packageJson.scripts?.prepare).toBeUndefined();
     expect(packageJson.scripts?.prepublishOnly).toBe('npm run build');
   });
+
+  it('cleans stale dist output before building publish artifacts', () => {
+    const packageJsonPath = path.join(process.cwd(), 'package.json');
+    const packageJson = JSON.parse(
+      fs.readFileSync(packageJsonPath, 'utf8'),
+    ) as {
+      scripts?: Record<string, string>;
+    };
+
+    expect(packageJson.scripts?.clean).toContain("rmSync('dist'");
+    expect(packageJson.scripts?.clean).toContain('recursive: true');
+    expect(packageJson.scripts?.clean).toContain('force: true');
+    expect(packageJson.scripts?.build).toBe('npm run clean && tsc');
+    expect(packageJson.scripts?.prepublishOnly).toBe('npm run build');
+  });
 });
