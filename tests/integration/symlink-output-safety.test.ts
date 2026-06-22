@@ -257,4 +257,75 @@ describe('Symlink output safety', () => {
       'backup content',
     );
   });
+
+  it('does not restore a backup through a symlinked output file inside the project', async () => {
+    const outputPath = path.join(projectRoot, 'CLAUDE.md');
+    const victimPath = path.join(projectRoot, 'victim.md');
+    await fs.writeFile(victimPath, 'victim original');
+    await fs.symlink(victimPath, outputPath);
+    await fs.writeFile(`${outputPath}.bak`, 'backup content');
+
+    expect(() =>
+      execFileSync(
+        'node',
+        [
+          path.resolve('dist/cli/index.js'),
+          'revert',
+          '--project-root',
+          projectRoot,
+          '--agents',
+          'claude',
+        ],
+        {
+          stdio: 'pipe',
+        },
+      ),
+    ).toThrow();
+
+    await expect(fs.readFile(victimPath, 'utf8')).resolves.toBe(
+      'victim original',
+    );
+    await expect(fs.readFile(`${outputPath}.bak`, 'utf8')).resolves.toBe(
+      'backup content',
+    );
+  });
+
+  it('does not clean a managed ignore file through a symlink', async () => {
+    await fs.writeFile(
+      outsideFile,
+      [
+        'outside original',
+        '# START Ruler Generated Files',
+        '/CLAUDE.md',
+        '# END Ruler Generated Files',
+        '',
+      ].join('\n'),
+    );
+    await fs.symlink(outsideFile, path.join(projectRoot, '.gitignore'));
+
+    expect(() =>
+      execFileSync(
+        'node',
+        [
+          path.resolve('dist/cli/index.js'),
+          'revert',
+          '--project-root',
+          projectRoot,
+        ],
+        {
+          stdio: 'pipe',
+        },
+      ),
+    ).toThrow();
+
+    await expect(fs.readFile(outsideFile, 'utf8')).resolves.toBe(
+      [
+        'outside original',
+        '# START Ruler Generated Files',
+        '/CLAUDE.md',
+        '# END Ruler Generated Files',
+        '',
+      ].join('\n'),
+    );
+  });
 });
