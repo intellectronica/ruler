@@ -50,8 +50,9 @@ export function filterMcpConfigForAgent(
     const config = serverConfig as Record<string, unknown>;
 
     // Determine server type
-    const hasCommand = 'command' in config;
-    const hasUrl = 'url' in config;
+    const hasCommand =
+      typeof config.command === 'string' || Array.isArray(config.command);
+    const hasUrl = typeof config.url === 'string';
 
     const isStdio = hasCommand && !hasUrl;
     const isRemote = hasUrl && !hasCommand;

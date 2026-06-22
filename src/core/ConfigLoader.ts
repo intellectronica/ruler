@@ -178,7 +178,10 @@ function parseAgentMcpServers(
     sectionObj.mcp_servers as Record<string, unknown>,
   )) {
     if (def && typeof def === 'object' && !Array.isArray(def)) {
-      servers[name] = normalizeAgentMcpServer(def as Record<string, unknown>);
+      const server = normalizeAgentMcpServer(def as Record<string, unknown>);
+      if (server.command || server.url) {
+        servers[name] = server;
+      }
     }
   }
 
@@ -191,6 +194,18 @@ function normalizeAgentMcpServer(
   const server = { ...def };
   const hasCommand = typeof server.command === 'string';
   const hasUrl = typeof server.url === 'string';
+
+  if (!hasCommand) {
+    delete server.command;
+    delete server.args;
+    delete server.env;
+  }
+  if (!hasUrl) {
+    delete server.url;
+    delete server.headers;
+    delete server.auth;
+    delete server.oauth;
+  }
 
   if (hasCommand && hasUrl) {
     delete server.command;

@@ -126,6 +126,26 @@ describe('MCP Capabilities', () => {
       expect(filtered).toBeNull();
     });
 
+    it('ignores servers whose command or url fields have invalid types', () => {
+      const agent = new OpenHandsAgent();
+      const filtered = filterMcpConfigForAgent(
+        {
+          mcpServers: {
+            invalid_stdio: {
+              command: 123,
+              args: ['server.js'],
+            },
+            invalid_remote: {
+              url: false,
+            },
+          },
+        },
+        agent,
+      );
+
+      expect(filtered).toBeNull();
+    });
+
     it('transforms remote servers to stdio servers for stdio-only agents', () => {
       const agent = new FirebaseAgent();
       const configWithRemoteServers = {
