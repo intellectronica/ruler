@@ -953,7 +953,7 @@ ruler apply
 
 ### Scenario 2: Working with worktrees
 
-When using the default `git add worktree` command (which is also run by agents apps such as Claude code or Codex through the interface), the gitignored files are not copied over. You will need to ask your agent to run `ruler apply` at the start of every session.
+When using the default `git worktree add` command (which is also run by agent apps such as Claude Code or Codex through the interface), the gitignored files are not copied over. You will need to ask your agent to run `ruler apply` at the start of every session.
 
 As an alternative you can commit your default agents files to source control.
 
@@ -979,7 +979,7 @@ enabled = false
 To avoid having other contributors commit instructions outside of .ruler you can setup a github action to check there is no diff when running `ruler apply` in CI.
 
 ```yml
-# .github/workflows/ruler-check/yml
+# .github/workflows/ruler-check.yml
 
 # Verifies the committed agent files (AGENTS.md, CLAUDE.md, skills) match the .ruler/ source.
 # They are committed so a fresh clone/worktree has guidance immediately; this guards against drift.
@@ -1014,7 +1014,7 @@ jobs:
 
       - name: Verify committed agent files match .ruler/
         run: |
-          pnpm dlx @intellectronica/ruler@0.3.42 apply --no-gitignore --no-mcp
+          pnpm dlx @intellectronica/ruler apply --no-gitignore --no-mcp
           DRIFT="$(git status --porcelain -- AGENTS.md CLAUDE.md .claude/skills .codex/skills)"
           if [ -n "$DRIFT" ]; then
             echo "::error::Committed agent files are out of sync with .ruler/. Run 'pnpm dlx @intellectronica/ruler apply --no-gitignore --no-mcp' and commit the result."
