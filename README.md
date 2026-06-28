@@ -1220,6 +1220,10 @@ npm run lint
 npm run format
 ```
 
+## Related Projects
+
+- [Skill Hub](https://skill.442595.xyz/) — Multi-platform AI Agent Skills navigator. Browse 577+ skills across Claude Code, Codex, Cursor, OpenCode, OpenClaw, Hermes, Copilot, Gemini and more by function category. [GitHub](https://github.com/rdone4425/skill)
+
 ## Contributing
 
 Contributions are welcome! Please:
