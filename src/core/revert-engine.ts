@@ -462,7 +462,6 @@ async function removeAdditionalAgentFiles(
   const additionalFiles = [
     '.gemini/settings.json',
     '.mcp.json',
-    '.vscode/mcp.json',
     '.cursor/mcp.json',
     '.junie/mcp/mcp.json',
     '.kilocode/mcp.json',

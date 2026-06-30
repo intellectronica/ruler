@@ -179,7 +179,7 @@ describe('Symlink output safety', () => {
     }
   });
 
-  it('does not create an MCP backup through a symlinked parent directory outside the project', async () => {
+  it('does not write MCP config through a symlinked file outside the project', async () => {
     const outsideDir = path.join(
       projectRoot,
       '..',
@@ -196,7 +196,11 @@ describe('Symlink output safety', () => {
         '',
       ].join('\n'),
     );
-    await fs.symlink(outsideDir, path.join(projectRoot, '.vscode'));
+    // Symlink .mcp.json directly to a file outside the project
+    await fs.symlink(
+      path.join(outsideDir, 'mcp.json'),
+      path.join(projectRoot, '.mcp.json'),
+    );
 
     try {
       expect(() =>
@@ -224,6 +228,7 @@ describe('Symlink output safety', () => {
         fs.access(path.join(outsideDir, 'mcp.json.bak')),
       ).rejects.toThrow();
     } finally {
+      await fs.rm(path.join(projectRoot, '.mcp.json'), { force: true });
       await fs.rm(outsideDir, { recursive: true, force: true });
     }
   });

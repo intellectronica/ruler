@@ -208,8 +208,7 @@ File: extra-rules.md
       'CLAUDE.md', // Claude-specific file
       'CRUSH.md', // Crush-specific file
 
-      // GitHub Copilot (writes AGENTS.md plus MCP config)
-      '.vscode/mcp.json', // Copilot MCP config
+      // GitHub Copilot (writes AGENTS.md plus MCP config, now to .mcp.json)
 
       // Cursor (now uses AGENTS.md)
       '.cursor/mcp.json', // Cursor MCP config
@@ -316,7 +315,7 @@ File: extra-rules.md
       },
       { path: '.zed/settings.json', mcpKey: 'context_servers' },
       { path: '.cursor/mcp.json', mcpKey: 'mcpServers' },
-      { path: '.vscode/mcp.json', mcpKey: 'servers' }, // Copilot
+      // GitHub Copilot now uses .mcp.json (same as Aider, already listed above)
       { path: '.kilocode/mcp.json', mcpKey: 'mcpServers' },
       { path: '.mcp.json', mcpKey: 'mcpServers' }, // Aider
       { path: '.junie/mcp/mcp.json', mcpKey: 'mcpServers' },
@@ -439,7 +438,7 @@ File: extra-rules.md
     // List of MCP config files and their expected keys
     const mcpConfigs = [
       { path: '.cursor/mcp.json', key: 'mcpServers', name: 'Cursor' },
-      { path: '.vscode/mcp.json', key: 'servers', name: 'GitHub Copilot' },
+      // GitHub Copilot now uses .mcp.json with mcpServers (same as Aider, already listed)
       { path: '.gemini/settings.json', key: 'mcpServers', name: 'Gemini CLI' },
       { path: '.qwen/settings.json', key: 'mcpServers', name: 'Qwen Code' },
       { path: '.zed/settings.json', key: 'context_servers', name: 'Zed' },

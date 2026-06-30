@@ -212,21 +212,12 @@ describe('Revert Agent Integration', () => {
   describe('MCP File Handling', () => {
     it('should handle MCP configuration files', async () => {
       await fs.writeFile(path.join(tmpDir, '.mcp.json'), '{"mcpServers": {}}');
-      await fs.mkdir(path.join(tmpDir, '.vscode'), { recursive: true });
       await fs.mkdir(path.join(tmpDir, '.junie', 'mcp'), { recursive: true });
-      await fs.writeFile(
-        path.join(tmpDir, '.vscode', 'mcp.json'),
-        '{"mcpServers": {}}',
-      );
       await fs.writeFile(
         path.join(tmpDir, '.junie', 'mcp', 'mcp.json'),
         '{"mcpServers": {}}',
       );
-      await writeRulerGitignore(tmpDir, [
-        '.mcp.json',
-        '.vscode/mcp.json',
-        '.junie/mcp/mcp.json',
-      ]);
+      await writeRulerGitignore(tmpDir, ['.mcp.json', '.junie/mcp/mcp.json']);
 
       await revertAllAgentConfigs(
         tmpDir,
@@ -238,9 +229,6 @@ describe('Revert Agent Integration', () => {
       );
 
       await expect(fs.access(path.join(tmpDir, '.mcp.json'))).rejects.toThrow();
-      await expect(
-        fs.access(path.join(tmpDir, '.vscode', 'mcp.json')),
-      ).rejects.toThrow();
       await expect(
         fs.access(path.join(tmpDir, '.junie', 'mcp', 'mcp.json')),
       ).rejects.toThrow();

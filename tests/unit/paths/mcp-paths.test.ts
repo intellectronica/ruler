@@ -91,7 +91,7 @@ describe('MCP Path Resolution', () => {
 
       it('GitHub Copilot should use correct project-local path', async () => {
         const mcpPath = await getNativeMcpPath('GitHub Copilot', projectRoot);
-        expect(mcpPath).toBe(path.join(projectRoot, '.vscode', 'mcp.json'));
+        expect(mcpPath).toBe(path.join(projectRoot, '.mcp.json'));
       });
 
       it('Zed should use project-local path', async () => {

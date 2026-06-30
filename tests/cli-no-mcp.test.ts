@@ -17,7 +17,7 @@ describe('cli-no-mcp', () => {
 
     testProject = await setupTestProject({
       '.ruler/mcp.json': JSON.stringify(mcp, null, 2) + '\n',
-      '.vscode/mcp.json': JSON.stringify(native, null, 2) + '\n',
+      '.mcp.json': JSON.stringify(native, null, 2) + '\n',
     });
   });
 
@@ -27,7 +27,7 @@ describe('cli-no-mcp', () => {
 
   it('does not apply MCP when --no-mcp is used', async () => {
     const { projectRoot } = testProject;
-    const nativePath = path.join(projectRoot, '.vscode', 'mcp.json');
+    const nativePath = path.join(projectRoot, '.mcp.json');
     const before = await fs.readFile(nativePath, 'utf8');
 
     runRulerWithInheritedStdio('apply --no-mcp', projectRoot);

@@ -45,7 +45,7 @@ export class CopilotAgent implements IAgent {
   }
 
   getMcpServerKey(): string {
-    return 'servers';
+    return 'mcpServers';
   }
 
   supportsMcpStdio(): boolean {

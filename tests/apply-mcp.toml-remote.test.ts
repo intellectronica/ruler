@@ -23,7 +23,7 @@ url = "https://api.example.com/mcp"
 
     testProject = await setupTestProject({
       '.ruler/ruler.toml': toml,
-      '.vscode/mcp.json': '{"mcpServers": {}}', // Empty native config
+      '.mcp.json': '{"mcpServers": {}}', // Empty native config
     });
   });
 
@@ -36,12 +36,12 @@ url = "https://api.example.com/mcp"
 
     runRuler('apply --agents copilot', projectRoot);
 
-    const nativePath = path.join(projectRoot, '.vscode', 'mcp.json');
+    const nativePath = path.join(projectRoot, '.mcp.json');
     const content = await fs.readFile(nativePath, 'utf8');
     const config = JSON.parse(content);
 
-    expect(config.servers).toHaveProperty('search');
-    expect(config.servers.search).toEqual({
+    expect(config.mcpServers).toHaveProperty('search');
+    expect(config.mcpServers.search).toEqual({
       url: 'https://mcp.example.com',
       headers: {
         Authorization: 'Bearer TOKEN123',
@@ -50,8 +50,8 @@ url = "https://api.example.com/mcp"
       type: 'remote',
     });
 
-    expect(config.servers).toHaveProperty('api');
-    expect(config.servers.api).toEqual({
+    expect(config.mcpServers).toHaveProperty('api');
+    expect(config.mcpServers.api).toEqual({
       url: 'https://api.example.com/mcp',
       type: 'remote',
     });
@@ -71,21 +71,17 @@ url = "https://mcp.example.com/search"
 [mcp_servers.search.env]
 TOKEN = "stdio-only"
 `,
-      '.vscode/mcp.json': '{"mcpServers": {}}',
+      '.mcp.json': '{"mcpServers": {}}',
     });
 
     try {
       runRuler('apply --agents copilot', mixedProject.projectRoot);
 
-      const nativePath = path.join(
-        mixedProject.projectRoot,
-        '.vscode',
-        'mcp.json',
-      );
+      const nativePath = path.join(mixedProject.projectRoot, '.mcp.json');
       const content = await fs.readFile(nativePath, 'utf8');
       const config = JSON.parse(content);
 
-      expect(config.servers.search).toEqual({
+      expect(config.mcpServers.search).toEqual({
         url: 'https://mcp.example.com/search',
         type: 'remote',
       });

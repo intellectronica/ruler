@@ -14,7 +14,7 @@ export async function getNativeMcpPath(
   const candidates: string[] = [];
   switch (adapterName) {
     case 'GitHub Copilot':
-      candidates.push(path.join(projectRoot, '.vscode', 'mcp.json'));
+      candidates.push(path.join(projectRoot, '.mcp.json'));
       break;
     case 'Visual Studio':
       candidates.push(path.join(projectRoot, '.mcp.json'));
