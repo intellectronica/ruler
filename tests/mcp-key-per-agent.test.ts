@@ -1,7 +1,5 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import os from 'os';
-import { execSync } from 'child_process';
 import {
   setupTestProject,
   teardownTestProject,
@@ -17,9 +15,9 @@ describe('mcp-key-per-agent', () => {
       mcpServers: { ruler_server: { url: 'http://ruler.com' } },
     };
 
-    // Create Copilot MCP config using 'servers' key
-    const copilotNative = {
-      servers: { native_copilot_server: { url: 'http://copilot.com' } },
+    // Create shared MCP config using 'mcpServers' key (for copilot, cursor both use .mcp.json now)
+    const sharedNative = {
+      mcpServers: { native_copilot_server: { url: 'http://copilot.com' } },
     };
 
     // Create Cursor MCP config using 'mcpServers' key
@@ -29,7 +27,7 @@ describe('mcp-key-per-agent', () => {
 
     testProject = await setupTestProject({
       '.ruler/mcp.json': JSON.stringify(rulerMcp, null, 2) + '\n',
-      '.vscode/mcp.json': JSON.stringify(copilotNative, null, 2) + '\n',
+      '.mcp.json': JSON.stringify(sharedNative, null, 2) + '\n',
       '.cursor/mcp.json': JSON.stringify(cursorNative, null, 2) + '\n',
     });
   });
@@ -38,24 +36,24 @@ describe('mcp-key-per-agent', () => {
     await teardownTestProject(testProject.projectRoot);
   });
 
-  it('should use "servers" key for Copilot and "mcpServers" key for Cursor', async () => {
+  it('should use "mcpServers" key for both Copilot and Cursor', async () => {
     const { projectRoot } = testProject;
 
     runRulerWithInheritedStdio('apply --agents copilot,cursor', projectRoot);
 
-    // Verify Copilot MCP config uses 'servers' key
+    // Verify Copilot MCP config uses 'mcpServers' key (written to .mcp.json)
     const copilotResultText = await fs.readFile(
-      path.join(projectRoot, '.vscode', 'mcp.json'),
+      path.join(projectRoot, '.mcp.json'),
       'utf8',
     );
     const copilotResult = JSON.parse(copilotResultText);
 
-    // Should have 'servers' key, not 'mcpServers'
-    expect(copilotResult.servers).toBeDefined();
-    expect(copilotResult.mcpServers).toBeUndefined();
+    // Should have 'mcpServers' key, not 'servers'
+    expect(copilotResult.mcpServers).toBeDefined();
+    expect(copilotResult.servers).toBeUndefined();
 
     // Should contain both native and ruler servers
-    expect(Object.keys(copilotResult.servers).sort()).toEqual([
+    expect(Object.keys(copilotResult.mcpServers).sort()).toEqual([
       'native_copilot_server',
       'ruler_server',
     ]);

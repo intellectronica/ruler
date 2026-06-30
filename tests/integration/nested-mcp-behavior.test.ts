@@ -160,7 +160,8 @@ command = "sub-command"
       { agentName: 'GitHub Copilot', baseDir: projectRoot, shouldExist: true },
       { agentName: 'Windsurf', baseDir: projectRoot, shouldExist: false },
       { agentName: 'Claude Code', baseDir: moduleDir, shouldExist: true },
-      { agentName: 'GitHub Copilot', baseDir: moduleDir, shouldExist: false },
+      // GitHub Copilot and Claude now share .mcp.json; Claude is enabled here so the file exists
+      { agentName: 'GitHub Copilot', baseDir: moduleDir, shouldExist: true },
       { agentName: 'Windsurf', baseDir: moduleDir, shouldExist: true },
       { agentName: 'Claude Code', baseDir: submoduleDir, shouldExist: true },
       { agentName: 'GitHub Copilot', baseDir: submoduleDir, shouldExist: true },

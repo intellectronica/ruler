@@ -80,7 +80,7 @@ Authorization = "Bearer TOKEN123"
     runRuler('apply --agents copilot', projectRoot);
 
     // Check the generated config
-    const configPath = path.join(projectRoot, '.vscode', 'mcp.json');
+    const configPath = path.join(projectRoot, '.mcp.json');
     const content = await fs.readFile(configPath, 'utf8');
 
     // Verify that remote servers are preserved as remote (not transformed to stdio)

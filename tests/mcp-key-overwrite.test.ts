@@ -1,7 +1,5 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import os from 'os';
-import { execSync } from 'child_process';
 import {
   setupTestProject,
   teardownTestProject,
@@ -17,9 +15,9 @@ describe('mcp-key-overwrite', () => {
       mcpServers: { ruler_server: { url: 'http://ruler.com' } },
     };
 
-    // Create Copilot MCP config using 'servers' key
-    const copilotNative = {
-      servers: { native_copilot_server: { url: 'http://copilot.com' } },
+    // Create shared MCP config using 'mcpServers' key (copilot now uses .mcp.json)
+    const sharedNative = {
+      mcpServers: { native_copilot_server: { url: 'http://copilot.com' } },
     };
 
     // Create Cursor MCP config using 'mcpServers' key
@@ -29,7 +27,7 @@ describe('mcp-key-overwrite', () => {
 
     testProject = await setupTestProject({
       '.ruler/mcp.json': JSON.stringify(rulerMcp, null, 2) + '\n',
-      '.vscode/mcp.json': JSON.stringify(copilotNative, null, 2) + '\n',
+      '.mcp.json': JSON.stringify(sharedNative, null, 2) + '\n',
       '.cursor/mcp.json': JSON.stringify(cursorNative, null, 2) + '\n',
     });
   });
@@ -46,19 +44,19 @@ describe('mcp-key-overwrite', () => {
       projectRoot,
     );
 
-    // Verify Copilot MCP config was overwritten and uses 'servers' key
+    // Verify Copilot MCP config was overwritten and uses 'mcpServers' key
     const copilotResultText = await fs.readFile(
-      path.join(projectRoot, '.vscode', 'mcp.json'),
+      path.join(projectRoot, '.mcp.json'),
       'utf8',
     );
     const copilotResult = JSON.parse(copilotResultText);
 
-    // Should have 'servers' key, not 'mcpServers'
-    expect(copilotResult.servers).toBeDefined();
-    expect(copilotResult.mcpServers).toBeUndefined();
+    // Should have 'mcpServers' key, not 'servers'
+    expect(copilotResult.mcpServers).toBeDefined();
+    expect(copilotResult.servers).toBeUndefined();
 
     // Should contain only ruler server (overwrite should remove native)
-    expect(Object.keys(copilotResult.servers)).toEqual(['ruler_server']);
+    expect(Object.keys(copilotResult.mcpServers)).toEqual(['ruler_server']);
 
     // Verify Cursor MCP config was overwritten and uses 'mcpServers' key
     const cursorResultText = await fs.readFile(

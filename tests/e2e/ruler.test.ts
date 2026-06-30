@@ -496,7 +496,6 @@ output_path = "custom-aider.md"`;
 
       const expectedPatterns = [
         // MCP config files (root-anchored)
-        '/.vscode/mcp.json',
         '/.gemini/settings.json',
         '/.cursor/mcp.json',
         '/.junie/mcp/mcp.json',
@@ -506,7 +505,6 @@ output_path = "custom-aider.md"`;
         '/CLAUDE.md',
         '/.aiassistant/rules/AGENTS.md',
         // Specific backup patterns instead of *.bak
-        '/.vscode/mcp.json.bak',
         '/AGENTS.md.bak',
         '/CLAUDE.md.bak',
       ];

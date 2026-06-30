@@ -57,7 +57,7 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | Agent                  | Rules File(s)                                  | MCP Configuration / Notes                        | Skills Support / Location | Subagents Support / Location |
 | ---------------------- | ---------------------------------------------- | ------------------------------------------------ | ------------------------- | ---------------------------- |
 | AGENTS.md              | `AGENTS.md`                                    | (pseudo-agent ensuring root `AGENTS.md` exists)  | -                         | -                            |
-| GitHub Copilot         | `AGENTS.md`                                    | `.vscode/mcp.json`                               | `.claude/skills/`         | `.github/agents/`            |
+| GitHub Copilot         | `AGENTS.md`                                    | `.mcp.json`                                      | `.claude/skills/`         | `.github/agents/`            |
 | Claude Code            | `CLAUDE.md`                                    | `.mcp.json`                                      | `.claude/skills/`         | `.claude/agents/`            |
 | OpenAI Codex CLI       | `AGENTS.md`                                    | `.codex/config.toml`                             | `.agents/skills/`         | `.codex/agents/` (`.toml`)   |
 | Pi Coding Agent        | `AGENTS.md`                                    | -                                                | `.pi/skills/`             | -                            |

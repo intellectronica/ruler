@@ -34,9 +34,9 @@ describe('CopilotAgent', () => {
     expect(agent.supportsMcpRemote()).toBe(true);
   });
 
-  it('should use servers as MCP key', () => {
+  it('should use mcpServers as MCP key', () => {
     const agent = new CopilotAgent();
-    expect(agent.getMcpServerKey()).toBe('servers');
+    expect(agent.getMcpServerKey()).toBe('mcpServers');
   });
 
   it('writes rules to AGENTS.md file', async () => {

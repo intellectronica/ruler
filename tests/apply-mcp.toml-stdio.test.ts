@@ -24,7 +24,7 @@ args = ["-y", "@modelcontextprotocol/server-git", "--repository", "."]
 
     testProject = await setupTestProject({
       '.ruler/ruler.toml': toml,
-      '.vscode/mcp.json': '{"mcpServers": {}}', // Empty native config
+      '.mcp.json': '{"mcpServers": {}}', // Empty native config
     });
   });
 
@@ -37,20 +37,20 @@ args = ["-y", "@modelcontextprotocol/server-git", "--repository", "."]
 
     runRuler('apply --agents copilot', projectRoot);
 
-    const nativePath = path.join(projectRoot, '.vscode', 'mcp.json');
+    const nativePath = path.join(projectRoot, '.mcp.json');
     const content = await fs.readFile(nativePath, 'utf8');
     const config = JSON.parse(content);
 
-    expect(config.servers).toHaveProperty('repo');
-    expect(config.servers.repo).toEqual({
+    expect(config.mcpServers).toHaveProperty('repo');
+    expect(config.mcpServers.repo).toEqual({
       command: 'node',
       args: ['scripts/repo-mcp.js'],
       env: { API_KEY: 'abc123' },
       type: 'stdio',
     });
 
-    expect(config.servers).toHaveProperty('git');
-    expect(config.servers.git).toEqual({
+    expect(config.mcpServers).toHaveProperty('git');
+    expect(config.mcpServers.git).toEqual({
       command: 'npx',
       args: ['-y', '@modelcontextprotocol/server-git', '--repository', '.'],
       type: 'stdio',

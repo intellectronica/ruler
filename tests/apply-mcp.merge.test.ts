@@ -13,11 +13,11 @@ describe('apply-mcp.merge', () => {
 
   beforeEach(async () => {
     const mcp = { mcpServers: { foo: { url: 'http://foo.com' } } };
-    const native = { servers: { bar: { url: 'http://bar.com' } } };
+    const native = { mcpServers: { bar: { url: 'http://bar.com' } } };
 
     testProject = await setupTestProject({
       '.ruler/mcp.json': JSON.stringify(mcp, null, 2) + '\n',
-      '.vscode/mcp.json': JSON.stringify(native, null, 2) + '\n',
+      '.mcp.json': JSON.stringify(native, null, 2) + '\n',
     });
   });
 
@@ -31,10 +31,10 @@ describe('apply-mcp.merge', () => {
     runRulerWithInheritedStdio('apply', projectRoot);
 
     const resultText = await fs.readFile(
-      path.join(projectRoot, '.vscode', 'mcp.json'),
+      path.join(projectRoot, '.mcp.json'),
       'utf8',
     );
     const result = JSON.parse(resultText);
-    expect(Object.keys(result.servers).sort()).toEqual(['bar', 'foo']);
+    expect(Object.keys(result.mcpServers).sort()).toEqual(['bar', 'foo']);
   });
 });
