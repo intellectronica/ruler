@@ -1,7 +1,11 @@
 import * as path from 'path';
 import * as fs from 'fs/promises';
 import * as yaml from 'js-yaml';
-import type { SubagentFrontmatter, SubagentInfo } from '../types';
+import type {
+  SubagentCustomConfig,
+  SubagentFrontmatter,
+  SubagentInfo,
+} from '../types';
 
 const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/;
 
@@ -85,6 +89,26 @@ export function validateFrontmatter(
       return { error: `invalid "is_background" field; expected boolean` };
     }
     fm.is_background = meta.is_background;
+  }
+
+  if (meta.custom !== undefined) {
+    if (
+      typeof meta.custom !== 'object' ||
+      meta.custom === null ||
+      Array.isArray(meta.custom)
+    ) {
+      return { error: `invalid "custom" field; expected object` };
+    }
+    for (const [key, value] of Object.entries(
+      meta.custom as Record<string, unknown>,
+    )) {
+      if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+        return {
+          error: `invalid "custom.${key}" field; expected object, got ${typeof value}`,
+        };
+      }
+    }
+    fm.custom = meta.custom as SubagentCustomConfig;
   }
 
   return { value: fm };

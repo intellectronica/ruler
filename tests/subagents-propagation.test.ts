@@ -248,6 +248,85 @@ describe('Subagents per-agent propagators', () => {
         fs.access(path.join(tmpDir, CODEX_SUBAGENTS_PATH, 'sub/reviewer.toml')),
       ).resolves.toBeUndefined();
     });
+
+    it('writes custom.codex fields into the TOML output', async () => {
+      const sub = makeSubagent({
+        frontmatter: {
+          name: 'reviewer',
+          description: 'Reviews code',
+          custom: {
+            codex: {
+              model_reasoning_effort: 'low',
+              model_provider: '9router',
+            },
+          },
+        },
+      });
+      await propagateSubagentsForCodex(tmpDir, [sub], { dryRun: false });
+      const raw = await fs.readFile(
+        path.join(tmpDir, CODEX_SUBAGENTS_PATH, 'reviewer.toml'),
+        'utf8',
+      );
+      const parsed = parseTOML(raw) as Record<string, unknown>;
+      expect(parsed.model_reasoning_effort).toBe('low');
+      expect(parsed.model_provider).toBe('9router');
+    });
+
+    it('writes model_providers table from custom.codex', async () => {
+      const sub = makeSubagent({
+        frontmatter: {
+          name: 'reviewer',
+          description: 'Reviews code',
+          custom: {
+            codex: {
+              model_provider: '9router',
+              model_providers: {
+                '9router': {
+                  name: '9Router',
+                  base_url: 'http://127.0.0.1:20128/v1',
+                  wire_api: 'responses',
+                  requires_openai_auth: false,
+                },
+              },
+            },
+          },
+        },
+      });
+      await propagateSubagentsForCodex(tmpDir, [sub], { dryRun: false });
+      const raw = await fs.readFile(
+        path.join(tmpDir, CODEX_SUBAGENTS_PATH, 'reviewer.toml'),
+        'utf8',
+      );
+      const parsed = parseTOML(raw) as Record<string, unknown>;
+      expect(parsed.model_provider).toBe('9router');
+      expect(parsed.model_providers).toBeDefined();
+      const providers = parsed.model_providers as Record<string, unknown>;
+      expect(providers['9router']).toBeDefined();
+      const provider = providers['9router'] as Record<string, unknown>;
+      expect(provider.name).toBe('9Router');
+      expect(provider.base_url).toBe('http://127.0.0.1:20128/v1');
+      expect(provider.wire_api).toBe('responses');
+      expect(provider.requires_openai_auth).toBe(false);
+    });
+
+    it('ignores empty custom.codex', async () => {
+      const sub = makeSubagent({
+        frontmatter: {
+          name: 'reviewer',
+          description: 'Reviews code',
+          custom: {
+            codex: {},
+          },
+        },
+      });
+      await propagateSubagentsForCodex(tmpDir, [sub], { dryRun: false });
+      const raw = await fs.readFile(
+        path.join(tmpDir, CODEX_SUBAGENTS_PATH, 'reviewer.toml'),
+        'utf8',
+      );
+      const parsed = parseTOML(raw) as Record<string, unknown>;
+      expect(parsed.model_reasoning_effort).toBeUndefined();
+    });
   });
 
   describe('Copilot propagator', () => {

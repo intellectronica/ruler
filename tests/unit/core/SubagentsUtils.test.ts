@@ -105,6 +105,44 @@ describe('SubagentsUtils.validateFrontmatter', () => {
     if ('error' in result) expect(result.error).toMatch(/is_background/);
   });
 
+  it('passes custom config through verbatim', () => {
+    const result = validateFrontmatter(
+      {
+        name: 'reviewer',
+        description: 'x',
+        custom: {
+          codex: { any_key: 'any_value', nested: { keep: true } },
+        },
+      },
+      'reviewer',
+    );
+    if ('value' in result) {
+      expect(result.value.custom).toEqual({
+        codex: { any_key: 'any_value', nested: { keep: true } },
+      });
+    } else {
+      throw new Error('expected success');
+    }
+  });
+
+  it('rejects custom when not a plain object', () => {
+    const result = validateFrontmatter(
+      { name: 'reviewer', description: 'x', custom: 'string' },
+      'reviewer',
+    );
+    expect('error' in result).toBe(true);
+    if ('error' in result) expect(result.error).toMatch(/custom/);
+  });
+
+  it('rejects custom value that is not a plain object', () => {
+    const result = validateFrontmatter(
+      { name: 'reviewer', description: 'x', custom: { codex: 'string' } },
+      'reviewer',
+    );
+    expect('error' in result).toBe(true);
+    if ('error' in result) expect(result.error).toMatch(/custom\.codex/);
+  });
+
   it('preserves valid optional model, readonly, is_background', () => {
     const result = validateFrontmatter(
       {

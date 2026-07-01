@@ -67,6 +67,26 @@ export interface SubagentsConfig {
   include_in_rules?: boolean;
 }
 
+/**
+ * Supported target harnesses that accept custom subagent configuration
+ * via the `custom` frontmatter field.
+ */
+export type SubagentCustomConfigTarget = 'codex';
+/**
+ * Harness-specific custom configuration.
+ * Each key is a target harness name;
+ * keys and values are passed through verbatim to the target's output format, e.g.
+ * ```yaml
+ * custom:
+ *   codex:
+ *     model_reasoning_effort: low
+ * ```
+ */
+export type SubagentCustomConfig = Record<
+  SubagentCustomConfigTarget,
+  Record<string, unknown>
+>;
+
 /** Frontmatter fields recognised on a source subagent definition. */
 export interface SubagentFrontmatter {
   name: string;
@@ -75,6 +95,7 @@ export interface SubagentFrontmatter {
   model?: string;
   readonly?: boolean;
   is_background?: boolean;
+  custom?: SubagentCustomConfig;
 }
 
 /** Information about a discovered subagent. */

@@ -280,6 +280,17 @@ function buildCodexFile(sub: SubagentInfo): string {
   if (fm.readonly === true) {
     config.sandbox_mode = 'read-only';
   }
+  // Merge any harness-specific custom config for Codex.
+  const codexCustom = fm.custom?.codex;
+  if (
+    codexCustom !== undefined &&
+    typeof codexCustom === 'object' &&
+    !Array.isArray(codexCustom)
+  ) {
+    for (const [key, value] of Object.entries(codexCustom)) {
+      config[key] = value;
+    }
+  }
   // @iarna/toml requires JsonMap; the cast is safe because every value is a
   // string/boolean/number/object that the library knows how to serialize.
   return stringifyTOML(config as Parameters<typeof stringifyTOML>[0]);
