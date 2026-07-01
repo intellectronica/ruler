@@ -18,4 +18,25 @@ describe('This Codebase Smells workflow', () => {
       'GITHUB_TOKEN: ${{ secrets.COPILOT_CLI_TOKEN }}',
     );
   });
+
+  it('installs a pinned Copilot CLI version before using the token', () => {
+    const workflowPath = path.join(
+      process.cwd(),
+      '.github',
+      'workflows',
+      'this-codebase-smells.yml',
+    );
+    const workflow = fs.readFileSync(workflowPath, 'utf8');
+
+    const installIndex = workflow.indexOf('npm install -g "@github/copilot@');
+    const tokenIndex = workflow.indexOf(
+      'GITHUB_TOKEN: ${{ secrets.COPILOT_CLI_TOKEN }}',
+    );
+
+    expect(workflow).toContain("COPILOT_CLI_VERSION: '1.0.68'");
+    expect(workflow).not.toContain('npm install -g @github/copilot\n');
+    expect(installIndex).toBeGreaterThanOrEqual(0);
+    expect(tokenIndex).toBeGreaterThanOrEqual(0);
+    expect(installIndex).toBeLessThan(tokenIndex);
+  });
 });
