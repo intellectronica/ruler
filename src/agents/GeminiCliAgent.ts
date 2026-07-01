@@ -2,7 +2,7 @@ import { IAgentConfig } from './IAgent';
 import * as path from 'path';
 import { promises as fs } from 'fs';
 import { AgentsMdAgent } from './AgentsMdAgent';
-import { writeGeneratedFile } from '../core/FileSystemUtils';
+import { backupFile, writeGeneratedFile } from '../core/FileSystemUtils';
 
 export class GeminiCliAgent extends AgentsMdAgent {
   getIdentifier(): string {
@@ -18,6 +18,20 @@ export class GeminiCliAgent extends AgentsMdAgent {
     return path
       .relative(projectRoot, path.resolve(projectRoot, outputPath))
       .replace(/\\/g, '/');
+  }
+
+  private getSettingsPath(projectRoot: string, agentConfig?: IAgentConfig) {
+    return path.resolve(
+      projectRoot,
+      agentConfig?.outputPathConfig ?? path.join('.gemini', 'settings.json'),
+    );
+  }
+
+  getAdditionalOutputPaths(
+    projectRoot: string,
+    agentConfig?: IAgentConfig,
+  ): string[] {
+    return [this.getSettingsPath(projectRoot, agentConfig)];
   }
 
   async applyRulerConfig(
@@ -39,13 +53,12 @@ export class GeminiCliAgent extends AgentsMdAgent {
     );
 
     // Prepare settings with contextFileName and MCP configuration
-    const settingsPath = path.resolve(
-      projectRoot,
-      agentConfig?.outputPathConfig ?? path.join('.gemini', 'settings.json'),
-    );
+    const settingsPath = this.getSettingsPath(projectRoot, agentConfig);
     let existingSettings: Record<string, unknown> = {};
+    let existingContent: string | null = null;
     try {
       const raw = await fs.readFile(settingsPath, 'utf8');
+      existingContent = raw;
       existingSettings = JSON.parse(raw);
     } catch (err: unknown) {
       if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
@@ -102,11 +115,16 @@ export class GeminiCliAgent extends AgentsMdAgent {
       }
     }
 
-    await writeGeneratedFile(
-      settingsPath,
-      JSON.stringify(updated, null, 2),
-      projectRoot,
-    );
+    const nextContent = JSON.stringify(updated, null, 2);
+    if (existingContent === nextContent) {
+      return;
+    }
+
+    if (backup && existingContent !== null) {
+      await backupFile(settingsPath, projectRoot);
+    }
+
+    await writeGeneratedFile(settingsPath, nextContent, projectRoot);
   }
 
   // Ensure MCP merging uses the correct key for Gemini (.gemini/settings.json)

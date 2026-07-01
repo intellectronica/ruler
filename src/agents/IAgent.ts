@@ -50,6 +50,16 @@ export interface IAgent {
   getDefaultOutputPath(projectRoot: string): string | Record<string, string>;
 
   /**
+   * Returns additional generated paths that are not represented by
+   * getDefaultOutputPath, such as agent settings sidecars written alongside the
+   * primary instruction file.
+   */
+  getAdditionalOutputPaths?(
+    projectRoot: string,
+    agentConfig?: IAgentConfig,
+  ): string[];
+
+  /**
    * Returns the specific key to be used for the server object in MCP JSON.
    * Defaults to 'mcpServers' if not implemented.
    */
