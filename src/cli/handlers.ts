@@ -22,6 +22,7 @@ export interface ApplyArgs {
   backup?: boolean;
   skills?: boolean;
   subagents?: boolean;
+  folders?: boolean;
 }
 
 export interface InitArgs {
@@ -139,6 +140,14 @@ export async function applyHandler(argv: ApplyArgs): Promise<void> {
     subagentsEnabled = undefined; // Let config/default decide
   }
 
+  // Determine folders preference: CLI > TOML > Default (disabled)
+  let foldersEnabled: boolean | undefined;
+  if (argv.folders !== undefined) {
+    foldersEnabled = argv.folders;
+  } else {
+    foldersEnabled = undefined; // Let config/default decide
+  }
+
   try {
     const agents = parseCliAgents(argv.agents);
 
@@ -165,6 +174,7 @@ export async function applyHandler(argv: ApplyArgs): Promise<void> {
       skillsEnabled,
       gitignoreLocalPreference,
       subagentsEnabled,
+      foldersEnabled,
     );
     console.log('Ruler apply completed successfully.');
   } catch (err: unknown) {

@@ -34,6 +34,21 @@ function resolveSkillsEnabled(
 }
 
 /**
+ * Resolves folders enabled state based on precedence:
+ * CLI flag > ruler.toml > default (disabled).
+ */
+function resolveFoldersEnabled(
+  cliFlag: boolean | undefined,
+  configSetting: boolean | undefined,
+): boolean {
+  return cliFlag !== undefined
+    ? cliFlag
+    : configSetting !== undefined
+      ? configSetting
+      : false; // default to disabled
+}
+
+/**
  * Resolves backup enabled state based on precedence:
  * CLI flag > ruler.toml > default (enabled).
  */
@@ -99,6 +114,7 @@ export async function applyAllAgentConfigs(
   skillsEnabled?: boolean,
   cliGitignoreLocal?: boolean,
   subagentsEnabled?: boolean,
+  foldersEnabled?: boolean,
 ): Promise<void> {
   // Load configuration and rules
   logVerbose(
@@ -113,6 +129,7 @@ export async function applyAllAgentConfigs(
   let generatedPaths: string[];
   let loadedConfig: LoadedConfig;
   let outputProjectRoot = projectRoot;
+  const accumulatorFolderPaths: string[] = [];
 
   if (nested) {
     const hierarchicalConfigs = await loadNestedConfigurations(
@@ -214,6 +231,34 @@ export async function applyAllAgentConfigs(
       }
     }
 
+    // Propagate folders for each nested .ruler directory.
+    {
+      const { propagateFolders } = await import('./core/FoldersProcessor');
+      for (const configEntry of hierarchicalConfigs) {
+        const nestedRoot = path.dirname(configEntry.rulerDir);
+        const resolvedNestedFoldersEnabled = resolveFoldersEnabled(
+          foldersEnabled,
+          configEntry.config.folders?.enabled,
+        );
+        const effectiveNestedFolders = {
+          ...configEntry.config.folders,
+          enabled: resolvedNestedFoldersEnabled,
+        };
+        logVerbose(
+          `Propagating folders for nested directory: ${nestedRoot}`,
+          verbose,
+        );
+        const { generatedPaths: folderPaths } = await propagateFolders(
+          nestedRoot,
+          selectedAgents,
+          effectiveNestedFolders,
+          verbose,
+          dryRun,
+        );
+        accumulatorFolderPaths.push(...folderPaths);
+      }
+    }
+
     generatedPaths = await processHierarchicalConfigurations(
       selectedAgents,
       hierarchicalConfigs,
@@ -292,6 +337,27 @@ export async function applyAllAgentConfigs(
       );
     }
 
+    // Propagate folders if enabled
+    {
+      const { propagateFolders } = await import('./core/FoldersProcessor');
+      const resolvedSingleFoldersEnabled = resolveFoldersEnabled(
+        foldersEnabled,
+        singleConfig.config.folders?.enabled,
+      );
+      const effectiveSingleFolders = {
+        ...singleConfig.config.folders,
+        enabled: resolvedSingleFoldersEnabled,
+      };
+      const { generatedPaths: folderPaths } = await propagateFolders(
+        singleProjectRoot,
+        selectedAgents,
+        effectiveSingleFolders,
+        verbose,
+        dryRun,
+      );
+      accumulatorFolderPaths.push(...folderPaths);
+    }
+
     generatedPaths = await processSingleConfiguration(
       selectedAgents,
       singleConfig,
@@ -304,8 +370,8 @@ export async function applyAllAgentConfigs(
     );
   }
 
-  // Add skills-generated paths to gitignore if skills are enabled
-  let allGeneratedPaths = generatedPaths;
+  // Merge folder propagation paths into generated paths for gitignore
+  let allGeneratedPaths = [...generatedPaths, ...accumulatorFolderPaths];
   const skillsEnabledForGitignore = resolveSkillsEnabled(
     skillsEnabled,
     loadedConfig.skills?.enabled,
@@ -334,6 +400,27 @@ export async function applyAllAgentConfigs(
       selectedAgents,
     );
     allGeneratedPaths = [...allGeneratedPaths, ...subagentPaths];
+  }
+
+  // Add folder propagation paths to gitignore if folders are enabled.
+  const resolvedFoldersEnabled = resolveFoldersEnabled(
+    foldersEnabled,
+    loadedConfig.folders?.enabled,
+  );
+  if (resolvedFoldersEnabled) {
+    const { getFoldersGitignorePaths } = await import(
+      './core/FoldersProcessor'
+    );
+    const effectiveFoldersForGitignore = {
+      ...loadedConfig.folders,
+      enabled: resolvedFoldersEnabled,
+    };
+    const folderPaths = await getFoldersGitignorePaths(
+      outputProjectRoot,
+      selectedAgents,
+      effectiveFoldersForGitignore,
+    );
+    allGeneratedPaths = [...allGeneratedPaths, ...folderPaths];
   }
 
   await updateGitignore(

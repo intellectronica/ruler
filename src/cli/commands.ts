@@ -86,6 +86,11 @@ export function run(): void {
             type: 'boolean',
             description:
               'Enable/disable subagents support (experimental, default: disabled)',
+          })
+          .option('folders', {
+            type: 'boolean',
+            description:
+              'Enable/disable folder propagation (experimental, default: from config or disabled)',
           });
       },
       applyHandler,

@@ -67,6 +67,24 @@ export interface SubagentsConfig {
   include_in_rules?: boolean;
 }
 
+/** Folders configuration for propagating sub-directories to agent config directories. */
+export interface FoldersConfig {
+  /** Enable or disable folder propagation. Default: false. */
+  enabled?: boolean;
+  /**
+   * When true, unlisted subdirectories under .ruler/ are skipped entirely
+   * (neither concatenated nor propagated). When false (default), unlisted
+   * subdirectories are concatenated into rules as usual.
+   */
+  skip_unmapped?: boolean;
+  /**
+   * Per-agent mappings: agent_id -> { source_folder_name -> target_path }.
+   * Source keys are subdirectory names under .ruler/.
+   * Target values are paths relative to the project root.
+   */
+  agents?: Record<string, Record<string, string>>;
+}
+
 /** Frontmatter fields recognised on a source subagent definition. */
 export interface SubagentFrontmatter {
   name: string;

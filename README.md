@@ -894,6 +894,99 @@ ruler apply
 - **Atomic replace, not merge.** Ruler regenerates each agent's subagent directory from the source on every apply. Manual edits to generated files will be overwritten.
 - **No support yet for agents without a native subagent primitive.** Windsurf, RooCode, Aider, Gemini CLI, and others are skipped with a warning. Propagation will be added when those agents ship a comparable file format.
 
+## Folder Propagation (Experimental)
+
+> **⚠️ Experimental:** Folder propagation is experimental and behavior may change in future releases.
+
+Ruler can propagate entire subdirectories from `.ruler/` to agent-specific target directories, instead of concatenating their contents into the agent's main rules file. This is useful for keeping separate supporting files (prompts, examples, reference docs) organised and accessible to specific agents.
+
+### How It Works
+
+When folder propagation is enabled:
+
+1. **Root-level `.md` files** in `.ruler/` (like `AGENTS.md`, `rules.md`, etc.) are **always concatenated** into the rules file — unchanged from normal behaviour.
+2. **Listed subdirectories** (e.g., `prompts`, `examples`) are **propagated** to each agent's configured target directory and **excluded** from rule concatenation.
+3. **`skip_unmapped`** controls what happens to **unlisted** subdirectories:
+   - `false` (default): unlisted subdirectories are concatenated into rules as usual.
+   - `true`: unlisted subdirectories are skipped entirely (neither concatenated nor propagated).
+
+### Configuration
+
+Configure folder propagation in `ruler.toml`:
+
+```toml
+[folders]
+# Enable folder propagation (default: false)
+enabled = true
+# When true, unlisted subdirectories are skipped entirely (default: false)
+skip_unmapped = false
+
+# Per-agent source→target folder mappings.
+# Key = source folder name under .ruler/
+# Value = target path relative to the project root.
+[folders.agents.claude]
+prompts = ".claude/prompts"
+examples = ".claude/examples"
+
+[folders.agents.cursor]
+prompts = ".cursor/prompts"
+
+[folders.agents.copilot]
+prompts = ".github/prompts"
+```
+
+In this example, files under `.ruler/prompts/` are copied to `.claude/prompts/`, `.cursor/prompts/`, and `.github/prompts/` instead of being concatenated into `CLAUDE.md`/`AGENTS.md`.
+
+### Example
+
+Given this `.ruler/` layout:
+
+```
+.ruler/
+├── AGENTS.md            # Always concatenated
+├── coding-style.md      # Always concatenated
+├── prompts/             # Listed → propagated, NOT concatenated
+│   ├── intro.md
+│   └── review.md
+└── tools/               # Unlisted → depends on skip_unmapped
+    └── linter.md
+```
+
+With `skip_unmapped = false` (default):
+- Concatenated into rules: `AGENTS.md`, `coding-style.md`, and `tools/linter.md`
+- Propagated to agent targets: `.claude/prompts/` (with `intro.md` and `review.md`)
+
+With `skip_unmapped = true`:
+- Concatenated into rules: `AGENTS.md`, `coding-style.md`
+- Propagated: `.claude/prompts/`
+- `tools/linter.md` is skipped entirely
+
+### CLI
+
+```bash
+# Enable folder propagation (overrides TOML config)
+ruler apply --folders
+
+# Disable folder propagation
+ruler apply --no-folders
+```
+
+### Dry-Run Mode
+
+```bash
+ruler apply --dry-run --folders
+```
+
+Shows which folders would be copied without writing any files.
+
+### Cleanup
+
+When folder propagation is disabled (either via `enabled = false` in config or `--no-folders` CLI flag), all previously propagated target directories are removed on the next `ruler apply`.
+
+### `.gitignore` Integration
+
+When folder propagation is enabled and gitignore integration is active, Ruler automatically adds the configured target directories to your `.gitignore` file within the managed Ruler block.
+
 ## `.gitignore` Integration
 
 Ruler automatically manages your `.gitignore` file to keep generated agent configuration files out of version control.

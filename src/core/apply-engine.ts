@@ -26,6 +26,10 @@ import {
   logWarn,
 } from '../constants';
 import { McpStrategy } from '../types';
+import {
+  getFolderSkipDirectories,
+  getFolderSkipUnmapped,
+} from './FoldersProcessor';
 
 /**
  * Configuration data loaded from the ruler setup
@@ -77,6 +81,8 @@ async function loadNestedConfigurations(
     );
     const files = await FileSystemUtils.readMarkdownFiles(rulerDir, {
       includeAgents: shouldIncludeAgentsInRules(config),
+      skipDirectories: getFolderSkipDirectories(config.folders),
+      skipUnmapped: getFolderSkipUnmapped(config.folders),
     });
     results.push(
       await createHierarchicalConfiguration(
@@ -208,6 +214,19 @@ function cloneLoadedConfig(config: LoadedConfig): LoadedConfig {
     backup: config.backup ? { ...config.backup } : undefined,
     skills: config.skills ? { ...config.skills } : undefined,
     subagents: config.subagents ? { ...config.subagents } : undefined,
+    folders: config.folders
+      ? {
+          ...config.folders,
+          agents: config.folders.agents
+            ? Object.fromEntries(
+                Object.entries(config.folders.agents).map(([k, v]) => [
+                  k,
+                  { ...v },
+                ]),
+              )
+            : undefined,
+        }
+      : undefined,
     nested: config.nested,
     nestedDefined: config.nestedDefined,
   };
@@ -299,6 +318,8 @@ async function loadSingleConfiguration(
   // `[agents] include_in_rules = true`.
   const files = await FileSystemUtils.readMarkdownFiles(rulerDirs[0], {
     includeAgents: shouldIncludeAgentsInRules(config),
+    skipDirectories: getFolderSkipDirectories(config.folders),
+    skipUnmapped: getFolderSkipUnmapped(config.folders),
   });
 
   // Concatenate rules

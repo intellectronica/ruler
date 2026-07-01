@@ -11,6 +11,7 @@ import {
   BackupConfig,
   SkillsConfig,
   SubagentsConfig,
+  FoldersConfig,
 } from '../types';
 import { createRulerError, logWarn } from '../constants';
 
@@ -123,6 +124,14 @@ const rulerConfigSchema = z
       .strict()
       .optional(),
     nested: z.boolean().optional(),
+    folders: z
+      .object({
+        enabled: z.boolean().optional(),
+        skip_unmapped: z.boolean().optional(),
+        agents: z.record(z.string(), z.record(z.string(), z.string())).optional(),
+      })
+      .strict()
+      .optional(),
   })
   .strict();
 
@@ -241,6 +250,8 @@ export interface LoadedConfig {
   nested?: boolean;
   /** Whether the nested option was explicitly provided in the config. */
   nestedDefined?: boolean;
+  /** Folders configuration for propagating sub-directories. */
+  folders?: FoldersConfig;
 }
 
 /**
@@ -429,6 +440,43 @@ export async function loadConfig(
   const nestedDefined = typeof raw.nested === 'boolean';
   const nested = nestedDefined ? (raw.nested as boolean) : false;
 
+  const rawFoldersSection =
+    raw.folders && typeof raw.folders === 'object' && !Array.isArray(raw.folders)
+      ? (raw.folders as Record<string, unknown>)
+      : {};
+  const foldersConfig: FoldersConfig = {};
+  if (typeof rawFoldersSection.enabled === 'boolean') {
+    foldersConfig.enabled = rawFoldersSection.enabled;
+  }
+  if (typeof rawFoldersSection.skip_unmapped === 'boolean') {
+    foldersConfig.skip_unmapped = rawFoldersSection.skip_unmapped;
+  }
+  if (
+    rawFoldersSection.agents &&
+    typeof rawFoldersSection.agents === 'object' &&
+    !Array.isArray(rawFoldersSection.agents)
+  ) {
+    const agentsRaw = rawFoldersSection.agents as Record<string, unknown>;
+    const agents: Record<string, Record<string, string>> = {};
+    for (const [agentId, mappings] of Object.entries(agentsRaw)) {
+      if (mappings && typeof mappings === 'object' && !Array.isArray(mappings)) {
+        const mappingObj = mappings as Record<string, unknown>;
+        const parsed: Record<string, string> = {};
+        for (const [source, target] of Object.entries(mappingObj)) {
+          if (typeof target === 'string') {
+            parsed[source] = target;
+          }
+        }
+        if (Object.keys(parsed).length > 0) {
+          agents[agentId] = parsed;
+        }
+      }
+    }
+    if (Object.keys(agents).length > 0) {
+      foldersConfig.agents = agents;
+    }
+  }
+
   return {
     defaultAgents,
     agentConfigs,
@@ -440,6 +488,7 @@ export async function loadConfig(
     subagents: subagentsConfig,
     nested,
     nestedDefined,
+    folders: foldersConfig,
   };
 }
 

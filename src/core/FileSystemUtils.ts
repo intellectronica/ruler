@@ -177,6 +177,18 @@ export interface ReadMarkdownFilesOptions {
    * omitted, `.ruler/agents/` is skipped, mirroring `.ruler/skills/`.
    */
   includeAgents?: boolean;
+  /**
+   * Subdirectory names (basenames) to skip during markdown file collection.
+   * Used by the folders feature to exclude propagated subdirectories
+   * from concatenation.
+   */
+  skipDirectories?: string[];
+  /**
+   * When true, ALL subdirectories that are not explicitly listed in
+   * `skipDirectories` are also skipped. Root-level `.md` files are
+   * always included regardless.
+   */
+  skipUnmapped?: boolean;
 }
 
 /**
@@ -250,6 +262,22 @@ export async function readMarkdownFiles(
           relativeFromRoot.startsWith(`${SUBAGENTS_DIR_NAME}${path.sep}`);
         if (isAgentsDir && !includeAgents) {
           sawExcludedAgents = true;
+          continue;
+        }
+        // Skip directories listed in skipDirectories (used by folders feature)
+        const isFirstLevel =
+          relativeFromRoot.indexOf(path.sep) === -1 &&
+          relativeFromRoot !== '';
+        if (isFirstLevel && options.skipDirectories?.includes(entry.name)) {
+          continue;
+        }
+        // When skipUnmapped is true, skip any first-level subdirectory
+        // that is not explicitly listed in skipDirectories.
+        if (
+          isFirstLevel &&
+          options.skipUnmapped &&
+          !options.skipDirectories?.includes(entry.name)
+        ) {
           continue;
         }
         await walk(fullPath);
