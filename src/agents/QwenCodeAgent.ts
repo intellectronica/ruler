@@ -2,7 +2,7 @@ import { IAgentConfig } from './IAgent';
 import * as path from 'path';
 import { promises as fs } from 'fs';
 import { AgentsMdAgent } from './AgentsMdAgent';
-import { writeGeneratedFile } from '../core/FileSystemUtils';
+import { backupFile, writeGeneratedFile } from '../core/FileSystemUtils';
 
 export class QwenCodeAgent extends AgentsMdAgent {
   getIdentifier(): string {
@@ -18,6 +18,20 @@ export class QwenCodeAgent extends AgentsMdAgent {
     return path
       .relative(projectRoot, path.resolve(projectRoot, outputPath))
       .replace(/\\/g, '/');
+  }
+
+  private getSettingsPath(projectRoot: string, agentConfig?: IAgentConfig) {
+    return path.resolve(
+      projectRoot,
+      agentConfig?.outputPathConfig ?? path.join('.qwen', 'settings.json'),
+    );
+  }
+
+  getAdditionalOutputPaths(
+    projectRoot: string,
+    agentConfig?: IAgentConfig,
+  ): string[] {
+    return [this.getSettingsPath(projectRoot, agentConfig)];
   }
 
   async applyRulerConfig(
@@ -39,10 +53,12 @@ export class QwenCodeAgent extends AgentsMdAgent {
     );
 
     // Ensure .qwen/settings.json has contextFileName set to AGENTS.md
-    const settingsPath = path.join(projectRoot, '.qwen', 'settings.json');
+    const settingsPath = this.getSettingsPath(projectRoot, agentConfig);
     let existingSettings: Record<string, unknown> = {};
+    let existingContent: string | null = null;
     try {
       const raw = await fs.readFile(settingsPath, 'utf8');
+      existingContent = raw;
       existingSettings = JSON.parse(raw);
     } catch (err: unknown) {
       if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
@@ -55,11 +71,16 @@ export class QwenCodeAgent extends AgentsMdAgent {
       contextFileName: this.getContextFileName(projectRoot, agentConfig),
     } as Record<string, unknown>;
 
-    await writeGeneratedFile(
-      settingsPath,
-      JSON.stringify(updated, null, 2),
-      projectRoot,
-    );
+    const nextContent = JSON.stringify(updated, null, 2);
+    if (existingContent === nextContent) {
+      return;
+    }
+
+    if (backup && existingContent !== null) {
+      await backupFile(settingsPath, projectRoot);
+    }
+
+    await writeGeneratedFile(settingsPath, nextContent, projectRoot);
   }
 
   // Ensure MCP merging uses the correct key for Qwen Code (.qwen/settings.json)
