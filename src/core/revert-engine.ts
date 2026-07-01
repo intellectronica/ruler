@@ -14,6 +14,7 @@ import {
 import { isPathInsideOrEqual } from './path-utils';
 import {
   assertManagedPathInsideRoot,
+  assertNotHardLinked,
   assertNotSymbolicLink,
 } from './FileSystemUtils';
 
@@ -177,6 +178,14 @@ async function restoreFromBackup(
       backupPath,
       'Refusing to restore from symlinked backup path',
     );
+    await assertNotHardLinked(
+      filePath,
+      'Refusing to restore backup through hard-linked output path',
+    );
+    await assertNotHardLinked(
+      backupPath,
+      'Refusing to restore from hard-linked backup path',
+    );
     await fs.copyFile(backupPath, filePath);
     logVerbose(`${prefix} Restored: ${filePath} from backup`, verbose);
   }
@@ -233,6 +242,10 @@ async function removeGeneratedFile(
       filePath,
       'Refusing to remove symlinked generated file',
     );
+    await assertNotHardLinked(
+      filePath,
+      'Refusing to remove hard-linked generated file',
+    );
     await fs.unlink(filePath);
     logVerbose(`${prefix} Removed generated file: ${filePath}`, verbose);
   }
@@ -271,6 +284,10 @@ async function removeBackupFile(
     await assertNotSymbolicLink(
       backupPath,
       'Refusing to remove symlinked backup file',
+    );
+    await assertNotHardLinked(
+      backupPath,
+      'Refusing to remove hard-linked backup file',
     );
     await fs.unlink(backupPath);
     logVerbose(`${prefix} Removed backup file: ${backupPath}`, verbose);
@@ -511,6 +528,10 @@ async function removeAdditionalAgentFiles(
           await assertNotSymbolicLink(
             fullPath,
             'Refusing to remove symlinked additional file',
+          );
+          await assertNotHardLinked(
+            fullPath,
+            'Refusing to remove hard-linked additional file',
           );
           await fs.unlink(fullPath);
           logVerbose(`${prefix} Removed additional file: ${fullPath}`, verbose);

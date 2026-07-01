@@ -3,7 +3,10 @@ import { promises as fs } from 'fs';
 import { parse as parseTOML, stringify } from '@iarna/toml';
 import { IAgent, IAgentConfig } from './IAgent';
 import { AgentsMdAgent } from './AgentsMdAgent';
-import { writeGeneratedFile } from '../core/FileSystemUtils';
+import {
+  assertManagedPathInsideRoot,
+  writeGeneratedFile,
+} from '../core/FileSystemUtils';
 import { DEFAULT_RULES_FILENAME } from '../constants';
 
 /**
@@ -84,8 +87,11 @@ export class CodexCliAgent implements IAgent {
       // Determine the config file path using proper precedence
       const configPath = agentConfig?.outputPathConfig ?? defaults.config;
 
-      // Ensure the parent directory exists
-      await fs.mkdir(path.dirname(configPath), { recursive: true });
+      await assertManagedPathInsideRoot(
+        configPath,
+        projectRoot,
+        'Refusing to write generated file outside project',
+      );
 
       // Get the merge strategy
       const strategy = agentConfig?.mcp?.strategy ?? 'merge';

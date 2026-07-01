@@ -35,6 +35,18 @@ describe('FileSystemUtils', () => {
       expect(found).toBeNull();
     });
 
+    it('rejects a local .ruler symlink that resolves outside the project', async () => {
+      const projectDir = path.join(tmpDir, 'project-with-external-ruler-link');
+      const externalRulerDir = path.join(tmpDir, 'external-ruler');
+      await fs.mkdir(projectDir, { recursive: true });
+      await fs.mkdir(externalRulerDir, { recursive: true });
+      await fs.symlink(externalRulerDir, path.join(projectDir, '.ruler'));
+
+      const found = await findRulerDir(projectDir, false);
+
+      expect(found).toBeNull();
+    });
+
     it('does not log an error when optional global config is absent', async () => {
       const originalXdgConfigHome = process.env.XDG_CONFIG_HOME;
       const xdgConfigHome = path.join(tmpDir, 'missing-global-config');

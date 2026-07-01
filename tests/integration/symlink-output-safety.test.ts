@@ -52,6 +52,34 @@ describe('Symlink output safety', () => {
     );
   });
 
+  it('does not overwrite a hard-linked output target outside the project', async () => {
+    const outputPath = path.join(projectRoot, 'AGENTS.md');
+    await fs.link(outsideFile, outputPath);
+
+    expect(() =>
+      execFileSync(
+        'node',
+        [
+          path.resolve('dist/cli/index.js'),
+          'apply',
+          '--project-root',
+          projectRoot,
+          '--agents',
+          'agentsmd',
+          '--no-backup',
+          '--no-gitignore',
+        ],
+        {
+          stdio: 'pipe',
+        },
+      ),
+    ).toThrow();
+
+    await expect(fs.readFile(outsideFile, 'utf8')).resolves.toBe(
+      'outside original',
+    );
+  });
+
   it('does not overwrite an MCP config symlink target outside the project', async () => {
     await fs.writeFile(
       path.join(projectRoot, '.ruler', 'ruler.toml'),
@@ -173,6 +201,49 @@ describe('Symlink output safety', () => {
 
       await expect(
         fs.access(path.join(outsideDir, 'CLAUDE.md')),
+      ).rejects.toThrow();
+    } finally {
+      await fs.rm(outsideDir, { recursive: true, force: true });
+    }
+  });
+
+  it('does not create directories through a symlinked parent before failing', async () => {
+    const outsideDir = path.join(
+      projectRoot,
+      '..',
+      `${path.basename(projectRoot)}-outside-parent-dir`,
+    );
+    await fs.mkdir(outsideDir);
+    await fs.symlink(outsideDir, path.join(projectRoot, 'linked'));
+    await fs.writeFile(
+      path.join(projectRoot, '.ruler', 'ruler.toml'),
+      ['[agents.opencode]', 'output_path = "linked/newdir/AGENTS.md"', ''].join(
+        '\n',
+      ),
+    );
+
+    try {
+      expect(() =>
+        execFileSync(
+          'node',
+          [
+            path.resolve('dist/cli/index.js'),
+            'apply',
+            '--project-root',
+            projectRoot,
+            '--agents',
+            'opencode',
+            '--no-backup',
+            '--no-gitignore',
+          ],
+          {
+            stdio: 'pipe',
+          },
+        ),
+      ).toThrow();
+
+      await expect(
+        fs.access(path.join(outsideDir, 'newdir')),
       ).rejects.toThrow();
     } finally {
       await fs.rm(outsideDir, { recursive: true, force: true });

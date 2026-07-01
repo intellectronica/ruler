@@ -5,6 +5,7 @@ import { writeGeneratedFile } from '../../../src/core/FileSystemUtils';
 // Mock fs module
 jest.mock('fs/promises');
 jest.mock('../../../src/core/FileSystemUtils', () => ({
+  assertManagedPathInsideRoot: jest.fn(),
   backupFile: jest.fn(),
   writeGeneratedFile: jest.fn(),
 }));
