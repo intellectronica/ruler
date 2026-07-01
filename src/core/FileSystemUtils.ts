@@ -50,6 +50,24 @@ export async function assertNotSymbolicLink(
   }
 }
 
+async function isHardLinkedFile(filePath: string): Promise<boolean> {
+  try {
+    const stat = await fs.lstat(filePath);
+    return stat.isFile() && stat.nlink > 1;
+  } catch {
+    return false;
+  }
+}
+
+export async function assertNotHardLinked(
+  filePath: string,
+  action: string,
+): Promise<void> {
+  if (await isHardLinkedFile(filePath)) {
+    throw new Error(`${action}: ${filePath}`);
+  }
+}
+
 async function assertContainingDirectoryInsideRoot(
   filePath: string,
   rootPath: string,
@@ -122,8 +140,11 @@ export async function findRulerDir(
   while (current) {
     const candidate = path.join(current, '.ruler');
     try {
-      const stat = await fs.stat(candidate);
-      if (stat.isDirectory()) {
+      const stat = await fs.lstat(candidate);
+      const candidateIsDirectory = stat.isSymbolicLink()
+        ? await symlinkedDirectoryStaysInside(candidate, current)
+        : stat.isDirectory();
+      if (candidateIsDirectory) {
         return candidate;
       }
     } catch {
@@ -156,6 +177,24 @@ export async function findRulerDir(
   }
 
   return null;
+}
+
+async function symlinkedDirectoryStaysInside(
+  candidate: string,
+  containingDir: string,
+): Promise<boolean> {
+  try {
+    const [realContainingDir, realCandidate] = await Promise.all([
+      fs.realpath(containingDir),
+      fs.realpath(candidate),
+    ]);
+    if (!isPathInsideOrEqual(realContainingDir, realCandidate)) {
+      return false;
+    }
+    return (await fs.stat(candidate)).isDirectory();
+  } catch {
+    return false;
+  }
 }
 
 export function resolveProjectRootForRulerDir(
@@ -368,6 +407,10 @@ export async function writeGeneratedFile(
     filePath,
     'Refusing to write generated file through symlink',
   );
+  await assertNotHardLinked(
+    filePath,
+    'Refusing to write generated file through hard link',
+  );
   if (containmentRoot) {
     await assertContainingDirectoryInsideRoot(
       filePath,
@@ -403,6 +446,11 @@ export async function backupFile(
   await assertNotSymbolicLink(
     backupPath,
     'Refusing to use symlinked backup file',
+  );
+  await assertNotHardLinked(filePath, 'Refusing to back up hard-linked file');
+  await assertNotHardLinked(
+    backupPath,
+    'Refusing to use hard-linked backup file',
   );
 
   try {
