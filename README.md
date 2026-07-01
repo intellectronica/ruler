@@ -780,6 +780,9 @@ tools: [Read, Grep, Glob, Bash]
 model: inherit
 readonly: true
 is_background: false
+custom:
+  codex:
+    model_reasoning_effort: low
 ---
 
 # Code Reviewer
@@ -804,6 +807,7 @@ a structured verdict.
 | `model`         | string   | All four targets                                                                | Cursor defaults to `inherit`; others omit.         |
 | `readonly`      | boolean  | Cursor (verbatim), Codex (`sandbox_mode`), Copilot (`disable-model-invocation`) | Defaults to `false` for Cursor; omitted otherwise. |
 | `is_background` | boolean  | Cursor only                                                                     | Defaults to `false` for Cursor.                    |
+| `custom`        | object   | Codex (all keys merged into TOML)                                               | Omitted if absent.                                 |
 
 For GitHub Copilot, source `tools` (Claude vocabulary: `Read`, `Grep`, `Bash`, …) are translated to Copilot's aliases (`read`, `search`, `execute`, …). Tools that do not have a Copilot equivalent are dropped silently on a normal apply; pass `--verbose` (or use `--dry-run` to preview) to see which tools were dropped.
 
