@@ -135,8 +135,8 @@ This is your central hub for all AI agent instructions:
 - **Primary File Order & Precedence**:
   1. A repository root `AGENTS.md` (outside `.ruler/`) if present (highest precedence, prepended)
   2. `.ruler/AGENTS.md` (new default starter file)
-  3. Legacy `.ruler/instructions.md` (only if `.ruler/AGENTS.md` absent; no longer emits a deprecation warning)
-  4. Remaining discovered `.md` files under `.ruler/` (and subdirectories) in sorted order
+  3. Legacy `.ruler/instructions.md` (used as the primary file only if `.ruler/AGENTS.md` is absent; no longer emits a deprecation warning)
+  4. Remaining discovered `.md` files under `.ruler/` (and subdirectories) in sorted order, including `instructions.md` when both top-level files exist
 - **Rule Files (`*.md`)**: Discovered recursively from `.ruler/` or `$XDG_CONFIG_HOME/ruler` and concatenated in the order above
 - **Concatenation Marker**: Each file's content is prepended with `<!-- Source: <relative_path_to_md_file> -->` for traceability
 - **`ruler.toml`**: Master configuration for Ruler's behavior, agent selection, output paths, and MCP server settings
