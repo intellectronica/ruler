@@ -212,6 +212,11 @@ function normalizeAgentMcpServer(
     delete server.args;
     delete server.env;
     server.type = 'remote';
+  } else if (hasUrl) {
+    delete server.args;
+    server.type = 'remote';
+  } else if (hasCommand) {
+    server.type = 'stdio';
   }
 
   return server;

@@ -607,6 +607,41 @@ describe('Revert Core Functions', () => {
 
       await expect(fs.access(path.join(tmpDir, 'CLAUDE.md'))).rejects.toThrow();
     });
+
+    it('processes shared MCP files once during a multi-agent revert', async () => {
+      const mcpPath = path.join(tmpDir, '.mcp.json');
+      const original = JSON.stringify({
+        mcpServers: { user: { command: 'node', args: ['user.js'] } },
+      });
+      await fs.writeFile(
+        mcpPath,
+        JSON.stringify({
+          mcpServers: { ruler: { command: 'node', args: ['ruler.js'] } },
+        }),
+      );
+      await fs.writeFile(`${mcpPath}.bak`, original);
+      await fs.writeFile(
+        path.join(tmpDir, '.gitignore'),
+        [
+          '# START Ruler Generated Files',
+          '/.mcp.json',
+          '# END Ruler Generated Files',
+          '',
+        ].join('\n'),
+      );
+
+      await revertAllAgentConfigs(
+        tmpDir,
+        ['claude', 'aider'],
+        undefined,
+        false,
+        false,
+        false,
+      );
+
+      await expect(fs.readFile(mcpPath, 'utf8')).resolves.toBe(original);
+      await expect(fs.access(`${mcpPath}.bak`)).rejects.toThrow();
+    });
   });
 
   describe('dry-run logging patterns', () => {
