@@ -195,6 +195,35 @@ describe('ConfigLoader', () => {
     );
   });
 
+  it('normalises agent-scoped MCP server transport types', async () => {
+    const content = `
+      [agents.cursor.mcp_servers.local]
+      type = "remote"
+      command = "node"
+      args = ["server.js"]
+
+      [agents.cursor.mcp_servers.api]
+      type = "stdio"
+      url = "https://api.example.com/mcp"
+      args = ["stale-wrapper-arg"]
+    `;
+    await fs.writeFile(path.join(rulerDir, 'ruler.toml'), content);
+
+    const config = await loadConfig({ projectRoot: tmpDir });
+
+    expect(config.agentConfigs.cursor.mcpServers).toEqual({
+      local: {
+        type: 'stdio',
+        command: 'node',
+        args: ['server.js'],
+      },
+      api: {
+        type: 'remote',
+        url: 'https://api.example.com/mcp',
+      },
+    });
+  });
+
   it.each([
     ['output_path', '../outside.md'],
     ['output_path_instructions', '../outside-instructions.md'],

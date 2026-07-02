@@ -12,6 +12,8 @@ import {
   readNativeMcp,
   readNativeMcpToml,
   writeNativeMcp,
+  writeMcpProvenance,
+  getMcpProvenancePath,
 } from '../paths/mcp';
 import { propagateMcpToOpenHands } from '../mcp/propagateOpenHandsMcp';
 import { propagateMcpToOpenCode } from '../mcp/propagateOpenCodeMcp';
@@ -633,9 +635,19 @@ async function updateGitignoreForMcpFile(
   if (isPathInsideOrEqual(projectRoot, dest)) {
     const relativeDest = path.relative(projectRoot, dest);
     generatedPaths.push(relativeDest);
+    generatedPaths.push(path.relative(projectRoot, getMcpProvenancePath(dest)));
     if (backup) {
       generatedPaths.push(`${relativeDest}.bak`);
     }
+  }
+}
+
+async function pathExists(filePath: string): Promise<boolean> {
+  try {
+    await fs.access(filePath);
+    return true;
+  } catch {
+    return false;
   }
 }
 
@@ -776,6 +788,7 @@ async function applyOpenHandsMcpConfiguration(
       verbose,
     );
   } else {
+    const existedBefore = await pathExists(dest);
     await propagateMcpToOpenHands(
       filteredMcpJson,
       dest,
@@ -783,6 +796,9 @@ async function applyOpenHandsMcpConfiguration(
       strategy,
       projectRoot,
     );
+    if (!existedBefore) {
+      await writeMcpProvenance(dest, projectRoot);
+    }
   }
 }
 
@@ -801,6 +817,7 @@ async function applyOpenCodeMcpConfiguration(
       verbose,
     );
   } else {
+    const existedBefore = await pathExists(dest);
     await propagateMcpToOpenCode(
       filteredMcpJson,
       dest,
@@ -808,6 +825,9 @@ async function applyOpenCodeMcpConfiguration(
       strategy,
       projectRoot,
     );
+    if (!existedBefore) {
+      await writeMcpProvenance(dest, projectRoot);
+    }
   }
 }
 
@@ -989,6 +1009,7 @@ async function applyStandardMcpConfiguration(
     const CODEX_AGENT_ID = 'codex';
     const isCodexToml =
       agent.getIdentifier() === CODEX_AGENT_ID && dest.endsWith('.toml');
+    const existedBefore = await pathExists(dest);
     const existing = isCodexToml
       ? await readNativeMcpToml(
           dest,
@@ -1078,6 +1099,9 @@ async function applyStandardMcpConfiguration(
         );
       } else {
         await writeNativeMcp(dest, toWrite, projectRoot);
+      }
+      if (!existedBefore) {
+        await writeMcpProvenance(dest, projectRoot);
       }
     } else {
       logVerbose(

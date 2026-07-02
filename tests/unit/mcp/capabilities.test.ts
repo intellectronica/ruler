@@ -118,6 +118,32 @@ describe('MCP Capabilities', () => {
       });
     });
 
+    it('does not let remote server fields overwrite the mcp-remote wrapper', () => {
+      const agent = new FirebaseAgent();
+      const filtered = filterMcpConfigForAgent(
+        {
+          mcpServers: {
+            remote_with_wrapper_like_fields: {
+              type: 'remote',
+              url: 'https://api.example.com/mcp',
+              args: ['--user-supplied'],
+              headers: { Authorization: 'Bearer TOKEN' },
+            },
+          },
+        },
+        agent,
+      );
+
+      expect(filtered).not.toBeNull();
+      expect(filtered!.mcpServers).toEqual({
+        remote_with_wrapper_like_fields: {
+          command: 'npx',
+          args: ['-y', 'mcp-remote@latest', 'https://api.example.com/mcp'],
+          headers: { Authorization: 'Bearer TOKEN' },
+        },
+      });
+    });
+
     it('returns null when mcpServers is not present', () => {
       const agent = new OpenHandsAgent();
       const invalidConfig = { somethingElse: {} };

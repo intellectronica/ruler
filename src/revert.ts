@@ -130,6 +130,7 @@ export async function revertAllAgentConfigs(
   let totalFilesRemoved = 0;
   let totalBackupsRemoved = 0;
   let totalDirectoriesRemoved = 0;
+  const processedPaths = new Set<string>();
 
   for (const agent of selected) {
     const prefix = actionPrefix(dryRun);
@@ -143,6 +144,7 @@ export async function revertAllAgentConfigs(
       keepBackups,
       verbose,
       dryRun,
+      processedPaths,
     );
 
     totalFilesProcessed += result.restored + result.removed;

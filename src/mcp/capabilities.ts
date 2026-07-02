@@ -68,12 +68,15 @@ export function filterMcpConfigForAgent(
       capabilities.supportsStdio
     ) {
       // Transform remote server to stdio server using mcp-remote
+      const preservedFields = Object.fromEntries(
+        Object.entries(config).filter(
+          ([key]) => !['url', 'command', 'args', 'type'].includes(key),
+        ),
+      );
       const transformedConfig = {
         command: 'npx',
         args: ['-y', 'mcp-remote@latest', config.url as string],
-        ...Object.fromEntries(
-          Object.entries(config).filter(([key]) => key !== 'url'),
-        ),
+        ...preservedFields,
       };
       filteredServers[serverName] = transformedConfig;
     }

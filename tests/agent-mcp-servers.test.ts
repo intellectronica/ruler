@@ -35,6 +35,7 @@ oauth = { clientId = "CLAUDE_ID", callbackPort = 3118 }
       await fs.readFile(path.join(projectRoot, '.cursor', 'mcp.json'), 'utf8'),
     );
     expect(cursorMcp.mcpServers.slack).toEqual({
+      type: 'remote',
       url: 'https://mcp.slack.com/mcp',
       auth: { CLIENT_ID: 'CURSOR_ID' },
     });

@@ -3,7 +3,11 @@ import { promises as fs } from 'fs';
 import { IAgent } from '../agents/IAgent';
 import { IAgentConfig } from './ConfigLoader';
 import { getAgentOutputPaths } from '../agents/agent-utils';
-import { getNativeMcpPath } from '../paths/mcp';
+import {
+  getMcpProvenancePath,
+  getNativeMcpPath,
+  removeMcpProvenance,
+} from '../paths/mcp';
 import { logVerbose, actionPrefix } from '../constants';
 import { resolveIgnoreFilePath } from './GitignoreUtils';
 import {
@@ -105,6 +109,18 @@ async function hasRulerGeneratedProvenance(
   projectRoot: string,
 ): Promise<boolean> {
   try {
+    const provenanceContent = await fs.readFile(
+      getMcpProvenancePath(filePath),
+      'utf8',
+    );
+    if (provenanceContent.startsWith(RULER_GENERATED_MARKER)) {
+      return true;
+    }
+  } catch {
+    // Missing or unreadable provenance falls through to the other checks.
+  }
+
+  try {
     const content = await fs.readFile(filePath, 'utf8');
     if (content.startsWith(RULER_GENERATED_MARKER)) {
       return true;
@@ -187,6 +203,9 @@ async function restoreFromBackup(
       'Refusing to restore from hard-linked backup path',
     );
     await fs.copyFile(backupPath, filePath);
+    if (projectRoot) {
+      await removeMcpProvenance(filePath, projectRoot);
+    }
     logVerbose(`${prefix} Restored: ${filePath} from backup`, verbose);
   }
 
@@ -247,6 +266,9 @@ async function removeGeneratedFile(
       'Refusing to remove hard-linked generated file',
     );
     await fs.unlink(filePath);
+    if (projectRoot) {
+      await removeMcpProvenance(filePath, projectRoot);
+    }
     logVerbose(`${prefix} Removed generated file: ${filePath}`, verbose);
   }
 
@@ -534,6 +556,7 @@ async function removeAdditionalAgentFiles(
             'Refusing to remove hard-linked additional file',
           );
           await fs.unlink(fullPath);
+          await removeMcpProvenance(fullPath, projectRoot);
           logVerbose(`${prefix} Removed additional file: ${fullPath}`, verbose);
         }
         filesRemoved++;
@@ -634,6 +657,7 @@ export async function revertAgentConfiguration(
   keepBackups: boolean,
   verbose: boolean,
   dryRun: boolean,
+  processedMcpPaths: Set<string> = new Set<string>(),
 ): Promise<RevertAgentResult> {
   const result: RevertAgentResult = {
     restored: 0,
@@ -642,14 +666,26 @@ export async function revertAgentConfiguration(
   };
 
   const outputPaths = getAgentOutputPaths(agent, projectRoot, agentConfig);
-  const processedPaths = new Set<string>();
+  const mcpPath = await resolveMcpPathForRevert(
+    agent,
+    projectRoot,
+    agentConfig,
+  );
+  const resolvedMcpPath =
+    mcpPath && isPathInsideOrEqual(projectRoot, mcpPath)
+      ? path.resolve(projectRoot, mcpPath)
+      : null;
+  const processedOutputPaths = new Set<string>();
 
   logVerbose(
     `Agent ${agent.getName()} output paths: ${outputPaths.join(', ')}`,
     verbose,
   );
 
-  const processPath = async (outputPath: string): Promise<void> => {
+  const processPath = async (
+    outputPath: string,
+    processedPaths: Set<string>,
+  ): Promise<void> => {
     const resolvedPath = path.resolve(projectRoot, outputPath);
     if (processedPaths.has(resolvedPath)) {
       logVerbose(`Skipping already processed path: ${outputPath}`, verbose);
@@ -691,16 +727,17 @@ export async function revertAgentConfiguration(
   };
 
   for (const outputPath of outputPaths) {
-    await processPath(outputPath);
+    const resolvedPath = path.resolve(projectRoot, outputPath);
+    await processPath(
+      outputPath,
+      resolvedMcpPath === resolvedPath
+        ? processedMcpPaths
+        : processedOutputPaths,
+    );
   }
 
   // Handle MCP files
-  const mcpPath = await resolveMcpPathForRevert(
-    agent,
-    projectRoot,
-    agentConfig,
-  );
-  if (mcpPath && isPathInsideOrEqual(projectRoot, mcpPath)) {
+  if (mcpPath && resolvedMcpPath) {
     if (
       agent.getName() === 'AugmentCode' &&
       mcpPath.endsWith('.vscode/settings.json')
@@ -710,7 +747,7 @@ export async function revertAgentConfiguration(
         verbose,
       );
     } else {
-      await processPath(mcpPath);
+      await processPath(mcpPath, processedMcpPaths);
     }
   }
 
