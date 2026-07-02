@@ -16,6 +16,13 @@ import { loadSubagentFile, mapToolsForCopilot } from './SubagentsUtils';
 import type { IAgent } from '../agents/IAgent';
 import { assertManagedPathInsideRoot } from './FileSystemUtils';
 
+const RULER_MANAGED_MANIFEST = '.ruler-managed.json';
+
+interface ManagedManifest {
+  version: 1;
+  paths: string[];
+}
+
 /**
  * Discovers subagent definitions in `.ruler/agents/`.
  * Each `.md` file is parsed for YAML frontmatter (name, description, …).
@@ -124,9 +131,24 @@ export async function getSubagentsGitignorePaths(
     return [];
   }
   const targets = getSelectedSubagentTargets(agents);
-  return Array.from(targets).map((t) =>
-    path.join(projectRoot, SUBAGENT_TARGET_PATHS[t]),
-  );
+  const { subagents } = await discoverSubagents(projectRoot);
+  if (subagents.length === 0) {
+    return [];
+  }
+
+  const generatedPaths = new Set<string>();
+  for (const target of targets) {
+    const targetPath = path.join(projectRoot, SUBAGENT_TARGET_PATHS[target]);
+    generatedPaths.add(path.join(targetPath, RULER_MANAGED_MANIFEST));
+    for (const subagent of subagents) {
+      const outputPath =
+        target === 'codex'
+          ? withExtension(getSourceRelativeMdPath(subagent), '.toml')
+          : getSourceRelativeMdPath(subagent);
+      generatedPaths.add(path.join(targetPath, outputPath));
+    }
+  }
+  return Array.from(generatedPaths);
 }
 
 /**
@@ -167,14 +189,125 @@ function ensureBodyFormatting(body: string | undefined): string {
 }
 
 /* ------------------------------------------------------------------ */
-/* Atomic directory write                                              */
+/* Managed directory write                                             */
 /* ------------------------------------------------------------------ */
 
+function isSafeManagedRelativePath(relativePath: string): boolean {
+  return (
+    relativePath.length > 0 &&
+    !path.isAbsolute(relativePath) &&
+    !relativePath.split(path.sep).includes('..') &&
+    !relativePath.split('/').includes('..')
+  );
+}
+
+async function readManagedManifest(targetDir: string): Promise<string[]> {
+  try {
+    const content = await fs.readFile(
+      path.join(targetDir, RULER_MANAGED_MANIFEST),
+      'utf8',
+    );
+    const parsed = JSON.parse(content) as Partial<ManagedManifest>;
+    if (!Array.isArray(parsed.paths)) {
+      return [];
+    }
+    return parsed.paths.filter(
+      (entry): entry is string =>
+        typeof entry === 'string' && isSafeManagedRelativePath(entry),
+    );
+  } catch {
+    return [];
+  }
+}
+
+async function removeDirectoryIfEmpty(dirPath: string): Promise<void> {
+  try {
+    const entries = await fs.readdir(dirPath);
+    if (entries.length === 0) {
+      await fs.rmdir(dirPath);
+    }
+  } catch {
+    // Directory is missing or not empty; either state is fine.
+  }
+}
+
+async function removeEmptyParentsUntil(
+  boundaryDir: string,
+  startDir: string,
+): Promise<void> {
+  let current = startDir;
+  while (current !== boundaryDir && current.startsWith(boundaryDir)) {
+    await removeDirectoryIfEmpty(current);
+    const next = path.dirname(current);
+    if (next === current) {
+      return;
+    }
+    current = next;
+  }
+}
+
+async function removeManagedEntries(
+  targetDir: string,
+  managedPaths: string[],
+  projectRoot: string,
+): Promise<void> {
+  const sortedPaths = Array.from(new Set(managedPaths)).sort(
+    (a, b) => b.length - a.length,
+  );
+
+  for (const managedPath of sortedPaths) {
+    const outputPath = path.join(targetDir, managedPath);
+    await assertManagedPathInsideRoot(
+      outputPath,
+      projectRoot,
+      'Refusing to remove managed subagent entry through symlinked path',
+    );
+    await fs.rm(outputPath, { recursive: true, force: true });
+    await removeEmptyParentsUntil(targetDir, path.dirname(outputPath));
+  }
+}
+
+async function removeManagedManifest(
+  targetDir: string,
+  projectRoot: string,
+): Promise<void> {
+  const manifestPath = path.join(targetDir, RULER_MANAGED_MANIFEST);
+  await assertManagedPathInsideRoot(
+    manifestPath,
+    projectRoot,
+    'Refusing to remove subagents manifest through symlinked path',
+  );
+  await fs.rm(manifestPath, { force: true });
+}
+
+async function writeManagedManifest(
+  targetDir: string,
+  managedPaths: string[],
+  projectRoot: string,
+): Promise<void> {
+  const manifestPath = path.join(targetDir, RULER_MANAGED_MANIFEST);
+  await assertManagedPathInsideRoot(
+    manifestPath,
+    projectRoot,
+    'Refusing to write subagents manifest through symlinked path',
+  );
+  const manifest: ManagedManifest = {
+    version: 1,
+    paths: Array.from(new Set(managedPaths)).sort(),
+  };
+  await fs.writeFile(
+    manifestPath,
+    `${JSON.stringify(manifest, null, 2)}\n`,
+    'utf8',
+  );
+}
+
 /**
- * Stages files into a temp directory and atomically swaps it into place.
- * Mirrors the pattern used by SkillsProcessor for safe overwriting.
+ * Writes generated subagent files without taking ownership of the whole native
+ * directory. The manifest lets later applies remove stale Ruler-owned files
+ * while preserving user-created native files.
  */
-async function writeAgentsDirectoryAtomic(
+async function writeManagedAgentsDirectory(
   targetDir: string,
   files: { name: string; content: string }[],
   projectRoot: string,
@@ -186,30 +319,30 @@ async function writeAgentsDirectoryAtomic(
     'Refusing to replace subagents directory through symlinked path',
   );
   await fs.mkdir(parent, { recursive: true });
+  await fs.mkdir(targetDir, { recursive: true });
 
-  const tempDir = path.join(parent, `agents.tmp-${Date.now()}`);
-  await fs.mkdir(tempDir, { recursive: true });
+  const previousManagedPaths = await readManagedManifest(targetDir);
+  await removeManagedEntries(targetDir, previousManagedPaths, projectRoot);
+  await removeManagedManifest(targetDir, projectRoot);
 
-  try {
-    for (const { name, content } of files) {
-      const outputPath = path.join(tempDir, name);
-      await fs.mkdir(path.dirname(outputPath), { recursive: true });
-      await fs.writeFile(outputPath, content, 'utf8');
+  for (const { name, content } of files) {
+    if (!isSafeManagedRelativePath(name)) {
+      throw new Error(`Refusing to write unsafe subagent path: ${name}`);
     }
-    try {
-      await fs.rm(targetDir, { recursive: true, force: true });
-    } catch {
-      // Target didn't exist; ignore.
-    }
-    await fs.rename(tempDir, targetDir);
-  } catch (error) {
-    try {
-      await fs.rm(tempDir, { recursive: true, force: true });
-    } catch {
-      // Ignore cleanup errors.
-    }
-    throw error;
+    const outputPath = path.join(targetDir, name);
+    await assertManagedPathInsideRoot(
+      outputPath,
+      projectRoot,
+      'Refusing to write subagent through symlinked path',
+    );
+    await fs.mkdir(path.dirname(outputPath), { recursive: true });
+    await fs.writeFile(outputPath, content, 'utf8');
   }
+  await writeManagedManifest(
+    targetDir,
+    files.map((file) => file.name),
+    projectRoot,
+  );
 }
 
 /* ------------------------------------------------------------------ */
@@ -345,7 +478,7 @@ export async function propagateSubagentsForClaude(
     name: getSourceRelativeMdPath(s),
     content: buildClaudeFile(s),
   }));
-  await writeAgentsDirectoryAtomic(targetDir, files, projectRoot);
+  await writeManagedAgentsDirectory(targetDir, files, projectRoot);
   return [];
 }
 
@@ -366,7 +499,7 @@ export async function propagateSubagentsForCursor(
     name: getSourceRelativeMdPath(s),
     content: buildCursorFile(s),
   }));
-  await writeAgentsDirectoryAtomic(targetDir, files, projectRoot);
+  await writeManagedAgentsDirectory(targetDir, files, projectRoot);
   return [];
 }
 
@@ -387,7 +520,7 @@ export async function propagateSubagentsForCodex(
     name: withExtension(getSourceRelativeMdPath(s), '.toml'),
     content: buildCodexFile(s),
   }));
-  await writeAgentsDirectoryAtomic(targetDir, files, projectRoot);
+  await writeManagedAgentsDirectory(targetDir, files, projectRoot);
   return [];
 }
 
@@ -416,7 +549,7 @@ export async function propagateSubagentsForCopilot(
     name: getSourceRelativeMdPath(s),
     content: buildCopilotFile(s, false, verbose).content,
   }));
-  await writeAgentsDirectoryAtomic(targetDir, files, projectRoot);
+  await writeManagedAgentsDirectory(targetDir, files, projectRoot);
   return [];
 }
 
@@ -437,16 +570,35 @@ async function cleanupSubagentsDir(
     return;
   }
   if (dryRun) {
-    logVerboseInfo(`DRY RUN: Would remove ${relPath}`, verbose, dryRun);
+    logVerboseInfo(
+      `DRY RUN: Would remove Ruler-managed entries from ${relPath}`,
+      verbose,
+      dryRun,
+    );
     return;
   }
   await assertManagedPathInsideRoot(
     target,
     projectRoot,
-    'Refusing to remove subagents directory through symlinked path',
+    'Refusing to clean subagents directory through symlinked path',
   );
-  await fs.rm(target, { recursive: true, force: true });
-  logVerboseInfo(`Removed ${relPath} (subagents disabled)`, verbose, dryRun);
+  const managedPaths = await readManagedManifest(target);
+  if (managedPaths.length === 0) {
+    logVerboseInfo(
+      `No Ruler-managed subagents found in ${relPath}; leaving directory unchanged`,
+      verbose,
+      dryRun,
+    );
+    return;
+  }
+  await removeManagedEntries(target, managedPaths, projectRoot);
+  await removeManagedManifest(target, projectRoot);
+  await removeDirectoryIfEmpty(target);
+  logVerboseInfo(
+    `Removed Ruler-managed entries from ${relPath} (subagents disabled)`,
+    verbose,
+    dryRun,
+  );
 }
 
 async function cleanupAllSubagentsDirectories(

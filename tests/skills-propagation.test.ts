@@ -13,6 +13,7 @@ import {
 
 describe('Skills Discovery and Validation', () => {
   let tmpDir: string;
+  const managedManifest = '.ruler-managed.json';
 
   beforeEach(async () => {
     tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ruler-skills-test-'));
@@ -127,12 +128,15 @@ describe('Skills Discovery and Validation', () => {
       );
       const skillsDir = path.join(tmpDir, '.ruler', 'skills');
 
-      await fs.mkdir(skillsDir, { recursive: true });
+      await fs.mkdir(path.join(skillsDir, 'skill1'), { recursive: true });
 
       const antigravityAgent = new AntigravityAgent();
       const paths = await getSkillsGitignorePaths(tmpDir, [antigravityAgent]);
 
-      expect(paths).toEqual([path.join(tmpDir, ANTIGRAVITY_SKILLS_PATH)]);
+      expect(paths).toEqual([
+        path.join(tmpDir, ANTIGRAVITY_SKILLS_PATH, managedManifest),
+        path.join(tmpDir, ANTIGRAVITY_SKILLS_PATH, 'skill1'),
+      ]);
     });
 
     it('returns claude skills path for copilot agent', async () => {
@@ -142,11 +146,14 @@ describe('Skills Discovery and Validation', () => {
       const { CopilotAgent } = await import('../src/agents/CopilotAgent');
       const skillsDir = path.join(tmpDir, '.ruler', 'skills');
 
-      await fs.mkdir(skillsDir, { recursive: true });
+      await fs.mkdir(path.join(skillsDir, 'skill1'), { recursive: true });
 
       const paths = await getSkillsGitignorePaths(tmpDir, [new CopilotAgent()]);
 
-      expect(paths).toEqual([path.join(tmpDir, CLAUDE_SKILLS_PATH)]);
+      expect(paths).toEqual([
+        path.join(tmpDir, CLAUDE_SKILLS_PATH, managedManifest),
+        path.join(tmpDir, CLAUDE_SKILLS_PATH, 'skill1'),
+      ]);
     });
 
     it('returns junie skills path for Junie agent', async () => {
@@ -156,11 +163,14 @@ describe('Skills Discovery and Validation', () => {
       const { JunieAgent } = await import('../src/agents/JunieAgent');
       const skillsDir = path.join(tmpDir, '.ruler', 'skills');
 
-      await fs.mkdir(skillsDir, { recursive: true });
+      await fs.mkdir(path.join(skillsDir, 'skill1'), { recursive: true });
 
       const paths = await getSkillsGitignorePaths(tmpDir, [new JunieAgent()]);
 
-      expect(paths).toEqual([path.join(tmpDir, JUNIE_SKILLS_PATH)]);
+      expect(paths).toEqual([
+        path.join(tmpDir, JUNIE_SKILLS_PATH, managedManifest),
+        path.join(tmpDir, JUNIE_SKILLS_PATH, 'skill1'),
+      ]);
     });
 
     it('returns windsurf skills path for Windsurf agent', async () => {
@@ -170,13 +180,16 @@ describe('Skills Discovery and Validation', () => {
       const { WindsurfAgent } = await import('../src/agents/WindsurfAgent');
       const skillsDir = path.join(tmpDir, '.ruler', 'skills');
 
-      await fs.mkdir(skillsDir, { recursive: true });
+      await fs.mkdir(path.join(skillsDir, 'skill1'), { recursive: true });
 
       const paths = await getSkillsGitignorePaths(tmpDir, [
         new WindsurfAgent(),
       ]);
 
-      expect(paths).toEqual([path.join(tmpDir, WINDSURF_SKILLS_PATH)]);
+      expect(paths).toEqual([
+        path.join(tmpDir, WINDSURF_SKILLS_PATH, managedManifest),
+        path.join(tmpDir, WINDSURF_SKILLS_PATH, 'skill1'),
+      ]);
     });
   });
 
@@ -309,7 +322,7 @@ describe('Skills Discovery and Validation', () => {
       expect(stats.isDirectory()).toBe(true);
     });
 
-    it('uses atomic replace when overwriting existing skills', async () => {
+    it('preserves existing unmanaged skills while copying Ruler skills', async () => {
       const { propagateSkillsForClaude } = await import(
         '../src/core/SkillsProcessor'
       );
@@ -318,26 +331,52 @@ describe('Skills Discovery and Validation', () => {
       const claudeSkillsDir = path.join(tmpDir, '.claude', 'skills');
       const oldSkill = path.join(claudeSkillsDir, 'old-skill');
 
-      // Create old skills
       await fs.mkdir(oldSkill, { recursive: true });
       await fs.writeFile(path.join(oldSkill, SKILL_MD_FILENAME), '# Old Skill');
 
-      // Create new skills
       await fs.mkdir(skill1, { recursive: true });
       await fs.writeFile(path.join(skill1, SKILL_MD_FILENAME), '# Skill 1');
 
       await propagateSkillsForClaude(tmpDir, { dryRun: false });
 
-      // Old skill should be replaced
       const copiedSkill = path.join(
         claudeSkillsDir,
         'skill1',
         SKILL_MD_FILENAME,
       );
       expect(await fs.readFile(copiedSkill, 'utf8')).toBe('# Skill 1');
+      expect(
+        await fs.readFile(path.join(oldSkill, SKILL_MD_FILENAME), 'utf8'),
+      ).toBe('# Old Skill');
+    });
 
-      // Old skill should not exist
-      await expect(fs.access(oldSkill)).rejects.toThrow();
+    it('removes stale Ruler-managed skills from a previous propagation', async () => {
+      const { propagateSkillsForClaude } = await import(
+        '../src/core/SkillsProcessor'
+      );
+      const skillsDir = path.join(tmpDir, '.ruler', 'skills');
+      const oldSkill = path.join(skillsDir, 'old-skill');
+      const skill1 = path.join(skillsDir, 'skill1');
+      const claudeSkillsDir = path.join(tmpDir, '.claude', 'skills');
+
+      await fs.mkdir(oldSkill, { recursive: true });
+      await fs.writeFile(path.join(oldSkill, SKILL_MD_FILENAME), '# Old Skill');
+      await propagateSkillsForClaude(tmpDir, { dryRun: false });
+
+      await fs.rm(oldSkill, { recursive: true, force: true });
+      await fs.mkdir(skill1, { recursive: true });
+      await fs.writeFile(path.join(skill1, SKILL_MD_FILENAME), '# Skill 1');
+      await propagateSkillsForClaude(tmpDir, { dryRun: false });
+
+      await expect(
+        fs.access(path.join(claudeSkillsDir, 'old-skill')),
+      ).rejects.toThrow();
+      await expect(
+        fs.readFile(
+          path.join(claudeSkillsDir, 'skill1', SKILL_MD_FILENAME),
+          'utf8',
+        ),
+      ).resolves.toBe('# Skill 1');
     });
 
     it('uses a unique temp directory instead of reusing stale temp content', async () => {
@@ -1368,7 +1407,7 @@ describe('Skills Discovery and Validation', () => {
   });
 
   describe('propagateSkills - cleanup when disabled', () => {
-    it('removes skills directories when skills are disabled', async () => {
+    it('preserves unmanaged skills directories when skills are disabled', async () => {
       const { propagateSkills } = await import('../src/core/SkillsProcessor');
       const { allAgents } = await import('../src/lib');
       const claudeSkillsDir = path.join(tmpDir, '.claude', 'skills');
@@ -1475,19 +1514,47 @@ describe('Skills Discovery and Validation', () => {
       // Run propagateSkills with skillsEnabled = false
       await propagateSkills(tmpDir, allAgents, false, false, false);
 
-      // Verify directories were removed
-      await expect(fs.access(claudeSkillsDir)).rejects.toThrow();
-      await expect(fs.access(opencodeSkillsDir)).rejects.toThrow();
-      await expect(fs.access(piSkillsDir)).rejects.toThrow();
-      await expect(fs.access(gooseSkillsDir)).rejects.toThrow();
-      await expect(fs.access(vibeSkillsDir)).rejects.toThrow();
-      await expect(fs.access(rooSkillsDir)).rejects.toThrow();
-      await expect(fs.access(geminiSkillsDir)).rejects.toThrow();
-      await expect(fs.access(junieSkillsDir)).rejects.toThrow();
-      await expect(fs.access(cursorSkillsDir)).rejects.toThrow();
-      await expect(fs.access(factorySkillsDir)).rejects.toThrow();
-      await expect(fs.access(antigravitySkillsDir)).rejects.toThrow();
-      await expect(fs.access(windsurfSkillsDir)).rejects.toThrow();
+      // Verify unmanaged directories were preserved
+      await expect(fs.access(claudeSkillsDir)).resolves.toBeUndefined();
+      await expect(fs.access(opencodeSkillsDir)).resolves.toBeUndefined();
+      await expect(fs.access(piSkillsDir)).resolves.toBeUndefined();
+      await expect(fs.access(gooseSkillsDir)).resolves.toBeUndefined();
+      await expect(fs.access(vibeSkillsDir)).resolves.toBeUndefined();
+      await expect(fs.access(rooSkillsDir)).resolves.toBeUndefined();
+      await expect(fs.access(geminiSkillsDir)).resolves.toBeUndefined();
+      await expect(fs.access(junieSkillsDir)).resolves.toBeUndefined();
+      await expect(fs.access(cursorSkillsDir)).resolves.toBeUndefined();
+      await expect(fs.access(factorySkillsDir)).resolves.toBeUndefined();
+      await expect(fs.access(antigravitySkillsDir)).resolves.toBeUndefined();
+      await expect(fs.access(windsurfSkillsDir)).resolves.toBeUndefined();
+    });
+
+    it('removes Ruler-managed skills when skills are disabled', async () => {
+      const { propagateSkills } = await import('../src/core/SkillsProcessor');
+      const { allAgents } = await import('../src/lib');
+      const sourceSkill = path.join(
+        tmpDir,
+        '.ruler',
+        'skills',
+        'managed-skill',
+      );
+      const userSkill = path.join(tmpDir, '.claude', 'skills', 'user-skill');
+
+      await fs.mkdir(sourceSkill, { recursive: true });
+      await fs.writeFile(
+        path.join(sourceSkill, SKILL_MD_FILENAME),
+        '# Managed Skill',
+      );
+      await fs.mkdir(userSkill, { recursive: true });
+      await fs.writeFile(path.join(userSkill, SKILL_MD_FILENAME), '# User');
+
+      await propagateSkills(tmpDir, allAgents, true, false, false);
+      await propagateSkills(tmpDir, allAgents, false, false, false);
+
+      await expect(
+        fs.access(path.join(tmpDir, '.claude', 'skills', 'managed-skill')),
+      ).rejects.toThrow();
+      await expect(fs.access(userSkill)).resolves.toBeUndefined();
     });
 
     it('logs cleanup in dry-run mode without actually removing directories', async () => {
@@ -1515,22 +1582,20 @@ describe('Skills Discovery and Validation', () => {
       ).resolves.toBeUndefined();
     });
 
-    it('surfaces filesystem errors during cleanup', async () => {
+    it('leaves unmanaged directories unchanged during cleanup', async () => {
       const { propagateSkills } = await import('../src/core/SkillsProcessor');
       const { allAgents } = await import('../src/lib');
       const claudeSkillsDir = path.join(tmpDir, '.claude', 'skills');
-      const claudeDir = path.dirname(claudeSkillsDir);
 
       await fs.mkdir(claudeSkillsDir, { recursive: true });
-      await fs.chmod(claudeDir, 0o555);
+      await fs.writeFile(path.join(claudeSkillsDir, 'local.md'), 'local');
 
-      try {
-        await expect(
-          propagateSkills(tmpDir, allAgents, false, false, false),
-        ).rejects.toThrow();
-      } finally {
-        await fs.chmod(claudeDir, 0o755);
-      }
+      await expect(
+        propagateSkills(tmpDir, allAgents, false, false, false),
+      ).resolves.toBeUndefined();
+      await expect(
+        fs.readFile(path.join(claudeSkillsDir, 'local.md'), 'utf8'),
+      ).resolves.toBe('local');
     });
   });
 });

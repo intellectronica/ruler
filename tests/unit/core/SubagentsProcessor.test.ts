@@ -6,6 +6,7 @@ import {
   propagateSubagentsForCursor,
   propagateSubagentsForCodex,
   propagateSubagentsForCopilot,
+  getSubagentsGitignorePaths,
   _resetExperimentalWarningForTests,
 } from '../../../src/core/SubagentsProcessor';
 import {
@@ -120,6 +121,27 @@ describe('SubagentsProcessor — propagateSubagents orchestrator', () => {
     await fs.rm(tmpDir, { recursive: true, force: true });
   });
 
+  it('returns generated subagent files and manifests for gitignore paths', async () => {
+    const sourceDir = path.join(tmpDir, RULER_SUBAGENTS_PATH, 'nested');
+    await fs.mkdir(sourceDir, { recursive: true });
+    await fs.writeFile(
+      path.join(sourceDir, 'reviewer.md'),
+      '---\nname: reviewer\ndescription: Reviews code\n---\nbody\n',
+    );
+
+    await expect(
+      getSubagentsGitignorePaths(tmpDir, [
+        new ClaudeAgent(),
+        new CodexCliAgent(),
+      ]),
+    ).resolves.toEqual([
+      path.join(tmpDir, CLAUDE_SUBAGENTS_PATH, '.ruler-managed.json'),
+      path.join(tmpDir, CLAUDE_SUBAGENTS_PATH, 'nested', 'reviewer.md'),
+      path.join(tmpDir, CODEX_SUBAGENTS_PATH, '.ruler-managed.json'),
+      path.join(tmpDir, CODEX_SUBAGENTS_PATH, 'nested', 'reviewer.toml'),
+    ]);
+  });
+
   it('does not clean up target dirs when subagentsEnabled is false and cleanup_orphaned is disabled', async () => {
     // Pre-create a stale target dir.
     const staleClaude = path.join(tmpDir, CLAUDE_SUBAGENTS_PATH);
@@ -140,8 +162,24 @@ describe('SubagentsProcessor — propagateSubagents orchestrator', () => {
 
   it('cleans up all four target dirs when subagentsEnabled is false and cleanup_orphaned is enabled', async () => {
     const staleClaude = path.join(tmpDir, CLAUDE_SUBAGENTS_PATH);
-    await fs.mkdir(staleClaude, { recursive: true });
-    await fs.writeFile(path.join(staleClaude, 'old.md'), 'stale');
+    const sourceDir = path.join(tmpDir, RULER_SUBAGENTS_PATH);
+    await fs.mkdir(sourceDir, { recursive: true });
+    await fs.writeFile(
+      path.join(sourceDir, 'old.md'),
+      '---\nname: old\ndescription: old\n---\nstale\n',
+    );
+
+    await propagateSubagents(
+      tmpDir,
+      [new ClaudeAgent()],
+      true,
+      true,
+      false,
+      false,
+    );
+    await expect(
+      fs.access(path.join(staleClaude, 'old.md')),
+    ).resolves.toBeUndefined();
 
     await propagateSubagents(
       tmpDir,
@@ -157,8 +195,22 @@ describe('SubagentsProcessor — propagateSubagents orchestrator', () => {
 
   it('cleans up all targets when .ruler/agents directory does not exist and cleanup_orphaned is enabled', async () => {
     const staleCursor = path.join(tmpDir, CURSOR_SUBAGENTS_PATH);
-    await fs.mkdir(staleCursor, { recursive: true });
-    await fs.writeFile(path.join(staleCursor, 'gone.md'), 'stale');
+    const sourceDir = path.join(tmpDir, RULER_SUBAGENTS_PATH);
+    await fs.mkdir(sourceDir, { recursive: true });
+    await fs.writeFile(
+      path.join(sourceDir, 'gone.md'),
+      '---\nname: gone\ndescription: gone\n---\nstale\n',
+    );
+
+    await propagateSubagents(
+      tmpDir,
+      [new CursorAgent()],
+      true,
+      true,
+      false,
+      false,
+    );
+    await fs.rm(sourceDir, { recursive: true, force: true });
 
     // Source dir intentionally absent.
     await propagateSubagents(
@@ -176,12 +228,21 @@ describe('SubagentsProcessor — propagateSubagents orchestrator', () => {
   it('cleans up targets when .ruler/agents has no valid subagents and cleanup_orphaned is enabled', async () => {
     const sourceDir = path.join(tmpDir, RULER_SUBAGENTS_PATH);
     await fs.mkdir(sourceDir, { recursive: true });
-    // File with no frontmatter — invalid, skipped with warning.
-    await fs.writeFile(path.join(sourceDir, 'broken.md'), 'no frontmatter');
-
     const staleCodex = path.join(tmpDir, CODEX_SUBAGENTS_PATH);
-    await fs.mkdir(staleCodex, { recursive: true });
-    await fs.writeFile(path.join(staleCodex, 'leftover.toml'), 'stale');
+    await fs.writeFile(
+      path.join(sourceDir, 'leftover.md'),
+      '---\nname: leftover\ndescription: leftover\n---\nstale\n',
+    );
+    await propagateSubagents(
+      tmpDir,
+      [new CodexCliAgent()],
+      true,
+      true,
+      false,
+      false,
+    );
+    await fs.writeFile(path.join(sourceDir, 'broken.md'), 'no frontmatter');
+    await fs.rm(path.join(sourceDir, 'leftover.md'), { force: true });
 
     const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -237,10 +298,15 @@ describe('SubagentsProcessor — propagateSubagents orchestrator', () => {
       '---\nname: reviewer\ndescription: Reviews code\ntools: [Read]\n---\nbody\n',
     );
 
-    // Pre-existing cursor target dir from a previous run.
     const cursorDir = path.join(tmpDir, CURSOR_SUBAGENTS_PATH);
-    await fs.mkdir(cursorDir, { recursive: true });
-    await fs.writeFile(path.join(cursorDir, 'reviewer.md'), 'prev');
+    await propagateSubagents(
+      tmpDir,
+      [new CursorAgent()],
+      true,
+      true,
+      false,
+      false,
+    );
 
     // This run only selects claude — cursor dir must be reconciled away.
     await propagateSubagents(

@@ -23,6 +23,13 @@ import { walkSkillsTree, copySkillsDirectory } from './SkillsUtils';
 import type { IAgent } from '../agents/IAgent';
 import { assertManagedPathInsideRoot } from './FileSystemUtils';
 
+const RULER_MANAGED_MANIFEST = '.ruler-managed.json';
+
+interface ManagedManifest {
+  version: 1;
+  paths: string[];
+}
+
 /**
  * Discovers skills in the project's .ruler/skills directory.
  * Returns discovered skills and any validation warnings.
@@ -95,11 +102,19 @@ export async function getSkillsGitignorePaths(
     antigravity: ANTIGRAVITY_SKILLS_PATH,
   };
 
-  const pathSet = new Set(
-    Array.from(selectedTargets).map((target) =>
-      path.join(projectRoot, targetPaths[target]),
-    ),
-  );
+  const managedEntries = await getSourceTopLevelEntries(skillsDir);
+  if (managedEntries.length === 0) {
+    return [];
+  }
+
+  const pathSet = new Set<string>();
+  for (const target of selectedTargets) {
+    const targetPath = path.join(projectRoot, targetPaths[target]);
+    pathSet.add(path.join(targetPath, RULER_MANAGED_MANIFEST));
+    for (const managedEntry of managedEntries) {
+      pathSet.add(path.join(targetPath, managedEntry));
+    }
+  }
   return Array.from(pathSet);
 }
 
@@ -219,31 +234,36 @@ async function cleanupSkillsDirectory(
   }
 
   if (dryRun) {
-    logVerboseInfo(`DRY RUN: Would remove ${relativePath}`, verbose, dryRun);
+    logVerboseInfo(
+      `DRY RUN: Would remove Ruler-managed entries from ${relativePath}`,
+      verbose,
+      dryRun,
+    );
     return;
   }
 
   await assertManagedPathInsideRoot(
     targetPath,
     projectRoot,
-    'Refusing to remove skills directory through symlinked path',
+    'Refusing to clean skills directory through symlinked path',
   );
-  await fs.rm(targetPath, { recursive: true, force: true });
-  logVerboseInfo(`Removed ${relativePath} (skills disabled)`, verbose, dryRun);
-}
-
-async function createTempSkillsDir(
-  parentDir: string,
-  containmentRoot?: string,
-): Promise<string> {
-  if (containmentRoot) {
-    await assertManagedPathInsideRoot(
-      parentDir,
-      containmentRoot,
-      'Refusing to create temporary skills directory through symlinked path',
+  const managedPaths = await readManagedManifest(targetPath);
+  if (managedPaths.length === 0) {
+    logVerboseInfo(
+      `No Ruler-managed skills found in ${relativePath}; leaving directory unchanged`,
+      verbose,
+      dryRun,
     );
+    return;
   }
-  return fs.mkdtemp(path.join(parentDir, 'skills.tmp-'));
+  await removeManagedEntries(targetPath, managedPaths, projectRoot);
+  await removeManagedManifest(targetPath, projectRoot);
+  await removeDirectoryIfEmpty(targetPath);
+  logVerboseInfo(
+    `Removed Ruler-managed entries from ${relativePath} (skills disabled)`,
+    verbose,
+    dryRun,
+  );
 }
 
 const TRANSIENT_RENAME_ERROR_CODES = new Set(['EPERM', 'EBUSY', 'ENOTEMPTY']);
@@ -301,6 +321,151 @@ export async function replaceSkillsDirectory(
   }
 
   throw lastError;
+}
+
+function isSafeManagedRelativePath(relativePath: string): boolean {
+  return (
+    relativePath.length > 0 &&
+    !path.isAbsolute(relativePath) &&
+    !relativePath.split(path.sep).includes('..') &&
+    !relativePath.split('/').includes('..')
+  );
+}
+
+async function readManagedManifest(targetDir: string): Promise<string[]> {
+  try {
+    const content = await fs.readFile(
+      path.join(targetDir, RULER_MANAGED_MANIFEST),
+      'utf8',
+    );
+    const parsed = JSON.parse(content) as Partial<ManagedManifest>;
+    if (!Array.isArray(parsed.paths)) {
+      return [];
+    }
+    return parsed.paths.filter(
+      (entry): entry is string =>
+        typeof entry === 'string' && isSafeManagedRelativePath(entry),
+    );
+  } catch {
+    return [];
+  }
+}
+
+async function removeDirectoryIfEmpty(dirPath: string): Promise<void> {
+  try {
+    const entries = await fs.readdir(dirPath);
+    if (entries.length === 0) {
+      await fs.rmdir(dirPath);
+    }
+  } catch {
+    // Directory is missing or not empty; either state is fine.
+  }
+}
+
+async function removeEmptyParentsUntil(
+  boundaryDir: string,
+  startDir: string,
+): Promise<void> {
+  let current = startDir;
+  while (current !== boundaryDir && current.startsWith(boundaryDir)) {
+    await removeDirectoryIfEmpty(current);
+    const next = path.dirname(current);
+    if (next === current) {
+      return;
+    }
+    current = next;
+  }
+}
+
+async function removeManagedEntries(
+  targetDir: string,
+  managedPaths: string[],
+  projectRoot: string,
+): Promise<void> {
+  const sortedPaths = Array.from(new Set(managedPaths)).sort(
+    (a, b) => b.length - a.length,
+  );
+
+  for (const managedPath of sortedPaths) {
+    const outputPath = path.join(targetDir, managedPath);
+    await assertManagedPathInsideRoot(
+      outputPath,
+      projectRoot,
+      'Refusing to remove managed skills entry through symlinked path',
+    );
+    await fs.rm(outputPath, { recursive: true, force: true });
+    await removeEmptyParentsUntil(targetDir, path.dirname(outputPath));
+  }
+}
+
+async function removeManagedManifest(
+  targetDir: string,
+  projectRoot: string,
+): Promise<void> {
+  const manifestPath = path.join(targetDir, RULER_MANAGED_MANIFEST);
+  await assertManagedPathInsideRoot(
+    manifestPath,
+    projectRoot,
+    'Refusing to remove skills manifest through symlinked path',
+  );
+  await fs.rm(manifestPath, { force: true });
+}
+
+async function writeManagedManifest(
+  targetDir: string,
+  managedPaths: string[],
+  projectRoot: string,
+): Promise<void> {
+  const manifestPath = path.join(targetDir, RULER_MANAGED_MANIFEST);
+  await assertManagedPathInsideRoot(
+    manifestPath,
+    projectRoot,
+    'Refusing to write skills manifest through symlinked path',
+  );
+  const manifest: ManagedManifest = {
+    version: 1,
+    paths: Array.from(new Set(managedPaths)).sort(),
+  };
+  await fs.writeFile(
+    manifestPath,
+    `${JSON.stringify(manifest, null, 2)}\n`,
+    'utf8',
+  );
+}
+
+async function getSourceTopLevelEntries(sourceDir: string): Promise<string[]> {
+  const entries = await fs.readdir(sourceDir, { withFileTypes: true });
+  return entries
+    .filter((entry) => entry.isDirectory() || entry.isFile())
+    .map((entry) => entry.name)
+    .filter(isSafeManagedRelativePath)
+    .sort();
+}
+
+async function syncSkillsDirectory(
+  sourceDir: string,
+  targetDir: string,
+  projectRoot: string,
+): Promise<void> {
+  const targetParent = path.dirname(targetDir);
+  await assertManagedPathInsideRoot(
+    targetDir,
+    projectRoot,
+    'Refusing to sync skills directory through symlinked path',
+  );
+  await fs.mkdir(targetParent, { recursive: true });
+  await fs.mkdir(targetDir, { recursive: true });
+
+  const previousManagedPaths = await readManagedManifest(targetDir);
+  await removeManagedEntries(targetDir, previousManagedPaths, projectRoot);
+  await removeManagedManifest(targetDir, projectRoot);
+
+  await copySkillsDirectory(sourceDir, targetDir);
+  await writeManagedManifest(
+    targetDir,
+    await getSourceTopLevelEntries(sourceDir),
+    projectRoot,
+  );
 }
 
 /**
@@ -527,7 +692,7 @@ export async function propagateSkills(
 
 /**
  * Propagates skills for Claude Code by copying .ruler/skills to .claude/skills.
- * Uses atomic replace to ensure safe overwriting of existing skills.
+ * Updates only Ruler-managed entries so existing native skills are preserved.
  * Returns dry-run steps if dryRun is true, otherwise returns empty array.
  */
 export async function propagateSkillsForClaude(
@@ -536,7 +701,6 @@ export async function propagateSkillsForClaude(
 ): Promise<string[]> {
   const skillsDir = path.join(projectRoot, RULER_SKILLS_PATH);
   const claudeSkillsPath = path.join(projectRoot, CLAUDE_SKILLS_PATH);
-  const claudeDir = path.dirname(claudeSkillsPath);
 
   // Check if source skills directory exists
   try {
@@ -550,42 +714,14 @@ export async function propagateSkillsForClaude(
     return [`Copy skills from ${RULER_SKILLS_PATH} to ${CLAUDE_SKILLS_PATH}`];
   }
 
-  // Ensure .claude directory exists
-  await fs.mkdir(claudeDir, { recursive: true });
-
-  // Use atomic replace: copy to temp, then rename
-  const tempDir = await createTempSkillsDir(claudeDir, projectRoot);
-
-  try {
-    // Copy to temp directory
-    await copySkillsDirectory(skillsDir, tempDir);
-
-    // Atomically replace the target
-    // First, remove existing target if it exists
-    try {
-      await fs.rm(claudeSkillsPath, { recursive: true, force: true });
-    } catch {
-      // Target didn't exist, that's fine
-    }
-
-    // Rename temp to target
-    await replaceSkillsDirectory(tempDir, claudeSkillsPath, fs, projectRoot);
-  } catch (error) {
-    // Clean up temp directory on error
-    try {
-      await fs.rm(tempDir, { recursive: true, force: true });
-    } catch {
-      // Ignore cleanup errors
-    }
-    throw error;
-  }
+  await syncSkillsDirectory(skillsDir, claudeSkillsPath, projectRoot);
 
   return [];
 }
 
 /**
  * Propagates skills for OpenAI Codex CLI by copying .ruler/skills to .agents/skills.
- * Uses atomic replace to ensure safe overwriting of existing skills.
+ * Updates only Ruler-managed entries so existing native skills are preserved.
  * Returns dry-run steps if dryRun is true, otherwise returns empty array.
  */
 export async function propagateSkillsForCodex(
@@ -594,7 +730,6 @@ export async function propagateSkillsForCodex(
 ): Promise<string[]> {
   const skillsDir = path.join(projectRoot, RULER_SKILLS_PATH);
   const agentsSkillsPath = path.join(projectRoot, CODEX_SKILLS_PATH);
-  const agentsDir = path.dirname(agentsSkillsPath);
 
   // Check if source skills directory exists
   try {
@@ -608,42 +743,14 @@ export async function propagateSkillsForCodex(
     return [`Copy skills from ${RULER_SKILLS_PATH} to ${CODEX_SKILLS_PATH}`];
   }
 
-  // Ensure .agents directory exists
-  await fs.mkdir(agentsDir, { recursive: true });
-
-  // Use atomic replace: copy to temp, then rename
-  const tempDir = await createTempSkillsDir(agentsDir, projectRoot);
-
-  try {
-    // Copy to temp directory
-    await copySkillsDirectory(skillsDir, tempDir);
-
-    // Atomically replace the target
-    // First, remove existing target if it exists
-    try {
-      await fs.rm(agentsSkillsPath, { recursive: true, force: true });
-    } catch {
-      // Target didn't exist, that's fine
-    }
-
-    // Rename temp to target
-    await replaceSkillsDirectory(tempDir, agentsSkillsPath, fs, projectRoot);
-  } catch (error) {
-    // Clean up temp directory on error
-    try {
-      await fs.rm(tempDir, { recursive: true, force: true });
-    } catch {
-      // Ignore cleanup errors
-    }
-    throw error;
-  }
+  await syncSkillsDirectory(skillsDir, agentsSkillsPath, projectRoot);
 
   return [];
 }
 
 /**
  * Propagates skills for OpenCode by copying .ruler/skills to .opencode/skills.
- * Uses atomic replace to ensure safe overwriting of existing skills.
+ * Updates only Ruler-managed entries so existing native skills are preserved.
  * Returns dry-run steps if dryRun is true, otherwise returns empty array.
  */
 export async function propagateSkillsForOpenCode(
@@ -652,7 +759,6 @@ export async function propagateSkillsForOpenCode(
 ): Promise<string[]> {
   const skillsDir = path.join(projectRoot, RULER_SKILLS_PATH);
   const opencodeSkillsPath = path.join(projectRoot, OPENCODE_SKILLS_PATH);
-  const opencodeDir = path.dirname(opencodeSkillsPath);
 
   // Check if source skills directory exists
   try {
@@ -666,42 +772,14 @@ export async function propagateSkillsForOpenCode(
     return [`Copy skills from ${RULER_SKILLS_PATH} to ${OPENCODE_SKILLS_PATH}`];
   }
 
-  // Ensure .opencode directory exists
-  await fs.mkdir(opencodeDir, { recursive: true });
-
-  // Use atomic replace: copy to temp, then rename
-  const tempDir = await createTempSkillsDir(opencodeDir, projectRoot);
-
-  try {
-    // Copy to temp directory
-    await copySkillsDirectory(skillsDir, tempDir);
-
-    // Atomically replace the target
-    // First, remove existing target if it exists
-    try {
-      await fs.rm(opencodeSkillsPath, { recursive: true, force: true });
-    } catch {
-      // Target didn't exist, that's fine
-    }
-
-    // Rename temp to target
-    await replaceSkillsDirectory(tempDir, opencodeSkillsPath, fs, projectRoot);
-  } catch (error) {
-    // Clean up temp directory on error
-    try {
-      await fs.rm(tempDir, { recursive: true, force: true });
-    } catch {
-      // Ignore cleanup errors
-    }
-    throw error;
-  }
+  await syncSkillsDirectory(skillsDir, opencodeSkillsPath, projectRoot);
 
   return [];
 }
 
 /**
  * Propagates skills for Pi Coding Agent by copying .ruler/skills to .pi/skills.
- * Uses atomic replace to ensure safe overwriting of existing skills.
+ * Updates only Ruler-managed entries so existing native skills are preserved.
  * Returns dry-run steps if dryRun is true, otherwise returns empty array.
  */
 export async function propagateSkillsForPi(
@@ -710,7 +788,6 @@ export async function propagateSkillsForPi(
 ): Promise<string[]> {
   const skillsDir = path.join(projectRoot, RULER_SKILLS_PATH);
   const piSkillsPath = path.join(projectRoot, PI_SKILLS_PATH);
-  const piDir = path.dirname(piSkillsPath);
 
   // Check if source skills directory exists
   try {
@@ -724,42 +801,14 @@ export async function propagateSkillsForPi(
     return [`Copy skills from ${RULER_SKILLS_PATH} to ${PI_SKILLS_PATH}`];
   }
 
-  // Ensure .pi directory exists
-  await fs.mkdir(piDir, { recursive: true });
-
-  // Use atomic replace: copy to temp, then rename
-  const tempDir = await createTempSkillsDir(piDir, projectRoot);
-
-  try {
-    // Copy to temp directory
-    await copySkillsDirectory(skillsDir, tempDir);
-
-    // Atomically replace the target
-    // First, remove existing target if it exists
-    try {
-      await fs.rm(piSkillsPath, { recursive: true, force: true });
-    } catch {
-      // Target didn't exist, that's fine
-    }
-
-    // Rename temp to target
-    await replaceSkillsDirectory(tempDir, piSkillsPath, fs, projectRoot);
-  } catch (error) {
-    // Clean up temp directory on error
-    try {
-      await fs.rm(tempDir, { recursive: true, force: true });
-    } catch {
-      // Ignore cleanup errors
-    }
-    throw error;
-  }
+  await syncSkillsDirectory(skillsDir, piSkillsPath, projectRoot);
 
   return [];
 }
 
 /**
  * Propagates skills for Goose by copying .ruler/skills to .agents/skills.
- * Uses atomic replace to ensure safe overwriting of existing skills.
+ * Updates only Ruler-managed entries so existing native skills are preserved.
  * Returns dry-run steps if dryRun is true, otherwise returns empty array.
  */
 export async function propagateSkillsForGoose(
@@ -768,7 +817,6 @@ export async function propagateSkillsForGoose(
 ): Promise<string[]> {
   const skillsDir = path.join(projectRoot, RULER_SKILLS_PATH);
   const gooseSkillsPath = path.join(projectRoot, GOOSE_SKILLS_PATH);
-  const gooseDir = path.dirname(gooseSkillsPath);
 
   // Check if source skills directory exists
   try {
@@ -782,42 +830,14 @@ export async function propagateSkillsForGoose(
     return [`Copy skills from ${RULER_SKILLS_PATH} to ${GOOSE_SKILLS_PATH}`];
   }
 
-  // Ensure .agents directory exists
-  await fs.mkdir(gooseDir, { recursive: true });
-
-  // Use atomic replace: copy to temp, then rename
-  const tempDir = await createTempSkillsDir(gooseDir, projectRoot);
-
-  try {
-    // Copy to temp directory
-    await copySkillsDirectory(skillsDir, tempDir);
-
-    // Atomically replace the target
-    // First, remove existing target if it exists
-    try {
-      await fs.rm(gooseSkillsPath, { recursive: true, force: true });
-    } catch {
-      // Target didn't exist, that's fine
-    }
-
-    // Rename temp to target
-    await replaceSkillsDirectory(tempDir, gooseSkillsPath, fs, projectRoot);
-  } catch (error) {
-    // Clean up temp directory on error
-    try {
-      await fs.rm(tempDir, { recursive: true, force: true });
-    } catch {
-      // Ignore cleanup errors
-    }
-    throw error;
-  }
+  await syncSkillsDirectory(skillsDir, gooseSkillsPath, projectRoot);
 
   return [];
 }
 
 /**
  * Propagates skills for Mistral Vibe by copying .ruler/skills to .vibe/skills.
- * Uses atomic replace to ensure safe overwriting of existing skills.
+ * Updates only Ruler-managed entries so existing native skills are preserved.
  * Returns dry-run steps if dryRun is true, otherwise returns empty array.
  */
 export async function propagateSkillsForVibe(
@@ -826,7 +846,6 @@ export async function propagateSkillsForVibe(
 ): Promise<string[]> {
   const skillsDir = path.join(projectRoot, RULER_SKILLS_PATH);
   const vibeSkillsPath = path.join(projectRoot, VIBE_SKILLS_PATH);
-  const vibeDir = path.dirname(vibeSkillsPath);
 
   // Check if source skills directory exists
   try {
@@ -840,42 +859,14 @@ export async function propagateSkillsForVibe(
     return [`Copy skills from ${RULER_SKILLS_PATH} to ${VIBE_SKILLS_PATH}`];
   }
 
-  // Ensure .vibe directory exists
-  await fs.mkdir(vibeDir, { recursive: true });
-
-  // Use atomic replace: copy to temp, then rename
-  const tempDir = await createTempSkillsDir(vibeDir, projectRoot);
-
-  try {
-    // Copy to temp directory
-    await copySkillsDirectory(skillsDir, tempDir);
-
-    // Atomically replace the target
-    // First, remove existing target if it exists
-    try {
-      await fs.rm(vibeSkillsPath, { recursive: true, force: true });
-    } catch {
-      // Target didn't exist, that's fine
-    }
-
-    // Rename temp to target
-    await replaceSkillsDirectory(tempDir, vibeSkillsPath, fs, projectRoot);
-  } catch (error) {
-    // Clean up temp directory on error
-    try {
-      await fs.rm(tempDir, { recursive: true, force: true });
-    } catch {
-      // Ignore cleanup errors
-    }
-    throw error;
-  }
+  await syncSkillsDirectory(skillsDir, vibeSkillsPath, projectRoot);
 
   return [];
 }
 
 /**
  * Propagates skills for Roo Code by copying .ruler/skills to .roo/skills.
- * Uses atomic replace to ensure safe overwriting of existing skills.
+ * Updates only Ruler-managed entries so existing native skills are preserved.
  * Returns dry-run steps if dryRun is true, otherwise returns empty array.
  */
 export async function propagateSkillsForRoo(
@@ -884,7 +875,6 @@ export async function propagateSkillsForRoo(
 ): Promise<string[]> {
   const skillsDir = path.join(projectRoot, RULER_SKILLS_PATH);
   const rooSkillsPath = path.join(projectRoot, ROO_SKILLS_PATH);
-  const rooDir = path.dirname(rooSkillsPath);
 
   // Check if source skills directory exists
   try {
@@ -898,42 +888,14 @@ export async function propagateSkillsForRoo(
     return [`Copy skills from ${RULER_SKILLS_PATH} to ${ROO_SKILLS_PATH}`];
   }
 
-  // Ensure .roo directory exists
-  await fs.mkdir(rooDir, { recursive: true });
-
-  // Use atomic replace: copy to temp, then rename
-  const tempDir = await createTempSkillsDir(rooDir, projectRoot);
-
-  try {
-    // Copy to temp directory
-    await copySkillsDirectory(skillsDir, tempDir);
-
-    // Atomically replace the target
-    // First, remove existing target if it exists
-    try {
-      await fs.rm(rooSkillsPath, { recursive: true, force: true });
-    } catch {
-      // Target didn't exist, that's fine
-    }
-
-    // Rename temp to target
-    await replaceSkillsDirectory(tempDir, rooSkillsPath, fs, projectRoot);
-  } catch (error) {
-    // Clean up temp directory on error
-    try {
-      await fs.rm(tempDir, { recursive: true, force: true });
-    } catch {
-      // Ignore cleanup errors
-    }
-    throw error;
-  }
+  await syncSkillsDirectory(skillsDir, rooSkillsPath, projectRoot);
 
   return [];
 }
 
 /**
  * Propagates skills for Gemini CLI by copying .ruler/skills to .gemini/skills.
- * Uses atomic replace to ensure safe overwriting of existing skills.
+ * Updates only Ruler-managed entries so existing native skills are preserved.
  * Returns dry-run steps if dryRun is true, otherwise returns empty array.
  */
 export async function propagateSkillsForGemini(
@@ -942,7 +904,6 @@ export async function propagateSkillsForGemini(
 ): Promise<string[]> {
   const skillsDir = path.join(projectRoot, RULER_SKILLS_PATH);
   const geminiSkillsPath = path.join(projectRoot, GEMINI_SKILLS_PATH);
-  const geminiDir = path.dirname(geminiSkillsPath);
 
   // Check if source skills directory exists
   try {
@@ -956,42 +917,14 @@ export async function propagateSkillsForGemini(
     return [`Copy skills from ${RULER_SKILLS_PATH} to ${GEMINI_SKILLS_PATH}`];
   }
 
-  // Ensure .gemini directory exists
-  await fs.mkdir(geminiDir, { recursive: true });
-
-  // Use atomic replace: copy to temp, then rename
-  const tempDir = await createTempSkillsDir(geminiDir, projectRoot);
-
-  try {
-    // Copy to temp directory
-    await copySkillsDirectory(skillsDir, tempDir);
-
-    // Atomically replace the target
-    // First, remove existing target if it exists
-    try {
-      await fs.rm(geminiSkillsPath, { recursive: true, force: true });
-    } catch {
-      // Target didn't exist, that's fine
-    }
-
-    // Rename temp to target
-    await replaceSkillsDirectory(tempDir, geminiSkillsPath, fs, projectRoot);
-  } catch (error) {
-    // Clean up temp directory on error
-    try {
-      await fs.rm(tempDir, { recursive: true, force: true });
-    } catch {
-      // Ignore cleanup errors
-    }
-    throw error;
-  }
+  await syncSkillsDirectory(skillsDir, geminiSkillsPath, projectRoot);
 
   return [];
 }
 
 /**
  * Propagates skills for Junie by copying .ruler/skills to .junie/skills.
- * Uses atomic replace to ensure safe overwriting of existing skills.
+ * Updates only Ruler-managed entries so existing native skills are preserved.
  * Returns dry-run steps if dryRun is true, otherwise returns empty array.
  */
 export async function propagateSkillsForJunie(
@@ -1000,7 +933,6 @@ export async function propagateSkillsForJunie(
 ): Promise<string[]> {
   const skillsDir = path.join(projectRoot, RULER_SKILLS_PATH);
   const junieSkillsPath = path.join(projectRoot, JUNIE_SKILLS_PATH);
-  const junieDir = path.dirname(junieSkillsPath);
 
   try {
     await fs.access(skillsDir);
@@ -1012,35 +944,14 @@ export async function propagateSkillsForJunie(
     return [`Copy skills from ${RULER_SKILLS_PATH} to ${JUNIE_SKILLS_PATH}`];
   }
 
-  await fs.mkdir(junieDir, { recursive: true });
-
-  const tempDir = await createTempSkillsDir(junieDir, projectRoot);
-
-  try {
-    await copySkillsDirectory(skillsDir, tempDir);
-
-    try {
-      await fs.rm(junieSkillsPath, { recursive: true, force: true });
-    } catch {
-      // Target didn't exist, that's fine
-    }
-
-    await replaceSkillsDirectory(tempDir, junieSkillsPath, fs, projectRoot);
-  } catch (error) {
-    try {
-      await fs.rm(tempDir, { recursive: true, force: true });
-    } catch {
-      // Ignore cleanup errors
-    }
-    throw error;
-  }
+  await syncSkillsDirectory(skillsDir, junieSkillsPath, projectRoot);
 
   return [];
 }
 
 /**
  * Propagates skills for Cursor by copying .ruler/skills to .cursor/skills.
- * Uses atomic replace to ensure safe overwriting of existing skills.
+ * Updates only Ruler-managed entries so existing native skills are preserved.
  * Returns dry-run steps if dryRun is true, otherwise returns empty array.
  */
 export async function propagateSkillsForCursor(
@@ -1049,7 +960,6 @@ export async function propagateSkillsForCursor(
 ): Promise<string[]> {
   const skillsDir = path.join(projectRoot, RULER_SKILLS_PATH);
   const cursorSkillsPath = path.join(projectRoot, CURSOR_SKILLS_PATH);
-  const cursorDir = path.dirname(cursorSkillsPath);
 
   // Check if source skills directory exists
   try {
@@ -1063,42 +973,14 @@ export async function propagateSkillsForCursor(
     return [`Copy skills from ${RULER_SKILLS_PATH} to ${CURSOR_SKILLS_PATH}`];
   }
 
-  // Ensure .cursor directory exists
-  await fs.mkdir(cursorDir, { recursive: true });
-
-  // Use atomic replace: copy to temp, then rename
-  const tempDir = await createTempSkillsDir(cursorDir, projectRoot);
-
-  try {
-    // Copy to temp directory
-    await copySkillsDirectory(skillsDir, tempDir);
-
-    // Atomically replace the target
-    // First, remove existing target if it exists
-    try {
-      await fs.rm(cursorSkillsPath, { recursive: true, force: true });
-    } catch {
-      // Target didn't exist, that's fine
-    }
-
-    // Rename temp to target
-    await replaceSkillsDirectory(tempDir, cursorSkillsPath, fs, projectRoot);
-  } catch (error) {
-    // Clean up temp directory on error
-    try {
-      await fs.rm(tempDir, { recursive: true, force: true });
-    } catch {
-      // Ignore cleanup errors
-    }
-    throw error;
-  }
+  await syncSkillsDirectory(skillsDir, cursorSkillsPath, projectRoot);
 
   return [];
 }
 
 /**
  * Propagates skills for Windsurf by copying .ruler/skills to .windsurf/skills.
- * Uses atomic replace to ensure safe overwriting of existing skills.
+ * Updates only Ruler-managed entries so existing native skills are preserved.
  * Returns dry-run steps if dryRun is true, otherwise returns empty array.
  */
 export async function propagateSkillsForWindsurf(
@@ -1107,7 +989,6 @@ export async function propagateSkillsForWindsurf(
 ): Promise<string[]> {
   const skillsDir = path.join(projectRoot, RULER_SKILLS_PATH);
   const windsurfSkillsPath = path.join(projectRoot, WINDSURF_SKILLS_PATH);
-  const windsurfDir = path.dirname(windsurfSkillsPath);
 
   // Check if source skills directory exists
   try {
@@ -1121,42 +1002,14 @@ export async function propagateSkillsForWindsurf(
     return [`Copy skills from ${RULER_SKILLS_PATH} to ${WINDSURF_SKILLS_PATH}`];
   }
 
-  // Ensure .windsurf directory exists
-  await fs.mkdir(windsurfDir, { recursive: true });
-
-  // Use atomic replace: copy to temp, then rename
-  const tempDir = await createTempSkillsDir(windsurfDir, projectRoot);
-
-  try {
-    // Copy to temp directory
-    await copySkillsDirectory(skillsDir, tempDir);
-
-    // Atomically replace the target
-    // First, remove existing target if it exists
-    try {
-      await fs.rm(windsurfSkillsPath, { recursive: true, force: true });
-    } catch {
-      // Target didn't exist, that's fine
-    }
-
-    // Rename temp to target
-    await replaceSkillsDirectory(tempDir, windsurfSkillsPath, fs, projectRoot);
-  } catch (error) {
-    // Clean up temp directory on error
-    try {
-      await fs.rm(tempDir, { recursive: true, force: true });
-    } catch {
-      // Ignore cleanup errors
-    }
-    throw error;
-  }
+  await syncSkillsDirectory(skillsDir, windsurfSkillsPath, projectRoot);
 
   return [];
 }
 
 /**
  * Propagates skills for Factory Droid by copying .ruler/skills to .factory/skills.
- * Uses atomic replace to ensure safe overwriting of existing skills.
+ * Updates only Ruler-managed entries so existing native skills are preserved.
  * Returns dry-run steps if dryRun is true, otherwise returns empty array.
  */
 export async function propagateSkillsForFactory(
@@ -1165,7 +1018,6 @@ export async function propagateSkillsForFactory(
 ): Promise<string[]> {
   const skillsDir = path.join(projectRoot, RULER_SKILLS_PATH);
   const factorySkillsPath = path.join(projectRoot, FACTORY_SKILLS_PATH);
-  const factoryDir = path.dirname(factorySkillsPath);
 
   // Check if source skills directory exists
   try {
@@ -1179,42 +1031,14 @@ export async function propagateSkillsForFactory(
     return [`Copy skills from ${RULER_SKILLS_PATH} to ${FACTORY_SKILLS_PATH}`];
   }
 
-  // Ensure .factory directory exists
-  await fs.mkdir(factoryDir, { recursive: true });
-
-  // Use atomic replace: copy to temp, then rename
-  const tempDir = await createTempSkillsDir(factoryDir, projectRoot);
-
-  try {
-    // Copy to temp directory
-    await copySkillsDirectory(skillsDir, tempDir);
-
-    // Atomically replace the target
-    // First, remove existing target if it exists
-    try {
-      await fs.rm(factorySkillsPath, { recursive: true, force: true });
-    } catch {
-      // Target didn't exist, that's fine
-    }
-
-    // Rename temp to target
-    await replaceSkillsDirectory(tempDir, factorySkillsPath, fs, projectRoot);
-  } catch (error) {
-    // Clean up temp directory on error
-    try {
-      await fs.rm(tempDir, { recursive: true, force: true });
-    } catch {
-      // Ignore cleanup errors
-    }
-    throw error;
-  }
+  await syncSkillsDirectory(skillsDir, factorySkillsPath, projectRoot);
 
   return [];
 }
 
 /**
  * Propagates skills for Antigravity by copying .ruler/skills to .agent/skills.
- * Uses atomic replace to ensure safe overwriting of existing skills.
+ * Updates only Ruler-managed entries so existing native skills are preserved.
  * Returns dry-run steps if dryRun is true, otherwise returns empty array.
  */
 export async function propagateSkillsForAntigravity(
@@ -1223,7 +1047,6 @@ export async function propagateSkillsForAntigravity(
 ): Promise<string[]> {
   const skillsDir = path.join(projectRoot, RULER_SKILLS_PATH);
   const antigravitySkillsPath = path.join(projectRoot, ANTIGRAVITY_SKILLS_PATH);
-  const antigravityDir = path.dirname(antigravitySkillsPath);
 
   // Check if source skills directory exists
   try {
@@ -1239,40 +1062,7 @@ export async function propagateSkillsForAntigravity(
     ];
   }
 
-  // Ensure .agent directory exists
-  await fs.mkdir(antigravityDir, { recursive: true });
-
-  // Use atomic replace: copy to temp, then rename
-  const tempDir = await createTempSkillsDir(antigravityDir, projectRoot);
-
-  try {
-    // Copy to temp directory
-    await copySkillsDirectory(skillsDir, tempDir);
-
-    // Atomically replace the target
-    // First, remove existing target if it exists
-    try {
-      await fs.rm(antigravitySkillsPath, { recursive: true, force: true });
-    } catch {
-      // Target didn't exist, that's fine
-    }
-
-    // Rename temp to target
-    await replaceSkillsDirectory(
-      tempDir,
-      antigravitySkillsPath,
-      fs,
-      projectRoot,
-    );
-  } catch (error) {
-    // Clean up temp directory on error
-    try {
-      await fs.rm(tempDir, { recursive: true, force: true });
-    } catch {
-      // Ignore cleanup errors
-    }
-    throw error;
-  }
+  await syncSkillsDirectory(skillsDir, antigravitySkillsPath, projectRoot);
 
   return [];
 }
