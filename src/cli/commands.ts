@@ -1,15 +1,32 @@
 import yargs, { Argv } from 'yargs';
 import { hideBin } from 'yargs/helpers';
+import * as fs from 'fs';
+import * as path from 'path';
 import { applyHandler, initHandler, revertHandler } from './handlers';
 import { ApplyArgs, InitArgs, RevertArgs } from './handlers';
 import { getAgentIdentifiersForCliHelp } from '../agents/index';
 
+type PackageMetadata = {
+  version?: string;
+};
+
+function readPackageVersion(): string {
+  const packageJsonPath = path.resolve(__dirname, '../../package.json');
+  const packageJson = JSON.parse(
+    fs.readFileSync(packageJsonPath, 'utf8'),
+  ) as PackageMetadata;
+  return packageJson.version ?? 'unknown';
+}
+
+const packageVersion = readPackageVersion();
+
 /**
- * Sets up and parses CLI commands.
+ * Sets up CLI commands.
  */
-export function run(): void {
-  yargs(hideBin(process.argv))
+export function createCli(argv: string[] = hideBin(process.argv)): Argv {
+  return yargs(argv)
     .scriptName('ruler')
+    .version(packageVersion)
     .usage('$0 <command> [options]')
     .command<ApplyArgs>(
       'apply',
@@ -154,6 +171,12 @@ export function run(): void {
     )
     .demandCommand(1, 'You need to specify a command')
     .help()
-    .strict()
-    .parse();
+    .strict();
+}
+
+/**
+ * Parses CLI commands.
+ */
+export function run(): void {
+  createCli().parse();
 }

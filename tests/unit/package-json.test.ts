@@ -28,4 +28,27 @@ describe('package manifest', () => {
     expect(packageJson.scripts?.build).toBe('npm run clean && tsc');
     expect(packageJson.scripts?.prepublishOnly).toBe('npm run build');
   });
+
+  it('formats top-level JavaScript configuration files', () => {
+    const packageJsonPath = path.join(process.cwd(), 'package.json');
+    const packageJson = JSON.parse(
+      fs.readFileSync(packageJsonPath, 'utf8'),
+    ) as {
+      scripts?: Record<string, string>;
+    };
+
+    const expectedPaths = [
+      '.prettierrc.js',
+      'eslint.config.mjs',
+      'jest.config.js',
+      'jest.setup.js',
+    ];
+
+    for (const scriptName of ['format', 'format:check']) {
+      const script = packageJson.scripts?.[scriptName] ?? '';
+      for (const expectedPath of expectedPaths) {
+        expect(script).toContain(expectedPath);
+      }
+    }
+  });
 });

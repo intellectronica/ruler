@@ -20,6 +20,7 @@ export function mapRawAgentConfigs(
 
   for (const [key, cfg] of Object.entries(raw)) {
     const lowerKey = key.toLowerCase();
+    let matched = false;
     const exactMatches = agents.filter(
       (agent) => agent.getIdentifier().toLowerCase() === lowerKey,
     );
@@ -28,6 +29,7 @@ export function mapRawAgentConfigs(
     if (exactMatches.length > 0) {
       for (const agent of exactMatches) {
         mappedConfigs[agent.getIdentifier()] = cfg;
+        matched = true;
       }
       continue;
     }
@@ -36,7 +38,12 @@ export function mapRawAgentConfigs(
       const identifier = agent.getIdentifier();
       if (agent.getName().toLowerCase().includes(lowerKey)) {
         mappedConfigs[identifier] = cfg;
+        matched = true;
       }
+    }
+
+    if (!matched) {
+      mappedConfigs[key] = cfg;
     }
   }
 

@@ -105,7 +105,7 @@ describe('config-utils', () => {
       });
     });
 
-    it('should ignore keys that do not match any agent', () => {
+    it('should preserve keys that do not match any agent so validation can reject them', () => {
       const rawConfigs = {
         copilot: { enabled: true },
         nonexistent: { enabled: false },
@@ -116,6 +116,8 @@ describe('config-utils', () => {
 
       expect(result).toEqual({
         copilot: { enabled: true },
+        nonexistent: { enabled: false },
+        invalid_agent: { outputPath: '/path' },
       });
     });
 
@@ -127,7 +129,7 @@ describe('config-utils', () => {
       expect(result).toEqual({});
     });
 
-    it('should handle empty agents array', () => {
+    it('should preserve configs when the agents array is empty', () => {
       const rawConfigs = {
         copilot: { enabled: true },
         claude: { enabled: false },
@@ -135,7 +137,7 @@ describe('config-utils', () => {
 
       const result = mapRawAgentConfigs(rawConfigs, []);
 
-      expect(result).toEqual({});
+      expect(result).toEqual(rawConfigs);
     });
 
     it('should handle case sensitivity properly', () => {
@@ -196,13 +198,14 @@ describe('config-utils', () => {
         agent: { enabled: true }, // should match "Test Agent With Long Name"
         long: { enabled: false }, // should also match
         name: { outputPath: '/path' }, // should also match
-        xyz: { enabled: true }, // should not match
+        xyz: { enabled: true }, // should not match and should be preserved
       };
 
       const result = mapRawAgentConfigs(rawConfigs, agents);
 
       expect(result.test).toBeDefined();
-      expect(Object.keys(result)).toEqual(['test']);
+      expect(result.xyz).toEqual({ enabled: true });
+      expect(Object.keys(result)).toEqual(['test', 'xyz']);
     });
   });
 });
