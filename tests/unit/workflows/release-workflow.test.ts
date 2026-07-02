@@ -2,6 +2,19 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 describe('release workflow', () => {
+  it('publishes only after a release is published', () => {
+    const workflowPath = path.join(
+      process.cwd(),
+      '.github',
+      'workflows',
+      'release.yml',
+    );
+    const workflow = fs.readFileSync(workflowPath, 'utf8');
+
+    expect(workflow).toContain('types: [published]');
+    expect(workflow).not.toContain('types: [created]');
+  });
+
   it('validates the release target before running npm lifecycle scripts', () => {
     const workflowPath = path.join(
       process.cwd(),
