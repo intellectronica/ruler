@@ -13,6 +13,16 @@ module.exports = {
       functions: 90,
       lines: 90,
     },
+    './src/cli/commands.ts': {
+      statements: 80,
+      functions: 80,
+      lines: 80,
+    },
+    './src/cli/index.ts': {
+      statements: 100,
+      functions: 100,
+      lines: 100,
+    },
   },
   // Build the project once before all tests run to prevent race conditions
   globalSetup: './jest.setup.js',
