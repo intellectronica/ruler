@@ -127,6 +127,27 @@ describe('Subagents per-agent propagators', () => {
       ).resolves.toBeUndefined();
     });
 
+    it('preserves existing unmanaged native subagent files', async () => {
+      const unmanagedTarget = path.join(
+        tmpDir,
+        CLAUDE_SUBAGENTS_PATH,
+        'local.md',
+      );
+      await fs.mkdir(path.dirname(unmanagedTarget), { recursive: true });
+      await fs.writeFile(unmanagedTarget, 'local agent', 'utf8');
+
+      await propagateSubagentsForClaude(tmpDir, [makeSubagent()], {
+        dryRun: false,
+      });
+
+      await expect(fs.readFile(unmanagedTarget, 'utf8')).resolves.toBe(
+        'local agent',
+      );
+      await expect(
+        fs.access(path.join(tmpDir, CLAUDE_SUBAGENTS_PATH, 'reviewer.md')),
+      ).resolves.toBeUndefined();
+    });
+
     it('preserves nested source-relative paths', async () => {
       const sub = makeSubagent({ sourceRelativePath: 'sub/reviewer.md' });
       await propagateSubagentsForClaude(tmpDir, [sub], { dryRun: false });
