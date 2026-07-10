@@ -1,9 +1,13 @@
 import { promises as fs } from 'fs';
 import * as path from 'path';
+import { execFile } from 'child_process';
+import { promisify } from 'util';
 import { writeGeneratedFile } from './FileSystemUtils';
+import { isPathInsideOrEqual } from './path-utils';
 
 const RULER_START_MARKER = '# START Ruler Generated Files';
 const RULER_END_MARKER = '# END Ruler Generated Files';
+const execFileAsync = promisify(execFile);
 
 export interface RulerBlockRange {
   start: number;
@@ -13,6 +17,11 @@ export interface RulerBlockRange {
 export interface RemoveRulerBlocksResult {
   content: string;
   removed: boolean;
+}
+
+export interface ResolvedIgnoreFile {
+  path: string;
+  containmentRoot: string;
 }
 
 /**
@@ -28,7 +37,8 @@ export async function updateGitignore(
   paths: string[],
   ignoreFile = '.gitignore',
 ): Promise<void> {
-  const gitignorePath = await resolveIgnoreFilePath(projectRoot, ignoreFile);
+  const ignoreTarget = await resolveIgnoreFileTarget(projectRoot, ignoreFile);
+  const gitignorePath = ignoreTarget.path;
 
   // Read existing .gitignore or start with empty content
   let existingContent = '';
@@ -85,7 +95,11 @@ export async function updateGitignore(
   const newContent = updateGitignoreContent(existingContent, allRulerPaths);
 
   // Write the updated content
-  await writeGeneratedFile(gitignorePath, newContent);
+  await writeGeneratedFile(
+    gitignorePath,
+    newContent,
+    ignoreTarget.containmentRoot,
+  );
 }
 
 /**
@@ -97,30 +111,88 @@ export async function resolveIgnoreFilePath(
   projectRoot: string,
   ignoreFile: string,
 ): Promise<string> {
+  return (await resolveIgnoreFileTarget(projectRoot, ignoreFile)).path;
+}
+
+export async function resolveIgnoreFileTarget(
+  projectRoot: string,
+  ignoreFile: string,
+): Promise<ResolvedIgnoreFile> {
   if (ignoreFile !== '.git/info/exclude') {
-    return path.join(projectRoot, ignoreFile);
+    return {
+      path: path.join(projectRoot, ignoreFile),
+      containmentRoot: projectRoot,
+    };
   }
 
   const dotGitPath = path.join(projectRoot, '.git');
+  let dotGitStat;
   try {
-    const dotGitStat = await fs.lstat(dotGitPath);
-    if (dotGitStat.isFile()) {
-      const dotGitContent = await fs.readFile(dotGitPath, 'utf8');
-      const gitDirMatch = dotGitContent.match(/^gitdir:\s*(.+)\s*$/m);
-      if (gitDirMatch) {
-        const gitDir = gitDirMatch[1];
-        const resolvedGitDir = path.isAbsolute(gitDir)
-          ? gitDir
-          : path.resolve(projectRoot, gitDir);
-        return path.join(resolvedGitDir, 'info', 'exclude');
-      }
-    }
+    dotGitStat = await fs.lstat(dotGitPath);
   } catch {
     // Fall back to the historical project-root path for non-git test fixtures
     // and unusual repositories where `.git` cannot be inspected.
+    return {
+      path: path.join(projectRoot, ignoreFile),
+      containmentRoot: projectRoot,
+    };
   }
 
-  return path.join(projectRoot, ignoreFile);
+  if (dotGitStat.isFile()) {
+    const dotGitContent = await fs.readFile(dotGitPath, 'utf8');
+    const gitDirMatch = dotGitContent.match(/^gitdir:\s*(.+)\s*$/m);
+    if (gitDirMatch) {
+      const gitDir = gitDirMatch[1];
+      const resolvedGitDir = path.isAbsolute(gitDir)
+        ? gitDir
+        : path.resolve(projectRoot, gitDir);
+      await assertTrustedGitDir(projectRoot, resolvedGitDir);
+      return {
+        path: path.join(resolvedGitDir, 'info', 'exclude'),
+        containmentRoot: resolvedGitDir,
+      };
+    }
+  } else if (dotGitStat.isDirectory()) {
+    return {
+      path: path.join(dotGitPath, 'info', 'exclude'),
+      containmentRoot: projectRoot,
+    };
+  }
+
+  return {
+    path: path.join(projectRoot, ignoreFile),
+    containmentRoot: projectRoot,
+  };
+}
+
+async function assertTrustedGitDir(
+  projectRoot: string,
+  resolvedGitDir: string,
+): Promise<void> {
+  const realProjectRoot = await fs.realpath(projectRoot);
+  const realGitDir = await fs.realpath(resolvedGitDir);
+  if (isPathInsideOrEqual(realProjectRoot, realGitDir)) {
+    return;
+  }
+
+  try {
+    const { stdout } = await execFileAsync('git', [
+      '-C',
+      projectRoot,
+      'rev-parse',
+      '--absolute-git-dir',
+    ]);
+    const realVerifiedGitDir = await fs.realpath(stdout.trim());
+    if (realVerifiedGitDir === realGitDir) {
+      return;
+    }
+  } catch {
+    // Fall through to the fail-closed error below.
+  }
+
+  throw new Error(
+    `Refusing to use untrusted gitdir for .git/info/exclude: ${resolvedGitDir}`,
+  );
 }
 
 /**
