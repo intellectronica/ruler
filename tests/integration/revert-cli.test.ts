@@ -2,7 +2,7 @@ import * as fs from 'fs/promises';
 import * as fsSync from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { execSync } from 'child_process';
+import { execFileSync, execSync } from 'child_process';
 
 describe('Revert CLI Integration', () => {
   let tmpDir: string;
@@ -266,6 +266,95 @@ describe('Revert CLI Integration', () => {
       );
 
       await expect(fs.access(outputPath)).rejects.toThrow();
+    });
+
+    it('cleans gitignore-local entries in linked worktrees', async () => {
+      const parentDir = await fs.mkdtemp(
+        path.join(os.tmpdir(), 'ruler-linked-worktree-'),
+      );
+      const repoDir = path.join(parentDir, 'repo');
+      const linkedWorktreeDir = path.join(parentDir, 'linked');
+
+      try {
+        execFileSync('git', ['init', repoDir], { stdio: 'pipe' });
+        execFileSync(
+          'git',
+          ['-C', repoDir, 'config', 'user.email', 'test@example.com'],
+          { stdio: 'pipe' },
+        );
+        execFileSync('git', ['-C', repoDir, 'config', 'user.name', 'Test'], {
+          stdio: 'pipe',
+        });
+
+        await fs.mkdir(path.join(repoDir, '.ruler'), { recursive: true });
+        await fs.writeFile(path.join(repoDir, '.ruler', 'AGENTS.md'), 'Rule\n');
+        execFileSync('git', ['-C', repoDir, 'add', '.ruler/AGENTS.md'], {
+          stdio: 'pipe',
+        });
+        execFileSync('git', ['-C', repoDir, 'commit', '-m', 'init'], {
+          stdio: 'pipe',
+        });
+        execFileSync(
+          'git',
+          [
+            '-C',
+            repoDir,
+            'worktree',
+            'add',
+            '-b',
+            'ruler-linked-test',
+            linkedWorktreeDir,
+          ],
+          { stdio: 'pipe' },
+        );
+
+        execFileSync(
+          'node',
+          [
+            'dist/cli/index.js',
+            'apply',
+            '--project-root',
+            linkedWorktreeDir,
+            '--agents',
+            'claude',
+            '--gitignore-local',
+            '--no-backup',
+          ],
+          { stdio: 'pipe' },
+        );
+
+        const dotGitContent = await fs.readFile(
+          path.join(linkedWorktreeDir, '.git'),
+          'utf8',
+        );
+        const gitDirMatch = dotGitContent.match(/^gitdir:\s*(.+)\s*$/m);
+        expect(gitDirMatch).not.toBeNull();
+        const gitDir = gitDirMatch?.[1] ?? '';
+        const resolvedGitDir = path.isAbsolute(gitDir)
+          ? gitDir
+          : path.resolve(linkedWorktreeDir, gitDir);
+        const excludePath = path.join(resolvedGitDir, 'info', 'exclude');
+
+        await expect(fs.readFile(excludePath, 'utf8')).resolves.toContain(
+          '# START Ruler Generated Files',
+        );
+
+        execFileSync(
+          'node',
+          ['dist/cli/index.js', 'revert', '--project-root', linkedWorktreeDir],
+          { stdio: 'pipe' },
+        );
+
+        await expect(
+          fs.access(path.join(linkedWorktreeDir, 'CLAUDE.md')),
+        ).rejects.toThrow();
+        const cleanedExclude = await fs
+          .readFile(excludePath, 'utf8')
+          .catch(() => '');
+        expect(cleanedExclude).not.toContain('# START Ruler Generated Files');
+      } finally {
+        await fs.rm(parentDir, { recursive: true, force: true });
+      }
     });
   });
 });

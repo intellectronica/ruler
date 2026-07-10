@@ -192,6 +192,32 @@ CLAUDE.md
       ).rejects.toThrow();
     });
 
+    it('refuses local ignores through a symlinked gitdir info directory', async () => {
+      const actualGitDir = path.join(tmpDir, '.git-worktree');
+      const outsideDir = path.join(
+        path.dirname(tmpDir),
+        `${path.basename(tmpDir)}-outside`,
+      );
+      await fs.mkdir(actualGitDir, { recursive: true });
+      await fs.mkdir(outsideDir, { recursive: true });
+      await fs.symlink(outsideDir, path.join(actualGitDir, 'info'));
+      await fs.writeFile(
+        path.join(tmpDir, '.git'),
+        `gitdir: ${actualGitDir}\n`,
+      );
+
+      try {
+        await expect(
+          updateGitignore(tmpDir, ['CLAUDE.md'], '.git/info/exclude'),
+        ).rejects.toThrow('Refusing to write generated file');
+        await expect(
+          fs.access(path.join(outsideDir, 'exclude')),
+        ).rejects.toThrow();
+      } finally {
+        await fs.rm(outsideDir, { recursive: true, force: true });
+      }
+    });
+
     it('removes duplicate complete Ruler blocks when updating', async () => {
       const paths = ['CLAUDE.md'];
       const gitignorePath = path.join(tmpDir, '.gitignore');

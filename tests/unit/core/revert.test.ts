@@ -495,6 +495,38 @@ describe('Revert Core Functions', () => {
       ).rejects.toThrow();
     });
 
+    it('refuses to clean a hard-linked .gitignore', async () => {
+      const outsideFile = path.join(
+        path.dirname(tmpDir),
+        `${path.basename(tmpDir)}-outside-gitignore`,
+      );
+      const content = [
+        'node_modules/',
+        '# START Ruler Generated Files',
+        '/AGENTS.md',
+        '# END Ruler Generated Files',
+        '',
+      ].join('\n');
+      await fs.writeFile(outsideFile, content);
+      await fs.link(outsideFile, path.join(tmpDir, '.gitignore'));
+
+      try {
+        await expect(
+          revertAllAgentConfigs(
+            tmpDir,
+            undefined,
+            undefined,
+            false,
+            false,
+            false,
+          ),
+        ).rejects.toThrow('Refusing to clean hard-linked .gitignore');
+        await expect(fs.readFile(outsideFile, 'utf8')).resolves.toBe(content);
+      } finally {
+        await fs.rm(outsideFile, { force: true });
+      }
+    });
+
     it('leaves .gitignore unchanged during dry-run cleanup', async () => {
       const gitignoreContent = [
         '# START Ruler Generated Files',

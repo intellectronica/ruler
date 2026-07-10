@@ -16,7 +16,7 @@ import {
 import { mapRawAgentConfigs } from './core/config-utils';
 import {
   removeCompleteRulerBlocks,
-  resolveIgnoreFilePath,
+  resolveIgnoreFileTarget,
 } from './core/GitignoreUtils';
 
 const agents: IAgent[] = allAgents;
@@ -221,7 +221,8 @@ async function cleanIgnoreFile(
   verbose: boolean,
   dryRun: boolean,
 ): Promise<boolean> {
-  const ignorePath = await resolveIgnoreFilePath(projectRoot, ignoreFile);
+  const ignoreTarget = await resolveIgnoreFileTarget(projectRoot, ignoreFile);
+  const ignorePath = ignoreTarget.path;
 
   try {
     await fs.access(ignorePath);
@@ -232,12 +233,16 @@ async function cleanIgnoreFile(
 
   await FileSystemUtils.assertManagedPathInsideRoot(
     ignorePath,
-    projectRoot,
+    ignoreTarget.containmentRoot,
     `Refusing to clean ${ignoreFile} through symlinked path`,
   );
   await FileSystemUtils.assertNotSymbolicLink(
     ignorePath,
     `Refusing to clean symlinked ${ignoreFile}`,
+  );
+  await FileSystemUtils.assertNotHardLinked(
+    ignorePath,
+    `Refusing to clean hard-linked ${ignoreFile}`,
   );
 
   const content = await fs.readFile(ignorePath, 'utf8');
