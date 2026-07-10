@@ -8,6 +8,7 @@ import {
   ensureDirExists,
   writeGeneratedFile,
 } from '../core/FileSystemUtils';
+import { writeMcpProvenance } from '../paths/mcp';
 
 /**
  * Agent for RooCode that writes to AGENTS.md and generates .roo/mcp.json
@@ -127,6 +128,9 @@ export class RooCodeAgent implements IAgent {
       await backupFile(mcpPath, projectRoot);
     }
     await writeGeneratedFile(mcpPath, newContent, projectRoot);
+    if (existingContent === null) {
+      await writeMcpProvenance(mcpPath, projectRoot);
+    }
   }
 
   supportsMcpStdio(): boolean {

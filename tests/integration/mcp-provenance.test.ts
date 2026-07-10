@@ -57,4 +57,80 @@ describe('MCP provenance', () => {
       await teardownTestProject(project.projectRoot);
     }
   });
+
+  it('reverts generated Gemini settings when backup and gitignore tracking are disabled', async () => {
+    const project = await setupTestProject({
+      '.ruler/ruler.toml': [
+        '[gitignore]',
+        'enabled = false',
+        '',
+        '[backup]',
+        'enabled = false',
+        '',
+        '[mcp_servers.generated]',
+        'command = "node"',
+        'args = ["server.js"]',
+        '',
+      ].join('\n'),
+    });
+    const settingsPath = path.join(
+      project.projectRoot,
+      '.gemini',
+      'settings.json',
+    );
+    const provenancePath = `${settingsPath}.ruler-generated`;
+
+    try {
+      runRuler('apply --agents gemini', project.projectRoot);
+
+      await expect(fs.access(settingsPath)).resolves.toBeUndefined();
+      await expect(fs.access(provenancePath)).resolves.toBeUndefined();
+      await expect(
+        fs.access(path.join(project.projectRoot, '.gitignore')),
+      ).rejects.toThrow();
+
+      runRuler('revert --agents gemini', project.projectRoot);
+
+      await expect(fs.access(settingsPath)).rejects.toThrow();
+      await expect(fs.access(provenancePath)).rejects.toThrow();
+    } finally {
+      await teardownTestProject(project.projectRoot);
+    }
+  });
+
+  it('reverts generated RooCode MCP config when backup and gitignore tracking are disabled', async () => {
+    const project = await setupTestProject({
+      '.ruler/ruler.toml': [
+        '[gitignore]',
+        'enabled = false',
+        '',
+        '[backup]',
+        'enabled = false',
+        '',
+        '[mcp_servers.generated]',
+        'command = "node"',
+        'args = ["server.js"]',
+        '',
+      ].join('\n'),
+    });
+    const mcpPath = path.join(project.projectRoot, '.roo', 'mcp.json');
+    const provenancePath = `${mcpPath}.ruler-generated`;
+
+    try {
+      runRuler('apply --agents roo', project.projectRoot);
+
+      await expect(fs.access(mcpPath)).resolves.toBeUndefined();
+      await expect(fs.access(provenancePath)).resolves.toBeUndefined();
+      await expect(
+        fs.access(path.join(project.projectRoot, '.gitignore')),
+      ).rejects.toThrow();
+
+      runRuler('revert --agents roo', project.projectRoot);
+
+      await expect(fs.access(mcpPath)).rejects.toThrow();
+      await expect(fs.access(provenancePath)).rejects.toThrow();
+    } finally {
+      await teardownTestProject(project.projectRoot);
+    }
+  });
 });

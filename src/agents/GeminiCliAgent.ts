@@ -3,6 +3,7 @@ import * as path from 'path';
 import { promises as fs } from 'fs';
 import { AgentsMdAgent } from './AgentsMdAgent';
 import { backupFile, writeGeneratedFile } from '../core/FileSystemUtils';
+import { writeMcpProvenance } from '../paths/mcp';
 
 export class GeminiCliAgent extends AgentsMdAgent {
   getIdentifier(): string {
@@ -125,6 +126,9 @@ export class GeminiCliAgent extends AgentsMdAgent {
     }
 
     await writeGeneratedFile(settingsPath, nextContent, projectRoot);
+    if (existingContent === null) {
+      await writeMcpProvenance(settingsPath, projectRoot);
+    }
   }
 
   // Ensure MCP merging uses the correct key for Gemini (.gemini/settings.json)
