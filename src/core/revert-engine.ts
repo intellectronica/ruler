@@ -169,6 +169,14 @@ async function restoreFromBackup(
     return false;
   }
 
+  if (
+    projectRoot &&
+    !(await hasRulerGeneratedProvenance(backupPath, projectRoot))
+  ) {
+    logVerbose(`Preserving unverified backup file: ${backupPath}`, verbose);
+    return false;
+  }
+
   const prefix = actionPrefix(dryRun);
 
   if (dryRun) {
@@ -229,9 +237,18 @@ async function removeGeneratedFile(
     return false;
   }
 
-  if (backupExists) {
+  if (
+    backupExists &&
+    (!projectRoot ||
+      (await hasRulerGeneratedProvenance(`${filePath}.bak`, projectRoot)))
+  ) {
     logVerbose(`File has backup, skipping removal: ${filePath}`, verbose);
     return false;
+  } else if (backupExists) {
+    logVerbose(
+      `Ignoring unverified backup while removing generated file: ${filePath}.bak`,
+      verbose,
+    );
   }
 
   if (
@@ -312,6 +329,9 @@ async function removeBackupFile(
       'Refusing to remove hard-linked backup file',
     );
     await fs.unlink(backupPath);
+    if (projectRoot) {
+      await removeMcpProvenance(backupPath, projectRoot);
+    }
     logVerbose(`${prefix} Removed backup file: ${backupPath}`, verbose);
   }
 
