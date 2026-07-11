@@ -466,6 +466,51 @@ describe('revert-engine', () => {
       expect(result.additionalFilesRemoved).toBe(0);
       await expect(fs.readFile(mcpFile, 'utf8')).resolves.toBe(originalContent);
     });
+
+    it('should propagate safety errors for symlinked additional files', async () => {
+      const outsideDir = await fs.mkdtemp(
+        path.join(os.tmpdir(), 'ruler-aux-outside-'),
+      );
+      const outsideFile = path.join(outsideDir, 'mcp.json');
+      const mcpFile = path.join(tmpDir, '.mcp.json');
+
+      try {
+        await fs.writeFile(outsideFile, `${GENERATED_MARKER}\n{}`);
+        await fs.symlink(outsideFile, mcpFile);
+
+        await expect(
+          cleanUpAuxiliaryFiles(tmpDir, false, false),
+        ).rejects.toThrow(
+          'Refusing to remove additional file through symlinked path',
+        );
+
+        await expect(fs.readFile(outsideFile, 'utf8')).resolves.toBe(
+          `${GENERATED_MARKER}\n{}`,
+        );
+        expect((await fs.lstat(mcpFile)).isSymbolicLink()).toBe(true);
+      } finally {
+        await fs.rm(outsideDir, { recursive: true, force: true });
+      }
+    });
+
+    it('should skip symlinked cleanup directories', async () => {
+      const outsideDir = await fs.mkdtemp(
+        path.join(os.tmpdir(), 'ruler-empty-dir-outside-'),
+      );
+      const geminiDir = path.join(tmpDir, '.gemini');
+
+      try {
+        await fs.symlink(outsideDir, geminiDir, 'dir');
+
+        const result = await cleanUpAuxiliaryFiles(tmpDir, false, false);
+
+        expect(result.directoriesRemoved).toBe(0);
+        expect((await fs.lstat(geminiDir)).isSymbolicLink()).toBe(true);
+        await expect(fs.access(outsideDir)).resolves.toBeUndefined();
+      } finally {
+        await fs.rm(outsideDir, { recursive: true, force: true });
+      }
+    });
   });
 
   describe('dry-run logging patterns', () => {

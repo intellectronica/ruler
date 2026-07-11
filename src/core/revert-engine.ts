@@ -350,7 +350,7 @@ async function isDirectoryTreeEmpty(dirPath: string): Promise<boolean> {
 
     for (const entry of entries) {
       const entryPath = path.join(dirPath, entry);
-      const entryStat = await fs.stat(entryPath);
+      const entryStat = await fs.lstat(entryPath);
 
       if (entryStat.isFile()) {
         return false;
@@ -402,7 +402,7 @@ async function removeEmptyDirectory(
   logMissing = false,
 ): Promise<boolean> {
   try {
-    const stat = await fs.stat(dirPath);
+    const stat = await fs.lstat(dirPath);
     if (!stat.isDirectory()) {
       return false;
     }
@@ -440,7 +440,7 @@ async function removeAugmentDirectory(
   let directoriesRemoved = 0;
 
   try {
-    const augmentStat = await fs.stat(augmentDir);
+    const augmentStat = await fs.lstat(augmentDir);
     if (!augmentStat.isDirectory()) {
       return 0;
     }
@@ -533,59 +533,52 @@ async function removeAdditionalAgentFiles(
   for (const filePath of additionalFiles) {
     const fullPath = path.join(projectRoot, filePath);
 
-    try {
-      const fileExistsFlag = await fileExists(fullPath);
-      if (!fileExistsFlag) {
-        continue;
-      }
+    const fileExistsFlag = await fileExists(fullPath);
+    if (!fileExistsFlag) {
+      continue;
+    }
 
-      const backupExists = await fileExists(`${fullPath}.bak`);
-      if (backupExists) {
-        const restored = await restoreFromBackup(
-          fullPath,
-          verbose,
-          dryRun,
-          projectRoot,
-        );
-        if (restored) {
-          filesRemoved++;
-        }
-      } else if (!(await hasRulerGeneratedProvenance(fullPath, projectRoot))) {
+    const backupExists = await fileExists(`${fullPath}.bak`);
+    if (backupExists) {
+      const restored = await restoreFromBackup(
+        fullPath,
+        verbose,
+        dryRun,
+        projectRoot,
+      );
+      if (restored) {
+        filesRemoved++;
+      }
+    } else if (!(await hasRulerGeneratedProvenance(fullPath, projectRoot))) {
+      logVerbose(
+        `Preserving additional file without backup or Ruler provenance: ${fullPath}`,
+        verbose,
+      );
+    } else {
+      if (dryRun) {
         logVerbose(
-          `Preserving additional file without backup or Ruler provenance: ${fullPath}`,
+          `${prefix} Would remove additional file: ${fullPath}`,
           verbose,
         );
       } else {
-        if (dryRun) {
-          logVerbose(
-            `${prefix} Would remove additional file: ${fullPath}`,
-            verbose,
-          );
-        } else {
-          await assertManagedPathInsideRoot(
-            fullPath,
-            projectRoot,
-            'Refusing to remove additional file through symlinked path',
-          );
-          await assertNotSymbolicLink(
-            fullPath,
-            'Refusing to remove symlinked additional file',
-          );
-          await assertNotHardLinked(
-            fullPath,
-            'Refusing to remove hard-linked additional file',
-          );
-          await fs.unlink(fullPath);
-          await removeMcpProvenance(fullPath, projectRoot);
-          logVerbose(`${prefix} Removed additional file: ${fullPath}`, verbose);
-        }
-        filesRemoved++;
+        await assertManagedPathInsideRoot(
+          fullPath,
+          projectRoot,
+          'Refusing to remove additional file through symlinked path',
+        );
+        await assertNotSymbolicLink(
+          fullPath,
+          'Refusing to remove symlinked additional file',
+        );
+        await assertNotHardLinked(
+          fullPath,
+          'Refusing to remove hard-linked additional file',
+        );
+        await fs.unlink(fullPath);
+        await removeMcpProvenance(fullPath, projectRoot);
+        logVerbose(`${prefix} Removed additional file: ${fullPath}`, verbose);
       }
-    } catch {
-      logVerbose(
-        `Additional file ${fullPath} doesn't exist or can't be accessed`,
-        verbose,
-      );
+      filesRemoved++;
     }
   }
 
@@ -604,56 +597,51 @@ async function removeAdditionalAgentFiles(
       logVerbose(`${prefix} Restored VSCode settings from backup`, verbose);
     }
   } else if (await fileExists(settingsPath)) {
+    let settings: Record<string, unknown>;
     try {
-      if (dryRun) {
-        const settings = await readVSCodeSettings(settingsPath);
-        if (settings['augment.advanced']) {
-          delete settings['augment.advanced'];
-          const remainingKeys = Object.keys(settings);
-          if (remainingKeys.length === 0) {
-            logVerbose(
-              `${prefix} Would remove empty VSCode settings file`,
-              verbose,
-            );
-          } else {
-            logVerbose(
-              `${prefix} Would remove augment.advanced section from ${settingsPath}`,
-              verbose,
-            );
-          }
-          filesRemoved++;
-        }
-      } else {
-        const settings = await readVSCodeSettings(settingsPath);
-        if (settings['augment.advanced']) {
-          delete settings['augment.advanced'];
+      settings = await readVSCodeSettings(settingsPath);
+    } catch (error) {
+      logVerbose(`Failed to process VSCode settings.json: ${error}`, verbose);
+      return filesRemoved;
+    }
 
-          const remainingKeys = Object.keys(settings);
-          if (remainingKeys.length === 0) {
-            await assertManagedPathInsideRoot(
-              settingsPath,
-              projectRoot,
-              'Refusing to remove VSCode settings through symlinked path',
-            );
-            await fs.unlink(settingsPath);
-            logVerbose(`${prefix} Removed empty VSCode settings file`, verbose);
-          } else {
-            await writeVSCodeSettings(settingsPath, settings, projectRoot);
-            logVerbose(
-              `${prefix} Removed augment.advanced section from VSCode settings`,
-              verbose,
-            );
-          }
-          filesRemoved++;
+    if (settings['augment.advanced']) {
+      delete settings['augment.advanced'];
+      const remainingKeys = Object.keys(settings);
+
+      if (dryRun) {
+        if (remainingKeys.length === 0) {
+          logVerbose(
+            `${prefix} Would remove empty VSCode settings file`,
+            verbose,
+          );
         } else {
           logVerbose(
-            `No augment.advanced section found in ${settingsPath}`,
+            `${prefix} Would remove augment.advanced section from ${settingsPath}`,
             verbose,
           );
         }
+      } else if (remainingKeys.length === 0) {
+        await assertManagedPathInsideRoot(
+          settingsPath,
+          projectRoot,
+          'Refusing to remove VSCode settings through symlinked path',
+        );
+        await fs.unlink(settingsPath);
+        logVerbose(`${prefix} Removed empty VSCode settings file`, verbose);
+      } else {
+        await writeVSCodeSettings(settingsPath, settings, projectRoot);
+        logVerbose(
+          `${prefix} Removed augment.advanced section from VSCode settings`,
+          verbose,
+        );
       }
-    } catch (error) {
-      logVerbose(`Failed to process VSCode settings.json: ${error}`, verbose);
+      filesRemoved++;
+    } else {
+      logVerbose(
+        `No augment.advanced section found in ${settingsPath}`,
+        verbose,
+      );
     }
   }
 
