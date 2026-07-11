@@ -135,6 +135,102 @@ describe('CLI Handlers', () => {
       errorSpy.mockRestore();
     });
 
+    it('should reject repeated --agents values', async () => {
+      const exitSpy = jest
+        .spyOn(process, 'exit')
+        .mockImplementation((code?: string | number | null | undefined) => {
+          throw new Error(`process.exit: ${code}`);
+        });
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      const argv = {
+        'project-root': mockProjectRoot,
+        agents: ['copilot', 'claude'],
+        mcp: true,
+        'mcp-overwrite': false,
+        verbose: false,
+        'dry-run': false,
+        'local-only': false,
+        nested: false,
+        backup: true,
+      } as any;
+
+      await expect(applyHandler(argv)).rejects.toThrow('process.exit: 1');
+
+      expect(errorSpy).toHaveBeenCalledWith(
+        '[ruler] Option --agents can only be provided once.',
+      );
+      expect(applyAllAgentConfigs).not.toHaveBeenCalled();
+      expect(exitSpy).toHaveBeenCalledWith(1);
+
+      exitSpy.mockRestore();
+      errorSpy.mockRestore();
+    });
+
+    it('should reject repeated --project-root values', async () => {
+      const exitSpy = jest
+        .spyOn(process, 'exit')
+        .mockImplementation((code?: string | number | null | undefined) => {
+          throw new Error(`process.exit: ${code}`);
+        });
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      const argv = {
+        'project-root': [mockProjectRoot, '/other/project'],
+        mcp: true,
+        'mcp-overwrite': false,
+        verbose: false,
+        'dry-run': false,
+        'local-only': false,
+        nested: false,
+        backup: true,
+      } as any;
+
+      await expect(applyHandler(argv)).rejects.toThrow('process.exit: 1');
+
+      expect(errorSpy).toHaveBeenCalledWith(
+        '[ruler] Option --project-root can only be provided once.',
+      );
+      expect(applyAllAgentConfigs).not.toHaveBeenCalled();
+      expect(loadConfig).not.toHaveBeenCalled();
+      expect(exitSpy).toHaveBeenCalledWith(1);
+
+      exitSpy.mockRestore();
+      errorSpy.mockRestore();
+    });
+
+    it('should reject repeated --config values', async () => {
+      const exitSpy = jest
+        .spyOn(process, 'exit')
+        .mockImplementation((code?: string | number | null | undefined) => {
+          throw new Error(`process.exit: ${code}`);
+        });
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      const argv = {
+        'project-root': mockProjectRoot,
+        config: ['/path/to/one.toml', '/path/to/two.toml'],
+        mcp: true,
+        'mcp-overwrite': false,
+        verbose: false,
+        'dry-run': false,
+        'local-only': false,
+        nested: false,
+        backup: true,
+      } as any;
+
+      await expect(applyHandler(argv)).rejects.toThrow('process.exit: 1');
+
+      expect(errorSpy).toHaveBeenCalledWith(
+        '[ruler] Option --config can only be provided once.',
+      );
+      expect(applyAllAgentConfigs).not.toHaveBeenCalled();
+      expect(exitSpy).toHaveBeenCalledWith(1);
+
+      exitSpy.mockRestore();
+      errorSpy.mockRestore();
+    });
+
     it('should handle mcp-overwrite correctly', async () => {
       const argv = {
         'project-root': mockProjectRoot,
@@ -807,6 +903,64 @@ describe('CLI Handlers', () => {
 
       expect(errorSpy).toHaveBeenCalledWith(
         '[ruler] Empty agent token in --agents. Remove extra commas or provide an agent name.',
+      );
+      expect(revertAllAgentConfigs).not.toHaveBeenCalled();
+      expect(exitSpy).toHaveBeenCalledWith(1);
+
+      exitSpy.mockRestore();
+      errorSpy.mockRestore();
+    });
+
+    it('should reject repeated --agents values', async () => {
+      const exitSpy = jest
+        .spyOn(process, 'exit')
+        .mockImplementation((code?: string | number | null | undefined) => {
+          throw new Error(`process.exit: ${code}`);
+        });
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      const argv = {
+        'project-root': mockProjectRoot,
+        agents: ['claude', 'codex'],
+        'keep-backups': true,
+        verbose: true,
+        'dry-run': false,
+        'local-only': false,
+      } as any;
+
+      await expect(revertHandler(argv)).rejects.toThrow('process.exit: 1');
+
+      expect(errorSpy).toHaveBeenCalledWith(
+        '[ruler] Option --agents can only be provided once.',
+      );
+      expect(revertAllAgentConfigs).not.toHaveBeenCalled();
+      expect(exitSpy).toHaveBeenCalledWith(1);
+
+      exitSpy.mockRestore();
+      errorSpy.mockRestore();
+    });
+
+    it('should reject repeated --config values', async () => {
+      const exitSpy = jest
+        .spyOn(process, 'exit')
+        .mockImplementation((code?: string | number | null | undefined) => {
+          throw new Error(`process.exit: ${code}`);
+        });
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      const argv = {
+        'project-root': mockProjectRoot,
+        config: ['/path/to/one.toml', '/path/to/two.toml'],
+        'keep-backups': true,
+        verbose: true,
+        'dry-run': false,
+        'local-only': false,
+      } as any;
+
+      await expect(revertHandler(argv)).rejects.toThrow('process.exit: 1');
+
+      expect(errorSpy).toHaveBeenCalledWith(
+        '[ruler] Option --config can only be provided once.',
       );
       expect(revertAllAgentConfigs).not.toHaveBeenCalled();
       expect(exitSpy).toHaveBeenCalledWith(1);
