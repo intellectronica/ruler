@@ -7,10 +7,12 @@ import { ERROR_PREFIX, DEFAULT_RULES_FILENAME } from '../constants';
 import { McpStrategy } from '../types';
 import { loadConfig } from '../core/ConfigLoader';
 
+type CliStringOption = string | string[];
+
 export interface ApplyArgs {
-  'project-root': string;
-  agents?: string;
-  config?: string;
+  'project-root': CliStringOption;
+  agents?: CliStringOption;
+  config?: CliStringOption;
   mcp: boolean;
   'mcp-overwrite': boolean;
   gitignore?: boolean;
@@ -25,14 +27,14 @@ export interface ApplyArgs {
 }
 
 export interface InitArgs {
-  'project-root': string;
+  'project-root': CliStringOption;
   global: boolean;
 }
 
 export interface RevertArgs {
-  'project-root': string;
-  agents?: string;
-  config?: string;
+  'project-root': CliStringOption;
+  agents?: CliStringOption;
+  config?: CliStringOption;
   'keep-backups': boolean;
   verbose: boolean;
   'dry-run': boolean;
@@ -43,10 +45,9 @@ function assertNotInsideRulerDir(projectRoot: string): void {
   const normalized = path.resolve(projectRoot);
   const segments = normalized.split(path.sep);
   if (segments.includes('.ruler')) {
-    console.error(
-      `${ERROR_PREFIX} Cannot run from inside a .ruler directory. Please run from your project root.`,
+    throw new Error(
+      'Cannot run from inside a .ruler directory. Please run from your project root.',
     );
-    process.exit(1);
   }
 }
 
@@ -56,12 +57,39 @@ function formatCliError(message: string): string {
     : `${ERROR_PREFIX} ${message}`;
 }
 
-function parseCliAgents(agents: string | undefined): string[] | undefined {
-  if (agents === undefined) {
+function parseOptionalStringOption(
+  value: CliStringOption | undefined,
+  optionName: string,
+): string | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (Array.isArray(value)) {
+    throw new Error(`Option --${optionName} can only be provided once.`);
+  }
+  return value;
+}
+
+function parseRequiredStringOption(
+  value: CliStringOption | undefined,
+  optionName: string,
+): string {
+  const parsed = parseOptionalStringOption(value, optionName);
+  if (parsed === undefined) {
+    throw new Error(`Missing required option --${optionName}.`);
+  }
+  return parsed;
+}
+
+function parseCliAgents(
+  agents: CliStringOption | undefined,
+): string[] | undefined {
+  const agentsString = parseOptionalStringOption(agents, 'agents');
+  if (agentsString === undefined) {
     return undefined;
   }
 
-  const parsedAgents = agents.split(',').map((agent) => agent.trim());
+  const parsedAgents = agentsString.split(',').map((agent) => agent.trim());
   if (parsedAgents.some((agent) => agent.length === 0)) {
     throw new Error(
       'Empty agent token in --agents. Remove extra commas or provide an agent name.',
@@ -96,9 +124,6 @@ async function resolveNestedPreference(
  * Handler for the 'apply' command.
  */
 export async function applyHandler(argv: ApplyArgs): Promise<void> {
-  const projectRoot = argv['project-root'];
-  assertNotInsideRulerDir(projectRoot);
-  const configPath = argv.config;
   const mcpEnabled = argv.mcp;
   const mcpStrategy: McpStrategy | undefined = argv['mcp-overwrite']
     ? 'overwrite'
@@ -140,6 +165,12 @@ export async function applyHandler(argv: ApplyArgs): Promise<void> {
   }
 
   try {
+    const projectRoot = parseRequiredStringOption(
+      argv['project-root'],
+      'project-root',
+    );
+    assertNotInsideRulerDir(projectRoot);
+    const configPath = parseOptionalStringOption(argv.config, 'config');
     const agents = parseCliAgents(argv.agents);
 
     // Determine nested preference: CLI > TOML > Default (false)
@@ -178,10 +209,13 @@ export async function applyHandler(argv: ApplyArgs): Promise<void> {
  * Handler for the 'init' command.
  */
 export async function initHandler(argv: InitArgs): Promise<void> {
-  const projectRoot = argv['project-root'];
   const isGlobal = argv['global'];
 
   try {
+    const projectRoot = parseRequiredStringOption(
+      argv['project-root'],
+      'project-root',
+    );
     const rulerDir = isGlobal
       ? path.join(
           process.env.XDG_CONFIG_HOME || path.join(os.homedir(), '.config'),
@@ -272,15 +306,18 @@ export async function initHandler(argv: InitArgs): Promise<void> {
  * Handler for the 'revert' command.
  */
 export async function revertHandler(argv: RevertArgs): Promise<void> {
-  const projectRoot = argv['project-root'];
-  assertNotInsideRulerDir(projectRoot);
-  const configPath = argv.config;
   const keepBackups = argv['keep-backups'];
   const verbose = argv.verbose;
   const dryRun = argv['dry-run'];
   const localOnly = argv['local-only'];
 
   try {
+    const projectRoot = parseRequiredStringOption(
+      argv['project-root'],
+      'project-root',
+    );
+    assertNotInsideRulerDir(projectRoot);
+    const configPath = parseOptionalStringOption(argv.config, 'config');
     const agents = parseCliAgents(argv.agents);
 
     await revertAllAgentConfigs(
