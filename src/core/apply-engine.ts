@@ -79,7 +79,10 @@ async function loadNestedConfigurations(
     );
     const files = await FileSystemUtils.readMarkdownFiles(rulerDir, {
       includeAgents: shouldIncludeAgentsInRules(config),
-      excludePaths: getExcludedMarkdownOutputPaths(config),
+      excludePaths: getExcludedMarkdownOutputPaths(
+        path.dirname(rulerDir),
+        config,
+      ),
     });
     results.push(
       await createHierarchicalConfiguration(
@@ -104,6 +107,7 @@ function shouldIncludeAgentsInRules(config: LoadedConfig): boolean {
 }
 
 function getExcludedMarkdownOutputPaths(
+  projectRoot: string,
   config: LoadedConfig,
 ): ReadonlySet<string> {
   const excludedPaths = new Set<string>();
@@ -115,7 +119,11 @@ function getExcludedMarkdownOutputPaths(
       agentConfig.outputPathConfig,
     ]) {
       if (outputPath && outputPath.toLowerCase().endsWith('.md')) {
-        excludedPaths.add(path.resolve(outputPath));
+        excludedPaths.add(
+          path.isAbsolute(outputPath)
+            ? outputPath
+            : path.resolve(projectRoot, outputPath),
+        );
       }
     }
   }
@@ -322,7 +330,7 @@ async function loadSingleConfiguration(
   // `[agents] include_in_rules = true`.
   const files = await FileSystemUtils.readMarkdownFiles(rulerDirs[0], {
     includeAgents: shouldIncludeAgentsInRules(config),
-    excludePaths: getExcludedMarkdownOutputPaths(config),
+    excludePaths: getExcludedMarkdownOutputPaths(effectiveProjectRoot, config),
   });
 
   // Concatenate rules

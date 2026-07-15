@@ -30,6 +30,7 @@ output_path = ".ruler/.generated/codex-instructions.md"
     );
     const outputPath = path.join(projectRoot, outputRelativePath);
     const firstOutput = await fs.readFile(outputPath, 'utf8');
+    expect(firstOutput).toContain('Base rules for Codex');
 
     runRuler(
       'apply --agents codex --no-gitignore --no-backup --no-skills --no-subagents --local-only',

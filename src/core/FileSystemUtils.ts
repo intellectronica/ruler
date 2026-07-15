@@ -301,7 +301,7 @@ export async function readMarkdownFiles(
         }
         await walk(fullPath);
       } else if (isFile && entry.name.endsWith('.md')) {
-        if (excludePaths.has(path.resolve(fullPath))) {
+        if (excludePaths.has(fullPath)) {
           continue;
         }
         const content = await fs.readFile(fullPath, 'utf8');
