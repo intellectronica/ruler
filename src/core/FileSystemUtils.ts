@@ -221,6 +221,8 @@ export interface ReadMarkdownFilesOptions {
    * omitted, `.ruler/agents/` is skipped, mirroring `.ruler/skills/`.
    */
   includeAgents?: boolean;
+  /** Absolute markdown paths to exclude from recursive discovery. */
+  excludePaths?: ReadonlySet<string>;
 }
 
 /**
@@ -236,6 +238,7 @@ export async function readMarkdownFiles(
 ): Promise<{ path: string; content: string }[]> {
   const mdFiles: { path: string; content: string }[] = [];
   const includeAgents = options.includeAgents === true;
+  const excludePaths = options.excludePaths ?? new Set<string>();
   const realRulerDir = await fs.realpath(rulerDir);
   const visitedDirectories = new Set<string>();
   // Tracks whether we skipped a `.ruler/agents` subtree so the root-AGENTS.md
@@ -298,6 +301,9 @@ export async function readMarkdownFiles(
         }
         await walk(fullPath);
       } else if (isFile && entry.name.endsWith('.md')) {
+        if (excludePaths.has(fullPath)) {
+          continue;
+        }
         const content = await fs.readFile(fullPath, 'utf8');
         mdFiles.push({ path: fullPath, content });
       }

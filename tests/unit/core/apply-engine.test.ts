@@ -136,6 +136,36 @@ describe('apply-engine', () => {
       expect(configResult.rulerMcpJson).toBeNull();
     });
 
+    it('excludes configured markdown output paths from rule discovery', async () => {
+      await fs.writeFile(
+        path.join(rulerDir, 'ruler.toml'),
+        `[agents.codex]
+enabled = true
+output_path = ".ruler/.generated/codex-instructions.md"
+`,
+      );
+      await fs.writeFile(path.join(rulerDir, 'AGENTS.md'), '# Base rules');
+      await fs.mkdir(path.join(rulerDir, '.generated'), { recursive: true });
+      await fs.writeFile(
+        path.join(rulerDir, '.generated', 'codex-instructions.md'),
+        '# Generated output that must be excluded',
+      );
+
+      const result = (await loadSingleConfiguration(
+        tmpDir,
+        undefined,
+        true,
+      )) as RulerConfiguration;
+
+      expect(result.concatenatedRules).toContain('# Base rules');
+      expect(result.concatenatedRules).not.toContain(
+        '# Generated output that must be excluded',
+      );
+      expect(result.concatenatedRules).not.toContain(
+        '<!-- Source: .ruler/.generated/codex-instructions.md -->',
+      );
+    });
+
     it('should throw error when .ruler directory not found', async () => {
       const nonExistentDir = path.join(tmpDir, 'nonexistent');
 
