@@ -19,7 +19,7 @@ import {
   logWarn,
   logVerboseInfo,
 } from '../constants';
-import { walkSkillsTree, copySkillsDirectory } from './SkillsUtils';
+import { walkSkillsTree, copySkillsDirectory, pathExists } from './SkillsUtils';
 import type { IAgent } from '../agents/IAgent';
 import { assertManagedPathInsideRoot } from './FileSystemUtils';
 
@@ -440,15 +440,6 @@ async function getSourceTopLevelEntries(sourceDir: string): Promise<string[]> {
     .map((entry) => entry.name)
     .filter(isSafeManagedRelativePath)
     .sort();
-}
-
-async function pathExists(filePath: string): Promise<boolean> {
-  try {
-    await fs.access(filePath);
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 async function syncSkillsDirectory(
