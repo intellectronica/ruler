@@ -134,6 +134,7 @@ async function copyRecursive(src: string, dest: string): Promise<void> {
 /**
  * Copies the skills directory to the destination, preserving structure.
  * Creates the destination directory if it doesn't exist.
+ * When entryNames is provided, copies only those top-level entries.
  */
 export async function copySkillsDirectory(
   srcDir: string,
