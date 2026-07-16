@@ -138,7 +138,17 @@ async function copyRecursive(src: string, dest: string): Promise<void> {
 export async function copySkillsDirectory(
   srcDir: string,
   destDir: string,
+  entryNames?: string[],
 ): Promise<void> {
   await fs.mkdir(destDir, { recursive: true });
+  if (entryNames) {
+    for (const entryName of entryNames) {
+      await copyRecursive(
+        path.join(srcDir, entryName),
+        path.join(destDir, entryName),
+      );
+    }
+    return;
+  }
   await copyRecursive(srcDir, destDir);
 }

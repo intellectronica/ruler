@@ -350,6 +350,37 @@ describe('Skills Discovery and Validation', () => {
       ).toBe('# Old Skill');
     });
 
+    it('does not overwrite an unmanaged skill with the same name', async () => {
+      const { propagateSkillsForClaude } = await import(
+        '../src/core/SkillsProcessor'
+      );
+      const skillsDir = path.join(tmpDir, '.ruler', 'skills');
+      const rulerSkill = path.join(skillsDir, 'shared-skill');
+      const nativeSkill = path.join(
+        tmpDir,
+        '.claude',
+        'skills',
+        'shared-skill',
+      );
+
+      await fs.mkdir(nativeSkill, { recursive: true });
+      await fs.writeFile(
+        path.join(nativeSkill, SKILL_MD_FILENAME),
+        '# Native Skill',
+      );
+      await fs.mkdir(rulerSkill, { recursive: true });
+      await fs.writeFile(
+        path.join(rulerSkill, SKILL_MD_FILENAME),
+        '# Ruler Skill',
+      );
+
+      await propagateSkillsForClaude(tmpDir, { dryRun: false });
+
+      await expect(
+        fs.readFile(path.join(nativeSkill, SKILL_MD_FILENAME), 'utf8'),
+      ).resolves.toBe('# Native Skill');
+    });
+
     it('removes stale Ruler-managed skills from a previous propagation', async () => {
       const { propagateSkillsForClaude } = await import(
         '../src/core/SkillsProcessor'
