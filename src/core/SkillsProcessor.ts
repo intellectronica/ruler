@@ -470,15 +470,15 @@ async function syncSkillsDirectory(
   await removeManagedManifest(targetDir, projectRoot);
 
   const sourceEntries = await getSourceTopLevelEntries(sourceDir);
-  const entriesToCopy: string[] = [];
+  const nonCollidingEntries: string[] = [];
   for (const sourceEntry of sourceEntries) {
     if (await pathExists(path.join(targetDir, sourceEntry))) {
       continue;
     }
-    entriesToCopy.push(sourceEntry);
+    nonCollidingEntries.push(sourceEntry);
   }
-  await copySkillsDirectory(sourceDir, targetDir, entriesToCopy);
-  await writeManagedManifest(targetDir, entriesToCopy, projectRoot);
+  await copySkillsDirectory(sourceDir, targetDir, nonCollidingEntries);
+  await writeManagedManifest(targetDir, nonCollidingEntries, projectRoot);
 }
 
 /**
