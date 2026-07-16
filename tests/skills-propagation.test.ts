@@ -241,6 +241,49 @@ describe('Skills Discovery and Validation', () => {
       expect(await fs.readFile(copiedSkill1, 'utf8')).toBe('# Skill 1');
     });
 
+    it('copies only selected top-level entries', async () => {
+      const { copySkillsDirectory } = await import('../src/core/SkillsUtils');
+      const skillsDir = path.join(tmpDir, '.ruler', 'skills');
+      const selectedSkill = path.join(skillsDir, 'selected-skill');
+      const skippedSkill = path.join(skillsDir, 'skipped-skill');
+      const destDir = path.join(tmpDir, '.claude', 'skills');
+
+      await fs.mkdir(selectedSkill, { recursive: true });
+      await fs.mkdir(skippedSkill, { recursive: true });
+      await fs.writeFile(
+        path.join(selectedSkill, SKILL_MD_FILENAME),
+        '# Selected Skill',
+      );
+      await fs.writeFile(
+        path.join(skippedSkill, SKILL_MD_FILENAME),
+        '# Skipped Skill',
+      );
+
+      await copySkillsDirectory(skillsDir, destDir, ['selected-skill']);
+
+      await expect(
+        fs.readFile(
+          path.join(destDir, 'selected-skill', SKILL_MD_FILENAME),
+          'utf8',
+        ),
+      ).resolves.toBe('# Selected Skill');
+      await expect(
+        fs.access(path.join(destDir, 'skipped-skill')),
+      ).rejects.toThrow();
+    });
+
+    it('reports whether a path exists', async () => {
+      const { pathExists } = await import('../src/core/SkillsUtils');
+      const existingPath = path.join(tmpDir, 'existing.txt');
+
+      await fs.writeFile(existingPath, 'exists');
+
+      await expect(pathExists(existingPath)).resolves.toBe(true);
+      await expect(pathExists(path.join(tmpDir, 'missing.txt'))).resolves.toBe(
+        false,
+      );
+    });
+
     it('does not follow symlinked files while copying skills', async () => {
       const { copySkillsDirectory } = await import('../src/core/SkillsUtils');
       const skillsDir = path.join(tmpDir, '.ruler', 'skills');
@@ -348,6 +391,37 @@ describe('Skills Discovery and Validation', () => {
       expect(
         await fs.readFile(path.join(oldSkill, SKILL_MD_FILENAME), 'utf8'),
       ).toBe('# Old Skill');
+    });
+
+    it('does not overwrite an unmanaged skill with the same name', async () => {
+      const { propagateSkillsForClaude } = await import(
+        '../src/core/SkillsProcessor'
+      );
+      const skillsDir = path.join(tmpDir, '.ruler', 'skills');
+      const rulerSkill = path.join(skillsDir, 'shared-skill');
+      const nativeSkill = path.join(
+        tmpDir,
+        '.claude',
+        'skills',
+        'shared-skill',
+      );
+
+      await fs.mkdir(nativeSkill, { recursive: true });
+      await fs.writeFile(
+        path.join(nativeSkill, SKILL_MD_FILENAME),
+        '# Native Skill',
+      );
+      await fs.mkdir(rulerSkill, { recursive: true });
+      await fs.writeFile(
+        path.join(rulerSkill, SKILL_MD_FILENAME),
+        '# Ruler Skill',
+      );
+
+      await propagateSkillsForClaude(tmpDir, { dryRun: false });
+
+      await expect(
+        fs.readFile(path.join(nativeSkill, SKILL_MD_FILENAME), 'utf8'),
+      ).resolves.toBe('# Native Skill');
     });
 
     it('removes stale Ruler-managed skills from a previous propagation', async () => {

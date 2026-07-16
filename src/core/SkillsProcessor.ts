@@ -19,7 +19,7 @@ import {
   logWarn,
   logVerboseInfo,
 } from '../constants';
-import { walkSkillsTree, copySkillsDirectory } from './SkillsUtils';
+import { walkSkillsTree, copySkillsDirectory, pathExists } from './SkillsUtils';
 import type { IAgent } from '../agents/IAgent';
 import { assertManagedPathInsideRoot } from './FileSystemUtils';
 
@@ -460,12 +460,16 @@ async function syncSkillsDirectory(
   await removeManagedEntries(targetDir, previousManagedPaths, projectRoot);
   await removeManagedManifest(targetDir, projectRoot);
 
-  await copySkillsDirectory(sourceDir, targetDir);
-  await writeManagedManifest(
-    targetDir,
-    await getSourceTopLevelEntries(sourceDir),
-    projectRoot,
-  );
+  const sourceEntries = await getSourceTopLevelEntries(sourceDir);
+  const nonCollidingEntries: string[] = [];
+  for (const sourceEntry of sourceEntries) {
+    if (await pathExists(path.join(targetDir, sourceEntry))) {
+      continue;
+    }
+    nonCollidingEntries.push(sourceEntry);
+  }
+  await copySkillsDirectory(sourceDir, targetDir, nonCollidingEntries);
+  await writeManagedManifest(targetDir, nonCollidingEntries, projectRoot);
 }
 
 /**

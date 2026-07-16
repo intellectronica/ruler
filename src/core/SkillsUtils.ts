@@ -134,11 +134,31 @@ async function copyRecursive(src: string, dest: string): Promise<void> {
 /**
  * Copies the skills directory to the destination, preserving structure.
  * Creates the destination directory if it doesn't exist.
+ * When entryNames is provided, copies only those top-level entries.
  */
 export async function copySkillsDirectory(
   srcDir: string,
   destDir: string,
+  entryNames?: string[],
 ): Promise<void> {
   await fs.mkdir(destDir, { recursive: true });
+  if (entryNames) {
+    for (const entryName of entryNames) {
+      await copyRecursive(
+        path.join(srcDir, entryName),
+        path.join(destDir, entryName),
+      );
+    }
+    return;
+  }
   await copyRecursive(srcDir, destDir);
+}
+
+export async function pathExists(filePath: string): Promise<boolean> {
+  try {
+    await fs.access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
 }
