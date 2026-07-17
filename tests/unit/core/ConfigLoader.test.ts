@@ -116,6 +116,37 @@ describe('ConfigLoader', () => {
     expect(config.defaultAgents).toEqual(['A', 'B']);
   });
 
+  it.each(['""', '"   "'])(
+    'rejects blank default_agents selector %s',
+    async (selector) => {
+      await fs.writeFile(
+        path.join(rulerDir, 'ruler.toml'),
+        `default_agents = [${selector}]`,
+      );
+
+      await expect(loadConfig({ projectRoot: tmpDir })).rejects.toThrow(
+        /default_agents.*empty/i,
+      );
+    },
+  );
+
+  it.each(['""', '"   "'])(
+    'rejects blank agent configuration key %s',
+    async (selector) => {
+      await fs.writeFile(
+        path.join(rulerDir, 'ruler.toml'),
+        `
+        [agents.${selector}]
+        enabled = false
+        `,
+      );
+
+      await expect(loadConfig({ projectRoot: tmpDir })).rejects.toThrow(
+        /agent configuration key.*empty/i,
+      );
+    },
+  );
+
   it('loads implicit config from the nearest ancestor .ruler directory', async () => {
     const childDir = path.join(tmpDir, 'packages', 'app');
     await fs.mkdir(childDir, { recursive: true });

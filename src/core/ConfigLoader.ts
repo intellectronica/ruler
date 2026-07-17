@@ -592,6 +592,7 @@ function validateConfig(
       `File: ${configFile}, Errors: ${validationResult.error.issues.map(formatZodIssue).join(', ')}`,
     );
   }
+  validateAgentSelectors(raw, configFile);
 }
 
 function formatZodIssue(issue: z.core.$ZodIssue): string {
@@ -608,4 +609,39 @@ function formatZodIssue(issue: z.core.$ZodIssue): string {
 
 function errorMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
+}
+
+function validateAgentSelectors(
+  raw: Record<string, unknown>,
+  configFile: string,
+): void {
+  if (Array.isArray(raw.default_agents)) {
+    const hasBlankDefaultAgent = raw.default_agents.some(
+      (agent) => typeof agent === 'string' && agent.trim().length === 0,
+    );
+    if (hasBlankDefaultAgent) {
+      throw createRulerError(
+        'Invalid configuration file format',
+        `File: ${configFile}, default_agents contains an empty agent selector`,
+      );
+    }
+  }
+
+  if (
+    !raw.agents ||
+    typeof raw.agents !== 'object' ||
+    Array.isArray(raw.agents)
+  ) {
+    return;
+  }
+
+  for (const key of Object.keys(raw.agents)) {
+    if (SUBAGENT_RESERVED_KEYS.has(key)) continue;
+    if (key.trim().length === 0) {
+      throw createRulerError(
+        'Invalid configuration file format',
+        `File: ${configFile}, agent configuration key must not be empty`,
+      );
+    }
+  }
 }
