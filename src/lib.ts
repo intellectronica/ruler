@@ -113,6 +113,10 @@ export async function applyAllAgentConfigs(
   let generatedPaths: string[];
   let loadedConfig: LoadedConfig;
   let outputProjectRoot = projectRoot;
+  const gitignoreConfigurations: Array<{
+    projectRoot: string;
+    config: LoadedConfig;
+  }> = [];
 
   if (nested) {
     const hierarchicalConfigs = await loadNestedConfigurations(
@@ -159,28 +163,29 @@ export async function applyAllAgentConfigs(
       verbose,
     );
 
-    // Propagate skills if enabled - do this for each nested directory
-    const skillsEnabledResolved = resolveSkillsEnabled(
-      skillsEnabled,
-      rootConfig.skills?.enabled,
-    );
-    if (skillsEnabledResolved) {
-      const { propagateSkills } = await import('./core/SkillsProcessor');
-      // Propagate skills for each nested .ruler directory
-      for (const configEntry of hierarchicalConfigs) {
-        const nestedRoot = path.dirname(configEntry.rulerDir);
-        logVerbose(
-          `Propagating skills for nested directory: ${nestedRoot}`,
-          verbose,
-        );
-        await propagateSkills(
-          nestedRoot,
-          selectedAgents,
-          skillsEnabledResolved,
-          verbose,
-          dryRun,
-        );
-      }
+    const { propagateSkills } = await import('./core/SkillsProcessor');
+    // Propagate or clean up skills for each nested .ruler directory.
+    for (const configEntry of hierarchicalConfigs) {
+      const nestedRoot = path.dirname(configEntry.rulerDir);
+      gitignoreConfigurations.push({
+        projectRoot: nestedRoot,
+        config: configEntry.config,
+      });
+      const skillsEnabledResolved = resolveSkillsEnabled(
+        skillsEnabled,
+        configEntry.config.skills?.enabled,
+      );
+      logVerbose(
+        `Propagating skills for nested directory: ${nestedRoot}`,
+        verbose,
+      );
+      await propagateSkills(
+        nestedRoot,
+        selectedAgents,
+        skillsEnabledResolved,
+        verbose,
+        dryRun,
+      );
     }
 
     // Propagate subagents (mirrors skills handling for nested mode).
@@ -233,6 +238,10 @@ export async function applyAllAgentConfigs(
     outputProjectRoot = singleProjectRoot;
 
     loadedConfig = singleConfig.config;
+    gitignoreConfigurations.push({
+      projectRoot: singleProjectRoot,
+      config: singleConfig.config,
+    });
     singleConfig.config.cliAgents = includedAgents;
 
     logVerbose(
@@ -257,16 +266,14 @@ export async function applyAllAgentConfigs(
       skillsEnabled,
       singleConfig.config.skills?.enabled,
     );
-    if (skillsEnabledResolved) {
-      const { propagateSkills } = await import('./core/SkillsProcessor');
-      await propagateSkills(
-        singleProjectRoot,
-        selectedAgents,
-        skillsEnabledResolved,
-        verbose,
-        dryRun,
-      );
-    }
+    const { propagateSkills } = await import('./core/SkillsProcessor');
+    await propagateSkills(
+      singleProjectRoot,
+      selectedAgents,
+      skillsEnabledResolved,
+      verbose,
+      dryRun,
+    );
 
     // Propagate subagents (mirrors skills handling).
     const subagentsEnabledResolvedSingle = resolveSubagentsEnabled(
@@ -306,18 +313,19 @@ export async function applyAllAgentConfigs(
 
   // Add skills-generated paths to gitignore if skills are enabled
   let allGeneratedPaths = generatedPaths;
-  const skillsEnabledForGitignore = resolveSkillsEnabled(
-    skillsEnabled,
-    loadedConfig.skills?.enabled,
+  const skillsEnabledGitignoreConfigurations = gitignoreConfigurations.filter(
+    (entry) =>
+      resolveSkillsEnabled(skillsEnabled, entry.config.skills?.enabled),
   );
-  if (skillsEnabledForGitignore) {
-    // Skills enabled by default or explicitly
+  if (skillsEnabledGitignoreConfigurations.length > 0) {
     const { getSkillsGitignorePaths } = await import('./core/SkillsProcessor');
-    const skillsPaths = await getSkillsGitignorePaths(
-      outputProjectRoot,
-      selectedAgents,
-    );
-    allGeneratedPaths = [...allGeneratedPaths, ...skillsPaths];
+    for (const entry of skillsEnabledGitignoreConfigurations) {
+      const skillsPaths = await getSkillsGitignorePaths(
+        entry.projectRoot,
+        selectedAgents,
+      );
+      allGeneratedPaths = [...allGeneratedPaths, ...skillsPaths];
+    }
   }
 
   // Add subagents-generated paths to gitignore if subagents are enabled.
