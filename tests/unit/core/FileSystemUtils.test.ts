@@ -255,5 +255,17 @@ describe('FileSystemUtils', () => {
       );
       expect(files.map((f) => f.content)).toContain('ruler content');
     });
+
+    it('does not prepend a sibling AGENTS.md for global config directories', async () => {
+      const xdgConfigDir = path.join(tmpDir, 'xdg-config-with-sibling-agents');
+      const globalRulerDir = path.join(xdgConfigDir, 'ruler');
+      await fs.mkdir(globalRulerDir, { recursive: true });
+      await fs.writeFile(path.join(xdgConfigDir, 'AGENTS.md'), 'sibling');
+      await fs.writeFile(path.join(globalRulerDir, 'AGENTS.md'), 'global');
+
+      const files = await readMarkdownFiles(globalRulerDir);
+
+      expect(files.map((f) => f.content)).toEqual(['global']);
+    });
   });
 });

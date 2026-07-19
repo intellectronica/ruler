@@ -278,7 +278,13 @@ export async function loadConfig(
   const raw = configFile ? await readConfigFile(configFile) : {};
 
   const defaultAgents = Array.isArray(raw.default_agents)
-    ? raw.default_agents.map((a) => String(a))
+    ? raw.default_agents.map((a, index) =>
+        requireNonBlankSelector(
+          String(a),
+          configFile,
+          `default_agents[${index}]`,
+        ),
+      )
     : undefined;
 
   const agentsSection =
@@ -291,6 +297,7 @@ export async function loadConfig(
     // the same `[agents]` table; skip them here so we only process actual
     // coding-agent integrations as agent configs.
     if (SUBAGENT_RESERVED_KEYS.has(name)) continue;
+    requireNonBlankSelector(name, configFile, `agents.${name}`);
     if (section && typeof section === 'object') {
       const sectionObj = section as Record<string, unknown>;
       const cfg: IAgentConfig = {};
@@ -298,7 +305,7 @@ export async function loadConfig(
         cfg.enabled = sectionObj.enabled;
       }
       if (typeof sectionObj.output_path === 'string') {
-        cfg.outputPath = resolveProjectOutputPath(
+        cfg.outputPath = await resolveProjectOutputPath(
           projectRoot,
           sectionObj.output_path,
           configFile,
@@ -306,7 +313,7 @@ export async function loadConfig(
         );
       }
       if (typeof sectionObj.output_path_instructions === 'string') {
-        cfg.outputPathInstructions = resolveProjectOutputPath(
+        cfg.outputPathInstructions = await resolveProjectOutputPath(
           projectRoot,
           sectionObj.output_path_instructions,
           configFile,
@@ -314,7 +321,7 @@ export async function loadConfig(
         );
       }
       if (typeof sectionObj.output_path_config === 'string') {
-        cfg.outputPathConfig = resolveProjectOutputPath(
+        cfg.outputPathConfig = await resolveProjectOutputPath(
           projectRoot,
           sectionObj.output_path_config,
           configFile,
@@ -448,12 +455,12 @@ export async function loadConfig(
   };
 }
 
-function resolveProjectOutputPath(
+async function resolveProjectOutputPath(
   projectRoot: string,
   configuredPath: string,
   configFile: string | undefined,
   fieldName: string,
-): string {
+): Promise<string> {
   const resolvedPath = path.resolve(projectRoot, configuredPath);
 
   if (!isPathInsideOrEqual(projectRoot, resolvedPath)) {
@@ -470,7 +477,101 @@ function resolveProjectOutputPath(
     );
   }
 
+  const rulerDir = path.join(projectRoot, '.ruler');
+  const generatedDir = path.join(rulerDir, '.generated');
+  if (
+    isPathInsideOrEqual(rulerDir, resolvedPath) &&
+    !isPathInsideOrEqual(generatedDir, resolvedPath)
+  ) {
+    throw createRulerError(
+      'Configured output path targets a .ruler source file',
+      [
+        configFile ? `File: ${configFile}` : undefined,
+        `Field: ${fieldName}`,
+        `Path: ${configuredPath}`,
+        `Allowed generated directory: ${generatedDir}`,
+      ]
+        .filter(Boolean)
+        .join(', '),
+    );
+  }
+  if (isPathInsideOrEqual(generatedDir, resolvedPath)) {
+    await assertGeneratedPathComponentsAreRealDirectories(
+      resolvedPath,
+      generatedDir,
+      configFile,
+      fieldName,
+      configuredPath,
+    );
+  }
+
   return resolvedPath;
+}
+
+async function assertGeneratedPathComponentsAreRealDirectories(
+  resolvedPath: string,
+  generatedDir: string,
+  configFile: string | undefined,
+  fieldName: string,
+  configuredPath: string,
+): Promise<void> {
+  const relativeParent = path.relative(
+    generatedDir,
+    path.dirname(resolvedPath),
+  );
+  const pathComponents =
+    relativeParent === ''
+      ? [generatedDir]
+      : [
+          generatedDir,
+          ...relativeParent
+            .split(path.sep)
+            .filter((component) => component.length > 0)
+            .map((_component, index, components) =>
+              path.join(generatedDir, ...components.slice(0, index + 1)),
+            ),
+        ];
+
+  for (const componentPath of pathComponents) {
+    try {
+      const stat = await fs.lstat(componentPath);
+      if (stat.isSymbolicLink()) {
+        throw createRulerError(
+          'Configured output path uses a symlinked .ruler generated directory',
+          [
+            configFile ? `File: ${configFile}` : undefined,
+            `Field: ${fieldName}`,
+            `Path: ${configuredPath}`,
+            `Symlink: ${componentPath}`,
+          ]
+            .filter(Boolean)
+            .join(', '),
+        );
+      }
+    } catch (error) {
+      if ((error as ErrnoException).code === 'ENOENT') {
+        return;
+      }
+      throw error;
+    }
+  }
+}
+
+function requireNonBlankSelector(
+  selector: string,
+  configFile: string | undefined,
+  fieldName: string,
+): string {
+  if (selector.trim() !== '') {
+    return selector;
+  }
+
+  throw createRulerError(
+    'Agent selector cannot be blank',
+    [configFile ? `File: ${configFile}` : undefined, `Field: ${fieldName}`]
+      .filter(Boolean)
+      .join(', '),
+  );
 }
 
 async function resolveImplicitConfigFile(
