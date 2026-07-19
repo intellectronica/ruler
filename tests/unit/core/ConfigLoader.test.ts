@@ -116,6 +116,15 @@ describe('ConfigLoader', () => {
     expect(config.defaultAgents).toEqual(['A', 'B']);
   });
 
+  it('rejects blank default_agents selectors', async () => {
+    const content = `default_agents = ["claude", "  "]`;
+    await fs.writeFile(path.join(rulerDir, 'ruler.toml'), content);
+
+    await expect(loadConfig({ projectRoot: tmpDir })).rejects.toThrow(
+      /default_agents/i,
+    );
+  });
+
   it('loads implicit config from the nearest ancestor .ruler directory', async () => {
     const childDir = path.join(tmpDir, 'packages', 'app');
     await fs.mkdir(childDir, { recursive: true });
@@ -157,6 +166,18 @@ describe('ConfigLoader', () => {
     const config = await loadConfig({ projectRoot: tmpDir });
     expect(config.agentConfigs.A.enabled).toBe(false);
     expect(config.agentConfigs.B.enabled).toBe(true);
+  });
+
+  it('rejects blank agent table selectors', async () => {
+    const content = `
+      [agents."  "]
+      enabled = true
+    `;
+    await fs.writeFile(path.join(rulerDir, 'ruler.toml'), content);
+
+    await expect(loadConfig({ projectRoot: tmpDir })).rejects.toThrow(
+      /agents/i,
+    );
   });
 
   it('parses agent output_path and resolves to projectRoot', async () => {
@@ -238,6 +259,56 @@ describe('ConfigLoader', () => {
 
     await expect(loadConfig({ projectRoot: tmpDir })).rejects.toThrow(
       /Configured output path is outside the project root/i,
+    );
+  });
+
+  it.each([
+    ['output_path', '.ruler/AGENTS.md'],
+    ['output_path', '.ruler/extra.md'],
+    ['output_path_instructions', '.ruler/nested/rules.md'],
+    ['output_path_config', '.ruler/ruler.toml'],
+  ])(
+    'rejects unsafe %s that targets .ruler source files',
+    async (key, configuredPath) => {
+      const target = path.join(tmpDir, configuredPath);
+      await fs.mkdir(path.dirname(target), { recursive: true });
+      await fs.writeFile(target, 'source rules');
+      const content = `
+      [agents.A]
+      ${key} = ${JSON.stringify(configuredPath)}
+    `;
+      await fs.writeFile(path.join(rulerDir, 'ruler.toml'), content);
+
+      await expect(loadConfig({ projectRoot: tmpDir })).rejects.toThrow(
+        /Configured output path targets a .ruler source file/i,
+      );
+    },
+  );
+
+  it('allows configured outputs under the .ruler generated subdirectory', async () => {
+    const content = `
+      [agents.A]
+      output_path = ".ruler/.generated/AGENTS.md"
+    `;
+    await fs.writeFile(path.join(rulerDir, 'ruler.toml'), content);
+
+    const config = await loadConfig({ projectRoot: tmpDir });
+
+    expect(config.agentConfigs.A.outputPath).toBe(
+      path.join(tmpDir, '.ruler', '.generated', 'AGENTS.md'),
+    );
+  });
+
+  it('rejects configured outputs through a symlinked .ruler generated subdirectory', async () => {
+    await fs.symlink(rulerDir, path.join(rulerDir, '.generated'));
+    const content = `
+      [agents.A]
+      output_path = ".ruler/.generated/AGENTS.md"
+    `;
+    await fs.writeFile(path.join(rulerDir, 'ruler.toml'), content);
+
+    await expect(loadConfig({ projectRoot: tmpDir })).rejects.toThrow(
+      /symlinked \.ruler generated directory/i,
     );
   });
 
