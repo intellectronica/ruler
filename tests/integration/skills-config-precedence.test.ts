@@ -57,6 +57,152 @@ enabled = false
     await expect(fs.access(claudeSkillsDir)).rejects.toThrow();
   });
 
+  it('removes previously managed native skills when skills are disabled', async () => {
+    const rulerDir = path.join(tmpDir, '.ruler');
+    const skillDir = path.join(rulerDir, 'skills', 'test-skill');
+
+    await fs.mkdir(skillDir, { recursive: true });
+    await fs.writeFile(path.join(skillDir, SKILL_MD_FILENAME), '# Test Skill');
+    await fs.writeFile(path.join(rulerDir, 'AGENTS.md'), '# Test Rules');
+    await fs.writeFile(
+      path.join(rulerDir, 'ruler.toml'),
+      `
+[skills]
+enabled = true
+`,
+    );
+
+    await applyAllAgentConfigs(
+      tmpDir,
+      ['claude'],
+      undefined,
+      true,
+      undefined,
+      undefined,
+      false,
+      false,
+      false,
+      false,
+      true,
+      undefined,
+    );
+
+    const copiedSkill = path.join(
+      tmpDir,
+      '.claude',
+      'skills',
+      'test-skill',
+      SKILL_MD_FILENAME,
+    );
+    expect(await fs.readFile(copiedSkill, 'utf8')).toBe('# Test Skill');
+
+    await fs.writeFile(
+      path.join(rulerDir, 'ruler.toml'),
+      `
+[skills]
+enabled = false
+`,
+    );
+
+    await applyAllAgentConfigs(
+      tmpDir,
+      ['claude'],
+      undefined,
+      true,
+      undefined,
+      undefined,
+      false,
+      false,
+      false,
+      false,
+      true,
+      undefined,
+    );
+
+    await expect(fs.access(copiedSkill)).rejects.toThrow();
+  });
+
+  it('removes nested native skills when child config disables skills', async () => {
+    const rootRulerDir = path.join(tmpDir, '.ruler');
+    const childRoot = path.join(tmpDir, 'packages', 'core');
+    const childRulerDir = path.join(childRoot, '.ruler');
+    const childSkillDir = path.join(childRulerDir, 'skills', 'child-skill');
+
+    await fs.mkdir(rootRulerDir, { recursive: true });
+    await fs.mkdir(childSkillDir, { recursive: true });
+    await fs.writeFile(path.join(rootRulerDir, 'AGENTS.md'), '# Root Rules');
+    await fs.writeFile(path.join(childRulerDir, 'AGENTS.md'), '# Child Rules');
+    await fs.writeFile(
+      path.join(childSkillDir, SKILL_MD_FILENAME),
+      '# Child Skill',
+    );
+    await fs.writeFile(
+      path.join(rootRulerDir, 'ruler.toml'),
+      `
+nested = true
+
+[skills]
+enabled = true
+`,
+    );
+    await fs.writeFile(
+      path.join(childRulerDir, 'ruler.toml'),
+      `
+[skills]
+enabled = true
+`,
+    );
+
+    await applyAllAgentConfigs(
+      tmpDir,
+      ['claude'],
+      undefined,
+      true,
+      undefined,
+      undefined,
+      false,
+      false,
+      false,
+      true,
+      true,
+      undefined,
+    );
+
+    const copiedSkill = path.join(
+      childRoot,
+      '.claude',
+      'skills',
+      'child-skill',
+      SKILL_MD_FILENAME,
+    );
+    expect(await fs.readFile(copiedSkill, 'utf8')).toBe('# Child Skill');
+
+    await fs.writeFile(
+      path.join(childRulerDir, 'ruler.toml'),
+      `
+[skills]
+enabled = false
+`,
+    );
+
+    await applyAllAgentConfigs(
+      tmpDir,
+      ['claude'],
+      undefined,
+      true,
+      undefined,
+      undefined,
+      false,
+      false,
+      false,
+      true,
+      true,
+      undefined,
+    );
+
+    await expect(fs.access(copiedSkill)).rejects.toThrow();
+  });
+
   it('honors skills.enabled = true in ruler.toml', async () => {
     // Setup .ruler directory with skills
     const rulerDir = path.join(tmpDir, '.ruler');
