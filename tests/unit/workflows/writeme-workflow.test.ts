@@ -15,4 +15,16 @@ describe('WRITEME workflow', () => {
     expect(workflow).not.toContain('contents: write');
     expect(workflow).not.toContain('pull-requests: write');
   });
+
+  it('does not persist checkout credentials', () => {
+    const workflowPath = path.join(
+      process.cwd(),
+      '.github',
+      'workflows',
+      'writeme.yml',
+    );
+    const workflow = fs.readFileSync(workflowPath, 'utf8');
+
+    expect(workflow).toContain('persist-credentials: false');
+  });
 });
