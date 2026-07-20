@@ -14,4 +14,22 @@ describe('Ruler Apply workflow', () => {
     expect(workflow).toContain('permissions:\n  contents: write');
     expect(workflow).not.toContain('pull-requests:');
   });
+
+  it('does not allow workflow dispatch to bypass the main branch check', () => {
+    const workflowPath = path.join(
+      process.cwd(),
+      '.github',
+      'workflows',
+      'ruler.yml',
+    );
+    const workflow = fs.readFileSync(workflowPath, 'utf8');
+    const jobCondition =
+      workflow.match(/^\s+if:\s+\${{(?<condition>.+)}}$/m)?.groups?.condition ??
+      '';
+
+    expect(jobCondition).toContain("github.ref == 'refs/heads/main'");
+    expect(jobCondition).not.toContain(
+      "|| github.event_name == 'workflow_dispatch'",
+    );
+  });
 });
