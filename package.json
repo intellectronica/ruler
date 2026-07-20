@@ -11,7 +11,7 @@
     "test": "jest --coverage",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "test:integration": "jest tests/e2e/ruler.integration.test.ts --verbose",
+    "test:integration": "jest tests/e2e tests/integration --verbose",
     "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
     "build": "npm run clean && tsc",
     "check:package-lock": "node -e \"const pkg=require('./package.json'); const lock=require('./package-lock.json'); const root=lock.packages?.['']; if (lock.version !== pkg.version || root?.version !== pkg.version) { console.error('package-lock.json version metadata must match package.json version'); process.exit(1); }\"",
