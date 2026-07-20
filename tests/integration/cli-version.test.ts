@@ -39,10 +39,14 @@ describe('packaged CLI version', () => {
       ) as { version: string };
 
       const npmEnv = createIsolatedNpmEnv(npmUserConfigPath);
-      const tarballName = execFileSync('npm', ['pack', '--silent'], {
-        encoding: 'utf8',
-        env: npmEnv,
-      }).trim();
+      const tarballName = execFileSync(
+        'npm',
+        ['pack', '--silent', '--ignore-scripts'],
+        {
+          encoding: 'utf8',
+          env: npmEnv,
+        },
+      ).trim();
       tarballPath = path.join(process.cwd(), tarballName);
       const extractedDir = path.join(tmpDir, 'extracted');
       await fs.mkdir(extractedDir);
