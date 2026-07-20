@@ -39,6 +39,7 @@ export interface RevertArgs {
   verbose: boolean;
   'dry-run': boolean;
   'local-only': boolean;
+  nested?: boolean;
 }
 
 function assertNotInsideRulerDir(projectRoot: string): void {
@@ -117,7 +118,7 @@ function parseCliAgents(
 }
 
 async function resolveNestedPreference(
-  argv: ApplyArgs,
+  argv: { nested?: boolean },
   projectRoot: string,
   configPath: string | undefined,
   localOnly: boolean,
@@ -339,6 +340,12 @@ export async function revertHandler(argv: RevertArgs): Promise<void> {
     assertNotInsideRulerDir(projectRoot);
     const configPath = parseOptionalStringOption(argv.config, 'config');
     const agents = parseCliAgents(argv.agents);
+    const nested = await resolveNestedPreference(
+      argv,
+      projectRoot,
+      configPath,
+      localOnly,
+    );
 
     await revertAllAgentConfigs(
       projectRoot,
@@ -348,6 +355,7 @@ export async function revertHandler(argv: RevertArgs): Promise<void> {
       verbose,
       dryRun,
       localOnly,
+      nested,
     );
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);

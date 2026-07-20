@@ -896,6 +896,7 @@ describe('CLI Handlers', () => {
         verbose: true,
         'dry-run': false,
         'local-only': false,
+        nested: true,
       };
 
       await revertHandler(argv);
@@ -908,6 +909,7 @@ describe('CLI Handlers', () => {
         true,
         false,
         false,
+        true,
       );
     });
 
@@ -1005,6 +1007,7 @@ describe('CLI Handlers', () => {
         verbose: false,
         'dry-run': false,
         'local-only': false,
+        nested: false,
       };
 
       await revertHandler(argv);
@@ -1013,6 +1016,7 @@ describe('CLI Handlers', () => {
         mockProjectRoot,
         undefined,
         undefined,
+        false,
         false,
         false,
         false,

@@ -318,6 +318,81 @@ describe('Revert Core Functions', () => {
       );
     });
 
+    it('does not revert nested child outputs unless nested mode is enabled', async () => {
+      const childRoot = path.join(tmpDir, 'packages', 'child');
+      await fs.mkdir(path.join(childRoot, '.ruler'), { recursive: true });
+      await fs.writeFile(
+        path.join(tmpDir, '.ruler', 'ruler.toml'),
+        'default_agents = ["claude"]\nnested = true\n',
+      );
+      await fs.writeFile(
+        path.join(childRoot, '.ruler', 'instructions.md'),
+        'Child Rule',
+      );
+      await fs.writeFile(
+        path.join(tmpDir, 'CLAUDE.md'),
+        `${GENERATED_MARKER}\nRoot generated content`,
+      );
+      await fs.writeFile(
+        path.join(childRoot, 'CLAUDE.md'),
+        `${GENERATED_MARKER}\nChild generated content`,
+      );
+
+      await revertAllAgentConfigs(
+        tmpDir,
+        undefined,
+        undefined,
+        false,
+        false,
+        false,
+      );
+
+      await expect(fs.access(path.join(tmpDir, 'CLAUDE.md'))).rejects.toThrow();
+      await expect(
+        fs.readFile(path.join(childRoot, 'CLAUDE.md'), 'utf8'),
+      ).resolves.toBe(`${GENERATED_MARKER}\nChild generated content`);
+    });
+
+    it('reverts nested child outputs in nested mode', async () => {
+      const childRoot = path.join(tmpDir, 'packages', 'child');
+      const childOutput = path.join(childRoot, 'CLAUDE.md');
+      const childBackup = `${childOutput}.bak`;
+
+      await fs.mkdir(path.join(childRoot, '.ruler'), { recursive: true });
+      await fs.writeFile(
+        path.join(tmpDir, '.ruler', 'ruler.toml'),
+        'default_agents = ["claude"]\nnested = true\n',
+      );
+      await fs.writeFile(
+        path.join(childRoot, '.ruler', 'instructions.md'),
+        'Child Rule',
+      );
+      await fs.writeFile(
+        path.join(tmpDir, 'CLAUDE.md'),
+        `${GENERATED_MARKER}\nRoot generated content`,
+      );
+      await fs.writeFile(childBackup, 'Original child content');
+      await writeBackupProvenance(childBackup);
+      await fs.writeFile(childOutput, 'Updated child content');
+
+      await revertAllAgentConfigs(
+        tmpDir,
+        undefined,
+        undefined,
+        false,
+        false,
+        false,
+        false,
+        true,
+      );
+
+      await expect(fs.access(path.join(tmpDir, 'CLAUDE.md'))).rejects.toThrow();
+      await expect(fs.readFile(childOutput, 'utf8')).resolves.toBe(
+        'Original child content',
+      );
+      await expect(fs.access(childBackup)).rejects.toThrow();
+    });
+
     it('should clean up empty directories', async () => {
       const githubDir = path.join(tmpDir, '.github');
       const cursorDir = path.join(tmpDir, '.cursor');

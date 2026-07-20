@@ -165,6 +165,11 @@ export function createCli(argv: string[] = hideBin(process.argv)): Argv {
             description:
               'Only search for local .ruler directories, ignore global config',
             default: false,
+          })
+          .option('nested', {
+            type: 'boolean',
+            description:
+              'Enable nested revert processing for nested .ruler directories (default: from config or disabled)',
           });
       },
       revertHandler,
