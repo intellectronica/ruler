@@ -2,7 +2,7 @@ import * as path from 'path';
 import { IAgent, IAgentConfig } from './agents/IAgent';
 import { allAgents } from './agents';
 import { McpStrategy } from './types';
-import { logVerbose, logWarn } from './constants';
+import { logError, logVerbose, logWarn } from './constants';
 import {
   loadSingleConfiguration,
   processHierarchicalConfigurations,
@@ -10,8 +10,10 @@ import {
   updateGitignore,
   loadNestedConfigurations,
   HierarchicalRulerConfiguration,
+  RulerConfiguration,
 } from './core/apply-engine';
 import { type LoadedConfig } from './core/ConfigLoader';
+import type { ConfigDiagnostic } from './core/UnifiedConfigTypes';
 import { mapRawAgentConfigs } from './core/config-utils';
 import { resolveSelectedAgents } from './core/agent-selection';
 
@@ -75,6 +77,48 @@ function resolveSubagentsCleanupOrphaned(
   return configSetting === true;
 }
 
+function emitConfigDiagnostics(
+  configurations: Array<Pick<RulerConfiguration, 'diagnostics'>>,
+  dryRun: boolean,
+): void {
+  const emitted = new Set<string>();
+
+  for (const configuration of configurations) {
+    for (const diagnostic of configuration.diagnostics ?? []) {
+      if (diagnostic.code === 'MCP_JSON_DEPRECATED') {
+        continue;
+      }
+
+      const key = JSON.stringify({
+        code: diagnostic.code,
+        message: diagnostic.message,
+        file: diagnostic.file,
+        detail: diagnostic.detail,
+      });
+      if (emitted.has(key)) {
+        continue;
+      }
+      emitted.add(key);
+
+      const message = formatConfigDiagnostic(diagnostic);
+      if (diagnostic.severity === 'error') {
+        logError(message, dryRun);
+      } else {
+        logWarn(message, dryRun);
+      }
+    }
+  }
+}
+
+function formatConfigDiagnostic(diagnostic: ConfigDiagnostic): string {
+  const details = [
+    diagnostic.file ? `File: ${diagnostic.file}` : undefined,
+    diagnostic.detail ? `Detail: ${diagnostic.detail}` : undefined,
+  ].filter(Boolean);
+  const suffix = details.length > 0 ? ` (${details.join(', ')})` : '';
+  return `Configuration ${diagnostic.severity} [${diagnostic.code}]: ${diagnostic.message}${suffix}`;
+}
+
 /**
  * Applies ruler configurations for all supported AI agents.
  * @param projectRoot Root directory of the project
@@ -129,6 +173,8 @@ export async function applyAllAgentConfigs(
     if (hierarchicalConfigs.length === 0) {
       throw new Error('No .ruler directories found');
     }
+
+    emitConfigDiagnostics(hierarchicalConfigs, dryRun);
 
     logWarn(
       'Nested mode is experimental and may change in future releases.',
@@ -236,6 +282,8 @@ export async function applyAllAgentConfigs(
     );
     const singleProjectRoot = singleConfig.projectRoot;
     outputProjectRoot = singleProjectRoot;
+
+    emitConfigDiagnostics([singleConfig], dryRun);
 
     loadedConfig = singleConfig.config;
     gitignoreConfigurations.push({

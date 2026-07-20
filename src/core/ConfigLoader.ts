@@ -14,6 +14,7 @@ import {
 } from '../types';
 import { createRulerError, logWarn } from '../constants';
 import { isSafeRulerDirectory, pathExists } from './FileSystemUtils';
+import type { ConfigDiagnostic } from './UnifiedConfigTypes';
 
 // One-shot guard so the deprecation message fires once per process even when
 // `loadConfig` is called multiple times (e.g. nested mode walks every
@@ -165,36 +166,104 @@ export interface IAgentConfig {
 
 function parseAgentMcpServers(
   sectionObj: Record<string, unknown>,
-): Record<string, Record<string, unknown>> | undefined {
+  agentName: string,
+  configFile: string | undefined,
+): {
+  servers?: Record<string, Record<string, unknown>>;
+  diagnostics: ConfigDiagnostic[];
+} {
   if (
     !sectionObj.mcp_servers ||
     typeof sectionObj.mcp_servers !== 'object' ||
     Array.isArray(sectionObj.mcp_servers)
   ) {
-    return undefined;
+    return { diagnostics: [] };
   }
 
   const servers: Record<string, Record<string, unknown>> = {};
+  const diagnostics: ConfigDiagnostic[] = [];
   for (const [name, def] of Object.entries(
     sectionObj.mcp_servers as Record<string, unknown>,
   )) {
     if (def && typeof def === 'object' && !Array.isArray(def)) {
-      const server = normalizeAgentMcpServer(def as Record<string, unknown>);
-      if (server.command || server.url) {
+      const { server, diagnostics: serverDiagnostics } =
+        normalizeAgentMcpServer(
+          def as Record<string, unknown>,
+          name,
+          agentName,
+          configFile,
+        );
+      diagnostics.push(...serverDiagnostics);
+      if (server && (server.command || server.url)) {
         servers[name] = server;
       }
     }
   }
 
-  return Object.keys(servers).length > 0 ? servers : undefined;
+  return {
+    servers: Object.keys(servers).length > 0 ? servers : undefined,
+    diagnostics,
+  };
 }
 
 function normalizeAgentMcpServer(
   def: Record<string, unknown>,
-): Record<string, unknown> {
+  serverName: string,
+  agentName: string,
+  configFile: string | undefined,
+): {
+  server?: Record<string, unknown>;
+  diagnostics: ConfigDiagnostic[];
+} {
   const server = { ...def };
   const hasCommand = typeof server.command === 'string';
   const hasUrl = typeof server.url === 'string';
+  const hasCommandField = Object.prototype.hasOwnProperty.call(
+    server,
+    'command',
+  );
+  const hasUrlField = Object.prototype.hasOwnProperty.call(server, 'url');
+  const diagnostics: ConfigDiagnostic[] = [];
+
+  if (!hasCommand && !hasUrl) {
+    diagnostics.push({
+      severity: 'warning',
+      code: 'MCP_AGENT_INVALID_SERVER',
+      message:
+        hasCommandField || hasUrlField
+          ? `MCP server '${serverName}' for agent '${agentName}' must have a string command or url`
+          : `MCP server '${serverName}' for agent '${agentName}' must have at least one of command or url`,
+      file: configFile,
+    });
+    return { diagnostics };
+  }
+
+  if (hasCommand && hasUrl) {
+    diagnostics.push({
+      severity: 'warning',
+      code: 'MCP_AGENT_FIELD_CONFLICT',
+      message: `MCP server '${serverName}' for agent '${agentName}' has both command and url - using url (remote)`,
+      file: configFile,
+    });
+  }
+
+  if (hasCommand && server.headers && typeof server.headers === 'object') {
+    diagnostics.push({
+      severity: 'warning',
+      code: 'MCP_AGENT_FIELD_CONFLICT',
+      message: `MCP server '${serverName}' for agent '${agentName}' has headers with command (should be used with url only)`,
+      file: configFile,
+    });
+  }
+
+  if (hasUrl && server.env && typeof server.env === 'object') {
+    diagnostics.push({
+      severity: 'warning',
+      code: 'MCP_AGENT_FIELD_CONFLICT',
+      message: `MCP server '${serverName}' for agent '${agentName}' has env with url (should be used with command only)`,
+      file: configFile,
+    });
+  }
 
   if (!hasCommand) {
     delete server.command;
@@ -220,7 +289,7 @@ function normalizeAgentMcpServer(
     server.type = 'stdio';
   }
 
-  return server;
+  return { server, diagnostics };
 }
 
 /**
@@ -247,6 +316,8 @@ export interface LoadedConfig {
   nested?: boolean;
   /** Whether the nested option was explicitly provided in the config. */
   nestedDefined?: boolean;
+  /** Non-fatal diagnostics collected while parsing configuration. */
+  diagnostics?: ConfigDiagnostic[];
 }
 
 /**
@@ -293,6 +364,7 @@ export async function loadConfig(
       ? (raw.agents as Record<string, unknown>)
       : {};
   const agentConfigs: Record<string, IAgentConfig> = {};
+  const diagnostics: ConfigDiagnostic[] = [];
   for (const [name, section] of Object.entries(agentsSection)) {
     // Reserved subagent-control keys live alongside per-agent records in
     // the same `[agents]` table; skip them here so we only process actual
@@ -343,7 +415,9 @@ export async function loadConfig(
         }
         cfg.mcp = mcpCfg;
       }
-      cfg.mcpServers = parseAgentMcpServers(sectionObj);
+      const agentMcp = parseAgentMcpServers(sectionObj, name, configFile);
+      cfg.mcpServers = agentMcp.servers;
+      diagnostics.push(...agentMcp.diagnostics);
       agentConfigs[name] = cfg;
     }
   }
@@ -453,6 +527,7 @@ export async function loadConfig(
     subagents: subagentsConfig,
     nested,
     nestedDefined,
+    diagnostics,
   };
 }
 
