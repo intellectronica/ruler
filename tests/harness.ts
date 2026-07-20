@@ -1,3 +1,4 @@
+import { existsSync } from 'fs';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import os from 'os';
@@ -50,7 +51,7 @@ export async function teardownTestProject(projectRoot: string): Promise<void> {
  * @returns Standard output from the command
  */
 export function runRuler(command: string, projectRoot: string): string {
-  const fullCommand = `node dist/cli/index.js ${command} --project-root ${projectRoot}`;
+  const fullCommand = `node ${getBuiltCliPath()} ${command} --project-root ${projectRoot}`;
   return execSync(fullCommand, {
     stdio: 'pipe',
     encoding: 'utf8',
@@ -63,7 +64,7 @@ export function runRuler(command: string, projectRoot: string): string {
 export function runRulerAll(command: string, projectRoot: string): string {
   // NOTE: execSync only returns stdout. console.warn writes to stderr.
   // We redirect stderr (2) to stdout (1) so legacy warnings emitted via console.warn are captured.
-  const fullCommand = `node dist/cli/index.js ${command} --project-root ${projectRoot} 2>&1`;
+  const fullCommand = `node ${getBuiltCliPath()} ${command} --project-root ${projectRoot} 2>&1`;
   return execSync(fullCommand, {
     stdio: ['pipe', 'pipe', 'pipe'],
     encoding: 'utf8',
@@ -79,6 +80,16 @@ export function runRulerWithInheritedStdio(
   command: string,
   projectRoot: string,
 ): void {
-  const fullCommand = `node dist/cli/index.js ${command} --project-root ${projectRoot}`;
+  const fullCommand = `node ${getBuiltCliPath()} ${command} --project-root ${projectRoot}`;
   execSync(fullCommand, { stdio: 'inherit' });
+}
+
+function getBuiltCliPath(): string {
+  const cliPath = path.resolve('dist/cli/index.js');
+  if (!existsSync(cliPath)) {
+    throw new Error(
+      `Built Ruler CLI not found at ${cliPath}. Run npm run build, or use Jest's global setup, before running CLI integration helpers.`,
+    );
+  }
+  return JSON.stringify(cliPath);
 }
