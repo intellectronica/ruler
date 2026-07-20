@@ -688,6 +688,35 @@ describe('CLI Handlers', () => {
       );
     });
 
+    it.each([['/mock/project/.ruler'], ['/mock/project/.ruler/nested']])(
+      'should fail fast when initialising inside a .ruler directory: %s',
+      async (projectRoot) => {
+        const exitSpy = jest
+          .spyOn(process, 'exit')
+          .mockImplementation((code?: string | number | null | undefined) => {
+            throw new Error(`process.exit: ${code}`);
+          });
+        const errorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+        const argv = {
+          'project-root': projectRoot,
+          global: false,
+        };
+
+        await expect(initHandler(argv)).rejects.toThrow('process.exit: 1');
+
+        expect(errorSpy).toHaveBeenCalledWith(
+          '[ruler] Cannot initialise inside an existing .ruler directory (/mock/project/.ruler). Please choose the project root.',
+        );
+        expect(fs.mkdir).not.toHaveBeenCalled();
+        expect(fs.writeFile).not.toHaveBeenCalled();
+        expect(exitSpy).toHaveBeenCalledWith(1);
+
+        exitSpy.mockRestore();
+        errorSpy.mockRestore();
+      },
+    );
+
     it('should NOT create mcp.json file', async () => {
       const argv = {
         'project-root': mockProjectRoot,

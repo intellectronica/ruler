@@ -42,13 +42,30 @@ export interface RevertArgs {
 }
 
 function assertNotInsideRulerDir(projectRoot: string): void {
-  const normalized = path.resolve(projectRoot);
-  const segments = normalized.split(path.sep);
-  if (segments.includes('.ruler')) {
+  if (getContainingRulerDir(projectRoot) !== undefined) {
     throw new Error(
       'Cannot run from inside a .ruler directory. Please run from your project root.',
     );
   }
+}
+
+function assertInitRootNotInsideRulerDir(projectRoot: string): void {
+  const containingRulerDir = getContainingRulerDir(projectRoot);
+  if (containingRulerDir !== undefined) {
+    throw new Error(
+      `Cannot initialise inside an existing .ruler directory (${containingRulerDir}). Please choose the project root.`,
+    );
+  }
+}
+
+function getContainingRulerDir(projectRoot: string): string | undefined {
+  const normalized = path.resolve(projectRoot);
+  const segments = normalized.split(path.sep);
+  const rulerIndex = segments.indexOf('.ruler');
+  if (rulerIndex === -1) {
+    return undefined;
+  }
+  return segments.slice(0, rulerIndex + 1).join(path.sep) || path.sep;
 }
 
 function formatCliError(message: string): string {
@@ -216,6 +233,9 @@ export async function initHandler(argv: InitArgs): Promise<void> {
       argv['project-root'],
       'project-root',
     );
+    if (!isGlobal) {
+      assertInitRootNotInsideRulerDir(projectRoot);
+    }
     const rulerDir = isGlobal
       ? path.join(
           process.env.XDG_CONFIG_HOME || path.join(os.homedir(), '.config'),
