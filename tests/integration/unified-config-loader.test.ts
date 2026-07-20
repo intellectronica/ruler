@@ -1,9 +1,27 @@
 import * as path from 'path';
 import { promises as fs } from 'fs';
+import * as os from 'os';
 import { loadUnifiedConfig } from '../../src/core/UnifiedConfigLoader';
 
 describe('UnifiedConfigLoader integration', () => {
-  const projectRoot = path.join(__dirname, 'fixtures', 'unified');
+  const fixtureRoot = path.join(__dirname, 'fixtures', 'unified');
+  let tempRoot = '';
+  let projectRoot: string;
+
+  beforeEach(async () => {
+    tempRoot = await fs.mkdtemp(
+      path.join(os.tmpdir(), 'ruler-unified-fixture-'),
+    );
+    projectRoot = path.join(tempRoot, 'unified');
+    await fs.cp(fixtureRoot, projectRoot, { recursive: true });
+  });
+
+  afterEach(async () => {
+    if (tempRoot) {
+      await fs.rm(tempRoot, { recursive: true, force: true });
+    }
+  });
+
   test('loads config and rules (MCP normalization pending)', async () => {
     // In CI, AGENTS.md test fixture may be absent because root .gitignore ignores AGENTS.md.
     // Ensure presence so ordering assertion remains deterministic.
@@ -27,7 +45,8 @@ describe('UnifiedConfigLoader integration', () => {
 
     // Test with nested = true in TOML
     const tomlPath = path.join(projectRoot, '.ruler', 'ruler.toml');
-    const originalToml = await fs.readFile(tomlPath, 'utf8');
+    const fixtureTomlPath = path.join(fixtureRoot, '.ruler', 'ruler.toml');
+    const originalFixtureToml = await fs.readFile(fixtureTomlPath, 'utf8');
     const modifiedToml = `default_agents = ["copilot"]
 nested = true
 
@@ -36,13 +55,11 @@ output_path = "AGENTS.md"
 `;
     await fs.writeFile(tomlPath, modifiedToml, 'utf8');
 
-    try {
-      const unifiedWithNested = await loadUnifiedConfig({ projectRoot });
-      expect(unifiedWithNested.toml.nested).toBe(true);
-    } finally {
-      // Restore original TOML
-      await fs.writeFile(tomlPath, originalToml, 'utf8');
-    }
+    const unifiedWithNested = await loadUnifiedConfig({ projectRoot });
+    expect(unifiedWithNested.toml.nested).toBe(true);
+    await expect(fs.readFile(fixtureTomlPath, 'utf8')).resolves.toBe(
+      originalFixtureToml,
+    );
   });
 });
 
