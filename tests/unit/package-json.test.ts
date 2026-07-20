@@ -51,4 +51,18 @@ describe('package manifest', () => {
       }
     }
   });
+
+  it('runs the intended integration and e2e test roots', () => {
+    const packageJsonPath = path.join(process.cwd(), 'package.json');
+    const packageJson = JSON.parse(
+      fs.readFileSync(packageJsonPath, 'utf8'),
+    ) as {
+      scripts?: Record<string, string>;
+    };
+
+    const script = packageJson.scripts?.['test:integration'] ?? '';
+    expect(script).toContain('tests/e2e');
+    expect(script).toContain('tests/integration');
+    expect(script).not.toContain('ruler.integration.test.ts');
+  });
 });
