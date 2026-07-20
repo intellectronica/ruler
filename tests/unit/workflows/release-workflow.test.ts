@@ -54,4 +54,39 @@ describe('release workflow', () => {
     expect(publishIndex).toBeGreaterThanOrEqual(0);
     expect(validateIndex).toBeLessThan(publishIndex);
   });
+
+  it('requires an immutable release SHA for manual recovery runs', () => {
+    const workflowPath = path.join(
+      process.cwd(),
+      '.github',
+      'workflows',
+      'release.yml',
+    );
+    const workflow = fs.readFileSync(workflowPath, 'utf8');
+
+    const validateIndex = workflow.indexOf('- name: Validate release target');
+    const publishIndex = workflow.indexOf('npm publish --access public');
+
+    expect(workflow).toContain('release_sha:');
+    expect(workflow).toContain(
+      "description: 'Expected immutable commit SHA for release recovery runs'",
+    );
+    expect(workflow).toContain('required: true');
+    expect(workflow).toContain(
+      'RELEASE_SHA_FROM_INPUT: ${{ inputs.release_sha }}',
+    );
+    expect(workflow).toContain("grep -Eq '^[0-9a-fA-F]{40}$'");
+    expect(workflow).toContain(
+      'Manual release recovery runs must provide release_sha as the intended 40-character commit SHA.',
+    );
+    expect(workflow).toContain(
+      'Release tag ${RELEASE_TAG} resolves to ${TAG_SHA}, not intended release_sha ${RELEASE_SHA}.',
+    );
+    expect(workflow).toContain(
+      'Release workflow checked out ${HEAD_SHA}, not intended release_sha ${RELEASE_SHA}.',
+    );
+    expect(validateIndex).toBeGreaterThanOrEqual(0);
+    expect(publishIndex).toBeGreaterThanOrEqual(0);
+    expect(validateIndex).toBeLessThan(publishIndex);
+  });
 });

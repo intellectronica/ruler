@@ -9,6 +9,10 @@ on:
         description: 'Existing release tag to publish, for release recovery runs'
         required: false
         type: string
+      release_sha:
+        description: 'Expected immutable commit SHA for release recovery runs'
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -33,6 +37,7 @@ jobs:
           REF_TYPE: ${{ github.ref_type }}
           RELEASE_TAG_FROM_EVENT: ${{ github.event.release.tag_name }}
           RELEASE_TAG_FROM_INPUT: ${{ inputs.release_tag }}
+          RELEASE_SHA_FROM_INPUT: ${{ inputs.release_sha }}
           RELEASE_PRERELEASE: ${{ github.event.release.prerelease }}
         run: |
           PACKAGE_NAME="$(node -p "require('./package.json').name")"
@@ -60,10 +65,29 @@ jobs:
             exit 1
           fi
 
+          if [ "${EVENT_NAME}" = "workflow_dispatch" ]; then
+            if ! printf '%s' "${RELEASE_SHA_FROM_INPUT}" | grep -Eq '^[0-9a-fA-F]{40}$'; then
+              echo "::error::Manual release recovery runs must provide release_sha as the intended 40-character commit SHA."
+              exit 1
+            fi
+            RELEASE_SHA="$(printf '%s' "${RELEASE_SHA_FROM_INPUT}" | tr '[:upper:]' '[:lower:]')"
+          fi
+
           git fetch --force --tags origin
           git fetch origin main
           TAG_SHA="$(git rev-list -n 1 "${RELEASE_TAG}")"
           HEAD_SHA="$(git rev-parse HEAD)"
+          if [ "${EVENT_NAME}" = "workflow_dispatch" ]; then
+            if [ "${TAG_SHA}" != "${RELEASE_SHA}" ]; then
+              echo "::error::Release tag ${RELEASE_TAG} resolves to ${TAG_SHA}, not intended release_sha ${RELEASE_SHA}."
+              exit 1
+            fi
+            if [ "${HEAD_SHA}" != "${RELEASE_SHA}" ]; then
+              echo "::error::Release workflow checked out ${HEAD_SHA}, not intended release_sha ${RELEASE_SHA}."
+              exit 1
+            fi
+          fi
+
           if [ "${HEAD_SHA}" != "${TAG_SHA}" ]; then
             echo "::error::Release workflow checked out ${HEAD_SHA}, but ${RELEASE_TAG} resolves to ${TAG_SHA}."
             exit 1
