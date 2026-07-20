@@ -45,20 +45,27 @@ function copyAdditionalMcpServerFields(
 
 async function resolveImplicitTomlFile(
   projectRoot: string,
-  rulerDir: string,
+  rulerDir: string | undefined,
   checkGlobal: boolean,
+  includeProjectLocal = true,
 ): Promise<string | undefined> {
-  const localTomlFile = path.join(rulerDir, 'ruler.toml');
-  if (await fileExists(localTomlFile)) {
-    return localTomlFile;
+  let localTomlFile: string | undefined;
+  if (rulerDir) {
+    localTomlFile = path.join(rulerDir, 'ruler.toml');
+    if (await fileExists(localTomlFile)) {
+      return localTomlFile;
+    }
   }
 
-  const projectTomlFile = path.join(projectRoot, '.ruler', 'ruler.toml');
-  if (
-    path.resolve(projectTomlFile) !== path.resolve(localTomlFile) &&
-    (await fileExists(projectTomlFile))
-  ) {
-    return projectTomlFile;
+  if (includeProjectLocal) {
+    const projectTomlFile = path.join(projectRoot, '.ruler', 'ruler.toml');
+    if (
+      (!localTomlFile ||
+        path.resolve(projectTomlFile) !== path.resolve(localTomlFile)) &&
+      (await fileExists(projectTomlFile))
+    ) {
+      return projectTomlFile;
+    }
   }
 
   if (!checkGlobal) {
@@ -69,7 +76,8 @@ async function resolveImplicitTomlFile(
     process.env.XDG_CONFIG_HOME || path.join(os.homedir(), '.config');
   const globalTomlFile = path.join(xdgConfigDir, 'ruler', 'ruler.toml');
   if (
-    path.resolve(globalTomlFile) !== path.resolve(localTomlFile) &&
+    (!localTomlFile ||
+      path.resolve(globalTomlFile) !== path.resolve(localTomlFile)) &&
     (await fileExists(globalTomlFile))
   ) {
     return globalTomlFile;
@@ -94,11 +102,19 @@ export async function loadUnifiedConfig(
   options: UnifiedLoadOptions,
 ): Promise<RulerUnifiedConfig> {
   // Resolve the effective .ruler directory (local or global), mirroring the main loader behavior
-  const resolvedRulerDir =
-    (await FileSystemUtils.findRulerDir(
+  const discoveredRulerDir = await FileSystemUtils.findRulerDir(
+    options.projectRoot,
+    options.checkGlobal ?? true,
+  );
+  const fallbackRulerDir = path.join(options.projectRoot, '.ruler');
+  const unsafeLocalRulerDir =
+    discoveredRulerDir === null &&
+    (await FileSystemUtils.pathExists(fallbackRulerDir)) &&
+    !(await FileSystemUtils.isSafeRulerDirectory(
+      fallbackRulerDir,
       options.projectRoot,
-      options.checkGlobal ?? true,
-    )) || path.join(options.projectRoot, '.ruler');
+    ));
+  const resolvedRulerDir = discoveredRulerDir || fallbackRulerDir;
 
   const meta: ConfigMeta = {
     projectRoot: options.projectRoot,
@@ -113,11 +129,18 @@ export async function loadUnifiedConfig(
   let tomlRaw: unknown = {};
   const tomlFile = options.configPath
     ? path.resolve(options.configPath)
-    : await resolveImplicitTomlFile(
-        options.projectRoot,
-        meta.rulerDir,
-        options.checkGlobal ?? true,
-      );
+    : unsafeLocalRulerDir
+      ? await resolveImplicitTomlFile(
+          options.projectRoot,
+          undefined,
+          options.checkGlobal ?? true,
+          false,
+        )
+      : await resolveImplicitTomlFile(
+          options.projectRoot,
+          meta.rulerDir,
+          options.checkGlobal ?? true,
+        );
   if (tomlFile) {
     try {
       const text = await fs.readFile(tomlFile, 'utf8');
@@ -196,6 +219,9 @@ export async function loadUnifiedConfig(
   // Collect rule markdown files
   let ruleFiles: RuleFile[] = [];
   try {
+    if (unsafeLocalRulerDir) {
+      throw new Error('Unsafe local .ruler directory resolves outside project');
+    }
     const mdFiles = await FileSystemUtils.readMarkdownFiles(meta.rulerDir, {
       includeAgents: includeAgentsInRules,
     });

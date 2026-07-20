@@ -156,16 +156,8 @@ export async function findRulerDir(
   let current = startPath;
   while (current) {
     const candidate = path.join(current, '.ruler');
-    try {
-      const stat = await fs.lstat(candidate);
-      const candidateIsDirectory = stat.isSymbolicLink()
-        ? await symlinkedDirectoryStaysInside(candidate, current)
-        : stat.isDirectory();
-      if (candidateIsDirectory) {
-        return candidate;
-      }
-    } catch {
-      // ignore errors when checking for .ruler directory
+    if (await isSafeRulerDirectory(candidate, current)) {
+      return candidate;
     }
     const parent = path.dirname(current);
     if (parent === current) {
@@ -194,6 +186,32 @@ export async function findRulerDir(
   }
 
   return null;
+}
+
+export async function isSafeRulerDirectory(
+  candidate: string,
+  containingDir: string,
+): Promise<boolean> {
+  try {
+    const stat = await fs.lstat(candidate);
+    return stat.isSymbolicLink()
+      ? await symlinkedDirectoryStaysInside(candidate, containingDir)
+      : stat.isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+export async function pathExists(candidate: string): Promise<boolean> {
+  try {
+    await fs.lstat(candidate);
+    return true;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      return false;
+    }
+    throw error;
+  }
 }
 
 async function symlinkedDirectoryStaysInside(

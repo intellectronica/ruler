@@ -13,6 +13,7 @@ import {
   SubagentsConfig,
 } from '../types';
 import { createRulerError, logWarn } from '../constants';
+import { isSafeRulerDirectory, pathExists } from './FileSystemUtils';
 
 // One-shot guard so the deprecation message fires once per process even when
 // `loadConfig` is called multiple times (e.g. nested mode walks every
@@ -579,11 +580,18 @@ async function resolveImplicitConfigFile(
   checkGlobal: boolean,
 ): Promise<string | undefined> {
   const localRulerDir = await findNearestLocalRulerDir(projectRoot);
-  const localConfigFile = localRulerDir
-    ? path.join(localRulerDir, 'ruler.toml')
-    : path.join(projectRoot, '.ruler', 'ruler.toml');
-  if (await configFileExists(localConfigFile)) {
-    return localConfigFile;
+  const projectRulerDir = path.join(projectRoot, '.ruler');
+  const unsafeProjectRulerDir =
+    !localRulerDir &&
+    (await pathExists(projectRulerDir)) &&
+    !(await isSafeRulerDirectory(projectRulerDir, projectRoot));
+  if (!unsafeProjectRulerDir) {
+    const localConfigFile = localRulerDir
+      ? path.join(localRulerDir, 'ruler.toml')
+      : path.join(projectRulerDir, 'ruler.toml');
+    if (await configFileExists(localConfigFile)) {
+      return localConfigFile;
+    }
   }
 
   if (!checkGlobal) {
@@ -607,13 +615,8 @@ async function findNearestLocalRulerDir(
 
   while (current) {
     const candidate = path.join(current, '.ruler');
-    try {
-      const stat = await fs.stat(candidate);
-      if (stat.isDirectory()) {
-        return candidate;
-      }
-    } catch {
-      // Keep walking; missing or inaccessible candidates simply do not match.
+    if (await isSafeRulerDirectory(candidate, current)) {
+      return candidate;
     }
 
     const parent = path.dirname(current);

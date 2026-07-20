@@ -58,6 +58,49 @@ describe('UnifiedConfigLoader (basic)', () => {
     );
   });
 
+  test('does not read rules or TOML through an unsafe .ruler symlink', async () => {
+    const projectRoot = await fs.mkdtemp(
+      path.join(os.tmpdir(), 'ruler-unified-project-'),
+    );
+    const externalRoot = await fs.mkdtemp(
+      path.join(os.tmpdir(), 'ruler-unified-external-'),
+    );
+
+    try {
+      const externalRulerDir = path.join(externalRoot, '.ruler');
+      await fs.mkdir(externalRulerDir, { recursive: true });
+      await fs.writeFile(
+        path.join(externalRulerDir, 'ruler.toml'),
+        'default_agents = ["claude"]',
+      );
+      await fs.writeFile(
+        path.join(externalRulerDir, 'AGENTS.md'),
+        '# External Rules',
+      );
+      await fs.symlink(externalRulerDir, path.join(projectRoot, '.ruler'));
+
+      const unified = await loadUnifiedConfig({
+        projectRoot,
+        checkGlobal: false,
+      });
+
+      expect(unified.toml.defaultAgents).toBeUndefined();
+      expect(unified.rules.files).toEqual([]);
+      expect(unified.rules.concatenated).not.toContain('External Rules');
+      expect(unified.diagnostics).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            severity: 'warning',
+            code: 'RULES_READ_ERROR',
+          }),
+        ]),
+      );
+    } finally {
+      await fs.rm(projectRoot, { recursive: true, force: true });
+      await fs.rm(externalRoot, { recursive: true, force: true });
+    }
+  });
+
   afterAll(async () => {
     await fs.rm(tmpRoot, { recursive: true, force: true });
   });
