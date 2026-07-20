@@ -74,4 +74,74 @@ describe('CLI nested toggle precedence', () => {
       fs.readFile(path.join(projectRoot, 'module', 'CLAUDE.md'), 'utf8'),
     ).resolves.toContain('Module Rules');
   });
+
+  it('respects child default_agents when applying nested configs', async () => {
+    const rootRulerDir = path.join(projectRoot, '.ruler');
+    const moduleDir = path.join(projectRoot, 'module');
+    const moduleRulerDir = path.join(moduleDir, '.ruler');
+
+    await fs.mkdir(rootRulerDir, { recursive: true });
+    await fs.mkdir(moduleRulerDir, { recursive: true });
+    await fs.writeFile(
+      path.join(rootRulerDir, 'AGENTS.md'),
+      '# Root Rules\n\nThese apply at the root.',
+    );
+    await fs.writeFile(
+      path.join(rootRulerDir, 'ruler.toml'),
+      'default_agents = ["claude"]\nnested = true\n',
+    );
+    await fs.writeFile(
+      path.join(moduleRulerDir, 'AGENTS.md'),
+      '# Module Rules\n\nThese apply inside module.',
+    );
+    await fs.writeFile(
+      path.join(moduleRulerDir, 'ruler.toml'),
+      'default_agents = ["windsurf"]\n',
+    );
+
+    runRulerWithInheritedStdio('apply', projectRoot);
+
+    await expect(
+      fs.readFile(path.join(projectRoot, 'CLAUDE.md'), 'utf8'),
+    ).resolves.toContain('Root Rules');
+    await expect(
+      fs.stat(path.join(projectRoot, 'AGENTS.md')),
+    ).rejects.toThrow();
+    await expect(
+      fs.readFile(path.join(moduleDir, 'AGENTS.md'), 'utf8'),
+    ).resolves.toContain('Module Rules');
+    await expect(fs.stat(path.join(moduleDir, 'CLAUDE.md'))).rejects.toThrow();
+  });
+
+  it('lets CLI --agents override child default_agents in nested configs', async () => {
+    const rootRulerDir = path.join(projectRoot, '.ruler');
+    const moduleDir = path.join(projectRoot, 'module');
+    const moduleRulerDir = path.join(moduleDir, '.ruler');
+
+    await fs.mkdir(rootRulerDir, { recursive: true });
+    await fs.mkdir(moduleRulerDir, { recursive: true });
+    await fs.writeFile(
+      path.join(rootRulerDir, 'AGENTS.md'),
+      '# Root Rules\n\nThese apply at the root.',
+    );
+    await fs.writeFile(
+      path.join(rootRulerDir, 'ruler.toml'),
+      'default_agents = ["claude"]\nnested = true\n',
+    );
+    await fs.writeFile(
+      path.join(moduleRulerDir, 'AGENTS.md'),
+      '# Module Rules\n\nThese apply inside module.',
+    );
+    await fs.writeFile(
+      path.join(moduleRulerDir, 'ruler.toml'),
+      'default_agents = ["windsurf"]\n',
+    );
+
+    runRulerWithInheritedStdio('apply --agents claude', projectRoot);
+
+    await expect(
+      fs.readFile(path.join(moduleDir, 'CLAUDE.md'), 'utf8'),
+    ).resolves.toContain('Module Rules');
+    await expect(fs.stat(path.join(moduleDir, 'AGENTS.md'))).rejects.toThrow();
+  });
 });
