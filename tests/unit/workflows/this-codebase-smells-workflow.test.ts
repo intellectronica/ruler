@@ -39,4 +39,16 @@ describe('This Codebase Smells workflow', () => {
     expect(tokenIndex).toBeGreaterThanOrEqual(0);
     expect(installIndex).toBeLessThan(tokenIndex);
   });
+
+  it('does not persist checkout credentials', () => {
+    const workflowPath = path.join(
+      process.cwd(),
+      '.github',
+      'workflows',
+      'this-codebase-smells.yml',
+    );
+    const workflow = fs.readFileSync(workflowPath, 'utf8');
+
+    expect(workflow).toContain('persist-credentials: false');
+  });
 });
