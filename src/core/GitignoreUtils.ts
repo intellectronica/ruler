@@ -73,10 +73,7 @@ export async function updateGitignore(
       }
       return relative.replace(/\\/g, '/'); // Convert to POSIX format
     })
-    .filter((p) => {
-      // Never include any path that resides inside a .ruler directory (inputs, not outputs)
-      return !p.includes('/.ruler/') && !p.startsWith('.ruler/');
-    })
+    .filter((p) => !isRulerSourcePath(p))
     .map((p) => {
       // Always write full repository-relative paths (prefix with leading /)
       return p.startsWith('/') ? p : `/${p}`;
@@ -100,6 +97,20 @@ export async function updateGitignore(
     newContent,
     ignoreTarget.containmentRoot,
   );
+}
+
+function isRulerSourcePath(relativePath: string): boolean {
+  const segments = relativePath.split('/');
+
+  for (let index = 0; index < segments.length; index++) {
+    if (segments[index] !== '.ruler') {
+      continue;
+    }
+
+    return segments[index + 1] !== '.generated';
+  }
+
+  return false;
 }
 
 /**

@@ -15,6 +15,8 @@ import { IAgent } from '../../../src/agents/IAgent';
 import { ClaudeAgent } from '../../../src/agents/ClaudeAgent';
 import { CopilotAgent } from '../../../src/agents/CopilotAgent';
 import { JunieAgent } from '../../../src/agents/JunieAgent';
+import { AiderAgent } from '../../../src/agents/AiderAgent';
+import { CodexCliAgent } from '../../../src/agents/CodexCliAgent';
 import { LoadedConfig } from '../../../src/core/ConfigLoader';
 import * as FileSystemUtils from '../../../src/core/FileSystemUtils';
 import * as Constants from '../../../src/constants';
@@ -602,6 +604,29 @@ command = "sub-cmd"
       );
 
       expect(result).toContain(`${tmpDir}/.claude/config.json`);
+    });
+
+    it('omits optional MCP sidecars when no MCP config is applied', async () => {
+      const config: LoadedConfig = { agentConfigs: {} };
+      const rules = '# Test rules';
+
+      const result = await applyConfigurationsToAgents(
+        [new AiderAgent(), new CodexCliAgent()],
+        rules,
+        null,
+        config,
+        tmpDir,
+        false,
+        false,
+        true,
+        undefined,
+        false,
+      );
+
+      expect(result).toContain(path.join(tmpDir, 'AGENTS.md'));
+      expect(result).toContain(path.join(tmpDir, '.aider.conf.yml'));
+      expect(result).not.toContain(path.join(tmpDir, '.mcp.json'));
+      expect(result).not.toContain(path.join(tmpDir, '.codex', 'config.toml'));
     });
 
     it('logs warning and strips MCP timeouts for agents without timeout support', async () => {

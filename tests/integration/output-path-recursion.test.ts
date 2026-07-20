@@ -44,4 +44,19 @@ output_path = ".ruler/.generated/codex-instructions.md"
       '<!-- Source: .ruler/.generated/codex-instructions.md -->',
     );
   });
+
+  it('tracks configured generated markdown outputs under .ruler/.generated in gitignore', async () => {
+    runRuler(
+      'apply --agents codex --no-backup --no-skills --no-subagents --local-only',
+      projectRoot,
+    );
+
+    const gitignoreContent = await fs.readFile(
+      path.join(projectRoot, '.gitignore'),
+      'utf8',
+    );
+    expect(gitignoreContent).toContain(
+      '/.ruler/.generated/codex-instructions.md',
+    );
+  });
 });
