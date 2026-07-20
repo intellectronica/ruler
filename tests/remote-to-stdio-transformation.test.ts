@@ -66,11 +66,12 @@ Authorization = "Bearer TOKEN123"
       '-y',
       'mcp-remote@latest',
       'https://example.com/mcp',
+      '--header',
+      'Authorization: Bearer TOKEN123',
+      '--header',
+      'X-API-Version: v1',
     ]);
-    expect(servers.remote_with_headers.headers).toEqual({
-      Authorization: 'Bearer TOKEN123',
-      'X-API-Version': 'v1',
-    });
+    expect(servers.remote_with_headers.headers).toBeUndefined();
   });
 
   it('does not transform remote servers for agents that support both stdio and remote', async () => {

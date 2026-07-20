@@ -26,6 +26,16 @@ export function agentSupportsMcp(agent: IAgent): boolean {
   return capabilities.supportsStdio || capabilities.supportsRemote;
 }
 
+function getMcpRemoteHeaderArgs(headers: unknown): string[] {
+  if (!headers || typeof headers !== 'object' || Array.isArray(headers)) {
+    return [];
+  }
+
+  return Object.entries(headers).flatMap(([key, value]) =>
+    typeof value === 'string' ? ['--header', `${key}: ${value}`] : [],
+  );
+}
+
 /**
  * Filters MCP configuration based on agent capabilities
  */
@@ -70,12 +80,14 @@ export function filterMcpConfigForAgent(
       // Transform remote server to stdio server using mcp-remote
       const preservedFields = Object.fromEntries(
         Object.entries(config).filter(
-          ([key]) => !['url', 'command', 'args', 'type'].includes(key),
+          ([key]) =>
+            !['url', 'command', 'args', 'type', 'headers'].includes(key),
         ),
       );
+      const headerArgs = getMcpRemoteHeaderArgs(config.headers);
       const transformedConfig = {
         command: 'npx',
-        args: ['-y', 'mcp-remote@latest', config.url as string],
+        args: ['-y', 'mcp-remote@latest', config.url as string, ...headerArgs],
         ...preservedFields,
       };
       filteredServers[serverName] = transformedConfig;

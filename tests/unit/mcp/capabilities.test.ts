@@ -138,8 +138,13 @@ describe('MCP Capabilities', () => {
       expect(filtered!.mcpServers).toEqual({
         remote_with_wrapper_like_fields: {
           command: 'npx',
-          args: ['-y', 'mcp-remote@latest', 'https://api.example.com/mcp'],
-          headers: { Authorization: 'Bearer TOKEN' },
+          args: [
+            '-y',
+            'mcp-remote@latest',
+            'https://api.example.com/mcp',
+            '--header',
+            'Authorization: Bearer TOKEN',
+          ],
         },
       });
     });
@@ -203,12 +208,15 @@ describe('MCP Capabilities', () => {
         },
         remote_with_headers: {
           command: 'npx',
-          args: ['-y', 'mcp-remote@latest', 'https://api.example.com/mcp'],
-          // Note: headers should be preserved as env variables or similar mechanism
-          headers: {
-            Authorization: 'Bearer token123',
-            'Content-Type': 'application/json',
-          },
+          args: [
+            '-y',
+            'mcp-remote@latest',
+            'https://api.example.com/mcp',
+            '--header',
+            'Authorization: Bearer token123',
+            '--header',
+            'Content-Type: application/json',
+          ],
         },
         stdio_server: {
           command: 'node',
