@@ -17,6 +17,8 @@ import {
 } from '../src/constants';
 import type { SubagentInfo } from '../src/types';
 
+const RULER_MANAGED_MANIFEST = '.ruler-managed.json';
+
 function makeSubagent(overrides: Partial<SubagentInfo> = {}): SubagentInfo {
   return {
     name: 'reviewer',
@@ -44,6 +46,12 @@ function readFrontmatter(content: string): {
   return { meta, body: match[2] };
 }
 
+type Propagator = (
+  projectRoot: string,
+  subagents: SubagentInfo[],
+  options: { dryRun: boolean; verbose?: boolean },
+) => Promise<string[]>;
+
 describe('Subagents per-agent propagators', () => {
   let tmpDir: string;
 
@@ -54,6 +62,54 @@ describe('Subagents per-agent propagators', () => {
   afterEach(async () => {
     await fs.rm(tmpDir, { recursive: true, force: true });
   });
+
+  it.each([
+    [
+      'Claude',
+      propagateSubagentsForClaude,
+      CLAUDE_SUBAGENTS_PATH,
+      'reviewer.md',
+    ],
+    [
+      'Cursor',
+      propagateSubagentsForCursor,
+      CURSOR_SUBAGENTS_PATH,
+      'reviewer.md',
+    ],
+    [
+      'Codex',
+      propagateSubagentsForCodex,
+      CODEX_SUBAGENTS_PATH,
+      'reviewer.toml',
+    ],
+    [
+      'Copilot',
+      propagateSubagentsForCopilot,
+      COPILOT_SUBAGENTS_PATH,
+      'reviewer.md',
+    ],
+  ] as [string, Propagator, string, string][])(
+    'preserves unmanaged %s files that collide with generated subagents',
+    async (_name, propagate, targetRelPath, outputRelPath) => {
+      const targetPath = path.join(tmpDir, targetRelPath, outputRelPath);
+      await fs.mkdir(path.dirname(targetPath), { recursive: true });
+      await fs.writeFile(targetPath, 'native agent', 'utf8');
+
+      await propagate(tmpDir, [makeSubagent()], { dryRun: false });
+
+      await expect(fs.readFile(targetPath, 'utf8')).resolves.toBe(
+        'native agent',
+      );
+      await expect(
+        fs
+          .readFile(
+            path.join(tmpDir, targetRelPath, RULER_MANAGED_MANIFEST),
+            'utf8',
+          )
+          .then((content) => JSON.parse(content).paths),
+      ).resolves.toEqual([]);
+    },
+  );
 
   describe('Claude propagator', () => {
     it('writes a passthrough markdown file preserving all source frontmatter', async () => {

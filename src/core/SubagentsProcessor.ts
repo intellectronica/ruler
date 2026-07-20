@@ -280,6 +280,15 @@ async function removeManagedManifest(
   await fs.rm(manifestPath, { force: true });
 }
 
+async function pathExists(filePath: string): Promise<boolean> {
+  try {
+    await fs.access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function writeManagedManifest(
   targetDir: string,
   managedPaths: string[],
@@ -322,9 +331,11 @@ async function writeManagedAgentsDirectory(
   await fs.mkdir(targetDir, { recursive: true });
 
   const previousManagedPaths = await readManagedManifest(targetDir);
+  const previousManagedPathSet = new Set(previousManagedPaths);
   await removeManagedEntries(targetDir, previousManagedPaths, projectRoot);
   await removeManagedManifest(targetDir, projectRoot);
 
+  const writtenFiles: string[] = [];
   for (const { name, content } of files) {
     if (!isSafeManagedRelativePath(name)) {
       throw new Error(`Refusing to write unsafe subagent path: ${name}`);
@@ -335,14 +346,17 @@ async function writeManagedAgentsDirectory(
       projectRoot,
       'Refusing to write subagent through symlinked path',
     );
+    if (!previousManagedPathSet.has(name) && (await pathExists(outputPath))) {
+      logWarn(
+        `Skipping native subagent file that is not Ruler-managed: ${path.relative(projectRoot, outputPath)}`,
+      );
+      continue;
+    }
     await fs.mkdir(path.dirname(outputPath), { recursive: true });
     await fs.writeFile(outputPath, content, 'utf8');
+    writtenFiles.push(name);
   }
-  await writeManagedManifest(
-    targetDir,
-    files.map((file) => file.name),
-    projectRoot,
-  );
+  await writeManagedManifest(targetDir, writtenFiles, projectRoot);
 }
 
 /* ------------------------------------------------------------------ */
