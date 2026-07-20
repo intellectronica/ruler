@@ -22,7 +22,7 @@ describe('packaged CLI version', () => {
     await fs.rm(tmpDir, { recursive: true, force: true });
   });
 
-  it('reports the package version from a packed install', () => {
+  it('reports the package version from a packed install', async () => {
     const originalAllowScripts = process.env.npm_config_allow_scripts;
 
     try {
@@ -39,11 +39,20 @@ describe('packaged CLI version', () => {
       ) as { version: string };
 
       const npmEnv = createIsolatedNpmEnv(npmUserConfigPath);
-      const tarballName = execFileSync('npm', ['pack', '--silent'], {
-        encoding: 'utf8',
-        env: npmEnv,
-      }).trim();
-      tarballPath = path.join(process.cwd(), tarballName);
+      const packageRoot = await createCleanPackageRoot(tmpDir);
+      const tarballName = execFileSync(
+        'npm',
+        ['pack', '--silent', '--pack-destination', tmpDir],
+        {
+          encoding: 'utf8',
+          cwd: packageRoot,
+          env: npmEnv,
+        },
+      ).trim();
+      tarballPath = path.join(tmpDir, tarballName);
+      const extractedDir = path.join(tmpDir, 'extracted');
+      await fs.mkdir(extractedDir);
+      execFileSync('tar', ['-xzf', tarballPath, '-C', extractedDir]);
 
       execFileSync('npm', ['install', '--prefix', tmpDir, tarballPath], {
         stdio: 'pipe',
@@ -57,6 +66,21 @@ describe('packaged CLI version', () => {
       ).trim();
 
       expect(output).toBe(packageJson.version);
+
+      const extractedCliPath = path.join(
+        extractedDir,
+        'package',
+        'dist',
+        'cli',
+        'index.js',
+      );
+      const extractedCliStat = await fs.stat(extractedCliPath);
+      expect(extractedCliStat.mode & 0o111).not.toBe(0);
+      expect(
+        execFileSync(extractedCliPath, ['--version'], {
+          encoding: 'utf8',
+        }).trim(),
+      ).toBe(packageJson.version);
     } finally {
       if (originalAllowScripts === undefined) {
         delete process.env.npm_config_allow_scripts;
@@ -79,4 +103,33 @@ function createIsolatedNpmEnv(userConfigPath: string): NodeJS.ProcessEnv {
   }
   env.npm_config_userconfig = userConfigPath;
   return env;
+}
+
+async function createCleanPackageRoot(tmpDir: string): Promise<string> {
+  const packageRoot = path.join(tmpDir, 'package-root');
+  await fs.mkdir(packageRoot);
+
+  const trackedFiles = execFileSync('git', ['ls-files', '-z'], {
+    encoding: 'utf8',
+  })
+    .split('\0')
+    .filter(Boolean)
+    .filter((filePath) => !filePath.startsWith('dist/'));
+
+  await Promise.all(
+    trackedFiles.map(async (filePath) => {
+      const sourcePath = path.join(process.cwd(), filePath);
+      const destinationPath = path.join(packageRoot, filePath);
+      await fs.mkdir(path.dirname(destinationPath), { recursive: true });
+      await fs.copyFile(sourcePath, destinationPath);
+    }),
+  );
+
+  await fs.symlink(
+    path.join(process.cwd(), 'node_modules'),
+    path.join(packageRoot, 'node_modules'),
+    'dir',
+  );
+
+  return packageRoot;
 }
