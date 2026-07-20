@@ -162,16 +162,16 @@ describe('Revert CLI Integration', () => {
       }).toThrow();
     });
 
-    it('should handle invalid agents list gracefully', () => {
-      const output = execSync(
-        `node dist/cli/index.js revert --project-root ${tmpDir} --agents invalid-agent --dry-run`,
-        {
-          encoding: 'utf8',
-          stdio: 'pipe',
-        },
-      );
-
-      expect(output).toContain('[ruler:dry-run]');
+    it('should reject invalid agents list', () => {
+      expect(() => {
+        execSync(
+          `node dist/cli/index.js revert --project-root ${tmpDir} --agents invalid-agent --dry-run`,
+          {
+            encoding: 'utf8',
+            stdio: 'pipe',
+          },
+        );
+      }).toThrow(/Invalid agent specified: invalid-agent/);
     });
   });
 
