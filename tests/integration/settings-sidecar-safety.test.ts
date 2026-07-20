@@ -79,6 +79,60 @@ describe('settings sidecar safety', () => {
     }
   });
 
+  it('backs up and restores existing Zed settings when MCP settings change', async () => {
+    const originalSettings = JSON.stringify(
+      {
+        theme: 'dark',
+        context_servers: {
+          local: {
+            source: 'custom',
+            command: 'local-server',
+          },
+        },
+      },
+      null,
+      2,
+    );
+    const project = await setupTestProject({
+      '.ruler/AGENTS.md': 'Rule A',
+      '.ruler/mcp.json': JSON.stringify({
+        mcpServers: {
+          generated: {
+            type: 'stdio',
+            command: 'node',
+            args: ['server.js'],
+          },
+        },
+      }),
+      '.zed/settings.json': originalSettings,
+    });
+    const settingsPath = path.join(
+      project.projectRoot,
+      '.zed',
+      'settings.json',
+    );
+
+    try {
+      runRuler('apply --agents zed', project.projectRoot);
+
+      await expect(fs.readFile(`${settingsPath}.bak`, 'utf8')).resolves.toBe(
+        originalSettings,
+      );
+      await expect(fs.readFile(settingsPath, 'utf8')).resolves.not.toBe(
+        originalSettings,
+      );
+
+      runRuler('revert --agents zed', project.projectRoot);
+
+      await expect(fs.readFile(settingsPath, 'utf8')).resolves.toBe(
+        originalSettings,
+      );
+      await expect(fs.access(`${settingsPath}.bak`)).rejects.toThrow();
+    } finally {
+      await teardownTestProject(project.projectRoot);
+    }
+  });
+
   it('tracks generated Gemini and Qwen settings in gitignore without MCP', async () => {
     const project = await setupTestProject({
       '.ruler/AGENTS.md': 'Rule A',
