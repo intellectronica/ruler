@@ -1,5 +1,5 @@
-import * as path from 'path';
 import { setupTestProject, teardownTestProject } from './harness';
+import { loadUnifiedConfig } from '../src/core/UnifiedConfigLoader';
 
 /**
  * Verifies that using legacy .ruler/mcp.json creates a structured diagnostic warning
@@ -24,14 +24,13 @@ describe('legacy mcp.json warning', () => {
 
   it('creates structured diagnostic for legacy mcp.json', async () => {
     const { projectRoot } = testProject;
-    const { loadUnifiedConfig } = require('../dist/core/UnifiedConfigLoader');
     const config = await loadUnifiedConfig({ projectRoot });
 
     const deprecationDiagnostic = config.diagnostics.find(
       (d: any) => d.code === 'MCP_JSON_DEPRECATED',
     );
     expect(deprecationDiagnostic).toBeTruthy();
-    expect(deprecationDiagnostic.severity).toBe('warning');
-    expect(deprecationDiagnostic.message).toContain('mcp.json detected');
+    expect(deprecationDiagnostic!.severity).toBe('warning');
+    expect(deprecationDiagnostic!.message).toContain('mcp.json detected');
   });
 });

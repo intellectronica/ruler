@@ -1,6 +1,5 @@
-import * as fs from 'fs/promises';
-import * as path from 'path';
 import { setupTestProject, teardownTestProject } from './harness';
+import { loadUnifiedConfig } from '../src/core/UnifiedConfigLoader';
 
 describe('mcp-invalid-fields', () => {
   let testProject: { projectRoot: string };
@@ -25,15 +24,14 @@ url = "https://example.com"
     });
 
     const { projectRoot } = testProject;
-    const { loadUnifiedConfig } = require('../dist/core/UnifiedConfigLoader');
     const config = await loadUnifiedConfig({ projectRoot });
 
     const fieldConflictError = config.diagnostics.find(
       (d: any) => d.code === 'MCP_TOML_FIELD_CONFLICT',
     );
     expect(fieldConflictError).toBeTruthy();
-    expect(fieldConflictError.severity).toBe('warning');
-    expect(fieldConflictError.message).toContain('both command and url');
+    expect(fieldConflictError!.severity).toBe('warning');
+    expect(fieldConflictError!.message).toContain('both command and url');
   });
 
   it('handles headers with command (validation error)', async () => {
@@ -50,15 +48,14 @@ headers = { Authorization = "Bearer token" }
     });
 
     const { projectRoot } = testProject;
-    const { loadUnifiedConfig } = require('../dist/core/UnifiedConfigLoader');
     const config = await loadUnifiedConfig({ projectRoot });
 
     const fieldConflictError = config.diagnostics.find(
       (d: any) => d.code === 'MCP_TOML_FIELD_CONFLICT',
     );
     expect(fieldConflictError).toBeTruthy();
-    expect(fieldConflictError.severity).toBe('warning');
-    expect(fieldConflictError.message).toContain('headers');
+    expect(fieldConflictError!.severity).toBe('warning');
+    expect(fieldConflictError!.message).toContain('headers');
   });
 
   it('handles env with url (validation error)', async () => {
@@ -75,15 +72,14 @@ env = { API_KEY = "secret" }
     });
 
     const { projectRoot } = testProject;
-    const { loadUnifiedConfig } = require('../dist/core/UnifiedConfigLoader');
     const config = await loadUnifiedConfig({ projectRoot });
 
     const fieldConflictError = config.diagnostics.find(
       (d: any) => d.code === 'MCP_TOML_FIELD_CONFLICT',
     );
     expect(fieldConflictError).toBeTruthy();
-    expect(fieldConflictError.severity).toBe('warning');
-    expect(fieldConflictError.message).toContain('env');
+    expect(fieldConflictError!.severity).toBe('warning');
+    expect(fieldConflictError!.message).toContain('env');
   });
 
   it('handles server with neither command nor url', async () => {
@@ -99,15 +95,14 @@ args = ["some", "args"]
     });
 
     const { projectRoot } = testProject;
-    const { loadUnifiedConfig } = require('../dist/core/UnifiedConfigLoader');
     const config = await loadUnifiedConfig({ projectRoot });
 
     const invalidServerError = config.diagnostics.find(
       (d: any) => d.code === 'MCP_TOML_INVALID_SERVER',
     );
     expect(invalidServerError).toBeTruthy();
-    expect(invalidServerError.severity).toBe('warning');
-    expect(invalidServerError.message).toContain(
+    expect(invalidServerError!.severity).toBe('warning');
+    expect(invalidServerError!.message).toContain(
       'must have at least one of command or url',
     );
   });
@@ -129,16 +124,15 @@ args = ["some", "args"]
     });
 
     const { projectRoot } = testProject;
-    const { loadUnifiedConfig } = require('../dist/core/UnifiedConfigLoader');
     const config = await loadUnifiedConfig({ projectRoot });
 
     const fieldConflictError = config.diagnostics.find(
       (d: any) => d.code === 'MCP_JSON_FIELD_CONFLICT',
     );
     expect(fieldConflictError).toBeTruthy();
-    expect(fieldConflictError.severity).toBe('warning');
-    expect(fieldConflictError.message).toContain('both command and url');
-    expect(config.mcp.servers.invalid).toEqual({
+    expect(fieldConflictError!.severity).toBe('warning');
+    expect(fieldConflictError!.message).toContain('both command and url');
+    expect(config.mcp!.servers.invalid).toEqual({
       url: 'https://example.com',
       type: 'remote',
     });
@@ -160,17 +154,16 @@ args = ["some", "args"]
     });
 
     const { projectRoot } = testProject;
-    const { loadUnifiedConfig } = require('../dist/core/UnifiedConfigLoader');
     const config = await loadUnifiedConfig({ projectRoot });
 
     const invalidServerError = config.diagnostics.find(
       (d: any) => d.code === 'MCP_JSON_INVALID_SERVER',
     );
     expect(invalidServerError).toBeTruthy();
-    expect(invalidServerError.severity).toBe('warning');
-    expect(invalidServerError.message).toContain(
+    expect(invalidServerError!.severity).toBe('warning');
+    expect(invalidServerError!.message).toContain(
       'must have at least one of command or url',
     );
-    expect(config.mcp.servers).toEqual({});
+    expect(config.mcp!.servers).toEqual({});
   });
 });
