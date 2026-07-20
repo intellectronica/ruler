@@ -99,15 +99,13 @@ export async function revertAllAgentConfigs(
     totalFilesRemoved += result.removed;
     totalBackupsRemoved += result.backupsRemoved;
 
-    if (!isFullRevert) {
-      totalDirectoriesRemoved += await cleanUpAgentDirectories(
-        agent,
-        effectiveProjectRoot,
-        agentConfig,
-        verbose,
-        dryRun,
-      );
-    }
+    totalDirectoriesRemoved += await cleanUpAgentDirectories(
+      agent,
+      effectiveProjectRoot,
+      agentConfig,
+      verbose,
+      dryRun,
+    );
   }
 
   // Clean up auxiliary files and directories only when reverting all agents.
