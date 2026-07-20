@@ -160,6 +160,7 @@ export async function applyAllAgentConfigs(
   const gitignoreConfigurations: Array<{
     projectRoot: string;
     config: LoadedConfig;
+    selectedAgents?: IAgent[];
   }> = [];
 
   if (nested) {
@@ -181,14 +182,12 @@ export async function applyAllAgentConfigs(
       dryRun,
     );
 
-    // Use the root config for agent selection (all levels share the same agent settings)
     const rootConfigEntry = selectRootConfiguration(
       hierarchicalConfigs,
       projectRoot,
     );
     const rootConfig = rootConfigEntry.config;
     loadedConfig = rootConfig;
-    rootConfig.cliAgents = includedAgents;
 
     logVerbose(
       `Loaded ${hierarchicalConfigs.length} .ruler directory configurations`,
@@ -199,13 +198,22 @@ export async function applyAllAgentConfigs(
       verbose,
     );
 
+    const selectedAgentsByRulerDir = new Map<string, IAgent[]>();
     for (const configEntry of hierarchicalConfigs) {
+      configEntry.config.cliAgents = includedAgents;
       normalizeAgentConfigs(configEntry.config, agents);
+      const configSelectedAgents = resolveSelectedAgents(
+        configEntry.config,
+        agents,
+      );
+      selectedAgentsByRulerDir.set(configEntry.rulerDir, configSelectedAgents);
     }
 
-    selectedAgents = resolveSelectedAgents(rootConfig, agents);
+    selectedAgents =
+      selectedAgentsByRulerDir.get(rootConfigEntry.rulerDir) ??
+      resolveSelectedAgents(rootConfig, agents);
     logVerbose(
-      `Selected ${selectedAgents.length} agents: ${selectedAgents.map((a) => a.getName()).join(', ')}`,
+      `Selected ${selectedAgents.length} agents for root configuration: ${selectedAgents.map((a) => a.getName()).join(', ')}`,
       verbose,
     );
 
@@ -213,9 +221,12 @@ export async function applyAllAgentConfigs(
     // Propagate or clean up skills for each nested .ruler directory.
     for (const configEntry of hierarchicalConfigs) {
       const nestedRoot = path.dirname(configEntry.rulerDir);
+      const configSelectedAgents =
+        selectedAgentsByRulerDir.get(configEntry.rulerDir) ?? selectedAgents;
       gitignoreConfigurations.push({
         projectRoot: nestedRoot,
         config: configEntry.config,
+        selectedAgents: configSelectedAgents,
       });
       const skillsEnabledResolved = resolveSkillsEnabled(
         skillsEnabled,
@@ -227,7 +238,7 @@ export async function applyAllAgentConfigs(
       );
       await propagateSkills(
         nestedRoot,
-        selectedAgents,
+        configSelectedAgents,
         skillsEnabledResolved,
         verbose,
         dryRun,
@@ -250,13 +261,15 @@ export async function applyAllAgentConfigs(
       const { propagateSubagents } = await import('./core/SubagentsProcessor');
       for (const configEntry of hierarchicalConfigs) {
         const nestedRoot = path.dirname(configEntry.rulerDir);
+        const configSelectedAgents =
+          selectedAgentsByRulerDir.get(configEntry.rulerDir) ?? selectedAgents;
         logVerbose(
           `Propagating subagents for nested directory: ${nestedRoot}`,
           verbose,
         );
         await propagateSubagents(
           nestedRoot,
-          selectedAgents,
+          configSelectedAgents,
           subagentsEnabledResolved,
           subagentsCleanupOrphaned,
           verbose,
@@ -273,6 +286,7 @@ export async function applyAllAgentConfigs(
       cliMcpEnabled,
       cliMcpStrategy,
       backupEnabledResolved,
+      selectedAgentsByRulerDir,
     );
   } else {
     const singleConfig = await loadSingleConfiguration(
@@ -370,7 +384,7 @@ export async function applyAllAgentConfigs(
     for (const entry of skillsEnabledGitignoreConfigurations) {
       const skillsPaths = await getSkillsGitignorePaths(
         entry.projectRoot,
-        selectedAgents,
+        entry.selectedAgents ?? selectedAgents,
       );
       allGeneratedPaths = [...allGeneratedPaths, ...skillsPaths];
     }
