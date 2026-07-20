@@ -144,6 +144,10 @@ describe('CLI command wiring', () => {
       'local-only',
       expect.objectContaining({ type: 'boolean' }),
     );
+    expect(revertArgv.option).toHaveBeenCalledWith(
+      'nested',
+      expect.objectContaining({ type: 'boolean' }),
+    );
     expect(revertArgv.alias).toHaveBeenCalledWith('verbose', 'v');
   });
 
