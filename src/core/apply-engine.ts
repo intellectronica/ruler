@@ -17,7 +17,10 @@ import {
 } from '../paths/mcp';
 import { propagateMcpToOpenHands } from '../mcp/propagateOpenHandsMcp';
 import { propagateMcpToOpenCode } from '../mcp/propagateOpenCodeMcp';
-import { getAgentOutputPaths } from '../agents/agent-utils';
+import {
+  getAgentApplyOutputPaths,
+  getAgentOutputPaths,
+} from '../agents/agent-utils';
 import { agentSupportsMcp, filterMcpConfigForAgent } from '../mcp/capabilities';
 import { isPathInsideOrEqual } from './path-utils';
 import {
@@ -478,8 +481,27 @@ export async function applyConfigurationsToAgents(
     const agentConfig = config.agentConfigs[agent.getIdentifier()];
     const agentRulerMcpJson = mergeAgentMcpServers(rulerMcpJson, agentConfig);
 
-    // Collect output paths for .gitignore
-    const outputPaths = getAgentOutputPaths(agent, projectRoot, agentConfig);
+    // Collect paths written by the rules phase for .gitignore. MCP-only
+    // sidecars are added by the MCP handling path once there is a compatible
+    // MCP payload to write.
+    const outputPaths = getAgentApplyOutputPaths(
+      agent,
+      projectRoot,
+      agentConfig,
+    );
+    const allOutputPaths = getAgentOutputPaths(agent, projectRoot, agentConfig);
+    const optionalOutputPaths = allOutputPaths.filter(
+      (outputPath) => !outputPaths.includes(outputPath),
+    );
+    const optionalOutputPathExistedBefore = new Map<string, boolean>();
+    if (!dryRun) {
+      for (const outputPath of optionalOutputPaths) {
+        optionalOutputPathExistedBefore.set(
+          outputPath,
+          await pathExists(resolveOutputPath(projectRoot, outputPath)),
+        );
+      }
+    }
     logVerbose(
       `Agent ${agent.getName()} output paths: ${outputPaths.join(', ')}`,
       verbose,
@@ -541,6 +563,14 @@ export async function applyConfigurationsToAgents(
           finalAgentConfig,
           backup,
         );
+        for (const outputPath of optionalOutputPaths) {
+          if (optionalOutputPathExistedBefore.get(outputPath)) {
+            continue;
+          }
+          if (await pathExists(resolveOutputPath(projectRoot, outputPath))) {
+            generatedPaths.push(outputPath);
+          }
+        }
       }
     }
 
@@ -561,6 +591,12 @@ export async function applyConfigurationsToAgents(
   }
 
   return generatedPaths;
+}
+
+function resolveOutputPath(projectRoot: string, outputPath: string): string {
+  return path.isAbsolute(outputPath)
+    ? outputPath
+    : path.resolve(projectRoot, outputPath);
 }
 
 async function handleMcpConfiguration(

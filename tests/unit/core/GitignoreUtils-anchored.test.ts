@@ -60,6 +60,23 @@ describe('GitignoreUtils - Root Anchored Paths', () => {
     expect(content).not.toContain('.ruler/config.toml');
   });
 
+  it('should allow configured generated outputs under .ruler/.generated', async () => {
+    const paths = [
+      '.ruler/AGENTS.md',
+      '.ruler/.generated/codex-instructions.md',
+      'subpkg/.ruler/.generated/AGENTS.md',
+    ];
+
+    await updateGitignore(tmpDir, paths);
+
+    const gitignorePath = path.join(tmpDir, '.gitignore');
+    const content = await fs.readFile(gitignorePath, 'utf8');
+
+    expect(content).toContain('/.ruler/.generated/codex-instructions.md');
+    expect(content).toContain('/subpkg/.ruler/.generated/AGENTS.md');
+    expect(content).not.toContain('/.ruler/AGENTS.md');
+  });
+
   it('should create specific backup patterns instead of broad wildcards', async () => {
     const paths = [
       'AGENTS.md',
