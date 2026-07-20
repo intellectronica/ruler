@@ -563,6 +563,14 @@ export async function applyConfigurationsToAgents(
           finalAgentConfig,
           backup,
         );
+        for (const outputPath of outputPaths) {
+          const provenancePath = FileSystemUtils.getGeneratedProvenancePath(
+            resolveOutputPath(projectRoot, outputPath),
+          );
+          if (await pathExists(provenancePath)) {
+            generatedPaths.push(path.relative(projectRoot, provenancePath));
+          }
+        }
         for (const outputPath of optionalOutputPaths) {
           if (optionalOutputPathExistedBefore.get(outputPath)) {
             continue;
