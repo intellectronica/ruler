@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 describe('package manifest', () => {
-  it('does not run builds during install-time lifecycle hooks', () => {
+  it('builds installable artifacts for git and packed installs', () => {
     const packageJsonPath = path.join(process.cwd(), 'package.json');
     const packageJson = JSON.parse(
       fs.readFileSync(packageJsonPath, 'utf8'),
@@ -10,7 +10,7 @@ describe('package manifest', () => {
       scripts?: Record<string, string>;
     };
 
-    expect(packageJson.scripts?.prepare).toBeUndefined();
+    expect(packageJson.scripts?.prepare).toBe('npm run build');
     expect(packageJson.scripts?.prepublishOnly).toBe('npm run build');
   });
 
@@ -26,6 +26,9 @@ describe('package manifest', () => {
     expect(packageJson.scripts?.clean).toContain('recursive: true');
     expect(packageJson.scripts?.clean).toContain('force: true');
     expect(packageJson.scripts?.build).toBe('npm run clean && tsc');
+    expect(packageJson.scripts?.postbuild).toContain(
+      "chmodSync('dist/cli/index.js', 0o755)",
+    );
     expect(packageJson.scripts?.prepublishOnly).toBe('npm run build');
   });
 

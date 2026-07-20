@@ -22,7 +22,7 @@ describe('packaged CLI version', () => {
     await fs.rm(tmpDir, { recursive: true, force: true });
   });
 
-  it('reports the package version from a packed install', () => {
+  it('reports the package version from a packed install', async () => {
     const originalAllowScripts = process.env.npm_config_allow_scripts;
 
     try {
@@ -44,6 +44,9 @@ describe('packaged CLI version', () => {
         env: npmEnv,
       }).trim();
       tarballPath = path.join(process.cwd(), tarballName);
+      const extractedDir = path.join(tmpDir, 'extracted');
+      await fs.mkdir(extractedDir);
+      execFileSync('tar', ['-xzf', tarballPath, '-C', extractedDir]);
 
       execFileSync('npm', ['install', '--prefix', tmpDir, tarballPath], {
         stdio: 'pipe',
@@ -57,6 +60,21 @@ describe('packaged CLI version', () => {
       ).trim();
 
       expect(output).toBe(packageJson.version);
+
+      const extractedCliPath = path.join(
+        extractedDir,
+        'package',
+        'dist',
+        'cli',
+        'index.js',
+      );
+      const extractedCliStat = await fs.stat(extractedCliPath);
+      expect(extractedCliStat.mode & 0o111).not.toBe(0);
+      expect(
+        execFileSync(extractedCliPath, ['--version'], {
+          encoding: 'utf8',
+        }).trim(),
+      ).toBe(packageJson.version);
     } finally {
       if (originalAllowScripts === undefined) {
         delete process.env.npm_config_allow_scripts;
