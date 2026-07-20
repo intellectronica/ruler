@@ -27,4 +27,19 @@ describe('WRITEME workflow', () => {
 
     expect(workflow).toContain('persist-credentials: false');
   });
+
+  it('only submits Copilot jobs from the main branch', () => {
+    const workflowPath = path.join(
+      process.cwd(),
+      '.github',
+      'workflows',
+      'writeme.yml',
+    );
+    const workflow = fs.readFileSync(workflowPath, 'utf8');
+    const jobCondition =
+      workflow.match(/^\s+if:\s+\${{(?<condition>.+)}}$/m)?.groups?.condition ??
+      '';
+
+    expect(jobCondition).toBe(" github.ref == 'refs/heads/main' ");
+  });
 });
