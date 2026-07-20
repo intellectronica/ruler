@@ -31,6 +31,7 @@ import {
   logWarn,
 } from '../constants';
 import { McpStrategy } from '../types';
+import type { ConfigDiagnostic } from './UnifiedConfigTypes';
 
 /**
  * Configuration data loaded from the ruler setup
@@ -40,6 +41,7 @@ export interface RulerConfiguration {
   concatenatedRules: string;
   rulerMcpJson: Record<string, unknown> | null;
   projectRoot: string;
+  diagnostics?: ConfigDiagnostic[];
 }
 
 /**
@@ -175,6 +177,7 @@ async function createHierarchicalConfiguration(
     concatenatedRules,
     rulerMcpJson,
     projectRoot: directoryRoot,
+    diagnostics: collectConfigDiagnostics(config, unifiedConfig.diagnostics),
   };
 }
 
@@ -244,7 +247,15 @@ function cloneLoadedConfig(config: LoadedConfig): LoadedConfig {
     subagents: config.subagents ? { ...config.subagents } : undefined,
     nested: config.nested,
     nestedDefined: config.nestedDefined,
+    diagnostics: config.diagnostics ? [...config.diagnostics] : undefined,
   };
+}
+
+function collectConfigDiagnostics(
+  config: LoadedConfig,
+  diagnostics: ConfigDiagnostic[],
+): ConfigDiagnostic[] {
+  return [...(config.diagnostics ?? []), ...diagnostics];
 }
 
 /**
@@ -360,6 +371,7 @@ async function loadSingleConfiguration(
     concatenatedRules,
     rulerMcpJson,
     projectRoot: effectiveProjectRoot,
+    diagnostics: collectConfigDiagnostics(config, unifiedConfig.diagnostics),
   };
 }
 
