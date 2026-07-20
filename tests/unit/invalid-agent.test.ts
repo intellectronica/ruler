@@ -49,6 +49,8 @@ jest.mock('../../src/core/FileSystemUtils', () => {
   const pathModule = jest.requireActual('path');
   return {
     findRulerDir: jest.fn().mockResolvedValue('/test/.ruler'),
+    isSafeRulerDirectory: jest.fn().mockResolvedValue(true),
+    pathExists: jest.fn().mockResolvedValue(true),
     resolveProjectRootForRulerDir: jest
       .fn()
       .mockImplementation((requestedProjectRoot, rulerDir) =>

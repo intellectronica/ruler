@@ -93,6 +93,34 @@ describe('ConfigLoader', () => {
     expect(config.nested).toBe(false);
   });
 
+  it('does not read implicit config through an unsafe .ruler symlink', async () => {
+    const externalRoot = await fs.mkdtemp(
+      path.join(os.tmpdir(), 'ruler-external-config-'),
+    );
+
+    try {
+      const externalRulerDir = path.join(externalRoot, '.ruler');
+      await fs.mkdir(externalRulerDir, { recursive: true });
+      await fs.writeFile(
+        path.join(externalRulerDir, 'ruler.toml'),
+        'default_agents = ["claude"]',
+      );
+
+      await fs.rm(rulerDir, { recursive: true, force: true });
+      await fs.symlink(externalRulerDir, rulerDir);
+
+      const config = await loadConfig({
+        projectRoot: tmpDir,
+        checkGlobal: false,
+      });
+
+      expect(config.defaultAgents).toBeUndefined();
+      expect(config.agentConfigs).toEqual({});
+    } finally {
+      await fs.rm(externalRoot, { recursive: true, force: true });
+    }
+  });
+
   it('throws when an existing implicit local config is unreadable', async () => {
     const configPath = path.join(rulerDir, 'ruler.toml');
     await fs.mkdir(configPath);
