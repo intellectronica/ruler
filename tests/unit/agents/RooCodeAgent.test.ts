@@ -190,6 +190,41 @@ describe('RooCodeAgent Unit Tests', () => {
       });
     });
 
+    it('overwrites all existing MCP servers when strategy is overwrite', async () => {
+      const mcpPath = path.join(tmpDir, '.roo', 'mcp.json');
+      await fs.mkdir(path.dirname(mcpPath), { recursive: true });
+      await fs.writeFile(
+        mcpPath,
+        JSON.stringify(
+          {
+            mcpServers: {
+              old: { command: 'old-command' },
+            },
+          },
+          null,
+          2,
+        ),
+      );
+
+      await agent.applyRulerConfig(
+        'rules',
+        tmpDir,
+        {
+          mcpServers: {
+            new: { command: 'new-command' },
+          },
+        },
+        { mcp: { enabled: true, strategy: 'overwrite' } },
+        false,
+      );
+
+      await expect(readJson(mcpPath)).resolves.toEqual({
+        mcpServers: {
+          new: { command: 'new-command' },
+        },
+      });
+    });
+
     it('keeps existing MCP servers when no MCP config is provided', async () => {
       const mcpPath = path.join(tmpDir, '.roo', 'mcp.json');
       const existingConfig = {
@@ -203,6 +238,30 @@ describe('RooCodeAgent Unit Tests', () => {
       await agent.applyRulerConfig('rules', tmpDir, null, undefined, false);
 
       await expect(readJson(mcpPath)).resolves.toEqual(existingConfig);
+    });
+
+    it('does not touch MCP config when MCP is disabled', async () => {
+      const mcpPath = path.join(tmpDir, '.roo', 'mcp.json');
+      const existingContent =
+        '{"mcpServers":{"existing":{"command":"old-command"}}}';
+      await fs.mkdir(path.dirname(mcpPath), { recursive: true });
+      await fs.writeFile(mcpPath, existingContent, 'utf8');
+
+      await agent.applyRulerConfig(
+        'rules',
+        tmpDir,
+        {
+          mcpServers: {
+            new: { command: 'new-command' },
+          },
+        },
+        { mcp: { enabled: false } },
+        true,
+      );
+
+      await expect(fs.readFile(mcpPath, 'utf8')).resolves.toBe(existingContent);
+      await expect(fs.access(`${mcpPath}.bak`)).rejects.toThrow();
+      await expect(fs.access(`${mcpPath}.ruler-generated`)).rejects.toThrow();
     });
 
     it('creates an empty MCP config when no MCP config or existing servers are available', async () => {

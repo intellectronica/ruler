@@ -8,6 +8,7 @@ import {
   ensureDirExists,
   writeGeneratedFile,
 } from '../core/FileSystemUtils';
+import { mergeMcp } from '../mcp/merge';
 import { writeMcpProvenance } from '../paths/mcp';
 
 /**
@@ -54,6 +55,10 @@ export class RooCodeAgent implements IAgent {
       backup,
     );
 
+    if (agentConfig?.mcp?.enabled === false) {
+      return;
+    }
+
     // Now handle .roo/mcp.json configuration
     const outputPaths = this.getDefaultOutputPath(projectRoot);
     const mcpPath = path.resolve(
@@ -68,11 +73,6 @@ export class RooCodeAgent implements IAgent {
     );
     await ensureDirExists(path.dirname(mcpPath));
 
-    // Create base structure with mcpServers
-    let finalMcpConfig: { mcpServers: Record<string, unknown> } = {
-      mcpServers: {},
-    };
-
     // Try to read existing .roo/mcp.json
     let existingConfig: Record<string, unknown> = {};
     try {
@@ -86,26 +86,17 @@ export class RooCodeAgent implements IAgent {
       existingConfig = {};
     }
 
-    // Merge MCP servers if we have ruler config
-    if (rulerMcpJson?.mcpServers) {
-      const existingServers =
-        (existingConfig.mcpServers as Record<string, unknown>) || {};
-      const newServers = rulerMcpJson.mcpServers as Record<string, unknown>;
-
-      // Shallow merge: new servers override existing with same name
-      finalMcpConfig = {
-        mcpServers: {
-          ...existingServers,
-          ...newServers,
-        },
-      };
-    } else if (existingConfig.mcpServers) {
-      // Keep existing servers if no new ones to add
-      finalMcpConfig = {
-        mcpServers: existingConfig.mcpServers as Record<string, unknown>,
-      };
-    }
-    // If neither condition is met, finalMcpConfig remains { mcpServers: {} }
+    const finalMcpConfig = rulerMcpJson
+      ? mergeMcp(
+          existingConfig,
+          rulerMcpJson,
+          agentConfig?.mcp?.strategy ?? 'merge',
+          'mcpServers',
+        )
+      : {
+          mcpServers:
+            (existingConfig.mcpServers as Record<string, unknown>) || {},
+        };
 
     // Write the config file with pretty JSON (2 spaces)
     const newContent = JSON.stringify(finalMcpConfig, null, 2);
