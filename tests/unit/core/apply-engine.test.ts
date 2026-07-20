@@ -17,6 +17,8 @@ import { CopilotAgent } from '../../../src/agents/CopilotAgent';
 import { JunieAgent } from '../../../src/agents/JunieAgent';
 import { AiderAgent } from '../../../src/agents/AiderAgent';
 import { CodexCliAgent } from '../../../src/agents/CodexCliAgent';
+import { AgentsMdAgent } from '../../../src/agents/AgentsMdAgent';
+import { JulesAgent } from '../../../src/agents/JulesAgent';
 import { LoadedConfig } from '../../../src/core/ConfigLoader';
 import * as FileSystemUtils from '../../../src/core/FileSystemUtils';
 import * as Constants from '../../../src/constants';
@@ -627,6 +629,69 @@ command = "sub-cmd"
       expect(result).toContain(path.join(tmpDir, '.aider.conf.yml'));
       expect(result).not.toContain(path.join(tmpDir, '.mcp.json'));
       expect(result).not.toContain(path.join(tmpDir, '.codex', 'config.toml'));
+    });
+
+    it('skips a second shared AGENTS.md writer after the first one runs', async () => {
+      class RecordingAgentsMdAgent extends AgentsMdAgent {
+        applyCount = 0;
+
+        async applyRulerConfig(
+          rules: string,
+          projectRoot: string,
+          mcpJson: Record<string, unknown> | null,
+          agentConfig?: any,
+          backup?: boolean,
+        ): Promise<void> {
+          this.applyCount += 1;
+          await super.applyRulerConfig(
+            rules,
+            projectRoot,
+            mcpJson,
+            agentConfig,
+            backup,
+          );
+        }
+      }
+
+      class RecordingJulesAgent extends JulesAgent {
+        applyCount = 0;
+
+        async applyRulerConfig(
+          rules: string,
+          projectRoot: string,
+          mcpJson: Record<string, unknown> | null,
+          agentConfig?: any,
+          backup?: boolean,
+        ): Promise<void> {
+          this.applyCount += 1;
+          await super.applyRulerConfig(
+            rules,
+            projectRoot,
+            mcpJson,
+            agentConfig,
+            backup,
+          );
+        }
+      }
+
+      const agentsMd = new RecordingAgentsMdAgent();
+      const jules = new RecordingJulesAgent();
+
+      await applyConfigurationsToAgents(
+        [agentsMd, jules],
+        '# Test rules',
+        null,
+        { agentConfigs: {} },
+        tmpDir,
+        false,
+        false,
+        true,
+        undefined,
+        false,
+      );
+
+      expect(agentsMd.applyCount).toBe(1);
+      expect(jules.applyCount).toBe(0);
     });
 
     it('logs warning and strips MCP timeouts for agents without timeout support', async () => {

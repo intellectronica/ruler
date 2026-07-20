@@ -200,6 +200,73 @@ describe('ZedAgent', () => {
     }
   });
 
+  it('throws when existing .zed/settings.json is invalid JSON', async () => {
+    const { projectRoot } = await setupTestProject({
+      '.ruler/AGENTS.md': 'Test rules',
+    });
+
+    try {
+      const zedDir = path.join(projectRoot, '.zed');
+      await fs.mkdir(zedDir, { recursive: true });
+      const zedSettingsPath = path.join(zedDir, 'settings.json');
+      await fs.writeFile(zedSettingsPath, '{ invalid json');
+
+      const agent = new ZedAgent();
+
+      await expect(
+        agent.applyRulerConfig('Test rules content', projectRoot, {
+          mcpServers: {
+            'new-server': {
+              type: 'stdio',
+              command: 'pwd',
+            },
+          },
+        }),
+      ).rejects.toThrow(SyntaxError);
+    } finally {
+      await teardownTestProject(projectRoot);
+    }
+  });
+
+  it('leaves .zed/settings.json untouched when transformed MCP settings are unchanged', async () => {
+    const { projectRoot } = await setupTestProject({
+      '.ruler/AGENTS.md': 'Test rules',
+    });
+
+    try {
+      const zedDir = path.join(projectRoot, '.zed');
+      await fs.mkdir(zedDir, { recursive: true });
+      const zedSettingsPath = path.join(zedDir, 'settings.json');
+      const existingSettings = {
+        context_servers: {
+          'new-server': {
+            command: 'pwd',
+            source: 'custom',
+          },
+        },
+      };
+      const originalContent = JSON.stringify(existingSettings, null, 2);
+      await fs.writeFile(zedSettingsPath, originalContent);
+
+      const agent = new ZedAgent();
+      await agent.applyRulerConfig('Test rules content', projectRoot, {
+        mcpServers: {
+          'new-server': {
+            type: 'stdio',
+            command: 'pwd',
+          },
+        },
+      });
+
+      await expect(fs.readFile(zedSettingsPath, 'utf8')).resolves.toBe(
+        originalContent,
+      );
+      await expect(fs.access(`${zedSettingsPath}.bak`)).rejects.toThrow();
+    } finally {
+      await teardownTestProject(projectRoot);
+    }
+  });
+
   it('does not back up existing .zed/settings.json when backups are disabled', async () => {
     const { projectRoot } = await setupTestProject({
       '.ruler/AGENTS.md': 'Test rules',
