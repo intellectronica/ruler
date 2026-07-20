@@ -154,6 +154,88 @@ describe('ZedAgent', () => {
     }
   });
 
+  it('backs up existing .zed/settings.json before changing MCP settings', async () => {
+    const { projectRoot } = await setupTestProject({
+      '.ruler/AGENTS.md': 'Test rules',
+    });
+
+    try {
+      const zedDir = path.join(projectRoot, '.zed');
+      await fs.mkdir(zedDir, { recursive: true });
+      const zedSettingsPath = path.join(zedDir, 'settings.json');
+      const existingSettings = {
+        theme: 'dark',
+        context_servers: {
+          'existing-server': {
+            source: 'custom',
+            command: 'ls',
+          },
+        },
+      };
+      const originalContent = JSON.stringify(existingSettings, null, 2);
+      await fs.writeFile(zedSettingsPath, originalContent);
+
+      const agent = new ZedAgent();
+      await agent.applyRulerConfig('Test rules content', projectRoot, {
+        mcpServers: {
+          'new-server': {
+            type: 'stdio',
+            command: 'pwd',
+          },
+        },
+      });
+
+      await expect(fs.readFile(`${zedSettingsPath}.bak`, 'utf8')).resolves.toBe(
+        originalContent,
+      );
+
+      const settingsContent = await fs.readFile(zedSettingsPath, 'utf8');
+      const settings = JSON.parse(settingsContent);
+      expect(settings.context_servers['new-server']).toEqual({
+        source: 'custom',
+        command: 'pwd',
+      });
+    } finally {
+      await teardownTestProject(projectRoot);
+    }
+  });
+
+  it('does not back up existing .zed/settings.json when backups are disabled', async () => {
+    const { projectRoot } = await setupTestProject({
+      '.ruler/AGENTS.md': 'Test rules',
+    });
+
+    try {
+      const zedDir = path.join(projectRoot, '.zed');
+      await fs.mkdir(zedDir, { recursive: true });
+      const zedSettingsPath = path.join(zedDir, 'settings.json');
+      await fs.writeFile(
+        zedSettingsPath,
+        JSON.stringify({ theme: 'dark' }, null, 2),
+      );
+
+      const agent = new ZedAgent();
+      await agent.applyRulerConfig(
+        'Test rules content',
+        projectRoot,
+        {
+          mcpServers: {
+            'new-server': {
+              type: 'stdio',
+              command: 'pwd',
+            },
+          },
+        },
+        undefined,
+        false,
+      );
+
+      await expect(fs.access(`${zedSettingsPath}.bak`)).rejects.toThrow();
+    } finally {
+      await teardownTestProject(projectRoot);
+    }
+  });
+
   it('does not modify .zed/settings.json when no MCP config provided', async () => {
     const { projectRoot } = await setupTestProject({
       '.ruler/AGENTS.md': 'Test rules',

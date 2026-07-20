@@ -2,7 +2,7 @@ import * as path from 'path';
 import { promises as fs } from 'fs';
 import { AgentsMdAgent } from './AgentsMdAgent';
 import { IAgentConfig } from './IAgent';
-import { writeGeneratedFile } from '../core/FileSystemUtils';
+import { backupFile, writeGeneratedFile } from '../core/FileSystemUtils';
 
 /**
  * Zed editor agent adapter.
@@ -46,8 +46,10 @@ export class ZedAgent extends AgentsMdAgent {
 
       // Read existing settings
       let existingSettings: Record<string, unknown> = {};
+      let existingContent: string | null = null;
       try {
         const content = await fs.readFile(zedSettingsPath, 'utf8');
+        existingContent = content;
         existingSettings = JSON.parse(content);
       } catch (error: unknown) {
         if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
@@ -110,12 +112,17 @@ export class ZedAgent extends AgentsMdAgent {
         };
       }
 
+      const nextContent = JSON.stringify(mergedSettings, null, 2);
+      if (existingContent === nextContent) {
+        return;
+      }
+
+      if (backup && existingContent !== null) {
+        await backupFile(zedSettingsPath, projectRoot);
+      }
+
       // Write updated settings
-      await writeGeneratedFile(
-        zedSettingsPath,
-        JSON.stringify(mergedSettings, null, 2),
-        projectRoot,
-      );
+      await writeGeneratedFile(zedSettingsPath, nextContent, projectRoot);
     }
   }
 
