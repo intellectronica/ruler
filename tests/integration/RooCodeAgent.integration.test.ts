@@ -144,4 +144,124 @@ command = "updated-cmd"`;
       type: 'stdio',
     });
   });
+
+  it('honours global MCP overwrite strategy', async () => {
+    const { projectRoot } = testProject;
+
+    await fs.mkdir(path.join(projectRoot, '.roo'), { recursive: true });
+    await fs.writeFile(
+      path.join(projectRoot, '.roo', 'mcp.json'),
+      JSON.stringify({
+        mcpServers: {
+          old: { command: 'old-cmd' },
+        },
+      }),
+    );
+
+    await fs.writeFile(
+      path.join(projectRoot, '.ruler', 'ruler.toml'),
+      `[mcp]
+merge_strategy = "overwrite"
+
+[mcp_servers.new]
+command = "new-cmd"`,
+    );
+
+    runRuler('apply --agents roo', projectRoot);
+
+    const mcpJson = JSON.parse(
+      await fs.readFile(path.join(projectRoot, '.roo', 'mcp.json'), 'utf8'),
+    );
+    expect(mcpJson.mcpServers).toEqual({
+      new: { command: 'new-cmd', type: 'stdio' },
+    });
+  });
+
+  it('honours RooCode-specific MCP overwrite strategy', async () => {
+    const { projectRoot } = testProject;
+
+    await fs.mkdir(path.join(projectRoot, '.roo'), { recursive: true });
+    await fs.writeFile(
+      path.join(projectRoot, '.roo', 'mcp.json'),
+      JSON.stringify({
+        mcpServers: {
+          old: { command: 'old-cmd' },
+        },
+      }),
+    );
+
+    await fs.writeFile(
+      path.join(projectRoot, '.ruler', 'ruler.toml'),
+      `[agents.roo.mcp]
+merge_strategy = "overwrite"
+
+[mcp_servers.new]
+command = "new-cmd"`,
+    );
+
+    runRuler('apply --agents roo', projectRoot);
+
+    const mcpJson = JSON.parse(
+      await fs.readFile(path.join(projectRoot, '.roo', 'mcp.json'), 'utf8'),
+    );
+    expect(mcpJson.mcpServers).toEqual({
+      new: { command: 'new-cmd', type: 'stdio' },
+    });
+  });
+
+  it('leaves RooCode MCP untouched with --no-mcp', async () => {
+    const { projectRoot } = testProject;
+    const mcpPath = path.join(projectRoot, '.roo', 'mcp.json');
+    const existingContent = '{"mcpServers":{"old":{"command":"old-cmd"}}}';
+
+    await fs.mkdir(path.dirname(mcpPath), { recursive: true });
+    await fs.writeFile(mcpPath, existingContent, 'utf8');
+    await fs.writeFile(
+      path.join(projectRoot, '.ruler', 'ruler.toml'),
+      `[mcp_servers.new]
+command = "new-cmd"`,
+    );
+
+    runRuler('apply --agents roo --no-mcp', projectRoot);
+
+    await expect(fs.readFile(mcpPath, 'utf8')).resolves.toBe(existingContent);
+    await expect(fs.access(`${mcpPath}.bak`)).rejects.toThrow();
+    await expect(fs.access(`${mcpPath}.ruler-generated`)).rejects.toThrow();
+  });
+
+  it('does not create RooCode MCP config when global MCP is disabled', async () => {
+    const { projectRoot } = testProject;
+    const mcpPath = path.join(projectRoot, '.roo', 'mcp.json');
+
+    await fs.writeFile(
+      path.join(projectRoot, '.ruler', 'ruler.toml'),
+      `[mcp]
+enabled = false
+
+[mcp_servers.new]
+command = "new-cmd"`,
+    );
+
+    runRuler('apply --agents roo', projectRoot);
+
+    await expect(fs.access(mcpPath)).rejects.toThrow();
+  });
+
+  it('does not create RooCode MCP config when RooCode MCP is disabled', async () => {
+    const { projectRoot } = testProject;
+    const mcpPath = path.join(projectRoot, '.roo', 'mcp.json');
+
+    await fs.writeFile(
+      path.join(projectRoot, '.ruler', 'ruler.toml'),
+      `[agents.roo.mcp]
+enabled = false
+
+[mcp_servers.new]
+command = "new-cmd"`,
+    );
+
+    runRuler('apply --agents roo', projectRoot);
+
+    await expect(fs.access(mcpPath)).rejects.toThrow();
+  });
 });
