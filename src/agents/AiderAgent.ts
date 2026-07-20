@@ -1,7 +1,11 @@
 import * as path from 'path';
 import { IAgent, IAgentConfig } from './IAgent';
 import { AgentsMdAgent } from './AgentsMdAgent';
-import { backupFile, writeGeneratedFile } from '../core/FileSystemUtils';
+import {
+  backupFile,
+  writeGeneratedFile,
+  writeGeneratedProvenance,
+} from '../core/FileSystemUtils';
 import * as fs from 'fs/promises';
 import * as yaml from 'js-yaml';
 
@@ -50,8 +54,10 @@ export class AiderAgent implements IAgent {
       [key: string]: unknown;
     }
     let doc: AiderConfig = {} as AiderConfig;
+    let configExisted = false;
     try {
       await fs.access(cfgPath);
+      configExisted = true;
       if (backup) {
         await backupFile(cfgPath, projectRoot);
       }
@@ -78,6 +84,9 @@ export class AiderAgent implements IAgent {
     }
     const yamlStr = yaml.dump(doc);
     await writeGeneratedFile(cfgPath, yamlStr, projectRoot);
+    if (!configExisted) {
+      await writeGeneratedProvenance(cfgPath, projectRoot, 'Aider config');
+    }
   }
   getDefaultOutputPath(projectRoot: string): Record<string, string> {
     return {

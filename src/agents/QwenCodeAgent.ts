@@ -2,7 +2,11 @@ import { IAgentConfig } from './IAgent';
 import * as path from 'path';
 import { promises as fs } from 'fs';
 import { AgentsMdAgent } from './AgentsMdAgent';
-import { backupFile, writeGeneratedFile } from '../core/FileSystemUtils';
+import {
+  backupFile,
+  writeGeneratedFile,
+  writeGeneratedProvenance,
+} from '../core/FileSystemUtils';
 
 export class QwenCodeAgent extends AgentsMdAgent {
   getIdentifier(): string {
@@ -81,6 +85,13 @@ export class QwenCodeAgent extends AgentsMdAgent {
     }
 
     await writeGeneratedFile(settingsPath, nextContent, projectRoot);
+    if (existingContent === null) {
+      await writeGeneratedProvenance(
+        settingsPath,
+        projectRoot,
+        'Qwen settings',
+      );
+    }
   }
 
   // Ensure MCP merging uses the correct key for Qwen Code (.qwen/settings.json)

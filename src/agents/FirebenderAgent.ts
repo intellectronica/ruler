@@ -5,6 +5,7 @@ import {
   assertManagedPathInsideRoot,
   backupFile,
   writeGeneratedFile,
+  writeGeneratedProvenance,
   ensureDirExists,
 } from '../core/FileSystemUtils';
 
@@ -84,6 +85,15 @@ export class FirebenderAgent implements IAgent {
     }
 
     await this.saveConfig(rulesPath, firebenderConfig, backup, projectRoot);
+  }
+
+  private async fileExists(filePath: string): Promise<boolean> {
+    try {
+      await fs.promises.access(filePath);
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   private resolveOutputPath(
@@ -181,6 +191,7 @@ export class FirebenderAgent implements IAgent {
     backup: boolean,
     projectRoot: string,
   ): Promise<void> {
+    const configExisted = await this.fileExists(rulesPath);
     const updatedContent = JSON.stringify(config, null, 2);
 
     if (backup) {
@@ -188,6 +199,13 @@ export class FirebenderAgent implements IAgent {
     }
 
     await writeGeneratedFile(rulesPath, updatedContent, projectRoot);
+    if (!configExisted) {
+      await writeGeneratedProvenance(
+        rulesPath,
+        projectRoot,
+        'Firebender config',
+      );
+    }
   }
 
   /**
