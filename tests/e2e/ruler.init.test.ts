@@ -70,4 +70,28 @@ describe('End-to-End ruler init command', () => {
     );
     await teardownTestProject(projectRoot);
   });
+
+  it.each(['.ruler', path.join('.ruler', 'nested')])(
+    'rejects project roots inside an existing .ruler directory: %s',
+    async (relativeRoot) => {
+      const { projectRoot } = await setupTestProject();
+      try {
+        const nestedRoot = path.join(projectRoot, relativeRoot);
+        await fs.mkdir(nestedRoot, { recursive: true });
+
+        expect(() =>
+          execSync(
+            `node dist/cli/index.js init --project-root ${JSON.stringify(nestedRoot)}`,
+            { stdio: 'pipe', encoding: 'utf8' },
+          ),
+        ).toThrow(/Cannot initialise inside an existing \.ruler directory/);
+
+        await expect(
+          fs.stat(path.join(nestedRoot, '.ruler')),
+        ).rejects.toThrow();
+      } finally {
+        await teardownTestProject(projectRoot);
+      }
+    },
+  );
 });
