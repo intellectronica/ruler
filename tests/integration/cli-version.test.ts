@@ -39,15 +39,17 @@ describe('packaged CLI version', () => {
       ) as { version: string };
 
       const npmEnv = createIsolatedNpmEnv(npmUserConfigPath);
+      const packageRoot = await createCleanPackageRoot(tmpDir);
       const tarballName = execFileSync(
         'npm',
-        ['pack', '--silent', '--ignore-scripts'],
+        ['pack', '--silent', '--pack-destination', tmpDir],
         {
           encoding: 'utf8',
+          cwd: packageRoot,
           env: npmEnv,
         },
       ).trim();
-      tarballPath = path.join(process.cwd(), tarballName);
+      tarballPath = path.join(tmpDir, tarballName);
       const extractedDir = path.join(tmpDir, 'extracted');
       await fs.mkdir(extractedDir);
       execFileSync('tar', ['-xzf', tarballPath, '-C', extractedDir]);
@@ -101,4 +103,33 @@ function createIsolatedNpmEnv(userConfigPath: string): NodeJS.ProcessEnv {
   }
   env.npm_config_userconfig = userConfigPath;
   return env;
+}
+
+async function createCleanPackageRoot(tmpDir: string): Promise<string> {
+  const packageRoot = path.join(tmpDir, 'package-root');
+  await fs.mkdir(packageRoot);
+
+  const trackedFiles = execFileSync('git', ['ls-files', '-z'], {
+    encoding: 'utf8',
+  })
+    .split('\0')
+    .filter(Boolean)
+    .filter((filePath) => !filePath.startsWith('dist/'));
+
+  await Promise.all(
+    trackedFiles.map(async (filePath) => {
+      const sourcePath = path.join(process.cwd(), filePath);
+      const destinationPath = path.join(packageRoot, filePath);
+      await fs.mkdir(path.dirname(destinationPath), { recursive: true });
+      await fs.copyFile(sourcePath, destinationPath);
+    }),
+  );
+
+  await fs.symlink(
+    path.join(process.cwd(), 'node_modules'),
+    path.join(packageRoot, 'node_modules'),
+    'dir',
+  );
+
+  return packageRoot;
 }
