@@ -361,6 +361,51 @@ describe('Revert Core Functions', () => {
       ).resolves.toBeUndefined();
     });
 
+    it('removes empty nested agent directories during full revert', async () => {
+      const kiroDir = path.join(tmpDir, '.kiro');
+      const steeringDir = path.join(kiroDir, 'steering');
+      const outputPath = path.join(steeringDir, 'ruler_kiro_instructions.md');
+      await fs.mkdir(steeringDir, { recursive: true });
+      await fs.writeFile(outputPath, `${GENERATED_MARKER}\nKiro content`);
+
+      await revertAllAgentConfigs(
+        tmpDir,
+        undefined,
+        undefined,
+        false,
+        false,
+        false,
+      );
+
+      await expect(fs.access(outputPath)).rejects.toThrow();
+      await expect(fs.access(steeringDir)).rejects.toThrow();
+      await expect(fs.access(kiroDir)).rejects.toThrow();
+    });
+
+    it('preserves non-empty nested agent directories during full revert', async () => {
+      const kiroDir = path.join(tmpDir, '.kiro');
+      const steeringDir = path.join(kiroDir, 'steering');
+      const outputPath = path.join(steeringDir, 'ruler_kiro_instructions.md');
+      const keepPath = path.join(steeringDir, 'keep.txt');
+      await fs.mkdir(steeringDir, { recursive: true });
+      await fs.writeFile(outputPath, `${GENERATED_MARKER}\nKiro content`);
+      await fs.writeFile(keepPath, 'User content');
+
+      await revertAllAgentConfigs(
+        tmpDir,
+        undefined,
+        undefined,
+        false,
+        false,
+        false,
+      );
+
+      await expect(fs.access(outputPath)).rejects.toThrow();
+      await expect(fs.readFile(keepPath, 'utf8')).resolves.toBe('User content');
+      await expect(fs.access(steeringDir)).resolves.toBeUndefined();
+      await expect(fs.access(kiroDir)).resolves.toBeUndefined();
+    });
+
     it('removes the ruler-managed block from .gitignore', async () => {
       await fs.writeFile(
         path.join(tmpDir, '.gitignore'),
