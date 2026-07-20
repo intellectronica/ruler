@@ -118,37 +118,28 @@ describe('Revert Core Functions', () => {
       consoleSpy.mockRestore();
     });
 
-    it('continues with valid CLI agents when invalid filters are present', async () => {
+    it('rejects invalid CLI agent filters', async () => {
       await fs.writeFile(
         path.join(tmpDir, 'CLAUDE.md'),
         `${GENERATED_MARKER}\nClaude content`,
       );
 
-      const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
-
-      await revertAllAgentConfigs(
-        tmpDir,
-        ['claude', 'not-a-real-agent'],
-        undefined,
-        false,
-        true,
-        false,
-      );
-
-      expect(consoleLogSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Reverting Claude Code'),
-      );
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        expect.stringContaining('continuing with valid agents only'),
-      );
-      await expect(fs.access(path.join(tmpDir, 'CLAUDE.md'))).rejects.toThrow();
-
-      consoleLogSpy.mockRestore();
-      consoleErrorSpy.mockRestore();
+      await expect(
+        revertAllAgentConfigs(
+          tmpDir,
+          ['claude', 'not-a-real-agent'],
+          undefined,
+          false,
+          true,
+          false,
+        ),
+      ).rejects.toThrow('Invalid agent specified: not-a-real-agent');
+      await expect(
+        fs.access(path.join(tmpDir, 'CLAUDE.md')),
+      ).resolves.toBeUndefined();
     });
 
-    it('uses valid default agents when invalid defaults are present', async () => {
+    it('rejects invalid default agents', async () => {
       await fs.writeFile(
         path.join(tmpDir, '.ruler', 'ruler.toml'),
         'default_agents = ["claude", "not-a-real-agent"]\n',
@@ -156,33 +147,20 @@ describe('Revert Core Functions', () => {
       await fs.writeFile(path.join(tmpDir, 'CLAUDE.md'), 'Claude content');
       await fs.writeFile(path.join(tmpDir, 'AGENTS.md'), 'Agents content');
 
-      const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
-
-      await revertAllAgentConfigs(
-        tmpDir,
-        undefined,
-        undefined,
-        false,
-        true,
-        false,
+      await expect(
+        revertAllAgentConfigs(tmpDir, undefined, undefined, false, true, false),
+      ).rejects.toThrow(
+        'Invalid agent specified in default_agents: not-a-real-agent',
       );
-
-      expect(consoleLogSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Reverting Claude Code'),
-      );
-      expect(consoleLogSpy).not.toHaveBeenCalledWith(
-        expect.stringContaining('Reverting AgentsMd'),
-      );
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        expect.stringContaining('continuing with valid agents only'),
-      );
-
-      consoleLogSpy.mockRestore();
-      consoleErrorSpy.mockRestore();
+      await expect(
+        fs.readFile(path.join(tmpDir, 'CLAUDE.md'), 'utf8'),
+      ).resolves.toBe('Claude content');
+      await expect(
+        fs.readFile(path.join(tmpDir, 'AGENTS.md'), 'utf8'),
+      ).resolves.toBe('Agents content');
     });
 
-    it('honors agent config overrides when falling back from invalid defaults', async () => {
+    it('rejects invalid default agents before applying overrides', async () => {
       await fs.writeFile(
         path.join(tmpDir, '.ruler', 'ruler.toml'),
         [
@@ -199,27 +177,42 @@ describe('Revert Core Functions', () => {
       await fs.writeFile(path.join(tmpDir, 'CLAUDE.md'), 'Claude content');
       await fs.writeFile(path.join(tmpDir, 'AGENTS.md'), 'Agents content');
 
+      await expect(
+        revertAllAgentConfigs(tmpDir, undefined, undefined, false, true, false),
+      ).rejects.toThrow(
+        'Invalid agent specified in default_agents: not-a-real-agent',
+      );
+      await expect(
+        fs.readFile(path.join(tmpDir, 'CLAUDE.md'), 'utf8'),
+      ).resolves.toBe('Claude content');
+      await expect(
+        fs.readFile(path.join(tmpDir, 'AGENTS.md'), 'utf8'),
+      ).resolves.toBe('Agents content');
+    });
+
+    it('continues reverting other agents when a valid selector finds no generated output', async () => {
+      await fs.writeFile(
+        path.join(tmpDir, 'CLAUDE.md'),
+        `${GENERATED_MARKER}\nClaude content`,
+      );
+
       const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
 
       await revertAllAgentConfigs(
         tmpDir,
-        undefined,
+        ['claude', 'codex'],
         undefined,
         false,
         true,
         false,
       );
 
-      expect(consoleLogSpy).not.toHaveBeenCalledWith(
+      expect(consoleLogSpy).toHaveBeenCalledWith(
         expect.stringContaining('Reverting Claude Code'),
       );
-      expect(consoleLogSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Reverting AgentsMd'),
-      );
+      await expect(fs.access(path.join(tmpDir, 'CLAUDE.md'))).rejects.toThrow();
 
       consoleLogSpy.mockRestore();
-      consoleErrorSpy.mockRestore();
     });
 
     it('should keep consumed backup when keep-backups is true', async () => {

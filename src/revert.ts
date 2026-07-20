@@ -9,10 +9,7 @@ import {
   cleanUpAuxiliaryFiles,
   cleanUpAgentDirectories,
 } from './core/revert-engine';
-import {
-  agentMatchesFilter,
-  resolveSelectedAgents,
-} from './core/agent-selection';
+import { resolveSelectedAgents } from './core/agent-selection';
 import { mapRawAgentConfigs } from './core/config-utils';
 import {
   removeCompleteRulerBlocks,
@@ -65,58 +62,8 @@ export async function revertAllAgentConfigs(
   // Normalize per-agent config keys to agent identifiers
   config.agentConfigs = mapRawAgentConfigs(config.agentConfigs, agents);
 
-  // Select agents to revert (same logic as apply, but with backward compatibility for invalid agents)
-  let selected: IAgent[];
-  try {
-    selected = resolveSelectedAgents(config, agents);
-  } catch (error) {
-    // For backward compatibility, revert continues with available agents if some are invalid
-    // This preserves the original behavior where invalid agents were silently ignored
-    if (
-      error instanceof Error &&
-      error.message.includes('Invalid agent specified')
-    ) {
-      logVerbose(
-        `Warning: ${error.message} - continuing with valid agents only`,
-        verbose,
-      );
-
-      // Fall back to the old logic without validation
-      if (config.cliAgents && config.cliAgents.length > 0) {
-        const filters = config.cliAgents.map((n) => n.toLowerCase());
-        const validAgentIdentifiers = new Set(
-          agents.map((agent) => agent.getIdentifier()),
-        );
-        selected = agents.filter((agent) =>
-          filters.some((f) =>
-            agentMatchesFilter(agent, f, validAgentIdentifiers),
-          ),
-        );
-      } else if (config.defaultAgents && config.defaultAgents.length > 0) {
-        const defaults = config.defaultAgents.map((n) => n.toLowerCase());
-        const validAgentIdentifiers = new Set(
-          agents.map((agent) => agent.getIdentifier()),
-        );
-        selected = agents.filter((agent) => {
-          const identifier = agent.getIdentifier();
-          const override = config.agentConfigs[identifier]?.enabled;
-          if (override !== undefined) {
-            return override;
-          }
-          return defaults.some((d) =>
-            agentMatchesFilter(agent, d, validAgentIdentifiers),
-          );
-        });
-      } else {
-        selected = agents.filter(
-          (agent) =>
-            config.agentConfigs[agent.getIdentifier()]?.enabled !== false,
-        );
-      }
-    } else {
-      throw error;
-    }
-  }
+  // Select agents to revert using the same validation semantics as apply.
+  const selected = resolveSelectedAgents(config, agents);
 
   logVerbose(
     `Selected agents: ${selected.map((a) => a.getName()).join(', ')}`,
