@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   apply-ruler:
-    if: ${{ (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch') && !contains(github.event.head_commit.message || '', 'Ruler:') }}
+    if: ${{ github.ref == 'refs/heads/main' && !contains(github.event.head_commit.message || '', 'Ruler:') }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
