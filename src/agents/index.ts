@@ -10,6 +10,7 @@ import { AiderAgent } from './AiderAgent';
 import { FirebaseAgent } from './FirebaseAgent';
 import { OpenHandsAgent } from './OpenHandsAgent';
 import { GeminiCliAgent } from './GeminiCliAgent';
+import { JcodeAgent } from './JcodeAgent';
 import { JulesAgent } from './JulesAgent';
 import { JunieAgent } from './JunieAgent';
 import { AugmentCodeAgent } from './AugmentCodeAgent';
@@ -46,6 +47,7 @@ export const allAgents: IAgent[] = [
   new FirebaseAgent(),
   new OpenHandsAgent(),
   new GeminiCliAgent(),
+  new JcodeAgent(),
   new JulesAgent(),
   new JunieAgent(),
   new AugmentCodeAgent(),

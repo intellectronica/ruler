@@ -73,6 +73,7 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | Firebase Studio        | `.idx/airules.md`                              | `.idx/mcp.json`                                  | -                         | -                            |
 | Open Hands             | `.openhands/microagents/repo.md`               | `config.toml`                                    | -                         | -                            |
 | Gemini CLI             | `AGENTS.md`                                    | `.gemini/settings.json`                          | `.gemini/skills/`         | -                            |
+| Jcode                  | `AGENTS.md`                                    | `.jcode/mcp.json`                                | -                         | -                            |
 | Junie                  | `.junie/guidelines.md`                         | `.junie/mcp/mcp.json`                            | `.junie/skills/`          | -                            |
 | AugmentCode            | `.augment/rules/ruler_augment_instructions.md` | -                                                | -                         | -                            |
 | Kilo Code              | `AGENTS.md`                                    | `.kilocode/mcp.json`                             | `.claude/skills/`         | -                            |

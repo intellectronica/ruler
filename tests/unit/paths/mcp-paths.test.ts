@@ -46,6 +46,7 @@ describe('MCP Path Resolution', () => {
         'Factory Droid',
         'Zed',
         'Firebase Studio',
+        'Jcode',
       ];
 
       for (const agent of supportedAgents) {
@@ -114,6 +115,11 @@ describe('MCP Path Resolution', () => {
         expect(mcpPath).toBe(
           path.join(projectRoot, '.kiro', 'settings', 'mcp.json'),
         );
+      });
+
+      it('Jcode should use project-local path', async () => {
+        const mcpPath = await getNativeMcpPath('Jcode', projectRoot);
+        expect(mcpPath).toBe(path.join(projectRoot, '.jcode', 'mcp.json'));
       });
     });
   });

@@ -107,6 +107,9 @@ export async function getNativeMcpPath(
     case 'OpenCode':
       candidates.push(path.join(projectRoot, 'opencode.json'));
       break;
+    case 'Jcode':
+      candidates.push(path.join(projectRoot, '.jcode', 'mcp.json'));
+      break;
     case 'Firebase Studio':
       candidates.push(path.join(projectRoot, '.idx', 'mcp.json'));
       break;
