@@ -32,6 +32,18 @@ describe('release workflow', () => {
     expect(validateIndex).toBeLessThan(npmCiIndex);
   });
 
+  it('does not persist checkout credentials for release publishing', () => {
+    const workflowPath = path.join(
+      process.cwd(),
+      '.github',
+      'workflows',
+      'release.yml',
+    );
+    const workflow = fs.readFileSync(workflowPath, 'utf8');
+
+    expect(workflow).toContain('persist-credentials: false');
+  });
+
   it('fails GitHub prereleases before publishing to npm latest', () => {
     const workflowPath = path.join(
       process.cwd(),
