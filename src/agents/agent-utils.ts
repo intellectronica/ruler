@@ -88,9 +88,5 @@ export function getAgentApplyOutputPaths(
     }
   }
 
-  if (agent.getAdditionalOutputPaths) {
-    paths.push(...agent.getAdditionalOutputPaths(projectRoot, agentConfig));
-  }
-
   return paths;
 }
