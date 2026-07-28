@@ -43,6 +43,24 @@ function copyAdditionalMcpServerFields(
   );
 }
 
+function normalizeMcpServerTransportFields(server: McpServerDef): void {
+  if (server.url) {
+    delete server.command;
+    delete server.args;
+    delete server.env;
+    server.type = 'remote';
+    return;
+  }
+
+  if (server.command) {
+    delete server.url;
+    delete server.headers;
+    delete server.auth;
+    delete server.oauth;
+    server.type = 'stdio';
+  }
+}
+
 async function resolveImplicitTomlFile(
   projectRoot: string,
   rulerDir: string | undefined,
@@ -349,18 +367,7 @@ export async function loadUnifiedConfig(
           });
         }
 
-        if (hasCommand && hasUrl) {
-          delete server.command;
-          delete server.args;
-          delete server.env;
-        }
-
-        // Derive type - remote takes precedence if both are present
-        if (server.url) {
-          server.type = 'remote';
-        } else if (server.command) {
-          server.type = 'stdio';
-        }
+        normalizeMcpServerTransportFields(server);
 
         tomlMcpServers[name] = server;
       }
@@ -512,15 +519,7 @@ export async function loadUnifiedConfig(
             });
           }
 
-          if (hasCommand && hasUrl) {
-            delete server.command;
-            delete server.args;
-            delete server.env;
-          }
-
-          // Derive type
-          if (server.url) server.type = 'remote';
-          else if (server.command) server.type = 'stdio';
+          normalizeMcpServerTransportFields(server);
           jsonMcpServers[name] = server;
         }
       }
