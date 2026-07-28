@@ -223,8 +223,8 @@ File: extra-rules.md
     // Step 6: Inspect all generated files
     integrationLog('\n6. Inspecting and verifying all generated files...');
 
-    // List of expected generated files - comprehensive list for all agents
-    const expectedFiles = [
+    // List of expected primary generated files - comprehensive list for all agents
+    const expectedPrimaryFiles = [
       // Markdown rule files
       'AGENTS.md', // Root level concatenated file
       'CLAUDE.md', // Claude-specific file
@@ -284,16 +284,60 @@ File: extra-rules.md
       '.gitignore', // Updated gitignore
     ];
 
-    const generatedFiles: string[] = [];
+    const expectedGeneratedFiles = [
+      '.aiassistant/rules/AGENTS.md',
+      '.aider.conf.yml',
+      '.aider.conf.yml.ruler-generated',
+      '.augment/rules/ruler_augment_instructions.md',
+      '.clinerules',
+      '.codex/config.toml',
+      '.codex/config.toml.ruler-generated',
+      '.crush.json',
+      '.cursor/mcp.json',
+      '.cursor/mcp.json.ruler-generated',
+      '.gemini/settings.json',
+      '.gemini/settings.json.ruler-generated',
+      '.gitignore',
+      '.goosehints',
+      '.junie/guidelines.md',
+      '.junie/mcp/mcp.json',
+      '.junie/mcp/mcp.json.ruler-generated',
+      '.kilocode/mcp.json',
+      '.kilocode/mcp.json.ruler-generated',
+      '.mcp.json',
+      '.mcp.json.bak',
+      '.mcp.json.bak.ruler-generated',
+      '.mcp.json.ruler-generated',
+      '.openhands/microagents/repo.md',
+      '.qwen/settings.json',
+      '.qwen/settings.json.bak',
+      '.qwen/settings.json.bak.ruler-generated',
+      '.qwen/settings.json.ruler-generated',
+      '.windsurf/mcp_config.json',
+      '.windsurf/mcp_config.json.ruler-generated',
+      '.zed/settings.json',
+      'AGENTS.md',
+      'AGENTS.md.bak',
+      'AGENTS.md.bak.ruler-generated',
+      'CLAUDE.md',
+      'CRUSH.md',
+      'config.toml',
+      'config.toml.ruler-generated',
+      'opencode.json',
+      'opencode.json.ruler-generated',
+    ];
+
+    const actualGeneratedFiles = await listGeneratedProjectFiles(projectRoot);
+    expect(actualGeneratedFiles).toEqual(expectedGeneratedFiles);
+
     const fileContents: Record<string, string> = {};
 
     // Check each expected file
-    for (const expectedFile of expectedFiles) {
+    for (const expectedFile of expectedPrimaryFiles) {
       const filePath = path.join(projectRoot, expectedFile);
       const stat = await fs.stat(filePath);
       expect(stat.isFile()).toBe(true);
 
-      generatedFiles.push(expectedFile);
       const content = await fs.readFile(filePath, 'utf8');
       fileContents[expectedFile] = content;
       integrationLog(
@@ -549,14 +593,52 @@ File: extra-rules.md
     integrationLog('─'.repeat(50));
 
     // Final verification - should have generated significantly more files than the basic test
-    expect(generatedFiles).toEqual(expectedFiles);
     integrationLog(
       `\n✅ COMPREHENSIVE INTEGRATION TEST COMPLETED SUCCESSFULLY!`,
     );
-    integrationLog(`Generated ${generatedFiles.length} files total`);
+    integrationLog(`Generated ${actualGeneratedFiles.length} files total`);
     integrationLog(
-      `Files generated: ${generatedFiles.slice(0, 10).join(', ')}${generatedFiles.length > 10 ? `, and ${generatedFiles.length - 10} more...` : ''}`,
+      `Files generated: ${actualGeneratedFiles.slice(0, 10).join(', ')}${actualGeneratedFiles.length > 10 ? `, and ${actualGeneratedFiles.length - 10} more...` : ''}`,
     );
     integrationLog('='.repeat(80));
   }, 60000); // 60 second timeout for the comprehensive test
 });
+
+async function listGeneratedProjectFiles(
+  projectRoot: string,
+): Promise<string[]> {
+  const files: string[] = [];
+
+  async function walk(directory: string): Promise<void> {
+    const entries = await fs.readdir(directory, { withFileTypes: true });
+
+    for (const entry of entries) {
+      const fullPath = path.join(directory, entry.name);
+      const relativePath = path
+        .relative(projectRoot, fullPath)
+        .split(path.sep)
+        .join('/');
+
+      if (
+        relativePath === '.ruler' ||
+        relativePath.startsWith('.ruler/') ||
+        relativePath === '.git' ||
+        relativePath.startsWith('.git/')
+      ) {
+        continue;
+      }
+
+      if (entry.isDirectory()) {
+        await walk(fullPath);
+        continue;
+      }
+
+      if (entry.isFile()) {
+        files.push(relativePath);
+      }
+    }
+  }
+
+  await walk(projectRoot);
+  return files.sort();
+}
