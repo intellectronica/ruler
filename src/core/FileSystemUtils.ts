@@ -118,13 +118,26 @@ export async function assertManagedPathInsideRoot(
   }
 }
 
-async function isRulerGeneratedFile(filePath: string): Promise<boolean> {
+async function hasRulerGeneratedMarker(filePath: string): Promise<boolean> {
   try {
     const content = await fs.readFile(filePath, 'utf8');
     return content.startsWith(RULER_GENERATED_MARKER);
   } catch {
     return false;
   }
+}
+
+export async function hasGeneratedProvenance(
+  filePath: string,
+): Promise<boolean> {
+  return await hasRulerGeneratedMarker(getGeneratedProvenancePath(filePath));
+}
+
+export async function isRulerGeneratedFile(filePath: string): Promise<boolean> {
+  return (
+    (await hasRulerGeneratedMarker(filePath)) ||
+    (await hasGeneratedProvenance(filePath))
+  );
 }
 
 export function getGeneratedProvenancePath(filePath: string): string {
@@ -511,7 +524,7 @@ export async function backupFile(
 
   try {
     await fs.access(backupPath);
-    if (await isRulerGeneratedFile(backupProvenancePath)) {
+    if (await hasRulerGeneratedMarker(backupProvenancePath)) {
       return;
     }
     throw new Error(`Refusing to use existing unverified backup file`);

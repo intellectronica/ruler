@@ -108,6 +108,7 @@ async function ignoreFileHasRulerGeneratedPath(
 async function hasRulerGeneratedProvenance(
   filePath: string,
   projectRoot: string,
+  options: { allowIgnoreEntries?: boolean } = {},
 ): Promise<boolean> {
   try {
     const provenanceContent = await fs.readFile(
@@ -135,6 +136,10 @@ async function hasRulerGeneratedProvenance(
       return true;
     }
   } catch {
+    return false;
+  }
+
+  if (options.allowIgnoreEntries === false) {
     return false;
   }
 
@@ -172,7 +177,9 @@ async function restoreFromBackup(
 
   if (
     projectRoot &&
-    !(await hasRulerGeneratedProvenance(backupPath, projectRoot))
+    !(await hasRulerGeneratedProvenance(backupPath, projectRoot, {
+      allowIgnoreEntries: false,
+    }))
   ) {
     logVerbose(`Preserving unverified backup file: ${backupPath}`, verbose);
     return false;
@@ -241,7 +248,9 @@ async function removeGeneratedFile(
   if (
     backupExists &&
     (!projectRoot ||
-      (await hasRulerGeneratedProvenance(`${filePath}.bak`, projectRoot)))
+      (await hasRulerGeneratedProvenance(`${filePath}.bak`, projectRoot, {
+        allowIgnoreEntries: false,
+      })))
   ) {
     logVerbose(`File has backup, skipping removal: ${filePath}`, verbose);
     return false;
@@ -590,7 +599,11 @@ async function removeAdditionalAgentFiles(
       if (restored) {
         filesRemoved++;
       }
-    } else if (!(await hasRulerGeneratedProvenance(fullPath, projectRoot))) {
+    } else if (
+      !(await hasRulerGeneratedProvenance(fullPath, projectRoot, {
+        allowIgnoreEntries: false,
+      }))
+    ) {
       logVerbose(
         `Preserving additional file without backup or Ruler provenance: ${fullPath}`,
         verbose,

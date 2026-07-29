@@ -188,7 +188,14 @@ command = "sub-command"
         const relative =
           '/' + path.relative(projectRoot, target).split(path.sep).join('/');
         expectedGitignoreEntries.add(relative);
-        expectedGitignoreEntries.add(`${relative}.bak`);
+        const backupExists = await fs
+          .access(`${target}.bak`)
+          .then(() => true)
+          .catch(() => false);
+        if (backupExists) {
+          expectedGitignoreEntries.add(`${relative}.bak`);
+          expectedGitignoreEntries.add(`${relative}.bak.ruler-generated`);
+        }
       } else {
         expect(exists).toBe(false);
       }
