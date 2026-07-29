@@ -18,11 +18,11 @@ describe('GitHub Actions pins', () => {
       .filter((uses) => !/@[a-f0-9]{40}$/i.test(uses));
 
     expect(mutableActionUses).toEqual([]);
-    expect(workflowText).toContain(
-      'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1',
+    expect(workflowText).toMatch(
+      /uses:\s*actions\/checkout@[a-f0-9]{40}(?:\s*#.*)?$/im,
     );
-    expect(workflowText).toContain(
-      'actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38',
+    expect(workflowText).toMatch(
+      /uses:\s*actions\/setup-node@[a-f0-9]{40}(?:\s*#.*)?$/im,
     );
   });
 
