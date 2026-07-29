@@ -31,6 +31,11 @@ const MANAGED_IGNORE_FILES = ['.gitignore', '.git/info/exclude'];
 
 export { allAgents };
 
+function isFullAgentSelection(selected: IAgent[]): boolean {
+  const selectedIds = new Set(selected.map((agent) => agent.getIdentifier()));
+  return agents.every((agent) => selectedIds.has(agent.getIdentifier()));
+}
+
 /**
  * Reverts ruler configurations for selected AI agents.
  */
@@ -93,7 +98,7 @@ export async function revertAllAgentConfigs(
     `Selected agents: ${selected.map((a) => a.getName()).join(', ')}`,
     verbose,
   );
-  const isFullRevert = !config.cliAgents || config.cliAgents.length === 0;
+  const isFullRevert = isFullAgentSelection(selected);
 
   // Revert configurations for each agent
   let totalFilesProcessed = 0;
@@ -194,24 +199,28 @@ async function revertNestedAgentConfigs(
     dryRun,
   );
 
+  const selectedAgentsByRulerDir = new Map<string, IAgent[]>();
   for (const configEntry of configurations) {
+    configEntry.config.cliAgents = includedAgents;
     configEntry.config.agentConfigs = mapRawAgentConfigs(
       configEntry.config.agentConfigs,
       agents,
     );
+    selectedAgentsByRulerDir.set(
+      configEntry.rulerDir,
+      resolveSelectedAgents(configEntry.config, agents),
+    );
   }
 
   const rootConfigEntry = selectRootConfiguration(configurations, projectRoot);
-  const rootConfig = rootConfigEntry.config;
-  rootConfig.cliAgents = includedAgents;
-
-  const selected = resolveSelectedAgents(rootConfig, agents);
+  const selected =
+    selectedAgentsByRulerDir.get(rootConfigEntry.rulerDir) ??
+    resolveSelectedAgents(rootConfigEntry.config, agents);
   logVerbose(
     `Selected agents: ${selected.map((a) => a.getName()).join(', ')}`,
     verbose,
   );
 
-  const isFullRevert = !includedAgents || includedAgents.length === 0;
   let totalFilesProcessed = 0;
   let totalFilesRestored = 0;
   let totalFilesRemoved = 0;
@@ -222,12 +231,15 @@ async function revertNestedAgentConfigs(
 
   for (const configEntry of configurations) {
     const effectiveProjectRoot = configEntry.projectRoot;
+    const selectedForConfig =
+      selectedAgentsByRulerDir.get(configEntry.rulerDir) ?? selected;
+    const isFullRevertForConfig = isFullAgentSelection(selectedForConfig);
     logVerbose(
       `Reverting nested .ruler directory: ${configEntry.rulerDir}`,
       verbose,
     );
 
-    for (const agent of selected) {
+    for (const agent of selectedForConfig) {
       const prefix = actionPrefix(dryRun);
       console.log(`${prefix} Reverting ${agent.getName()}...`);
 
@@ -257,7 +269,7 @@ async function revertNestedAgentConfigs(
       );
     }
 
-    if (isFullRevert) {
+    if (isFullRevertForConfig) {
       const cleanupResult = await cleanUpAuxiliaryFiles(
         effectiveProjectRoot,
         verbose,
