@@ -1,4 +1,5 @@
 import * as fs from 'fs/promises';
+import * as nodeFs from 'fs';
 import * as path from 'path';
 import os from 'os';
 
@@ -511,6 +512,72 @@ describe('revert-engine', () => {
         await fs.rm(outsideDir, { recursive: true, force: true });
       }
     });
+
+    it('should preserve files added after empty directory checks', async () => {
+      const geminiDir = path.join(tmpDir, '.gemini');
+      const lateFile = path.join(geminiDir, 'user-settings.json');
+      const actualReaddir = nodeFs.promises.readdir;
+
+      await fs.mkdir(geminiDir, { recursive: true });
+
+      const readdirSpy = jest
+        .spyOn(nodeFs.promises, 'readdir')
+        .mockImplementation(async (dirPath, options) => {
+          if (dirPath === geminiDir) {
+            await fs.writeFile(lateFile, '{"user": true}');
+            return [];
+          }
+
+          return actualReaddir(dirPath, options as never) as never;
+        });
+
+      try {
+        const result = await cleanUpAuxiliaryFiles(tmpDir, false, false);
+
+        expect(result.directoriesRemoved).toBe(0);
+        await expect(fs.readFile(lateFile, 'utf8')).resolves.toBe(
+          '{"user": true}',
+        );
+      } finally {
+        readdirSpy.mockRestore();
+      }
+    });
+
+    it.each(['ENOTEMPTY', 'EEXIST', 'ENOENT'])(
+      'should treat %s during empty directory removal as a cleanup miss',
+      async (code) => {
+        const geminiDir = path.join(tmpDir, '.gemini');
+        const actualRmdir = nodeFs.promises.rmdir;
+
+        await fs.mkdir(geminiDir, { recursive: true });
+
+        const rmdirSpy = jest
+          .spyOn(nodeFs.promises, 'rmdir')
+          .mockImplementation(async (dirPath) => {
+            if (dirPath === geminiDir) {
+              if (code === 'ENOENT') {
+                await actualRmdir(geminiDir);
+              }
+              throw Object.assign(new Error(code), { code });
+            }
+
+            return actualRmdir(dirPath);
+          });
+
+        try {
+          const result = await cleanUpAuxiliaryFiles(tmpDir, false, false);
+
+          expect(result.directoriesRemoved).toBe(0);
+          if (code === 'ENOENT') {
+            await expect(fs.access(geminiDir)).rejects.toThrow();
+          } else {
+            await expect(fs.access(geminiDir)).resolves.toBeUndefined();
+          }
+        } finally {
+          rmdirSpy.mockRestore();
+        }
+      },
+    );
   });
 
   describe('dry-run logging patterns', () => {
