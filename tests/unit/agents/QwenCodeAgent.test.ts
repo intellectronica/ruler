@@ -26,6 +26,15 @@ describe('QwenCodeAgent', () => {
     expect(agent.getMcpServerKey()).toBe('mcpServers');
   });
 
+  it('reports identifier, name, and MCP capabilities', () => {
+    const agent = new QwenCodeAgent();
+
+    expect(agent.getIdentifier()).toBe('qwen');
+    expect(agent.getName()).toBe('Qwen Code');
+    expect(agent.supportsMcpStdio()).toBe(true);
+    expect(agent.supportsMcpRemote()).toBe(true);
+  });
+
   it('writes AGENTS.md and sets contextFileName in .qwen/settings.json', async () => {
     const { projectRoot } = await setupTestProject({
       '.ruler/AGENTS.md': 'Rule A',
@@ -98,6 +107,44 @@ describe('QwenCodeAgent', () => {
       });
       // Ensure contextFileName is set to AGENTS.md
       expect(settings.contextFileName).toBe('AGENTS.md');
+    } finally {
+      await teardownTestProject(projectRoot);
+    }
+  });
+
+  it('skips rewriting settings when they are already current', async () => {
+    const { projectRoot } = await setupTestProject({
+      '.ruler/AGENTS.md': 'Rule A',
+      '.qwen/settings.json': JSON.stringify(
+        { contextFileName: 'AGENTS.md' },
+        null,
+        2,
+      ),
+    });
+    try {
+      const agent = new QwenCodeAgent();
+
+      await agent.applyRulerConfig('Rule A', projectRoot, null);
+
+      await expect(
+        fs.access(path.join(projectRoot, '.qwen', 'settings.json.bak')),
+      ).rejects.toThrow();
+    } finally {
+      await teardownTestProject(projectRoot);
+    }
+  });
+
+  it('throws when existing settings JSON is invalid', async () => {
+    const { projectRoot } = await setupTestProject({
+      '.ruler/AGENTS.md': 'Rule A',
+      '.qwen/settings.json': '{ invalid json }',
+    });
+    try {
+      const agent = new QwenCodeAgent();
+
+      await expect(
+        agent.applyRulerConfig('Rule A', projectRoot, null),
+      ).rejects.toThrow();
     } finally {
       await teardownTestProject(projectRoot);
     }

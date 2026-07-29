@@ -6,6 +6,7 @@ import {
   backupFile,
   writeGeneratedFile,
 } from '../core/FileSystemUtils';
+import { writeMcpProvenance } from '../paths/mcp';
 
 export class CrushAgent implements IAgent {
   getIdentifier(): string {
@@ -96,8 +97,11 @@ export class CrushAgent implements IAgent {
       projectRoot,
       'Refusing to write generated file outside project',
     );
+    let mcpExistedBefore = false;
     try {
-      const existingMcpConfig = JSON.parse(await fs.readFile(mcpPath, 'utf-8'));
+      const existingMcpContent = await fs.readFile(mcpPath, 'utf-8');
+      mcpExistedBefore = true;
+      const existingMcpConfig = JSON.parse(existingMcpContent);
       if (existingMcpConfig && typeof existingMcpConfig === 'object') {
         const transformedServers = this.transformMcpServersForCrush(
           (rulerMcpJson?.mcpServers ?? {}) as Record<string, unknown>,
@@ -137,6 +141,9 @@ export class CrushAgent implements IAgent {
         JSON.stringify(finalMcpConfig, null, 2),
         projectRoot,
       );
+      if (!mcpExistedBefore) {
+        await writeMcpProvenance(mcpPath, projectRoot);
+      }
     }
   }
 

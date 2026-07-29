@@ -278,7 +278,7 @@ Follow patterns`;
   });
 
   describe('File Operations', () => {
-    it('creates parent directories and backs up existing files', async () => {
+    it('creates parent directories and does not back up generated files', async () => {
       const agent = new FirebenderAgent();
       const customPath = 'nested/dir/config.json';
       const target = path.resolve(tmpDir, customPath);
@@ -289,12 +289,10 @@ Follow patterns`;
       await agent.applyRulerConfig('First rule', tmpDir, null, agentConfig);
       expect(await fs.stat(path.dirname(target))).toBeTruthy();
 
-      // Second write should create backup
+      // Second write should update without backing up Ruler-generated content.
       await agent.applyRulerConfig('Second rule', tmpDir, null, agentConfig);
 
-      const backup = await fs.readFile(`${target}.bak`, 'utf8');
-      const backupConfig = JSON.parse(backup);
-      expect(backupConfig.rules).toEqual(['First rule']);
+      await expect(fs.access(`${target}.bak`)).rejects.toThrow();
 
       const current = await fs.readFile(target, 'utf8');
       const currentConfig = JSON.parse(current);

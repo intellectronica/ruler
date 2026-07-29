@@ -9,6 +9,7 @@ import {
   writeGeneratedFile,
 } from '../core/FileSystemUtils';
 import { DEFAULT_RULES_FILENAME } from '../constants';
+import { writeMcpProvenance } from '../paths/mcp';
 
 /**
  * Mistral Vibe MCP server configuration using [[mcp_servers]] array format.
@@ -196,6 +197,9 @@ export class MistralVibeAgent implements IAgent {
         await backupFile(configPath, projectRoot);
       }
       await writeGeneratedFile(configPath, tomlContent, projectRoot);
+      if (!configExists) {
+        await writeMcpProvenance(configPath, projectRoot);
+      }
     }
   }
 

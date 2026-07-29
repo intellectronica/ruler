@@ -8,6 +8,7 @@ import {
   ensureDirExists,
 } from '../core/FileSystemUtils';
 import { mergeMcp } from '../mcp/merge';
+import { writeMcpProvenance } from '../paths/mcp';
 
 /**
  * Amazon Q CLI agent adapter.
@@ -65,8 +66,10 @@ export class AmazonQCliAgent implements IAgent {
       await ensureDirExists(path.dirname(mcpPath));
 
       let existingMcpConfig: Record<string, unknown> = {};
+      let mcpExistedBefore = false;
       try {
         const raw = await fs.readFile(mcpPath, 'utf8');
+        mcpExistedBefore = true;
         existingMcpConfig = JSON.parse(raw);
       } catch (err: unknown) {
         if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
@@ -91,6 +94,9 @@ export class AmazonQCliAgent implements IAgent {
         JSON.stringify(mergedConfig, null, 2),
         projectRoot,
       );
+      if (!mcpExistedBefore) {
+        await writeMcpProvenance(mcpPath, projectRoot);
+      }
     }
   }
 
