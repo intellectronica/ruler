@@ -317,8 +317,6 @@ File: extra-rules.md
       '.windsurf/mcp_config.json.ruler-generated',
       '.zed/settings.json',
       'AGENTS.md',
-      'AGENTS.md.bak',
-      'AGENTS.md.bak.ruler-generated',
       'CLAUDE.md',
       'CRUSH.md',
       'config.toml',
