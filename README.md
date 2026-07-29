@@ -737,10 +737,9 @@ ruler apply
 
 # 3. Skills are now available to compatible agents:
 #    - Claude Code, GitHub Copilot & Kilo Code: .claude/skills/my-skill/
-#    - OpenAI Codex CLI: .agents/skills/my-skill/ (shared with Goose, Amp & Zed)
+#    - OpenAI Codex CLI, Goose, Amp & Zed: .agents/skills/my-skill/
 #    - OpenCode: .opencode/skills/my-skill/
 #    - Pi Coding Agent: .pi/skills/my-skill/
-#    - Goose, Amp, Zed & OpenAI Codex CLI: .agents/skills/my-skill/
 #    - Antigravity: .agent/skills/my-skill/
 #    - Factory Droid: .factory/skills/my-skill/
 #    - Mistral Vibe: .vibe/skills/my-skill/
