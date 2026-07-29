@@ -1,6 +1,7 @@
 import { IAgent, IAgentConfig } from './IAgent';
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import { AgentsMdAgent } from './AgentsMdAgent';
 import {
   assertManagedPathInsideRoot,
   backupFile,
@@ -8,6 +9,8 @@ import {
 } from '../core/FileSystemUtils';
 
 export class OpenCodeAgent implements IAgent {
+  private agentsMdAgent = new AgentsMdAgent();
+
   getIdentifier(): string {
     return 'opencode';
   }
@@ -42,10 +45,13 @@ export class OpenCodeAgent implements IAgent {
       agentConfig?.outputPathConfig ?? outputPaths['mcp'],
     );
 
-    if (backup) {
-      await backupFile(instructionsPath, projectRoot);
-    }
-    await writeGeneratedFile(instructionsPath, concatenatedRules, projectRoot);
+    await this.agentsMdAgent.applyRulerConfig(
+      concatenatedRules,
+      projectRoot,
+      null,
+      { outputPath: instructionsPath },
+      backup,
+    );
 
     if (!rulerMcpJson) {
       return;
