@@ -19,10 +19,23 @@ describe('GitHub Actions pins', () => {
 
     expect(mutableActionUses).toEqual([]);
     expect(workflowText).toContain(
-      'actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0',
+      'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1',
     );
     expect(workflowText).toContain(
-      'actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e',
+      'actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38',
     );
+  });
+
+  it('configures Dependabot to refresh pinned GitHub Actions', () => {
+    const dependabotPath = path.join(
+      process.cwd(),
+      '.github',
+      'dependabot.yml',
+    );
+    const dependabotConfig = fs.readFileSync(dependabotPath, 'utf8');
+
+    expect(dependabotConfig).toContain('package-ecosystem: github-actions');
+    expect(dependabotConfig).toContain('directory: /');
+    expect(dependabotConfig).toContain('interval: weekly');
   });
 });
