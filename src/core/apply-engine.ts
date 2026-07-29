@@ -587,12 +587,13 @@ export async function applyConfigurationsToAgents(
           }
         }
         for (const outputPath of optionalOutputPaths) {
-          if (optionalOutputPathExistedBefore.get(outputPath)) {
-            continue;
-          }
-          if (await pathExists(resolveOutputPath(projectRoot, outputPath))) {
-            generatedPaths.push(outputPath);
-          }
+          await trackOptionalGeneratedArtifacts(
+            outputPath,
+            projectRoot,
+            generatedPaths,
+            optionalOutputPathExistedBefore.get(outputPath) ?? false,
+            backup,
+          );
         }
       }
     }
@@ -663,7 +664,6 @@ async function handleMcpConfiguration(
     return;
   }
 
-  await updateGitignoreForMcpFile(dest, projectRoot, generatedPaths, backup);
   await applyMcpConfiguration(
     agent,
     filteredMcpJson,
@@ -676,6 +676,9 @@ async function handleMcpConfiguration(
     verbose,
     backup,
   );
+  if (!dryRun) {
+    await trackMcpGeneratedArtifacts(dest, projectRoot, generatedPaths, backup);
+  }
 }
 
 function shouldUseEngineManagedMcp(agent: IAgent): boolean {
@@ -715,19 +718,80 @@ async function resolveMcpDestination(
   return await getNativeMcpPath(agent.getName(), projectRoot);
 }
 
-async function updateGitignoreForMcpFile(
+async function trackOptionalGeneratedArtifacts(
+  outputPath: string,
+  projectRoot: string,
+  generatedPaths: string[],
+  existedBefore: boolean,
+  backup = true,
+): Promise<void> {
+  const absolutePath = resolveOutputPath(projectRoot, outputPath);
+  if (!isPathInsideOrEqual(projectRoot, absolutePath)) {
+    return;
+  }
+
+  if (
+    (await pathExists(absolutePath)) &&
+    (!existedBefore ||
+      (await FileSystemUtils.isRulerGeneratedFile(absolutePath)))
+  ) {
+    generatedPaths.push(path.relative(projectRoot, absolutePath));
+    await trackExistingProvenance(absolutePath, projectRoot, generatedPaths);
+  }
+
+  if (backup) {
+    await trackVerifiedBackupArtifacts(
+      absolutePath,
+      projectRoot,
+      generatedPaths,
+    );
+  }
+}
+
+async function trackMcpGeneratedArtifacts(
   dest: string,
   projectRoot: string,
   generatedPaths: string[],
   backup = true,
 ): Promise<void> {
-  if (isPathInsideOrEqual(projectRoot, dest)) {
-    const relativeDest = path.relative(projectRoot, dest);
-    generatedPaths.push(relativeDest);
-    generatedPaths.push(path.relative(projectRoot, getMcpProvenancePath(dest)));
-    if (backup) {
-      generatedPaths.push(`${relativeDest}.bak`);
-    }
+  if (!isPathInsideOrEqual(projectRoot, dest)) {
+    return;
+  }
+
+  if (await FileSystemUtils.isRulerGeneratedFile(dest)) {
+    generatedPaths.push(path.relative(projectRoot, dest));
+    await trackExistingProvenance(dest, projectRoot, generatedPaths);
+  }
+
+  if (backup) {
+    await trackVerifiedBackupArtifacts(dest, projectRoot, generatedPaths);
+  }
+}
+
+async function trackExistingProvenance(
+  filePath: string,
+  projectRoot: string,
+  generatedPaths: string[],
+): Promise<void> {
+  const provenancePath = getMcpProvenancePath(filePath);
+  if (await pathExists(provenancePath)) {
+    generatedPaths.push(path.relative(projectRoot, provenancePath));
+  }
+}
+
+async function trackVerifiedBackupArtifacts(
+  filePath: string,
+  projectRoot: string,
+  generatedPaths: string[],
+): Promise<void> {
+  const backupPath = `${filePath}.bak`;
+  if (!(await pathExists(backupPath))) {
+    return;
+  }
+
+  if (await FileSystemUtils.hasGeneratedProvenance(backupPath)) {
+    generatedPaths.push(path.relative(projectRoot, backupPath));
+    await trackExistingProvenance(backupPath, projectRoot, generatedPaths);
   }
 }
 
@@ -838,8 +902,10 @@ async function applyMcpConfiguration(
   if (
     agent.getIdentifier() === 'zed' ||
     agent.getIdentifier() === 'gemini-cli' ||
+    agent.getIdentifier() === 'amazonqcli' ||
     agent.getIdentifier() === 'amazon-q-cli' ||
-    agent.getIdentifier() === 'crush'
+    agent.getIdentifier() === 'crush' ||
+    agent.getIdentifier() === 'mistral'
   ) {
     logVerbose(
       `Skipping external MCP config for ${agent.getName()} - handled internally by agent`,

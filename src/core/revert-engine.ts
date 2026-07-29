@@ -29,6 +29,7 @@ const RULER_SOURCE_MARKER_PREFIXES = [
   '<!-- Source: .ruler/',
   '<!-- Source: ruler/',
 ];
+const DIRECTORY_CLEANUP_MISS_CODES = new Set(['ENOTEMPTY', 'EEXIST', 'ENOENT']);
 
 /**
  * Result of reverting an agent configuration
@@ -107,6 +108,7 @@ async function ignoreFileHasRulerGeneratedPath(
 async function hasRulerGeneratedProvenance(
   filePath: string,
   projectRoot: string,
+  options: { allowIgnoreEntries?: boolean } = {},
 ): Promise<boolean> {
   try {
     const provenanceContent = await fs.readFile(
@@ -134,6 +136,10 @@ async function hasRulerGeneratedProvenance(
       return true;
     }
   } catch {
+    return false;
+  }
+
+  if (options.allowIgnoreEntries === false) {
     return false;
   }
 
@@ -171,7 +177,9 @@ async function restoreFromBackup(
 
   if (
     projectRoot &&
-    !(await hasRulerGeneratedProvenance(backupPath, projectRoot))
+    !(await hasRulerGeneratedProvenance(backupPath, projectRoot, {
+      allowIgnoreEntries: false,
+    }))
   ) {
     logVerbose(`Preserving unverified backup file: ${backupPath}`, verbose);
     return false;
@@ -240,7 +248,9 @@ async function removeGeneratedFile(
   if (
     backupExists &&
     (!projectRoot ||
-      (await hasRulerGeneratedProvenance(`${filePath}.bak`, projectRoot)))
+      (await hasRulerGeneratedProvenance(`${filePath}.bak`, projectRoot, {
+        allowIgnoreEntries: false,
+      })))
   ) {
     logVerbose(`File has backup, skipping removal: ${filePath}`, verbose);
     return false;
@@ -368,6 +378,43 @@ async function isDirectoryTreeEmpty(dirPath: string): Promise<boolean> {
   }
 }
 
+function isDirectoryCleanupMiss(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null || !('code' in error)) {
+    return false;
+  }
+
+  const code = (error as { code?: unknown }).code;
+  return typeof code === 'string' && DIRECTORY_CLEANUP_MISS_CODES.has(code);
+}
+
+async function removeEmptyDirectoryTree(dirPath: string): Promise<boolean> {
+  const entries = await fs.readdir(dirPath);
+
+  for (const entry of entries) {
+    const entryPath = path.join(dirPath, entry);
+    const entryStat = await fs.lstat(entryPath);
+
+    if (entryStat.isFile()) {
+      return false;
+    } else if (entryStat.isDirectory()) {
+      const childRemoved = await removeEmptyDirectoryTree(entryPath);
+      if (!childRemoved) {
+        return false;
+      }
+    }
+  }
+
+  try {
+    await fs.rmdir(dirPath);
+    return true;
+  } catch (error) {
+    if (isDirectoryCleanupMiss(error)) {
+      return false;
+    }
+    throw error;
+  }
+}
+
 /**
  * Helper function to execute directory removal with consistent dry-run handling and logging.
  */
@@ -386,7 +433,10 @@ async function executeDirectoryAction(
       verbose,
     );
   } else {
-    await fs.rm(dirPath, { recursive: true });
+    const removed = await removeEmptyDirectoryTree(dirPath);
+    if (!removed) {
+      return false;
+    }
     logVerbose(`${prefix} Removed empty ${actionText}: ${dirPath}`, verbose);
   }
   return true;
@@ -549,7 +599,11 @@ async function removeAdditionalAgentFiles(
       if (restored) {
         filesRemoved++;
       }
-    } else if (!(await hasRulerGeneratedProvenance(fullPath, projectRoot))) {
+    } else if (
+      !(await hasRulerGeneratedProvenance(fullPath, projectRoot, {
+        allowIgnoreEntries: false,
+      }))
+    ) {
       logVerbose(
         `Preserving additional file without backup or Ruler provenance: ${fullPath}`,
         verbose,

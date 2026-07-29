@@ -3,6 +3,7 @@ import { promises as fs } from 'fs';
 import { AgentsMdAgent } from './AgentsMdAgent';
 import { IAgentConfig } from './IAgent';
 import { backupFile, writeGeneratedFile } from '../core/FileSystemUtils';
+import { writeMcpProvenance } from '../paths/mcp';
 
 /**
  * Zed editor agent adapter.
@@ -16,6 +17,20 @@ export class ZedAgent extends AgentsMdAgent {
 
   getName(): string {
     return 'Zed';
+  }
+
+  private getSettingsPath(projectRoot: string, agentConfig?: IAgentConfig) {
+    return path.resolve(
+      projectRoot,
+      agentConfig?.outputPathConfig ?? path.join('.zed', 'settings.json'),
+    );
+  }
+
+  getAdditionalOutputPaths(
+    projectRoot: string,
+    agentConfig?: IAgentConfig,
+  ): string[] {
+    return [this.getSettingsPath(projectRoot, agentConfig)];
   }
 
   async applyRulerConfig(
@@ -39,10 +54,7 @@ export class ZedAgent extends AgentsMdAgent {
     // Handle MCP server configuration if enabled and provided
     const mcpEnabled = agentConfig?.mcp?.enabled ?? true;
     if (mcpEnabled && rulerMcpJson) {
-      const zedSettingsPath = path.resolve(
-        projectRoot,
-        agentConfig?.outputPathConfig ?? path.join('.zed', 'settings.json'),
-      );
+      const zedSettingsPath = this.getSettingsPath(projectRoot, agentConfig);
 
       // Read existing settings
       let existingSettings: Record<string, unknown> = {};
@@ -123,6 +135,9 @@ export class ZedAgent extends AgentsMdAgent {
 
       // Write updated settings
       await writeGeneratedFile(zedSettingsPath, nextContent, projectRoot);
+      if (existingContent === null) {
+        await writeMcpProvenance(zedSettingsPath, projectRoot);
+      }
     }
   }
 

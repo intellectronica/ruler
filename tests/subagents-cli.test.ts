@@ -415,4 +415,79 @@ describe('Subagents apply integration', () => {
       fs.access(path.join(tmpDir, CLAUDE_SUBAGENTS_PATH, 'reviewer.md')),
     ).resolves.toBeUndefined();
   });
+
+  it('respects child [agents] enabled=false in nested mode', async () => {
+    const childRoot = path.join(tmpDir, 'packages', 'child');
+    await setupRulerProject(tmpDir);
+    await setupRulerProject(childRoot);
+    await writeSubagent(childRoot, 'reviewer');
+    await fs.writeFile(
+      path.join(tmpDir, '.ruler', 'ruler.toml'),
+      'nested = true\n[agents]\nenabled = true\n',
+    );
+    await fs.writeFile(
+      path.join(childRoot, '.ruler', 'ruler.toml'),
+      '[agents]\nenabled = false\n',
+    );
+
+    await applyAllAgentConfigs(
+      tmpDir,
+      ['claude'],
+      undefined,
+      false,
+      undefined,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      undefined,
+      undefined,
+      undefined,
+    );
+
+    await expect(
+      fs.access(path.join(childRoot, CLAUDE_SUBAGENTS_PATH)),
+    ).rejects.toThrow();
+  });
+
+  it('adds nested child subagent outputs to gitignore', async () => {
+    const childRoot = path.join(tmpDir, 'packages', 'child');
+    await setupRulerProject(tmpDir);
+    await setupRulerProject(childRoot);
+    await writeSubagent(childRoot, 'reviewer');
+    await fs.writeFile(
+      path.join(tmpDir, '.ruler', 'ruler.toml'),
+      'nested = true\n',
+    );
+    await fs.writeFile(
+      path.join(childRoot, '.ruler', 'ruler.toml'),
+      '[agents]\nenabled = true\n',
+    );
+
+    await applyAllAgentConfigs(
+      tmpDir,
+      ['claude'],
+      undefined,
+      false,
+      undefined,
+      undefined,
+      false,
+      false,
+      false,
+      true,
+      true,
+      undefined,
+      undefined,
+      undefined,
+    );
+
+    await expect(
+      fs.access(path.join(childRoot, CLAUDE_SUBAGENTS_PATH, 'reviewer.md')),
+    ).resolves.toBeUndefined();
+    await expect(
+      fs.readFile(path.join(tmpDir, '.gitignore'), 'utf8'),
+    ).resolves.toContain('/packages/child/.claude/agents/reviewer.md');
+  });
 });

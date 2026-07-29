@@ -19,6 +19,7 @@ import { AiderAgent } from '../../../src/agents/AiderAgent';
 import { CodexCliAgent } from '../../../src/agents/CodexCliAgent';
 import { AgentsMdAgent } from '../../../src/agents/AgentsMdAgent';
 import { JulesAgent } from '../../../src/agents/JulesAgent';
+import { ZedAgent } from '../../../src/agents/ZedAgent';
 import { LoadedConfig } from '../../../src/core/ConfigLoader';
 import * as FileSystemUtils from '../../../src/core/FileSystemUtils';
 import * as Constants from '../../../src/constants';
@@ -783,6 +784,65 @@ command = "sub-cmd"
       const mcpContent = JSON.parse(await fs.readFile(mcpPath, 'utf8'));
 
       expect(mcpContent).toEqual(mcpJson);
+    });
+
+    it('does not mark pre-existing MCP configs as generated when backups are disabled', async () => {
+      const mcpPath = path.join(tmpDir, '.mcp.json');
+      await fs.writeFile(
+        mcpPath,
+        JSON.stringify({ mcpServers: { user: { command: 'node' } } }, null, 2),
+      );
+
+      const result = await applyConfigurationsToAgents(
+        [new ClaudeAgent()],
+        '# Test rules',
+        { mcpServers: { ruler: { command: 'echo' } } },
+        { agentConfigs: {} },
+        tmpDir,
+        false,
+        false,
+        true,
+        undefined,
+        false,
+      );
+
+      expect(result).not.toContain('.mcp.json');
+      expect(result).not.toContain('.mcp.json.ruler-generated');
+      expect(result).not.toContain('.mcp.json.bak');
+    });
+
+    it('tracks verified optional MCP backups without marking user sidecars generated', async () => {
+      const zedSettingsPath = path.join(tmpDir, '.zed', 'settings.json');
+      await fs.mkdir(path.dirname(zedSettingsPath), { recursive: true });
+      await fs.writeFile(
+        zedSettingsPath,
+        JSON.stringify(
+          {
+            theme: 'dark',
+            context_servers: { user: { command: 'node' } },
+          },
+          null,
+          2,
+        ),
+      );
+
+      const result = await applyConfigurationsToAgents(
+        [new ZedAgent()],
+        '# Test rules',
+        { mcpServers: { ruler: { command: 'echo' } } },
+        { agentConfigs: {} },
+        tmpDir,
+        false,
+        false,
+        true,
+        undefined,
+        true,
+      );
+
+      expect(result).toContain('.zed/settings.json.bak');
+      expect(result).toContain('.zed/settings.json.bak.ruler-generated');
+      expect(result).not.toContain('.zed/settings.json');
+      expect(result).not.toContain('.zed/settings.json.ruler-generated');
     });
   });
 

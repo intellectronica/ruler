@@ -245,14 +245,6 @@ export async function applyAllAgentConfigs(
       );
     }
 
-    // Propagate subagents (mirrors skills handling for nested mode).
-    const subagentsEnabledResolved = resolveSubagentsEnabled(
-      subagentsEnabled,
-      rootConfig.subagents?.enabled,
-    );
-    const subagentsCleanupOrphaned = resolveSubagentsCleanupOrphaned(
-      rootConfig.subagents?.cleanup_orphaned,
-    );
     const backupEnabledResolved = resolveBackupEnabled(
       backup,
       rootConfig.backup?.enabled,
@@ -263,6 +255,13 @@ export async function applyAllAgentConfigs(
         const nestedRoot = path.dirname(configEntry.rulerDir);
         const configSelectedAgents =
           selectedAgentsByRulerDir.get(configEntry.rulerDir) ?? selectedAgents;
+        const subagentsEnabledResolved = resolveSubagentsEnabled(
+          subagentsEnabled,
+          configEntry.config.subagents?.enabled,
+        );
+        const subagentsCleanupOrphaned = resolveSubagentsCleanupOrphaned(
+          configEntry.config.subagents?.cleanup_orphaned,
+        );
         logVerbose(
           `Propagating subagents for nested directory: ${nestedRoot}`,
           verbose,
@@ -391,19 +390,24 @@ export async function applyAllAgentConfigs(
   }
 
   // Add subagents-generated paths to gitignore if subagents are enabled.
-  const subagentsEnabledForGitignore = resolveSubagentsEnabled(
-    subagentsEnabled,
-    loadedConfig.subagents?.enabled,
-  );
-  if (subagentsEnabledForGitignore) {
+  const subagentsEnabledGitignoreConfigurations =
+    gitignoreConfigurations.filter((entry) =>
+      resolveSubagentsEnabled(
+        subagentsEnabled,
+        entry.config.subagents?.enabled,
+      ),
+    );
+  if (subagentsEnabledGitignoreConfigurations.length > 0) {
     const { getSubagentsGitignorePaths } = await import(
       './core/SubagentsProcessor'
     );
-    const subagentPaths = await getSubagentsGitignorePaths(
-      outputProjectRoot,
-      selectedAgents,
-    );
-    allGeneratedPaths = [...allGeneratedPaths, ...subagentPaths];
+    for (const entry of subagentsEnabledGitignoreConfigurations) {
+      const subagentPaths = await getSubagentsGitignorePaths(
+        entry.projectRoot,
+        entry.selectedAgents ?? selectedAgents,
+      );
+      allGeneratedPaths = [...allGeneratedPaths, ...subagentPaths];
+    }
   }
 
   await updateGitignore(
