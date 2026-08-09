@@ -129,6 +129,55 @@ describe('Symlink output safety', () => {
     );
   });
 
+  it('does not create a dangling native subagent symlink target outside the project', async () => {
+    const outsideTarget = path.join(
+      projectRoot,
+      '..',
+      `${path.basename(projectRoot)}-outside-subagent.md`,
+    );
+    const outputPath = path.join(
+      projectRoot,
+      '.claude',
+      'agents',
+      'reviewer.md',
+    );
+    await fs.mkdir(path.join(projectRoot, '.ruler', 'agents'), {
+      recursive: true,
+    });
+    await fs.writeFile(
+      path.join(projectRoot, '.ruler', 'agents', 'reviewer.md'),
+      '---\nname: reviewer\ndescription: Reviews code\n---\nOUTSIDE_WRITE\n',
+    );
+    await fs.mkdir(path.dirname(outputPath), { recursive: true });
+    await fs.symlink(outsideTarget, outputPath);
+
+    try {
+      expect(() =>
+        execFileSync(
+          'node',
+          [
+            path.resolve('dist/cli/index.js'),
+            'apply',
+            '--project-root',
+            projectRoot,
+            '--agents',
+            'claude',
+            '--subagents',
+            '--no-backup',
+            '--no-gitignore',
+          ],
+          { stdio: 'pipe' },
+        ),
+      ).toThrow();
+
+      await expect(fs.access(outsideTarget)).rejects.toThrow();
+      const outputStat = await fs.lstat(outputPath);
+      expect(outputStat.isSymbolicLink()).toBe(true);
+    } finally {
+      await fs.rm(outsideTarget, { force: true });
+    }
+  });
+
   it('does not write through an MCP config directory symlink outside the project', async () => {
     const outsideDir = path.join(
       projectRoot,
