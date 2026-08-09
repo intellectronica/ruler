@@ -105,6 +105,7 @@ export async function assertManagedPathInsideRoot(
 ): Promise<void> {
   const realRoot = await fs.realpath(rootPath);
   await assertContainingDirectoryInsideRoot(managedPath, rootPath, action);
+  await assertNotSymbolicLink(managedPath, action);
 
   try {
     const realManagedPath = await fs.realpath(managedPath);
