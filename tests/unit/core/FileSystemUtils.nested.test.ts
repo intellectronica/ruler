@@ -102,6 +102,25 @@ describe('FileSystemUtils - Nested', () => {
       ]);
     });
 
+    it('does not treat multiline .git files with a later gitdir line as repository boundaries', async () => {
+      const projectDir = path.join(tmpDir, 'multiline-non-git-file');
+      const nestedDir = path.join(projectDir, 'nested');
+
+      await fs.mkdir(path.join(projectDir, '.ruler'), { recursive: true });
+      await fs.mkdir(path.join(nestedDir, '.ruler'), { recursive: true });
+      await fs.writeFile(
+        path.join(nestedDir, '.git'),
+        'arbitrary metadata\ngitdir: /not/a/git/marker\n',
+      );
+
+      const rulerDirs = await findAllRulerDirs(projectDir);
+
+      expect(rulerDirs).toEqual([
+        path.join(nestedDir, '.ruler'),
+        path.join(projectDir, '.ruler'),
+      ]);
+    });
+
     it('skips .ruler directories inside generated and fixture directories', async () => {
       const projectDir = path.join(tmpDir, 'ignored-generated-trees');
       const moduleDir = path.join(projectDir, 'packages', 'app');

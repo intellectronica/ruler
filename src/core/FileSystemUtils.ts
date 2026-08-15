@@ -53,9 +53,14 @@ async function isGitRepositoryBoundary(gitPath: string): Promise<boolean> {
 
   try {
     const gitContent = await fs.readFile(gitPath, 'utf8');
-    return (
-      /^gitdir:\s*(.+)\s*$/m.test(gitContent) || /^gitdir:/m.test(gitContent)
-    );
+    if (/^gitdir:[ \t]*\S(?:[^\r\n]*\S)?[ \t]*\r?\n?$/.test(gitContent)) {
+      return true;
+    }
+
+    // A marker that begins with gitdir: but does not have the expected complete
+    // structure is malformed. Treat it as a boundary rather than risk crossing
+    // into another repository.
+    return gitContent.startsWith('gitdir:');
   } catch {
     // A file that cannot be inspected might be a broken git marker. Do not
     // risk applying configurations across that repository boundary.
