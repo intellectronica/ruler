@@ -58,13 +58,18 @@ export class AiderAgent implements IAgent {
     try {
       await fs.access(cfgPath);
       configExisted = true;
-      if (backup) {
-        await backupFile(cfgPath, projectRoot);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+        throw error;
       }
+      doc = {} as AiderConfig;
+    }
+    if (configExisted && backup) {
+      await backupFile(cfgPath, projectRoot);
+    }
+    if (configExisted) {
       const raw = await fs.readFile(cfgPath, 'utf8');
       doc = (yaml.load(raw) || {}) as AiderConfig;
-    } catch {
-      doc = {} as AiderConfig;
     }
     if (!Array.isArray(doc.read)) {
       doc.read = [];
