@@ -63,6 +63,45 @@ describe('FileSystemUtils - Nested', () => {
       ]);
     });
 
+    it('skips .ruler directories inside nested file-backed git worktrees', async () => {
+      const projectDir = path.join(tmpDir, 'file-git-boundaries');
+      const linkedWorktreeDir = path.join(projectDir, 'linked');
+      const siblingDir = path.join(projectDir, 'module');
+
+      await fs.mkdir(path.join(projectDir, '.ruler'), { recursive: true });
+      await fs.mkdir(path.join(linkedWorktreeDir, '.ruler'), {
+        recursive: true,
+      });
+      await fs.writeFile(
+        path.join(linkedWorktreeDir, '.git'),
+        'gitdir: /path/to/main-repository/.git/worktrees/linked\n',
+      );
+      await fs.mkdir(path.join(siblingDir, '.ruler'), { recursive: true });
+
+      const rulerDirs = await findAllRulerDirs(projectDir);
+
+      expect(rulerDirs).toEqual([
+        path.join(siblingDir, '.ruler'),
+        path.join(projectDir, '.ruler'),
+      ]);
+    });
+
+    it('does not treat arbitrary .git files as repository boundaries', async () => {
+      const projectDir = path.join(tmpDir, 'non-git-file');
+      const nestedDir = path.join(projectDir, 'nested');
+
+      await fs.mkdir(path.join(projectDir, '.ruler'), { recursive: true });
+      await fs.mkdir(path.join(nestedDir, '.ruler'), { recursive: true });
+      await fs.writeFile(path.join(nestedDir, '.git'), 'not git metadata\n');
+
+      const rulerDirs = await findAllRulerDirs(projectDir);
+
+      expect(rulerDirs).toEqual([
+        path.join(nestedDir, '.ruler'),
+        path.join(projectDir, '.ruler'),
+      ]);
+    });
+
     it('skips .ruler directories inside generated and fixture directories', async () => {
       const projectDir = path.join(tmpDir, 'ignored-generated-trees');
       const moduleDir = path.join(projectDir, 'packages', 'app');
