@@ -34,6 +34,40 @@ function shouldSkipNestedDiscoveryDir(dirName: string): boolean {
   );
 }
 
+async function isGitRepositoryBoundary(gitPath: string): Promise<boolean> {
+  let gitStat;
+  try {
+    gitStat = await fs.stat(gitPath);
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    return code !== 'ENOENT' && code !== 'ENOTDIR';
+  }
+
+  if (gitStat.isDirectory()) {
+    return true;
+  }
+
+  if (!gitStat.isFile()) {
+    return false;
+  }
+
+  try {
+    const gitContent = await fs.readFile(gitPath, 'utf8');
+    if (/^gitdir:[ \t]*\S(?:[^\r\n]*\S)?[ \t]*\r?\n?$/.test(gitContent)) {
+      return true;
+    }
+
+    // A marker that begins with gitdir: but does not have the expected complete
+    // structure is malformed. Treat it as a boundary rather than risk crossing
+    // into another repository.
+    return gitContent.startsWith('gitdir:');
+  } catch {
+    // A file that cannot be inspected might be a broken git marker. Do not
+    // risk applying configurations across that repository boundary.
+    return true;
+  }
+}
+
 async function isSymbolicLink(filePath: string): Promise<boolean> {
   try {
     return (await fs.lstat(filePath)).isSymbolicLink();
@@ -590,16 +624,11 @@ export async function findAllRulerDirs(startPath: string): Promise<string[]> {
           } else if (!shouldSkipNestedDiscoveryDir(entry.name)) {
             // Do not cross git repository boundaries (except the starting root)
             const gitDir = path.join(fullPath, '.git');
-            try {
-              const gitStat = await fs.stat(gitDir);
-              if (
-                gitStat.isDirectory() &&
-                path.resolve(fullPath) !== rootPath
-              ) {
-                continue;
-              }
-            } catch {
-              // no .git boundary, continue traversal
+            if (
+              path.resolve(fullPath) !== rootPath &&
+              (await isGitRepositoryBoundary(gitDir))
+            ) {
+              continue;
             }
             await findRulerDirs(fullPath);
           }
