@@ -7,6 +7,7 @@ import {
   ANTIGRAVITY_SKILLS_PATH,
   CLAUDE_SKILLS_PATH,
   JUNIE_SKILLS_PATH,
+  KIRO_SKILLS_PATH,
   WINDSURF_SKILLS_PATH,
   SKILL_MD_FILENAME,
 } from '../src/constants';
@@ -136,6 +137,23 @@ describe('Skills Discovery and Validation', () => {
       expect(paths).toEqual([
         path.join(tmpDir, ANTIGRAVITY_SKILLS_PATH, managedManifest),
         path.join(tmpDir, ANTIGRAVITY_SKILLS_PATH, 'skill1'),
+      ]);
+    });
+
+    it('returns kiro skills path for kiro agent', async () => {
+      const { getSkillsGitignorePaths } = await import(
+        '../src/core/SkillsProcessor'
+      );
+      const { KiroAgent } = await import('../src/agents/KiroAgent');
+      const skillsDir = path.join(tmpDir, '.ruler', 'skills');
+
+      await fs.mkdir(path.join(skillsDir, 'skill1'), { recursive: true });
+
+      const paths = await getSkillsGitignorePaths(tmpDir, [new KiroAgent()]);
+
+      expect(paths).toEqual([
+        path.join(tmpDir, KIRO_SKILLS_PATH, managedManifest),
+        path.join(tmpDir, KIRO_SKILLS_PATH, 'skill1'),
       ]);
     });
 
@@ -1366,7 +1384,108 @@ describe('Skills Discovery and Validation', () => {
     });
   });
 
+  describe('propagateSkillsForKiro', () => {
+    it('copies .ruler/skills to .kiro/skills preserving structure', async () => {
+      const { propagateSkillsForKiro } = await import(
+        '../src/core/SkillsProcessor'
+      );
+      const skillsDir = path.join(tmpDir, '.ruler', 'skills');
+      const skill1 = path.join(skillsDir, 'skill1');
+
+      await fs.mkdir(skill1, { recursive: true });
+      await fs.writeFile(path.join(skill1, SKILL_MD_FILENAME), '# Skill 1');
+
+      await propagateSkillsForKiro(tmpDir, { dryRun: false });
+
+      const copiedSkill = path.join(
+        tmpDir,
+        KIRO_SKILLS_PATH,
+        'skill1',
+        SKILL_MD_FILENAME,
+      );
+      expect(await fs.readFile(copiedSkill, 'utf8')).toBe('# Skill 1');
+    });
+
+    it('preserves skills that Ruler does not manage', async () => {
+      const { propagateSkillsForKiro } = await import(
+        '../src/core/SkillsProcessor'
+      );
+      const rulerSkill = path.join(tmpDir, '.ruler', 'skills', 'ruler-skill');
+      const nativeSkill = path.join(tmpDir, KIRO_SKILLS_PATH, 'native-skill');
+
+      await fs.mkdir(rulerSkill, { recursive: true });
+      await fs.writeFile(
+        path.join(rulerSkill, SKILL_MD_FILENAME),
+        '# Ruler Skill',
+      );
+      await fs.mkdir(nativeSkill, { recursive: true });
+      await fs.writeFile(
+        path.join(nativeSkill, SKILL_MD_FILENAME),
+        '# Native Skill',
+      );
+
+      await propagateSkillsForKiro(tmpDir, { dryRun: false });
+
+      expect(
+        await fs.readFile(path.join(nativeSkill, SKILL_MD_FILENAME), 'utf8'),
+      ).toBe('# Native Skill');
+    });
+
+    it('includes operations in dry-run preview without executing', async () => {
+      const { propagateSkillsForKiro } = await import(
+        '../src/core/SkillsProcessor'
+      );
+      const skill1 = path.join(tmpDir, '.ruler', 'skills', 'skill1');
+
+      await fs.mkdir(skill1, { recursive: true });
+      await fs.writeFile(path.join(skill1, SKILL_MD_FILENAME), '# Skill 1');
+
+      const steps = await propagateSkillsForKiro(tmpDir, { dryRun: true });
+
+      expect(steps.length).toBeGreaterThan(0);
+      expect(steps.some((step) => step.includes('.kiro/skills'))).toBe(true);
+
+      // Should not have actually copied
+      await expect(
+        fs.access(path.join(tmpDir, KIRO_SKILLS_PATH)),
+      ).rejects.toThrow();
+    });
+
+    it('no-ops gracefully when .ruler/skills does not exist', async () => {
+      const { propagateSkillsForKiro } = await import(
+        '../src/core/SkillsProcessor'
+      );
+
+      const steps = await propagateSkillsForKiro(tmpDir, { dryRun: true });
+
+      expect(steps).toHaveLength(0);
+    });
+  });
+
   describe('propagateSkills - selected agents', () => {
+    it('propagates skills to .kiro/skills for Kiro only', async () => {
+      const { propagateSkills } = await import('../src/core/SkillsProcessor');
+      const { KiroAgent } = await import('../src/agents/KiroAgent');
+      const skillsDir = path.join(tmpDir, '.ruler', 'skills', 'skill1');
+
+      await fs.mkdir(skillsDir, { recursive: true });
+      await fs.writeFile(path.join(skillsDir, SKILL_MD_FILENAME), '# Skill 1');
+
+      await propagateSkills(tmpDir, [new KiroAgent()], true, false, false);
+
+      const kiroSkill = path.join(
+        tmpDir,
+        KIRO_SKILLS_PATH,
+        'skill1',
+        SKILL_MD_FILENAME,
+      );
+
+      expect(await fs.readFile(kiroSkill, 'utf8')).toBe('# Skill 1');
+      await expect(
+        fs.access(path.join(tmpDir, CLAUDE_SKILLS_PATH)),
+      ).rejects.toThrow();
+    });
+
     it('only propagates skills for selected agent destinations', async () => {
       const { propagateSkills } = await import('../src/core/SkillsProcessor');
       const { AntigravityAgent } = await import(

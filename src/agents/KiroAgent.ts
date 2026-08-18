@@ -26,4 +26,8 @@ export class KiroAgent extends AbstractAgent {
   supportsMcpRemote(): boolean {
     return true;
   }
+
+  supportsNativeSkills(): boolean {
+    return true;
+  }
 }

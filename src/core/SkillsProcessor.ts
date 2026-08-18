@@ -16,6 +16,7 @@ import {
   WINDSURF_SKILLS_PATH,
   FACTORY_SKILLS_PATH,
   ANTIGRAVITY_SKILLS_PATH,
+  KIRO_SKILLS_PATH,
   logWarn,
   logVerboseInfo,
 } from '../constants';
@@ -100,6 +101,7 @@ export async function getSkillsGitignorePaths(
     windsurf: WINDSURF_SKILLS_PATH,
     factory: FACTORY_SKILLS_PATH,
     antigravity: ANTIGRAVITY_SKILLS_PATH,
+    kiro: KIRO_SKILLS_PATH,
   };
 
   const managedEntries = await getSourceTopLevelEntries(skillsDir);
@@ -154,7 +156,8 @@ type SkillTarget =
   | 'cursor'
   | 'windsurf'
   | 'factory'
-  | 'antigravity';
+  | 'antigravity'
+  | 'kiro';
 
 const SKILL_TARGET_TO_IDENTIFIERS = new Map<SkillTarget, readonly string[]>([
   ['claude', ['claude', 'copilot', 'kilocode']],
@@ -170,6 +173,7 @@ const SKILL_TARGET_TO_IDENTIFIERS = new Map<SkillTarget, readonly string[]>([
   ['windsurf', ['windsurf']],
   ['factory', ['factory']],
   ['antigravity', ['antigravity']],
+  ['kiro', ['kiro']],
 ]);
 
 const SKILL_TARGET_PATHS: readonly string[] = Array.from(
@@ -187,6 +191,7 @@ const SKILL_TARGET_PATHS: readonly string[] = Array.from(
     WINDSURF_SKILLS_PATH,
     FACTORY_SKILLS_PATH,
     ANTIGRAVITY_SKILLS_PATH,
+    KIRO_SKILLS_PATH,
   ]),
 );
 
@@ -691,6 +696,15 @@ export async function propagateSkills(
     await propagateSkillsForAntigravity(projectRoot, { dryRun });
   }
 
+  if (selectedTargets.has('kiro')) {
+    logVerboseInfo(
+      `Copying skills to ${KIRO_SKILLS_PATH} for Kiro`,
+      verbose,
+      dryRun,
+    );
+    await propagateSkillsForKiro(projectRoot, { dryRun });
+  }
+
   // No MCP-based propagation; only native skills are supported.
 }
 
@@ -1067,6 +1081,35 @@ export async function propagateSkillsForAntigravity(
   }
 
   await syncSkillsDirectory(skillsDir, antigravitySkillsPath, projectRoot);
+
+  return [];
+}
+
+/**
+ * Propagates skills for Kiro by copying .ruler/skills to .kiro/skills.
+ * Updates only Ruler-managed entries so existing native skills are preserved.
+ * Returns dry-run steps if dryRun is true, otherwise returns empty array.
+ */
+export async function propagateSkillsForKiro(
+  projectRoot: string,
+  options: { dryRun: boolean },
+): Promise<string[]> {
+  const skillsDir = path.join(projectRoot, RULER_SKILLS_PATH);
+  const kiroSkillsPath = path.join(projectRoot, KIRO_SKILLS_PATH);
+
+  // Check if source skills directory exists
+  try {
+    await fs.access(skillsDir);
+  } catch {
+    // No skills directory - return empty
+    return [];
+  }
+
+  if (options.dryRun) {
+    return [`Copy skills from ${RULER_SKILLS_PATH} to ${KIRO_SKILLS_PATH}`];
+  }
+
+  await syncSkillsDirectory(skillsDir, kiroSkillsPath, projectRoot);
 
   return [];
 }
