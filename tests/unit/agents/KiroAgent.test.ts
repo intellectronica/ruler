@@ -34,6 +34,11 @@ describe('KiroAgent', () => {
     expect(agent.supportsMcpRemote()).toBe(true);
   });
 
+  it('should support native skills', () => {
+    const agent = new KiroAgent();
+    expect(agent.supportsNativeSkills()).toBe(true);
+  });
+
   it('should have the correct default output path', () => {
     const agent = new KiroAgent();
     const projectRoot = '/test/project';

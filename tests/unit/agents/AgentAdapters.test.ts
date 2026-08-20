@@ -151,6 +151,52 @@ describe('Agent Adapters', () => {
   });
 
   describe('AiderAgent', () => {
+    it('propagates configuration access failures', async () => {
+      const agent = new AiderAgent();
+      const cfgPath = path.join(tmpDir, '.aider.conf.yml');
+      const originalAccess = fs.access;
+      const accessSpy = jest
+        .spyOn(fs, 'access')
+        .mockImplementation(async (path) => {
+          if (path === cfgPath) {
+            throw Object.assign(new Error('Permission denied'), {
+              code: 'EACCES',
+            });
+          }
+          return originalAccess(path);
+        });
+
+      try {
+        await expect(
+          agent.applyRulerConfig('aider rules', tmpDir, null),
+        ).rejects.toThrow('Permission denied');
+      } finally {
+        accessSpy.mockRestore();
+      }
+    });
+
+    it('preserves an existing config when its backup is unverified', async () => {
+      const agent = new AiderAgent();
+      const cfgPath = path.join(tmpDir, '.aider.conf.yml');
+      const backupPath = `${cfgPath}.bak`;
+      const originalConfig = 'model: existing-model\nread:\n  - USER.md\n';
+      const unverifiedBackup = 'stale backup\n';
+      await fs.writeFile(cfgPath, originalConfig);
+      await fs.writeFile(backupPath, unverifiedBackup);
+
+      await expect(
+        agent.applyRulerConfig('aider rules', tmpDir, null),
+      ).rejects.toThrow('Refusing to use existing unverified backup file');
+
+      await expect(fs.readFile(cfgPath, 'utf8')).resolves.toBe(originalConfig);
+      await expect(fs.readFile(backupPath, 'utf8')).resolves.toBe(
+        unverifiedBackup,
+      );
+      await expect(
+        fs.access(`${cfgPath}.ruler-generated`),
+      ).rejects.toMatchObject({ code: 'ENOENT' });
+    });
+
     it('creates and updates .aider.conf.yml', async () => {
       const agent = new AiderAgent();
       // No existing config
@@ -166,9 +212,10 @@ describe('Agent Adapters', () => {
 
       // Existing config with read not array
       const cfgPath = path.join(tmpDir, '.aider.conf.yml');
-      await fs.writeFile(cfgPath, 'read: outdated');
+      await fs.writeFile(cfgPath, 'model: existing-model\nread: outdated');
       await agent.applyRulerConfig('new aider', tmpDir, null);
       const updated = yaml.load(await fs.readFile(cfgPath, 'utf8')) as any;
+      expect(updated.model).toBe('existing-model');
       expect(Array.isArray(updated.read)).toBe(true);
       expect(updated.read).toContain('AGENTS.md');
     });

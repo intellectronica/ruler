@@ -84,7 +84,7 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | Zed                    | `AGENTS.md`                                    | `.zed/settings.json` (project root, never $HOME) | `.agents/skills/`         | -                            |
 | Trae AI                | `.trae/rules/project_rules.md`                 | -                                                | -                         | -                            |
 | Warp                   | `WARP.md`                                      | -                                                | -                         | -                            |
-| Kiro                   | `.kiro/steering/ruler_kiro_instructions.md`    | `.kiro/settings/mcp.json`                        | -                         | -                            |
+| Kiro                   | `.kiro/steering/ruler_kiro_instructions.md`    | `.kiro/settings/mcp.json`                        | `.kiro/skills/`           | -                            |
 | Firebender             | `firebender.json`                              | `firebender.json` (rules and MCP in same file)   | -                         | -                            |
 | Factory Droid          | `AGENTS.md`                                    | `.factory/mcp.json`                              | `.factory/skills/`        | -                            |
 | Mistral Vibe           | `AGENTS.md`                                    | `.vibe/config.toml`                              | `.vibe/skills/`           | -                            |
@@ -623,6 +623,7 @@ Skills are specialized knowledge packages that extend AI agent capabilities with
   - **Junie**: `.junie/skills/`
   - **Cursor**: `.cursor/skills/`
   - **Windsurf**: `.windsurf/skills/`
+  - **Kiro**: `.kiro/skills/`
 
 ### Skills Directory Structure
 
@@ -689,12 +690,13 @@ When skills support is enabled and gitignore integration is active, Ruler automa
 - `.junie/skills/` (for Junie)
 - `.cursor/skills/` (for Cursor)
 - `.windsurf/skills/` (for Windsurf)
+- `.kiro/skills/` (for Kiro)
 
 to your `.gitignore` file within the managed Ruler block.
 
 ### Requirements
 
-- **For agents with native skills support** (Claude Code, GitHub Copilot, Kilo Code, OpenAI Codex CLI, OpenCode, Pi Coding Agent, Goose, Amp, Zed, Antigravity, Factory Droid, Mistral Vibe, Roo Code, Gemini CLI, Junie, Cursor, Windsurf): No additional requirements.
+- **For agents with native skills support** (Claude Code, GitHub Copilot, Kilo Code, OpenAI Codex CLI, OpenCode, Pi Coding Agent, Goose, Amp, Zed, Antigravity, Factory Droid, Mistral Vibe, Roo Code, Gemini CLI, Junie, Cursor, Windsurf, Kiro): No additional requirements.
 
 ### Validation
 
@@ -749,6 +751,7 @@ ruler apply
 #    - Junie: .junie/skills/my-skill/
 #    - Cursor: .cursor/skills/my-skill/
 #    - Windsurf: .windsurf/skills/my-skill/
+#    - Kiro: .kiro/skills/my-skill/
 ```
 
 ## Subagents Support (Experimental)
@@ -1186,7 +1189,7 @@ A: Ruler writes `.zed/settings.json` inside the project root (not the user home 
 A: `ruler init` now only adds example MCP server sections to `ruler.toml` instead of creating `.ruler/mcp.json`. The JSON file is still consumed if present, but TOML servers win on name conflicts.
 
 **Q: Is Kiro supported?**
-A: Yes. Kiro receives concatenated rules at `.kiro/steering/ruler_kiro_instructions.md`.
+A: Yes. Kiro receives concatenated rules at `.kiro/steering/ruler_kiro_instructions.md`, MCP servers at `.kiro/settings/mcp.json`, and skills at `.kiro/skills/`.
 
 ## Development
 
