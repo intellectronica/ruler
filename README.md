@@ -974,7 +974,7 @@ enabled = false
 /.claude/*
 !/.claude/skills/
 /.codex/*
-!/.codex/skills/
+!/.agents/skills/
 /.cursor
 /AGENTS.md.bak
 /CLAUDE.md.bak
@@ -1019,11 +1019,11 @@ jobs:
       - name: Verify committed agent files match .ruler/
         run: |
           pnpm dlx @intellectronica/ruler apply --no-gitignore --no-mcp
-          DRIFT="$(git status --porcelain -- AGENTS.md CLAUDE.md .claude/skills .codex/skills)"
+          DRIFT="$(git status --porcelain -- AGENTS.md CLAUDE.md .claude/skills .agents/skills)"
           if [ -n "$DRIFT" ]; then
             echo "::error::Committed agent files are out of sync with .ruler/. Run 'pnpm dlx @intellectronica/ruler apply --no-gitignore --no-mcp' and commit the result."
             echo "$DRIFT"
-            git --no-pager diff -- AGENTS.md CLAUDE.md .claude/skills .codex/skills
+            git --no-pager diff -- AGENTS.md CLAUDE.md .claude/skills .agents/skills
             exit 1
           fi
           echo "Agent files are in sync with .ruler/."
