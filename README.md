@@ -928,7 +928,7 @@ dist/
 
 ### Control Options
 
-- **CLI flags**: `--gitignore`, `--no-gitignore`, `--gitignore-local`, `--no-gitignore-local`
+- **CLI flags**: `--gitignore`, `--no-gitignore`, `--gitignore-local`
 - **Configuration**: `[gitignore].enabled` and `[gitignore].local` in `ruler.toml`
 - **Default**: enabled
 
