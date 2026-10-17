@@ -118,4 +118,9 @@ export class OpenCodeAgent implements IAgent {
   supportsNativeSkills(): boolean {
     return true;
   }
+
+  /** Enables propagation of `.ruler/agents/` definitions to OpenCode. */
+  supportsNativeSubagents(): boolean {
+    return true;
+  }
 }
