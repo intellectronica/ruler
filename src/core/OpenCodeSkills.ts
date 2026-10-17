@@ -33,7 +33,6 @@ async function findSkillDirectories(root: string): Promise<string[]> {
 
     if (entries.some((entry) => entry.isFile() && entry.name === 'SKILL.md')) {
       found.push(directory);
-      return;
     }
     for (const entry of entries) {
       if (entry.isDirectory()) {

@@ -142,27 +142,105 @@ describe('OpenCode subagents CLI', () => {
     );
   });
 
-  it('preserves managed outputs when an invalid OpenCode model is configured', async () => {
-    await writeAgent(
-      'reviewer.md',
-      'name: reviewer\ndescription: Reviews\ntargets:\n  opencode:\n    model: not-a-model',
-    );
-    const agentDir = path.join(projectRoot, '.opencode', 'agents');
-    await fs.mkdir(agentDir, { recursive: true });
-    const previous = 'previous generated output\n';
-    await fs.writeFile(path.join(agentDir, 'reviewer.md'), previous);
-    await fs.writeFile(
-      path.join(agentDir, '.ruler-managed.json'),
-      JSON.stringify({ version: 1, paths: ['reviewer.md'] }),
-    );
+  it.each([
+    [
+      'model',
+      'reviewer',
+      'targets:\n  opencode:\n    model: not-a-model',
+      /model/i,
+    ],
+    [
+      'empty readonly override',
+      'reviewer',
+      "readonly: true\ntargets:\n  opencode:\n    permission:\n      '*': {}",
+      /readonly/i,
+    ],
+    [
+      'partial readonly override',
+      'reviewer',
+      "readonly: true\ntargets:\n  opencode:\n    permission:\n      '*':\n        'protected/*': deny",
+      /readonly/i,
+    ],
+    [
+      'scalar-only permission',
+      'reviewer',
+      "targets:\n  opencode:\n    permission:\n      webfetch:\n        '*': allow",
+      /permission.webfetch/i,
+    ],
+    [
+      'YAML date permission',
+      'reviewer',
+      'targets:\n  opencode:\n    permission:\n      bash: 2026-01-01',
+      /permission.bash/i,
+    ],
+    ['built-in name', 'build', '', /reserved OpenCode/i],
+  ])(
+    'preserves managed outputs and diagnoses invalid %s',
+    async (_kind, name, fields, diagnostic) => {
+      await writeAgent(
+        `${name}.md`,
+        `name: ${name}\ndescription: Reviews\n${fields}`,
+      );
+      const agentDir = path.join(projectRoot, '.opencode', 'agents');
+      await fs.mkdir(agentDir, { recursive: true });
+      const previous = 'previous generated output\n';
+      await fs.writeFile(path.join(agentDir, 'reviewer.md'), previous);
+      const manifest = JSON.stringify({ version: 1, paths: ['reviewer.md'] });
+      await fs.writeFile(path.join(agentDir, '.ruler-managed.json'), manifest);
 
-    const result = runWithDiagnostics('--subagents');
+      const result = runWithDiagnostics('--subagents');
+      expect(result.status).toBe(0);
+
+      await expect(
+        fs.readFile(path.join(agentDir, 'reviewer.md'), 'utf8'),
+      ).resolves.toBe(previous);
+      await expect(
+        fs.readFile(path.join(agentDir, '.ruler-managed.json'), 'utf8'),
+      ).resolves.toBe(manifest);
+      await expect(fs.readdir(agentDir)).resolves.toEqual([
+        '.ruler-managed.json',
+        'reviewer.md',
+      ]);
+      expect(`${result.stdout}\n${result.stderr}`).toMatch(
+        diagnostic as RegExp,
+      );
+    },
+  );
+
+  it('warns about nested skill collisions and still copies the source tree', async () => {
+    const definitions = [
+      ['.ruler/skills/outer', 'outer', 'Outer source'],
+      ['.ruler/skills/outer/inner', 'inner', 'Inner source'],
+      ['.claude/skills/native', 'native', 'Native parent'],
+      ['.claude/skills/native/inner', 'inner', 'Divergent native instructions'],
+    ];
+    for (const [directory, name, body] of definitions) {
+      const fullPath = path.join(projectRoot, directory);
+      await fs.mkdir(fullPath, { recursive: true });
+      await fs.writeFile(
+        path.join(fullPath, 'SKILL.md'),
+        `---\nname: ${name}\ndescription: Skill instructions\n---\n${body}\n`,
+      );
+    }
+
+    const result = runWithDiagnostics();
+
     expect(result.status).toBe(0);
-
+    expect(`${result.stdout}\n${result.stderr}`).toContain(
+      '.claude/skills/native/inner defines "inner" with contents that differ',
+    );
     await expect(
-      fs.readFile(path.join(agentDir, 'reviewer.md'), 'utf8'),
-    ).resolves.toBe(previous);
-    expect(`${result.stdout}\n${result.stderr}`).toMatch(/model/i);
+      fs.readFile(
+        path.join(projectRoot, '.opencode/skills/outer/inner/SKILL.md'),
+        'utf8',
+      ),
+    ).resolves.toContain('Inner source');
+    await expect(
+      fs.readFile(
+        path.join(projectRoot, '.claude/skills/native/inner/SKILL.md'),
+        'utf8',
+      ),
+    ).resolves.toContain('Divergent native instructions');
   });
 
   it('does not follow a symlinked OpenCode agents directory', async () => {

@@ -20,6 +20,17 @@ import { buildOpenCodeFile } from './OpenCodeSubagents';
 
 const RULER_MANAGED_MANIFEST = '.ruler-managed.json';
 
+// OpenCode merges agents with these names into its built-in definitions.
+const OPENCODE_BUILTIN_NAMES = new Set([
+  'build',
+  'plan',
+  'general',
+  'explore',
+  'compaction',
+  'title',
+  'summary',
+]);
+
 interface ManagedManifest {
   version: 1;
   paths: string[];
@@ -491,9 +502,15 @@ export async function propagateSubagentsForOpenCode(
   let files: { name: string; content: string }[];
   try {
     files = subagents.map((subagent) => {
+      const name = getSourceRelativeMdPath(subagent);
+      if (OPENCODE_BUILTIN_NAMES.has(name.slice(0, -'.md'.length))) {
+        throw new Error(
+          `Subagent "${subagent.name}": reserved OpenCode agent name; rename "${name}" or place it in a subdirectory`,
+        );
+      }
       const { content, warnings } = buildOpenCodeFile(subagent);
       for (const warning of warnings) logWarn(warning, options.dryRun);
-      return { name: getSourceRelativeMdPath(subagent), content };
+      return { name, content };
     });
   } catch (error) {
     logWarn(

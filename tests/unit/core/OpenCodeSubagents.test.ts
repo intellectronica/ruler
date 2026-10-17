@@ -323,4 +323,28 @@ describe('buildOpenCodeFile', () => {
       meta(buildOpenCodeFile(configure({ '*': 'deny' })).content).permission,
     ).toMatchObject({ '*': 'deny', bash: { '*': 'deny' } });
   });
+
+  it.each([{}, { 'protected/*': 'deny' }])(
+    'rejects readonly wildcard rules without a deny-all pattern: %j',
+    (rule) => {
+      expect(() =>
+        buildOpenCodeFile(
+          sub({
+            readonly: true,
+            targets: { opencode: { permission: { '*': rule } } },
+          }),
+        ),
+      ).toThrow(/readonly.*\*/i);
+    },
+  );
+
+  it('accepts a readonly wildcard rule with an explicit deny-all pattern', () => {
+    const { content } = buildOpenCodeFile(
+      sub({
+        readonly: true,
+        targets: { opencode: { permission: { '*': { '*': 'deny' } } } },
+      }),
+    );
+    expect(meta(content).permission).toMatchObject({ '*': { '*': 'deny' } });
+  });
 });

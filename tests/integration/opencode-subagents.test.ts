@@ -205,6 +205,22 @@ describe('OpenCode subagent propagation', () => {
       'permission rule',
       'name: reviewer\ndescription: Review\nmodel: shared/provider\ntargets:\n  opencode:\n    permission:\n      bash: 42',
     ],
+    [
+      'scalar-only permission map',
+      "name: reviewer\ndescription: Review\nmodel: shared/provider\ntargets:\n  opencode:\n    permission:\n      webfetch:\n        '*': allow",
+    ],
+    [
+      'YAML timestamp permission rule',
+      'name: reviewer\ndescription: Review\nmodel: shared/provider\ntargets:\n  opencode:\n    permission:\n      bash: 2026-01-01',
+    ],
+    [
+      'empty readonly wildcard override',
+      "name: reviewer\ndescription: Review\nmodel: shared/provider\nreadonly: true\ntargets:\n  opencode:\n    permission:\n      '*': {}",
+    ],
+    [
+      'partial readonly wildcard deny',
+      "name: reviewer\ndescription: Review\nmodel: shared/provider\nreadonly: true\ntargets:\n  opencode:\n    permission:\n      '*':\n        'git *': deny",
+    ],
   ])(
     'keeps OpenCode managed state intact and updates Codex for malformed target %s',
     async (_kind, malformedFrontmatter) => {
@@ -265,6 +281,78 @@ describe('OpenCode subagent propagation', () => {
       expect(codexReviewer).toContain('Updated common instructions.');
     },
   );
+
+  it('preserves OpenCode managed state for a root built-in name while Codex generates it', async () => {
+    await writeAgent(
+      'reviewer.md',
+      'name: reviewer\ndescription: Review',
+      'Initial common instructions.\n',
+    );
+    await writeAgent(
+      'team/build.md',
+      'name: build\ndescription: Team build helper',
+      'Build for the team.\n',
+    );
+    await apply(['codex', 'opencode'], true);
+
+    const opencodeDir = path.join(projectRoot, OPENCODE_AGENTS_PATH);
+    const managedNames = ['reviewer.md', path.join('team', 'build.md')];
+    const initialOpenCodeFiles = new Map(
+      await Promise.all(
+        managedNames.map(
+          async (name) =>
+            [
+              name,
+              await fs.readFile(path.join(opencodeDir, name), 'utf8'),
+            ] as const,
+        ),
+      ),
+    );
+    const initialManifest = await fs.readFile(
+      path.join(opencodeDir, '.ruler-managed.json'),
+      'utf8',
+    );
+    expect(JSON.parse(initialManifest).paths).toEqual([
+      'reviewer.md',
+      'team/build.md',
+    ]);
+
+    await writeAgent(
+      'reviewer.md',
+      'name: reviewer\ndescription: Review',
+      'Updated common instructions.\n',
+    );
+    await writeAgent(
+      'build.md',
+      'name: build\ndescription: Root build helper',
+      'Build from the root.\n',
+    );
+    await apply(['codex', 'opencode'], true);
+
+    await expect(
+      fs.readFile(path.join(opencodeDir, '.ruler-managed.json'), 'utf8'),
+    ).resolves.toBe(initialManifest);
+    for (const name of managedNames) {
+      await expect(
+        fs.readFile(path.join(opencodeDir, name), 'utf8'),
+      ).resolves.toBe(initialOpenCodeFiles.get(name));
+    }
+    await expect(
+      fs.access(path.join(opencodeDir, 'build.md')),
+    ).rejects.toThrow();
+    await expect(
+      fs.readFile(
+        path.join(projectRoot, '.codex', 'agents', 'reviewer.toml'),
+        'utf8',
+      ),
+    ).resolves.toContain('Updated common instructions.');
+    await expect(
+      fs.readFile(
+        path.join(projectRoot, '.codex', 'agents', 'build.toml'),
+        'utf8',
+      ),
+    ).resolves.toContain('Build from the root.');
+  });
 
   it('keeps unmanaged collisions and produces stable output on repeated apply', async () => {
     await writeAgent('managed.md', 'name: managed\ndescription: Managed');

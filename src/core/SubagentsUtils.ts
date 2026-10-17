@@ -4,6 +4,13 @@ import * as yaml from 'js-yaml';
 import type { SubagentFrontmatter, SubagentInfo } from '../types';
 
 const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/;
+const ACTION_ONLY_PERMISSIONS = new Set([
+  'webfetch',
+  'websearch',
+  'todowrite',
+  'question',
+  'doom_loop',
+]);
 
 export interface ParsedFrontmatter {
   meta: Record<string, unknown>;
@@ -130,15 +137,17 @@ export function validateFrontmatter(
           };
         }
         for (const [tool, rule] of Object.entries(target.permission)) {
+          const actionOnly = ACTION_ONLY_PERMISSIONS.has(tool);
           if (
             !isPermissionValue(rule) &&
-            (!isRecord(rule) ||
+            (actionOnly ||
+              !isRecord(rule) ||
               Object.values(rule).some((value) => !isPermissionValue(value)))
           ) {
             return {
               value: fm,
               targetErrors: {
-                opencode: `invalid "targets.opencode.permission.${tool}" field; expected allow, ask, deny, or pattern rules`,
+                opencode: `invalid "targets.opencode.permission.${tool}" field; expected allow, ask, deny${actionOnly ? '' : ', or pattern rules'}`,
               },
             };
           }
@@ -155,7 +164,9 @@ export function validateFrontmatter(
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
+  if (value === null || typeof value !== 'object') return false;
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
 }
 
 function isPermissionValue(value: unknown): value is 'allow' | 'ask' | 'deny' {

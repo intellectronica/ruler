@@ -30,6 +30,62 @@ describe('OpenCode subagent routing', () => {
     expect(getSelectedSubagentTargets([])).toEqual(new Set());
   });
 
+  it.each([
+    'build',
+    'plan',
+    'general',
+    'explore',
+    'compaction',
+    'title',
+    'summary',
+  ])(
+    'rejects the built-in name %s before writing any OpenCode agent',
+    async (name) => {
+      const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      await fs.writeFile(
+        path.join(root, `.ruler/agents/${name}.md`),
+        `---\nname: ${name}\ndescription: Custom instructions\n---\nCustom body.\n`,
+      );
+
+      await propagateSubagents(
+        root,
+        [new OpenCodeAgent()],
+        true,
+        false,
+        false,
+        false,
+      );
+
+      expect(warn.mock.calls.flat().join('\n')).toMatch(
+        /reserved.*OpenCode|OpenCode.*reserved/i,
+      );
+      await expect(
+        fs.access(path.join(root, '.opencode/agents')),
+      ).rejects.toThrow();
+    },
+  );
+
+  it('allows a nested agent whose basename matches a built-in', async () => {
+    await fs.mkdir(path.join(root, '.ruler/agents/team'), { recursive: true });
+    await fs.writeFile(
+      path.join(root, '.ruler/agents/team/build.md'),
+      '---\nname: build\ndescription: Team build helper\n---\nBuild for the team.\n',
+    );
+
+    await propagateSubagents(
+      root,
+      [new OpenCodeAgent()],
+      true,
+      false,
+      false,
+      false,
+    );
+
+    await expect(
+      fs.readFile(path.join(root, '.opencode/agents/team/build.md'), 'utf8'),
+    ).resolves.toContain('mode: subagent');
+  });
+
   it('includes individual generated files and the manifest in gitignore paths', async () => {
     expect(
       await getSubagentsGitignorePaths(root, [new OpenCodeAgent()]),

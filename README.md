@@ -871,6 +871,10 @@ the source `name` field so OpenCode derives the name from the relative path
 (for example, `review/security.md` becomes `review/security`). Target overrides
 are consumed only by OpenCode and are not emitted to Claude, Cursor, Codex, or
 Copilot. Currently the supported OpenCode overrides are `model` and `permission`.
+Root-level names `build`, `plan`, `general`, `explore`, `compaction`, `title`,
+and `summary` are reserved to avoid replacing OpenCode's built-in agents.
+Rename those source files or place them in a subdirectory (for example,
+`team/build.md`).
 
 Source `tools` are mapped to OpenCode permissions (`Read` → `read`, `Bash` →
 `bash`, `Edit`/`Write` → `edit`, `Task` → `task`, `Skill` → `skill`, and the
@@ -879,16 +883,22 @@ an empty list denies every tool. Unknown tools are omitted with a warning.
 `targets.opencode.permission` overrides the mapped entries and supports
 `allow`, `ask`, `deny`, and ordered pattern rules, including `skill` and `task`.
 Pattern order is preserved because OpenCode uses the last matching rule.
+The permissions `webfetch`, `websearch`, `todowrite`, `question`, and `doom_loop`
+accept only a single action, not pattern maps. Permission maps must be YAML
+mappings; timestamps and other special YAML values are rejected.
 
 `readonly: true` uses a conservative permission policy: only reading, searching,
 loading skills, and fetching web information may be enabled. Shell, edits,
 delegation, and unlisted tools remain denied. Conflicting explicit overrides
 produce a diagnostic. These are OpenCode tool permissions, not an OS sandbox.
+An override of `"*"` must retain a global `deny`: either `"*": deny` or a pattern
+map containing `"*": deny` with only deny actions. Empty or partial wildcard
+maps are rejected because they would remove the global restriction.
 `is_background: true` produces a warning: background execution is a runtime
 option, not a static field Ruler can translate.
 
-Before updating OpenCode subagents, Ruler renders the whole target. If a selected
-model or readonly permission combination is invalid, it warns and leaves that
+Before updating OpenCode subagents, Ruler renders the whole target. If an agent
+uses a reserved name or has an invalid model or permission setting, it warns and leaves that
 target's existing files unchanged; other selected targets can still update.
 Use `ruler apply --agents opencode --subagents --dry-run` to preview generation.
 See [OpenCode agents](https://opencode.ai/docs/agents/) for native behavior.

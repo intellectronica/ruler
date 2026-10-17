@@ -178,6 +178,38 @@ describe('inspectOpenCodeSkills', () => {
     );
   });
 
+  it('discovers skills nested below another skill directory', async () => {
+    await writeSkill(
+      projectRoot,
+      '.ruler/skills/outer',
+      skill('outer', 'outer source', 'outer body'),
+    );
+    await writeSkill(
+      projectRoot,
+      '.ruler/skills/outer/inner',
+      skill('inner', 'inner source', 'source body'),
+    );
+    await writeSkill(
+      projectRoot,
+      '.ruler/skills/group/inner',
+      skill('inner', 'second inner source', 'other source body'),
+    );
+    await writeSkill(
+      projectRoot,
+      '.claude/skills/inner',
+      skill('inner', 'native definition', 'native body'),
+    );
+
+    const warnings = await inspectOpenCodeSkills(projectRoot);
+
+    expect(warnings.join('\n')).toContain(
+      'duplicate skill name "inner" in .ruler/skills/group/inner, .ruler/skills/outer/inner',
+    );
+    expect(warnings.join('\n')).toContain(
+      '.claude/skills/inner defines "inner" with contents that differ from .ruler/skills',
+    );
+  });
+
   it('does not warn for identical native duplicates or Ruler-managed target entries', async () => {
     const definition = skill('same-skill', 'shared definition', 'same body');
     await writeSkill(projectRoot, '.ruler/skills/same-skill', definition);

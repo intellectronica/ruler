@@ -33,7 +33,8 @@ function checkReadonlyOverride(name: string, key: string, rule: Rule): void {
     if (
       typeof rule === 'string'
         ? rule !== 'deny'
-        : Object.values(rule).some((value) => value !== 'deny')
+        : (key === '*' && rule['*'] !== 'deny') ||
+          Object.values(rule).some((value) => value !== 'deny')
     ) {
       throw new Error(
         `Subagent "${name}": readonly conflicts with OpenCode permission "${key}"`,
