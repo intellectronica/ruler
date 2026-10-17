@@ -2,6 +2,7 @@ import * as yaml from 'js-yaml';
 import { buildOpenCodeFile } from '../../../src/core/OpenCodeSubagents';
 import type { SubagentInfo } from '../../../src/types';
 
+/** Builds a valid source agent with overridable frontmatter for renderer tests. */
 function sub(overrides: Record<string, unknown> = {}): SubagentInfo {
   return {
     name: 'reviewer',
@@ -16,6 +17,7 @@ function sub(overrides: Record<string, unknown> = {}): SubagentInfo {
   } as SubagentInfo;
 }
 
+/** Extracts generated YAML while asserting that the instruction body is preserved. */
 function meta(content: string): Record<string, unknown> {
   const match = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/.exec(content);
   if (!match) throw new Error('missing frontmatter');

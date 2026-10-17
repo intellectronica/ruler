@@ -28,6 +28,7 @@ const READONLY_TOOLS = new Set([
   'websearch',
 ]);
 
+/** Rejects permission overrides that could grant a write-capable rule in readonly mode. */
 function checkReadonlyOverride(name: string, key: string, rule: Rule): void {
   if (key === '*' || !READONLY_TOOLS.has(key)) {
     if (

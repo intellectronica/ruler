@@ -24,12 +24,14 @@ describe('OpenCode subagents CLI', () => {
     await fs.rm(projectRoot, { recursive: true, force: true });
   });
 
+  /** Creates a source agent fixture, including any nested source directories. */
   async function writeAgent(file: string, fm: string, body = 'Agent body.\n') {
     const fullPath = path.join(projectRoot, '.ruler', 'agents', file);
     await fs.mkdir(path.dirname(fullPath), { recursive: true });
     await fs.writeFile(fullPath, `---\n${fm}\n---\n${body}`);
   }
 
+  /** Runs the built CLI for OpenCode and throws if generation exits unsuccessfully. */
   function run(...extraArgs: string[]): string {
     return execFileSync(
       process.execPath,
@@ -47,6 +49,7 @@ describe('OpenCode subagents CLI', () => {
     );
   }
 
+  /** Captures CLI output and exit status so warnings and failures can be asserted. */
   function runWithDiagnostics(...extraArgs: string[]) {
     return spawnSync(
       process.execPath,

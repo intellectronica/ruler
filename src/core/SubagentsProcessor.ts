@@ -490,6 +490,7 @@ function buildCopilotFile(
   };
 }
 
+/** Writes validated source agents as OpenCode subagents and returns dry-run steps. */
 export async function propagateSubagentsForOpenCode(
   projectRoot: string,
   subagents: SubagentInfo[],
@@ -673,6 +674,7 @@ async function cleanupSubagentsDir(
   );
 }
 
+/** Removes managed entries from every supported target directory. */
 async function cleanupAllSubagentsDirectories(
   projectRoot: string,
   dryRun: boolean,
@@ -709,6 +711,7 @@ async function cleanupAllSubagentsDirectories(
 /* Orchestrator                                                        */
 /* ------------------------------------------------------------------ */
 
+/** Discovers source agents, reconciles disabled targets, and propagates to selected agents. */
 export async function propagateSubagents(
   projectRoot: string,
   agents: IAgent[],

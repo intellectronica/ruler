@@ -36,8 +36,9 @@ export function parseFrontmatter(content: string): ParsedFrontmatter | null {
 
 /**
  * Validates a parsed frontmatter object and reads the required and optional
- * fields into a typed SubagentFrontmatter. Returns the typed value on success
- * or an error message on failure.
+ * fields into a typed SubagentFrontmatter. Common-field errors reject the
+ * definition; OpenCode target errors are retained separately so other targets
+ * can still use it.
  */
 export function validateFrontmatter(
   meta: Record<string, unknown>,
@@ -163,19 +164,22 @@ export function validateFrontmatter(
   return { value: fm };
 }
 
+/** Narrows plain YAML mappings while rejecting arrays and class instances. */
 function isRecord(value: unknown): value is Record<string, unknown> {
   if (value === null || typeof value !== 'object') return false;
   const prototype = Object.getPrototypeOf(value);
   return prototype === Object.prototype || prototype === null;
 }
 
+/** Checks whether a value is one of OpenCode's supported permission actions. */
 function isPermissionValue(value: unknown): value is 'allow' | 'ask' | 'deny' {
   return value === 'allow' || value === 'ask' || value === 'deny';
 }
 
 /**
  * Loads a single subagent file and produces a SubagentInfo.
- * Invalid files produce a SubagentInfo with valid=false and an error string.
+ * Invalid common fields produce a SubagentInfo with valid=false and an error;
+ * invalid OpenCode-only fields are returned in targetErrors for target-level handling.
  */
 export async function loadSubagentFile(
   filePath: string,

@@ -5,9 +5,14 @@ import { inspectOpenCodeSkills } from '../../../src/core/OpenCodeSkills';
 import { propagateSkillsForOpenCode } from '../../../src/core/SkillsProcessor';
 import * as Constants from '../../../src/constants';
 
+// Root and Windows can read files even when their POSIX mode is 000.
+const itWithReadPermissions =
+  process.platform === 'win32' || process.getuid?.() === 0 ? it.skip : it;
+
 describe('inspectOpenCodeSkills', () => {
   let projectRoot: string;
 
+  /** Writes a skill fixture at a project-relative discovery path. */
   async function writeSkill(
     root: string,
     directory: string,
@@ -18,6 +23,7 @@ describe('inspectOpenCodeSkills', () => {
     await fs.writeFile(path.join(skillDir, 'SKILL.md'), markdown);
   }
 
+  /** Builds valid skill Markdown with overridable metadata and instructions. */
   const skill = (name: string, description = 'A useful skill', body = 'body') =>
     `---\nname: ${name}\ndescription: ${description}\n---\n${body}\n`;
 
@@ -333,37 +339,40 @@ describe('inspectOpenCodeSkills', () => {
     expect(warnings.join('\n')).toContain('.agents/skills/managed-skill');
   });
 
-  it('reports unreadable compared assets without rejecting diagnostics', async () => {
-    await writeSkill(
-      projectRoot,
-      '.ruler/skills/read-error',
-      skill('read-error'),
-    );
-    await fs.writeFile(
-      path.join(projectRoot, '.ruler/skills/read-error', 'asset'),
-      'same',
-    );
-    await writeSkill(
-      projectRoot,
-      '.claude/skills/read-error',
-      skill('read-error'),
-    );
-    await fs.writeFile(
-      path.join(projectRoot, '.claude/skills/read-error', 'asset'),
-      'same',
-    );
-    const unreadableAsset = path.join(
-      projectRoot,
-      '.claude/skills/read-error/asset',
-    );
-    await fs.chmod(unreadableAsset, 0o000);
-    try {
-      const warnings = await inspectOpenCodeSkills(projectRoot);
-      expect(warnings.join('\n')).toContain('could not compare');
-    } finally {
-      await fs.chmod(unreadableAsset, 0o600);
-    }
-  });
+  itWithReadPermissions(
+    'reports unreadable compared assets without rejecting diagnostics',
+    async () => {
+      await writeSkill(
+        projectRoot,
+        '.ruler/skills/read-error',
+        skill('read-error'),
+      );
+      await fs.writeFile(
+        path.join(projectRoot, '.ruler/skills/read-error', 'asset'),
+        'same',
+      );
+      await writeSkill(
+        projectRoot,
+        '.claude/skills/read-error',
+        skill('read-error'),
+      );
+      await fs.writeFile(
+        path.join(projectRoot, '.claude/skills/read-error', 'asset'),
+        'same',
+      );
+      const unreadableAsset = path.join(
+        projectRoot,
+        '.claude/skills/read-error/asset',
+      );
+      await fs.chmod(unreadableAsset, 0o000);
+      try {
+        const warnings = await inspectOpenCodeSkills(projectRoot);
+        expect(warnings.join('\n')).toContain('could not compare');
+      } finally {
+        await fs.chmod(unreadableAsset, 0o600);
+      }
+    },
+  );
 
   it('copies skill metadata, scripts, and assets unchanged during OpenCode propagation', async () => {
     const metadata = skill('copied-skill', 'source metadata', 'source body');

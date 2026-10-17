@@ -14,6 +14,7 @@ interface SkillDefinition {
   relativeDirectory: string;
 }
 
+/** Finds every directory containing SKILL.md, without following symlinked roots. */
 async function findSkillDirectories(root: string): Promise<string[]> {
   const found: string[] = [];
 
@@ -23,6 +24,7 @@ async function findSkillDirectories(root: string): Promise<string[]> {
     return found;
   }
 
+  /** Collects skill directories recursively, including children of other skills. */
   async function walk(directory: string): Promise<void> {
     let entries: import('fs').Dirent[];
     try {
@@ -45,10 +47,12 @@ async function findSkillDirectories(root: string): Promise<string[]> {
   return found.sort();
 }
 
+/** Formats a project path with forward slashes for stable diagnostics. */
 function relative(projectRoot: string, filePath: string): string {
   return path.relative(projectRoot, filePath).split(path.sep).join('/');
 }
 
+/** Validates one source skill and returns either its definition or a diagnostic. */
 async function parseDefinition(
   projectRoot: string,
   directory: string,
@@ -125,6 +129,7 @@ async function parseDefinition(
   };
 }
 
+/** Reads paths recorded as managed in a native skill directory. */
 async function readManagedEntries(targetRoot: string): Promise<Set<string>> {
   try {
     const parsed = JSON.parse(
@@ -140,6 +145,7 @@ async function readManagedEntries(targetRoot: string): Promise<Set<string>> {
   }
 }
 
+/** Reads a native skill's declared name; malformed native files are ignored. */
 async function readNativeName(directory: string): Promise<string | undefined> {
   try {
     const raw = await fs.readFile(path.join(directory, 'SKILL.md'), 'utf8');
@@ -157,6 +163,7 @@ async function readNativeName(directory: string): Promise<string | undefined> {
   }
 }
 
+/** Compares regular files and directories recursively, ignoring symlinks. */
 async function directoryContentsMatch(
   left: string,
   right: string,
@@ -173,6 +180,7 @@ async function directoryContentsMatch(
     entries(right),
   ]);
   if (!leftEntries || !rightEntries) return 'unreadable';
+  /** Excludes symlinks and special files before comparing sorted directory entries. */
   const regular = (items: import('fs').Dirent[]) =>
     items
       .filter((item) => item.isDirectory() || item.isFile())
@@ -210,7 +218,10 @@ async function directoryContentsMatch(
   return 'same';
 }
 
-/** Returns OpenCode-specific skill diagnostics without changing or filtering source files. */
+/**
+ * Reports invalid source skills, duplicate names, and divergent native copies.
+ * Returns an empty list when the project has no `.ruler/skills` directory.
+ */
 export async function inspectOpenCodeSkills(
   projectRoot: string,
 ): Promise<string[]> {

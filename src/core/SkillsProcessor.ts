@@ -770,6 +770,7 @@ export async function propagateSkillsForCodex(
 /**
  * Propagates skills for OpenCode by copying .ruler/skills to .opencode/skills.
  * Updates only Ruler-managed entries so existing native skills are preserved.
+ * Logs diagnostics for invalid source definitions and conflicting native skills.
  * Returns dry-run steps if dryRun is true, otherwise returns empty array.
  */
 export async function propagateSkillsForOpenCode(

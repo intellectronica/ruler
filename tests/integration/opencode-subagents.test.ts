@@ -24,6 +24,7 @@ describe('OpenCode subagent propagation', () => {
     await fs.rm(projectRoot, { recursive: true, force: true });
   });
 
+  /** Writes source metadata and instructions at the requested relative agent path. */
   async function writeAgent(
     relativePath: string,
     frontmatter: string,
@@ -34,6 +35,7 @@ describe('OpenCode subagent propagation', () => {
     await fs.writeFile(source, `---\n${frontmatter}\n---\n${body}`);
   }
 
+  /** Applies selected targets while varying subagent opt-in and dry-run behavior. */
   async function apply(
     agents = ['opencode'],
     enabled: boolean | undefined = undefined,
