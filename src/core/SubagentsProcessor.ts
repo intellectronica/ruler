@@ -8,6 +8,7 @@ import {
   CURSOR_SUBAGENTS_PATH,
   CODEX_SUBAGENTS_PATH,
   COPILOT_SUBAGENTS_PATH,
+  OPENCODE_SUBAGENTS_PATH,
   logWarn,
   logVerboseInfo,
 } from '../constants';
@@ -15,6 +16,7 @@ import type { SubagentInfo, SubagentFrontmatter } from '../types';
 import { loadSubagentFile, mapToolsForCopilot } from './SubagentsUtils';
 import type { IAgent } from '../agents/IAgent';
 import { assertManagedPathInsideRoot } from './FileSystemUtils';
+import { buildOpenCodeFile } from './OpenCodeSubagents';
 
 const RULER_MANAGED_MANIFEST = '.ruler-managed.json';
 
@@ -75,7 +77,7 @@ async function listMarkdownFilesRecursive(dir: string): Promise<string[]> {
   return results.sort();
 }
 
-type SubagentTarget = 'claude' | 'cursor' | 'codex' | 'copilot';
+type SubagentTarget = 'claude' | 'cursor' | 'codex' | 'copilot' | 'opencode';
 
 const SUBAGENT_TARGET_TO_IDENTIFIERS = new Map<
   SubagentTarget,
@@ -85,6 +87,7 @@ const SUBAGENT_TARGET_TO_IDENTIFIERS = new Map<
   ['cursor', ['cursor']],
   ['codex', ['codex']],
   ['copilot', ['copilot']],
+  ['opencode', ['opencode']],
 ]);
 
 const SUBAGENT_TARGET_PATHS: Record<SubagentTarget, string> = {
@@ -92,6 +95,7 @@ const SUBAGENT_TARGET_PATHS: Record<SubagentTarget, string> = {
   cursor: CURSOR_SUBAGENTS_PATH,
   codex: CODEX_SUBAGENTS_PATH,
   copilot: COPILOT_SUBAGENTS_PATH,
+  opencode: OPENCODE_SUBAGENTS_PATH,
 };
 
 /**
@@ -475,6 +479,43 @@ function buildCopilotFile(
   };
 }
 
+export async function propagateSubagentsForOpenCode(
+  projectRoot: string,
+  subagents: SubagentInfo[],
+  options: PropagateOptions,
+): Promise<string[]> {
+  if (subagents.length === 0) return [];
+
+  // Validate the whole target before touching its previous managed files.
+  // Target-specific model errors must not prevent other agents from updating.
+  let files: { name: string; content: string }[];
+  try {
+    files = subagents.map((subagent) => {
+      const { content, warnings } = buildOpenCodeFile(subagent);
+      for (const warning of warnings) logWarn(warning, options.dryRun);
+      return { name: getSourceRelativeMdPath(subagent), content };
+    });
+  } catch (error) {
+    logWarn(
+      `Skipping OpenCode subagents; existing files are unchanged: ${error instanceof Error ? error.message : String(error)}`,
+      options.dryRun,
+    );
+    return [];
+  }
+
+  if (options.dryRun) {
+    return files.map(
+      ({ name }) => `Write ${path.join(OPENCODE_SUBAGENTS_PATH, name)}`,
+    );
+  }
+  await writeManagedAgentsDirectory(
+    path.join(projectRoot, OPENCODE_SUBAGENTS_PATH),
+    files,
+    projectRoot,
+  );
+  return [];
+}
+
 export async function propagateSubagentsForClaude(
   projectRoot: string,
   subagents: SubagentInfo[],
@@ -639,6 +680,12 @@ async function cleanupAllSubagentsDirectories(
     dryRun,
     verbose,
   );
+  await cleanupSubagentsDir(
+    projectRoot,
+    OPENCODE_SUBAGENTS_PATH,
+    dryRun,
+    verbose,
+  );
 }
 
 /* ------------------------------------------------------------------ */
@@ -730,7 +777,7 @@ export async function propagateSubagents(
   // selection set is stale and must be removed. This catches the case where
   // a user drops an agent (e.g. claude+cursor → claude only) so the previously
   // generated .cursor/agents/ directory does not linger as orphaned config.
-  const allTargets: SubagentTarget[] = ['claude', 'cursor', 'codex', 'copilot'];
+  const allTargets = SUBAGENT_TARGET_TO_IDENTIFIERS.keys();
   for (const target of allTargets) {
     if (!targets.has(target)) {
       await maybeCleanupSubagentsDir(SUBAGENT_TARGET_PATHS[target]);
@@ -747,6 +794,19 @@ export async function propagateSubagents(
   }
 
   warnOnceExperimental(dryRun);
+
+  if (targets.has('opencode')) {
+    logVerboseInfo(
+      `Writing subagents to ${OPENCODE_SUBAGENTS_PATH} for OpenCode`,
+      verbose,
+      dryRun,
+    );
+    const steps = await propagateSubagentsForOpenCode(projectRoot, subagents, {
+      dryRun,
+      verbose,
+    });
+    for (const step of steps) logVerboseInfo(step, true, dryRun);
+  }
 
   if (targets.has('claude')) {
     logVerboseInfo(

@@ -77,3 +77,4 @@ export const CLAUDE_SUBAGENTS_PATH = '.claude/agents';
 export const CURSOR_SUBAGENTS_PATH = '.cursor/agents';
 export const CODEX_SUBAGENTS_PATH = '.codex/agents';
 export const COPILOT_SUBAGENTS_PATH = '.github/agents';
+export const OPENCODE_SUBAGENTS_PATH = '.opencode/agents';

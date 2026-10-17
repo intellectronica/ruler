@@ -35,7 +35,9 @@ export function parseFrontmatter(content: string): ParsedFrontmatter | null {
 export function validateFrontmatter(
   meta: Record<string, unknown>,
   expectedName: string,
-): { value: SubagentFrontmatter } | { error: string } {
+):
+  | { value: SubagentFrontmatter; targetErrors?: { opencode?: string } }
+  | { error: string } {
   const name = meta.name;
   const description = meta.description;
 
@@ -87,7 +89,77 @@ export function validateFrontmatter(
     fm.is_background = meta.is_background;
   }
 
+  if (meta.targets !== undefined) {
+    if (!isRecord(meta.targets)) {
+      return {
+        value: fm,
+        targetErrors: { opencode: `invalid "targets" field; expected object` },
+      };
+    }
+    if (meta.targets.opencode !== undefined) {
+      if (!isRecord(meta.targets.opencode)) {
+        return {
+          value: fm,
+          targetErrors: {
+            opencode: `invalid "targets.opencode" field; expected object`,
+          },
+        };
+      }
+      const target = meta.targets.opencode;
+      const opencode: NonNullable<
+        NonNullable<SubagentFrontmatter['targets']>['opencode']
+      > = {};
+      if (target.model !== undefined) {
+        if (typeof target.model !== 'string') {
+          return {
+            value: fm,
+            targetErrors: {
+              opencode: `invalid "targets.opencode.model" field; expected string`,
+            },
+          };
+        }
+        opencode.model = target.model;
+      }
+      if (target.permission !== undefined) {
+        if (!isRecord(target.permission)) {
+          return {
+            value: fm,
+            targetErrors: {
+              opencode: `invalid "targets.opencode.permission" field; expected object`,
+            },
+          };
+        }
+        for (const [tool, rule] of Object.entries(target.permission)) {
+          if (
+            !isPermissionValue(rule) &&
+            (!isRecord(rule) ||
+              Object.values(rule).some((value) => !isPermissionValue(value)))
+          ) {
+            return {
+              value: fm,
+              targetErrors: {
+                opencode: `invalid "targets.opencode.permission.${tool}" field; expected allow, ask, deny, or pattern rules`,
+              },
+            };
+          }
+        }
+        opencode.permission = target.permission as NonNullable<
+          typeof opencode.permission
+        >;
+      }
+      fm.targets = { opencode };
+    }
+  }
+
   return { value: fm };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function isPermissionValue(value: unknown): value is 'allow' | 'ask' | 'deny' {
+  return value === 'allow' || value === 'ask' || value === 'deny';
 }
 
 /**
@@ -138,6 +210,7 @@ export async function loadSubagentFile(
     path: filePath,
     valid: true,
     frontmatter: result.value,
+    ...(result.targetErrors ? { targetErrors: result.targetErrors } : {}),
     body: parsed.body,
   };
 }

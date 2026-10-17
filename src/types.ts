@@ -75,6 +75,15 @@ export interface SubagentFrontmatter {
   model?: string;
   readonly?: boolean;
   is_background?: boolean;
+  targets?: {
+    opencode?: {
+      model?: string;
+      permission?: Record<
+        string,
+        'allow' | 'ask' | 'deny' | Record<string, 'allow' | 'ask' | 'deny'>
+      >;
+    };
+  };
 }
 
 /** Information about a discovered subagent. */
@@ -87,6 +96,8 @@ export interface SubagentInfo {
   sourceRelativePath?: string;
   /** Parsed frontmatter (only present when valid). */
   frontmatter?: SubagentFrontmatter;
+  /** Target-specific validation errors that do not invalidate common fields. */
+  targetErrors?: { opencode?: string };
   /** Body content after the frontmatter delimiter. */
   body?: string;
   /** Whether this subagent passed validation. */

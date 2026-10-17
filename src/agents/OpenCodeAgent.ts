@@ -118,4 +118,8 @@ export class OpenCodeAgent implements IAgent {
   supportsNativeSkills(): boolean {
     return true;
   }
+
+  supportsNativeSubagents(): boolean {
+    return true;
+  }
 }

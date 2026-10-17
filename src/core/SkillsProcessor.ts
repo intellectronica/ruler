@@ -23,6 +23,7 @@ import {
 import { walkSkillsTree, copySkillsDirectory, pathExists } from './SkillsUtils';
 import type { IAgent } from '../agents/IAgent';
 import { assertManagedPathInsideRoot } from './FileSystemUtils';
+import { inspectOpenCodeSkills } from './OpenCodeSkills';
 
 const RULER_MANAGED_MANIFEST = '.ruler-managed.json';
 
@@ -784,6 +785,10 @@ export async function propagateSkillsForOpenCode(
   } catch {
     // No skills directory - return empty
     return [];
+  }
+
+  for (const warning of await inspectOpenCodeSkills(projectRoot)) {
+    logWarn(warning, options.dryRun);
   }
 
   if (options.dryRun) {

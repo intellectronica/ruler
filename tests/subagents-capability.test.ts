@@ -6,9 +6,15 @@ import { CopilotAgent } from '../src/agents/CopilotAgent';
 import { WindsurfAgent } from '../src/agents/WindsurfAgent';
 import { AiderAgent } from '../src/agents/AiderAgent';
 import { GeminiCliAgent } from '../src/agents/GeminiCliAgent';
+import { OpenCodeAgent } from '../src/agents/OpenCodeAgent';
 
 describe('supportsNativeSubagents capability flag', () => {
   describe('agents with a native subagent primitive', () => {
+    it('OpenCode reports true', () => {
+      const agent: IAgent = new OpenCodeAgent();
+      expect(agent.supportsNativeSubagents?.()).toBe(true);
+    });
+
     it('Claude Code reports true', () => {
       const agent: IAgent = new ClaudeAgent();
       expect(agent.supportsNativeSubagents?.()).toBe(true);
