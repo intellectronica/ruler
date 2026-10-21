@@ -110,17 +110,25 @@ describe('Nested skills handling', () => {
     expect(moduleClaude).not.toContain('Skill reference');
 
     // Skills should still be propagated for selected native agents
-    // Claude and Copilot both map to the Claude skills destination
+    // Claude maps to .claude/skills and Copilot maps to .github/skills
     const claudeSkill = path.join(projectRoot, '.claude', SKILLS_DIR, 'effect');
+    const githubSkill = path.join(projectRoot, '.github', SKILLS_DIR, 'effect');
     const codexSkill = path.join(projectRoot, '.codex', SKILLS_DIR, 'effect');
 
     await expect(fs.access(claudeSkill)).resolves.toBeUndefined();
+    await expect(fs.access(githubSkill)).resolves.toBeUndefined();
     await expect(fs.access(codexSkill)).rejects.toThrow();
 
-    const copiedSkill = await fs.readFile(
+    const copiedClaudeSkill = await fs.readFile(
       path.join(claudeSkill, 'SKILL.md'),
       'utf8',
     );
-    expect(copiedSkill).toContain('Skill content');
+    expect(copiedClaudeSkill).toContain('Skill content');
+
+    const copiedGithubSkill = await fs.readFile(
+      path.join(githubSkill, 'SKILL.md'),
+      'utf8',
+    );
+    expect(copiedGithubSkill).toContain('Skill content');
   });
 });

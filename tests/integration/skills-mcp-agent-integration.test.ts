@@ -126,7 +126,7 @@ describe('Skills Agent Integration', () => {
       expect(skillContent).toBe('# Test Skill');
     });
 
-    it('adds skills to .claude/skills for Copilot (native skills)', async () => {
+    it('adds skills to .github/skills for Copilot (native skills)', async () => {
       await applyAllAgentConfigs(
         tmpDir,
         ['copilot'],
@@ -142,13 +142,13 @@ describe('Skills Agent Integration', () => {
         true, // skills enabled
       );
 
-      // Check that .claude/skills exists and contains the test skill
-      const claudeSkillsPath = path.join(tmpDir, '.claude', 'skills');
-      const testSkillPath = path.join(claudeSkillsPath, 'test-skill');
+      // Check that .github/skills exists and contains the test skill
+      const githubSkillsPath = path.join(tmpDir, '.github', 'skills');
+      const testSkillPath = path.join(githubSkillsPath, 'test-skill');
       const skillMdPath = path.join(testSkillPath, SKILL_MD_FILENAME);
 
       // Verify the skill directory and file exist
-      await expect(fs.access(claudeSkillsPath)).resolves.toBeUndefined();
+      await expect(fs.access(githubSkillsPath)).resolves.toBeUndefined();
       await expect(fs.access(testSkillPath)).resolves.toBeUndefined();
       await expect(fs.access(skillMdPath)).resolves.toBeUndefined();
 
@@ -318,7 +318,7 @@ args = ["server.js"]
 
       // All agents should have native skills
       const codexSkillsPath = path.join(tmpDir, '.agents', 'skills');
-      const claudeSkillsPath = path.join(tmpDir, '.claude', 'skills');
+      const githubSkillsPath = path.join(tmpDir, '.github', 'skills');
       const geminiSkillsPath = path.join(tmpDir, '.gemini', 'skills');
 
       // Check Codex has native skills
@@ -328,7 +328,7 @@ args = ["server.js"]
 
       // Check Copilot has native skills
       await expect(
-        fs.access(path.join(claudeSkillsPath, 'test-skill', SKILL_MD_FILENAME)),
+        fs.access(path.join(githubSkillsPath, 'test-skill', SKILL_MD_FILENAME)),
       ).resolves.toBeUndefined();
 
       // Check Gemini has native skills
