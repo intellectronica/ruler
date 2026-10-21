@@ -17,6 +17,7 @@ import {
   FACTORY_SKILLS_PATH,
   ANTIGRAVITY_SKILLS_PATH,
   KIRO_SKILLS_PATH,
+  GITHUB_SKILLS_PATH,
   logWarn,
   logVerboseInfo,
 } from '../constants';
@@ -84,6 +85,7 @@ export async function getSkillsGitignorePaths(
     WINDSURF_SKILLS_PATH,
     FACTORY_SKILLS_PATH,
     ANTIGRAVITY_SKILLS_PATH,
+    GITHUB_SKILLS_PATH,
   } = await import('../constants');
 
   const selectedTargets = getSelectedSkillTargets(agents);
@@ -102,6 +104,7 @@ export async function getSkillsGitignorePaths(
     factory: FACTORY_SKILLS_PATH,
     antigravity: ANTIGRAVITY_SKILLS_PATH,
     kiro: KIRO_SKILLS_PATH,
+    github: GITHUB_SKILLS_PATH,
   };
 
   const managedEntries = await getSourceTopLevelEntries(skillsDir);
@@ -157,10 +160,11 @@ type SkillTarget =
   | 'windsurf'
   | 'factory'
   | 'antigravity'
-  | 'kiro';
+  | 'kiro'
+  | 'github';
 
 const SKILL_TARGET_TO_IDENTIFIERS = new Map<SkillTarget, readonly string[]>([
-  ['claude', ['claude', 'copilot', 'kilocode']],
+  ['claude', ['claude', 'kilocode']],
   ['codex', ['codex']],
   ['opencode', ['opencode']],
   ['pi', ['pi']],
@@ -174,6 +178,7 @@ const SKILL_TARGET_TO_IDENTIFIERS = new Map<SkillTarget, readonly string[]>([
   ['factory', ['factory']],
   ['antigravity', ['antigravity']],
   ['kiro', ['kiro']],
+  ['github', ['copilot']],
 ]);
 
 const SKILL_TARGET_PATHS: readonly string[] = Array.from(
@@ -192,6 +197,7 @@ const SKILL_TARGET_PATHS: readonly string[] = Array.from(
     FACTORY_SKILLS_PATH,
     ANTIGRAVITY_SKILLS_PATH,
     KIRO_SKILLS_PATH,
+    GITHUB_SKILLS_PATH,
   ]),
 );
 
@@ -581,7 +587,7 @@ export async function propagateSkills(
   // Copy to Claude skills directory if needed
   if (selectedTargets.has('claude')) {
     logVerboseInfo(
-      `Copying skills to ${CLAUDE_SKILLS_PATH} for Claude Code, GitHub Copilot, and KiloCode`,
+      `Copying skills to ${CLAUDE_SKILLS_PATH} for Claude Code and KiloCode`,
       verbose,
       dryRun,
     );
@@ -703,6 +709,15 @@ export async function propagateSkills(
       dryRun,
     );
     await propagateSkillsForKiro(projectRoot, { dryRun });
+  }
+
+  if (selectedTargets.has('github')) {
+    logVerboseInfo(
+      `Copying skills to ${GITHUB_SKILLS_PATH} for GitHub Copilot`,
+      verbose,
+      dryRun,
+    );
+    await propagateSkillsForGithub(projectRoot, { dryRun });
   }
 
   // No MCP-based propagation; only native skills are supported.
@@ -1110,6 +1125,35 @@ export async function propagateSkillsForKiro(
   }
 
   await syncSkillsDirectory(skillsDir, kiroSkillsPath, projectRoot);
+
+  return [];
+}
+
+/**
+ * Propagates skills for GitHub Copilot by copying .ruler/skills to .github/skills.
+ * Updates only Ruler-managed entries so existing native skills are preserved.
+ * Returns dry-run steps if dryRun is true, otherwise returns empty array.
+ */
+export async function propagateSkillsForGithub(
+  projectRoot: string,
+  options: { dryRun: boolean },
+): Promise<string[]> {
+  const skillsDir = path.join(projectRoot, RULER_SKILLS_PATH);
+  const githubSkillsPath = path.join(projectRoot, GITHUB_SKILLS_PATH);
+
+  // Check if source skills directory exists
+  try {
+    await fs.access(skillsDir);
+  } catch {
+    // No skills directory - return empty
+    return [];
+  }
+
+  if (options.dryRun) {
+    return [`Copy skills from ${RULER_SKILLS_PATH} to ${GITHUB_SKILLS_PATH}`];
+  }
+
+  await syncSkillsDirectory(skillsDir, githubSkillsPath, projectRoot);
 
   return [];
 }

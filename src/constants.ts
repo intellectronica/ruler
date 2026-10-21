@@ -69,6 +69,7 @@ export const WINDSURF_SKILLS_PATH = '.windsurf/skills';
 export const FACTORY_SKILLS_PATH = '.factory/skills';
 export const ANTIGRAVITY_SKILLS_PATH = '.agent/skills';
 export const KIRO_SKILLS_PATH = '.kiro/skills';
+export const GITHUB_SKILLS_PATH = '.github/skills';
 export const SKILL_MD_FILENAME = 'SKILL.md';
 
 // Subagents-related constants
