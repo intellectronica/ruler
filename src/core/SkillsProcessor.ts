@@ -24,6 +24,7 @@ import {
 import { walkSkillsTree, copySkillsDirectory, pathExists } from './SkillsUtils';
 import type { IAgent } from '../agents/IAgent';
 import { assertManagedPathInsideRoot } from './FileSystemUtils';
+import { inspectOpenCodeSkills } from './OpenCodeSkills';
 
 const RULER_MANAGED_MANIFEST = '.ruler-managed.json';
 
@@ -784,6 +785,7 @@ export async function propagateSkillsForCodex(
 /**
  * Propagates skills for OpenCode by copying .ruler/skills to .opencode/skills.
  * Updates only Ruler-managed entries so existing native skills are preserved.
+ * Logs diagnostics for invalid source definitions and conflicting native skills.
  * Returns dry-run steps if dryRun is true, otherwise returns empty array.
  */
 export async function propagateSkillsForOpenCode(
@@ -799,6 +801,10 @@ export async function propagateSkillsForOpenCode(
   } catch {
     // No skills directory - return empty
     return [];
+  }
+
+  for (const warning of await inspectOpenCodeSkills(projectRoot)) {
+    logWarn(warning, options.dryRun);
   }
 
   if (options.dryRun) {

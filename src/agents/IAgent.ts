@@ -92,7 +92,7 @@ export interface IAgent {
 
   /**
    * Returns whether this agent has native subagent support (like Claude Code,
-   * Cursor, Codex CLI, GitHub Copilot). When true, subagent definitions from
+   * Cursor, Codex CLI, GitHub Copilot, OpenCode). When true, subagent definitions from
    * `.ruler/agents/` are propagated to the agent's native subagent location.
    * Defaults to false if not implemented.
    */

@@ -4,6 +4,13 @@ import * as yaml from 'js-yaml';
 import type { SubagentFrontmatter, SubagentInfo } from '../types';
 
 const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/;
+const ACTION_ONLY_PERMISSIONS = new Set([
+  'webfetch',
+  'websearch',
+  'todowrite',
+  'question',
+  'doom_loop',
+]);
 
 export interface ParsedFrontmatter {
   meta: Record<string, unknown>;
@@ -29,13 +36,16 @@ export function parseFrontmatter(content: string): ParsedFrontmatter | null {
 
 /**
  * Validates a parsed frontmatter object and reads the required and optional
- * fields into a typed SubagentFrontmatter. Returns the typed value on success
- * or an error message on failure.
+ * fields into a typed SubagentFrontmatter. Common-field errors reject the
+ * definition; OpenCode target errors are retained separately so other targets
+ * can still use it.
  */
 export function validateFrontmatter(
   meta: Record<string, unknown>,
   expectedName: string,
-): { value: SubagentFrontmatter } | { error: string } {
+):
+  | { value: SubagentFrontmatter; targetErrors?: { opencode?: string } }
+  | { error: string } {
   const name = meta.name;
   const description = meta.description;
 
@@ -87,12 +97,89 @@ export function validateFrontmatter(
     fm.is_background = meta.is_background;
   }
 
+  if (meta.targets !== undefined) {
+    if (!isRecord(meta.targets)) {
+      return {
+        value: fm,
+        targetErrors: { opencode: `invalid "targets" field; expected object` },
+      };
+    }
+    if (meta.targets.opencode !== undefined) {
+      if (!isRecord(meta.targets.opencode)) {
+        return {
+          value: fm,
+          targetErrors: {
+            opencode: `invalid "targets.opencode" field; expected object`,
+          },
+        };
+      }
+      const target = meta.targets.opencode;
+      const opencode: NonNullable<
+        NonNullable<SubagentFrontmatter['targets']>['opencode']
+      > = {};
+      if (target.model !== undefined) {
+        if (typeof target.model !== 'string') {
+          return {
+            value: fm,
+            targetErrors: {
+              opencode: `invalid "targets.opencode.model" field; expected string`,
+            },
+          };
+        }
+        opencode.model = target.model;
+      }
+      if (target.permission !== undefined) {
+        if (!isRecord(target.permission)) {
+          return {
+            value: fm,
+            targetErrors: {
+              opencode: `invalid "targets.opencode.permission" field; expected object`,
+            },
+          };
+        }
+        for (const [tool, rule] of Object.entries(target.permission)) {
+          const actionOnly = ACTION_ONLY_PERMISSIONS.has(tool);
+          if (
+            !isPermissionValue(rule) &&
+            (actionOnly ||
+              !isRecord(rule) ||
+              Object.values(rule).some((value) => !isPermissionValue(value)))
+          ) {
+            return {
+              value: fm,
+              targetErrors: {
+                opencode: `invalid "targets.opencode.permission.${tool}" field; expected allow, ask, deny${actionOnly ? '' : ', or pattern rules'}`,
+              },
+            };
+          }
+        }
+        opencode.permission = target.permission as NonNullable<
+          typeof opencode.permission
+        >;
+      }
+      fm.targets = { opencode };
+    }
+  }
+
   return { value: fm };
+}
+
+/** Narrows plain YAML mappings while rejecting arrays and class instances. */
+function isRecord(value: unknown): value is Record<string, unknown> {
+  if (value === null || typeof value !== 'object') return false;
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+}
+
+/** Checks whether a value is one of OpenCode's supported permission actions. */
+function isPermissionValue(value: unknown): value is 'allow' | 'ask' | 'deny' {
+  return value === 'allow' || value === 'ask' || value === 'deny';
 }
 
 /**
  * Loads a single subagent file and produces a SubagentInfo.
- * Invalid files produce a SubagentInfo with valid=false and an error string.
+ * Invalid common fields produce a SubagentInfo with valid=false and an error;
+ * invalid OpenCode-only fields are returned in targetErrors for target-level handling.
  */
 export async function loadSubagentFile(
   filePath: string,
@@ -138,6 +225,7 @@ export async function loadSubagentFile(
     path: filePath,
     valid: true,
     frontmatter: result.value,
+    ...(result.targetErrors ? { targetErrors: result.targetErrors } : {}),
     body: parsed.body,
   };
 }

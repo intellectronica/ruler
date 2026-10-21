@@ -2,7 +2,11 @@ import {
   validateFrontmatter,
   mapToolsForCopilot,
   parseFrontmatter,
+  loadSubagentFile,
 } from '../../../src/core/SubagentsUtils';
+import * as fs from 'fs/promises';
+import * as os from 'os';
+import * as path from 'path';
 
 describe('SubagentsUtils.validateFrontmatter', () => {
   it('accepts minimal valid frontmatter', () => {
@@ -122,6 +126,202 @@ describe('SubagentsUtils.validateFrontmatter', () => {
       expect(result.value.is_background).toBe(false);
     } else {
       throw new Error('expected success');
+    }
+  });
+
+  it('preserves OpenCode overrides and ignores unknown targets', () => {
+    const result = validateFrontmatter(
+      {
+        name: 'reviewer',
+        description: 'x',
+        targets: {
+          opencode: {
+            model: 'acme/model/v2',
+            permission: { bash: { '*': 'ask', 'git status*': 'allow' } },
+          },
+          future: { enabled: true },
+        },
+      },
+      'reviewer',
+    );
+    expect(result).toEqual({
+      value: {
+        name: 'reviewer',
+        description: 'x',
+        targets: {
+          opencode: {
+            model: 'acme/model/v2',
+            permission: { bash: { '*': 'ask', 'git status*': 'allow' } },
+          },
+        },
+      },
+    });
+  });
+
+  it.each(['webfetch', 'websearch', 'todowrite', 'question', 'doom_loop'])(
+    'rejects pattern rules for scalar-only OpenCode permission %s',
+    (tool) => {
+      const result = validateFrontmatter(
+        {
+          name: 'reviewer',
+          description: 'x',
+          targets: { opencode: { permission: { [tool]: { '*': 'allow' } } } },
+        },
+        'reviewer',
+      );
+      expect(result).toEqual({
+        value: { name: 'reviewer', description: 'x' },
+        targetErrors: {
+          opencode: expect.stringMatching(`permission\\.${tool}`),
+        },
+      });
+    },
+  );
+
+  it.each(['webfetch', 'websearch', 'todowrite', 'question', 'doom_loop'])(
+    'accepts scalar OpenCode permission %s',
+    (tool) => {
+      const permission = { [tool]: 'allow' };
+      expect(
+        validateFrontmatter(
+          {
+            name: 'reviewer',
+            description: 'x',
+            targets: { opencode: { permission } },
+          },
+          'reviewer',
+        ),
+      ).toEqual({
+        value: {
+          name: 'reviewer',
+          description: 'x',
+          targets: { opencode: { permission } },
+        },
+      });
+    },
+  );
+
+  it('accepts pattern rules for custom OpenCode permissions', () => {
+    const permission = { custom_tool: { '*': 'ask' } };
+    expect(
+      validateFrontmatter(
+        {
+          name: 'reviewer',
+          description: 'x',
+          targets: { opencode: { permission } },
+        },
+        'reviewer',
+      ),
+    ).toEqual({
+      value: {
+        name: 'reviewer',
+        description: 'x',
+        targets: { opencode: { permission } },
+      },
+    });
+  });
+
+  it.each([
+    [{ targets: [] }, /targets/],
+    [{ targets: { opencode: [] } }, /opencode/],
+    [{ targets: { opencode: { model: 3 } } }, /model/],
+    [{ targets: { opencode: { permission: [] } } }, /permission/],
+    [{ targets: new Date('2026-01-01') }, /targets/],
+    [{ targets: { opencode: new Date('2026-01-01') } }, /opencode/],
+    [
+      { targets: { opencode: { permission: new Date('2026-01-01') } } },
+      /permission/,
+    ],
+    [
+      {
+        targets: { opencode: { permission: { bash: new Date('2026-01-01') } } },
+      },
+      /permission/,
+    ],
+    [{ targets: { opencode: { permission: { bash: 'yes' } } } }, /permission/],
+    [
+      { targets: { opencode: { permission: { bash: { 'git *': 'yes' } } } } },
+      /permission/,
+    ],
+    [
+      { targets: { opencode: { permission: { bash: { 'git *': [] } } } } },
+      /permission/,
+    ],
+  ])('isolates malformed OpenCode configuration %j', (extra, error) => {
+    const result = validateFrontmatter(
+      { name: 'reviewer', description: 'x', ...extra },
+      'reviewer',
+    );
+    expect(result).toEqual({
+      value: { name: 'reviewer', description: 'x' },
+      targetErrors: { opencode: expect.stringMatching(error) },
+    });
+  });
+
+  it('keeps common validation errors global when a target is also invalid', () => {
+    expect(
+      validateFrontmatter(
+        { name: 'reviewer', description: 'x', tools: 12, targets: [] },
+        'reviewer',
+      ),
+    ).toEqual({ error: expect.stringMatching(/tools/) });
+  });
+
+  it('keeps model syntax validation out of the common parser', () => {
+    const result = validateFrontmatter(
+      {
+        name: 'reviewer',
+        description: 'x',
+        targets: { opencode: { model: 'badmodel' } },
+      },
+      'reviewer',
+    );
+    expect('value' in result).toBe(true);
+  });
+});
+
+describe('SubagentsUtils.loadSubagentFile target errors', () => {
+  it('loads a valid common subagent and carries an OpenCode-only error', async () => {
+    const dir = await fs.mkdtemp(
+      path.join(os.tmpdir(), 'ruler-opencode-target-'),
+    );
+    const file = path.join(dir, 'reviewer.md');
+    try {
+      await fs.writeFile(
+        file,
+        '---\nname: reviewer\ndescription: Reviews code\ntargets:\n  opencode:\n    permission:\n      bash: invalid\n---\nReview.\n',
+      );
+      const loaded = await loadSubagentFile(file);
+      expect(loaded.valid).toBe(true);
+      expect(loaded.frontmatter).toEqual({
+        name: 'reviewer',
+        description: 'Reviews code',
+      });
+      expect(loaded.targetErrors?.opencode).toMatch(/permission/);
+    } finally {
+      await fs.rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects a YAML timestamp used as an OpenCode permission rule', async () => {
+    const dir = await fs.mkdtemp(
+      path.join(os.tmpdir(), 'ruler-opencode-target-'),
+    );
+    const file = path.join(dir, 'reviewer.md');
+    try {
+      await fs.writeFile(
+        file,
+        '---\nname: reviewer\ndescription: Reviews code\ntargets:\n  opencode:\n    permission:\n      bash: 2026-01-01\n---\nReview.\n',
+      );
+      const loaded = await loadSubagentFile(file);
+      expect(loaded.valid).toBe(true);
+      expect(loaded.frontmatter).toEqual({
+        name: 'reviewer',
+        description: 'Reviews code',
+      });
+      expect(loaded.targetErrors?.opencode).toMatch(/permission\.bash/);
+    } finally {
+      await fs.rm(dir, { recursive: true, force: true });
     }
   });
 });

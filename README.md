@@ -76,7 +76,7 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | Junie                  | `.junie/guidelines.md`                         | `.junie/mcp/mcp.json`                            | `.junie/skills/`          | -                            |
 | AugmentCode            | `.augment/rules/ruler_augment_instructions.md` | -                                                | -                         | -                            |
 | Kilo Code              | `AGENTS.md`                                    | `.kilocode/mcp.json`                             | `.claude/skills/`         | -                            |
-| OpenCode               | `AGENTS.md`                                    | `opencode.json`                                  | `.opencode/skills/`       | -                            |
+| OpenCode               | `AGENTS.md`                                    | `opencode.json`                                  | `.opencode/skills/`       | `.opencode/agents/`          |
 | Goose                  | `.goosehints`                                  | -                                                | `.agents/skills/`         | -                            |
 | Qwen Code              | `AGENTS.md`                                    | `.qwen/settings.json`                            | -                         | -                            |
 | RooCode                | `AGENTS.md`                                    | `.roo/mcp.json`                                  | `.roo/skills/`            | -                            |
@@ -707,6 +707,16 @@ Ruler validates discovered skills and issues warnings for:
 
 Warnings don't prevent propagation but help identify potential issues.
 
+When OpenCode is selected, Ruler also checks skill YAML frontmatter against
+the [OpenCode skills contract](https://opencode.ai/docs/skills/): a 1–64 character
+lowercase, hyphen-separated `name` matching the containing directory, and a
+non-empty `description` of at most 1024 characters. Duplicate source names and
+conflicting native skill copies are reported. Identical copies in multiple
+agent directories do not produce a Ruler conflict warning. OpenCode itself can
+still report duplicate names because it also discovers `.claude/skills/` and
+`.agents/skills/`. These diagnostics do not filter or rewrite skills: metadata,
+scripts, and supporting assets are copied unchanged.
+
 ### Dry-Run Mode
 
 Test skills propagation without making changes:
@@ -765,12 +775,13 @@ Ruler can distribute named, delegatable **subagents** from a single source of tr
 
 For agents with a native subagent primitive, Ruler writes one file per subagent into the target directory:
 
-| Agent            | Target location                      | Format                                   |
-| ---------------- | ------------------------------------ | ---------------------------------------- |
-| Claude Code      | `.claude/agents/<relative-path>.md`  | Markdown + YAML frontmatter              |
-| Cursor           | `.cursor/agents/<relative-path>.md`  | Markdown + YAML frontmatter              |
-| OpenAI Codex CLI | `.codex/agents/<relative-path>.toml` | TOML (one self-contained file per agent) |
-| GitHub Copilot   | `.github/agents/<relative-path>.md`  | Markdown + YAML frontmatter              |
+| Agent            | Target location                       | Format                                   |
+| ---------------- | ------------------------------------- | ---------------------------------------- |
+| Claude Code      | `.claude/agents/<relative-path>.md`   | Markdown + YAML frontmatter              |
+| Cursor           | `.cursor/agents/<relative-path>.md`   | Markdown + YAML frontmatter              |
+| OpenAI Codex CLI | `.codex/agents/<relative-path>.toml`  | TOML (one self-contained file per agent) |
+| GitHub Copilot   | `.github/agents/<relative-path>.md`   | Markdown + YAML frontmatter              |
+| OpenCode         | `.opencode/agents/<relative-path>.md` | Markdown + YAML frontmatter              |
 
 Other agents (Windsurf, RooCode, Aider, Gemini CLI, …) do not yet have a comparable native subagent primitive and are skipped with a warning. Subagent propagation will be added when those agents ship a comparable file format.
 
@@ -804,14 +815,95 @@ a structured verdict.
 
 **Optional frontmatter fields:**
 
-| Field           | Type     | Used by                                                                         | Default behavior                                   |
-| --------------- | -------- | ------------------------------------------------------------------------------- | -------------------------------------------------- |
-| `tools`         | string[] | Claude (verbatim), Copilot (mapped to aliases)                                  | Cursor / Codex ignore; omitted if absent.          |
-| `model`         | string   | All four targets                                                                | Cursor defaults to `inherit`; others omit.         |
-| `readonly`      | boolean  | Cursor (verbatim), Codex (`sandbox_mode`), Copilot (`disable-model-invocation`) | Defaults to `false` for Cursor; omitted otherwise. |
-| `is_background` | boolean  | Cursor only                                                                     | Defaults to `false` for Cursor.                    |
+| Field           | Type     | Used by                                                                                                            | Default behavior                                   |
+| --------------- | -------- | ------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------- |
+| `tools`         | string[] | Claude (verbatim), Copilot (mapped to aliases), OpenCode (mapped to permissions)                                   | Cursor / Codex ignore; omitted if absent.          |
+| `model`         | string   | All five targets                                                                                                   | Cursor defaults to `inherit`; others omit.         |
+| `readonly`      | boolean  | Cursor (verbatim), Codex (`sandbox_mode`), Copilot (`disable-model-invocation`), OpenCode (restricted permissions) | Defaults to `false` for Cursor; omitted otherwise. |
+| `is_background` | boolean  | Cursor only                                                                                                        | Defaults to `false` for Cursor.                    |
 
 For GitHub Copilot, source `tools` (Claude vocabulary: `Read`, `Grep`, `Bash`, …) are translated to Copilot's aliases (`read`, `search`, `execute`, …). Tools that do not have a Copilot equivalent are dropped silently on a normal apply; pass `--verbose` (or use `--dry-run` to preview) to see which tools were dropped.
+
+### OpenCode models, providers, and permissions
+
+Each subagent can select a different provider and model through `targets.opencode`:
+
+```markdown
+---
+name: reviewer
+description: Review code changes using the project checklist.
+model: inherit
+targets:
+  opencode:
+    model: anthropic/claude-sonnet-4-5-20250929
+    permission:
+      edit: deny
+      bash: deny
+      skill:
+        '*': deny
+        code-review: allow
+---
+
+Load the code-review skill and review the diff.
+```
+
+A second definition can use `targets.opencode.model: openai/gpt-5`, or a
+configured custom provider such as `company/team/model`. These are examples of
+identifiers, not a guarantee of model availability. Ruler does not register
+providers or configure credentials; use OpenCode's configuration and `/connect`.
+See [OpenCode providers](https://opencode.ai/docs/providers/).
+
+Model resolution is per subagent:
+
+1. Use `targets.opencode.model` when supplied; otherwise use the shared `model`.
+2. An absent value or `inherit` omits the generated `model`. OpenCode then inherits
+   the invoking agent's model and provider. An explicit target `inherit` overrides
+   a shared explicit model.
+3. An explicit value must be `provider/model`; model IDs may contain additional
+   slashes. Bare aliases such as `sonnet` are ambiguous and produce a diagnostic.
+   Override them for OpenCode or explicitly choose `inherit`.
+
+This fallback handles missing model configuration; it does not fail over between
+providers after authentication, quota, or execution errors. Provider availability
+is resolved by OpenCode at runtime, including global configuration. Ruler does
+not maintain a provider allowlist or make network requests during generation.
+
+Ruler always emits `mode: subagent`. It preserves nested source paths and omits
+the source `name` field so OpenCode derives the name from the relative path
+(for example, `review/security.md` becomes `review/security`). Target overrides
+are consumed only by OpenCode and are not emitted to Claude, Cursor, Codex, or
+Copilot. Currently the supported OpenCode overrides are `model` and `permission`.
+Root-level names `build`, `plan`, `general`, `explore`, `compaction`, `title`,
+and `summary` are reserved to avoid replacing OpenCode's built-in agents.
+Rename those source files or place them in a subdirectory (for example,
+`team/build.md`).
+
+Source `tools` are mapped to OpenCode permissions (`Read` → `read`, `Bash` →
+`bash`, `Edit`/`Write` → `edit`, `Task` → `task`, `Skill` → `skill`, and the
+corresponding search/web tools). An explicit tool list starts with `"*": deny`;
+an empty list denies every tool. Unknown tools are omitted with a warning.
+`targets.opencode.permission` overrides the mapped entries and supports
+`allow`, `ask`, `deny`, and ordered pattern rules, including `skill` and `task`.
+Pattern order is preserved because OpenCode uses the last matching rule.
+The permissions `webfetch`, `websearch`, `todowrite`, `question`, and `doom_loop`
+accept only a single action, not pattern maps. Permission maps must be YAML
+mappings; timestamps and other special YAML values are rejected.
+
+`readonly: true` uses a conservative permission policy: only reading, searching,
+loading skills, and fetching web information may be enabled. Shell, edits,
+delegation, and unlisted tools remain denied. Conflicting explicit overrides
+produce a diagnostic. These are OpenCode tool permissions, not an OS sandbox.
+An override of `"*"` must retain a global `deny`: either `"*": deny` or a pattern
+map containing `"*": deny` with only deny actions. Empty or partial wildcard
+maps are rejected because they would remove the global restriction.
+`is_background: true` produces a warning: background execution is a runtime
+option, not a static field Ruler can translate.
+
+Before updating OpenCode subagents, Ruler renders the whole target. If an agent
+uses a reserved name or has an invalid model or permission setting, it warns and leaves that
+target's existing files unchanged; other selected targets can still update.
+Use `ruler apply --agents opencode --subagents --dry-run` to preview generation.
+See [OpenCode agents](https://opencode.ai/docs/agents/) for native behavior.
 
 ### Configuration
 
@@ -850,13 +942,12 @@ Use `--dry-run` to preview which files would be written without touching disk.
 
 ### `.gitignore` Integration
 
-When subagents are enabled, the four target directories are added to the Ruler-managed block of `.gitignore`:
+When subagents are enabled, generated files and the ownership manifest for each
+selected target are added to the Ruler-managed block of `.gitignore`. For example:
 
 ```
-.claude/agents/
-.cursor/agents/
-.codex/agents/
-.github/agents/
+/.opencode/agents/reviewer.md
+/.opencode/agents/.ruler-managed.json
 ```
 
 Use `--no-gitignore` to opt out.
@@ -892,12 +983,13 @@ ruler apply
 #    - Cursor:       .cursor/agents/code-reviewer.md
 #    - Codex CLI:    .codex/agents/code-reviewer.toml
 #    - GitHub Copilot: .github/agents/code-reviewer.md
+#    - OpenCode: .opencode/agents/code-reviewer.md
 ```
 
 ### Limitations
 
 - **No explicit revert command.** Optional cleanup is available via `[agents] cleanup_orphaned = true` and a subsequent `apply`.
-- **Atomic replace, not merge.** Ruler regenerates each agent's subagent directory from the source on every apply. Manual edits to generated files will be overwritten.
+- **Managed files, not whole directories.** Ruler tracks generated files in `.ruler-managed.json`, replaces those files on apply, and removes stale managed files during regeneration. User-created native files are preserved; colliding unmanaged paths are skipped with a warning. Manual edits to Ruler-managed files will be overwritten.
 - **No support yet for agents without a native subagent primitive.** Windsurf, RooCode, Aider, Gemini CLI, and others are skipped with a warning. Propagation will be added when those agents ship a comparable file format.
 
 ## `.gitignore` Integration
