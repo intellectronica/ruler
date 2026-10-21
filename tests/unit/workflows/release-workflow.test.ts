@@ -2,6 +2,27 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 describe('release workflow', () => {
+  it('audits production dependencies before publishing without blocking on dev toolchain advisories', () => {
+    const workflowPath = path.join(
+      process.cwd(),
+      '.github',
+      'workflows',
+      'release.yml',
+    );
+    const workflow = fs.readFileSync(workflowPath, 'utf8');
+
+    const auditIndex = workflow.indexOf(
+      '- run: npm audit --omit=dev --audit-level=moderate',
+    );
+    const publishIndex = workflow.indexOf('npm publish --access public');
+
+    expect(auditIndex).toBeGreaterThanOrEqual(0);
+    expect(publishIndex).toBeGreaterThan(auditIndex);
+    expect(workflow).not.toContain(
+      '\n      - run: npm audit --audit-level=moderate',
+    );
+  });
+
   it('publishes only after a release is published', () => {
     const workflowPath = path.join(
       process.cwd(),

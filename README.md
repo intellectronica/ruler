@@ -57,7 +57,7 @@ Ruler solves this by providing a **single source of truth** for all your AI agen
 | Agent                  | Rules File(s)                                  | MCP Configuration / Notes                        | Skills Support / Location | Subagents Support / Location |
 | ---------------------- | ---------------------------------------------- | ------------------------------------------------ | ------------------------- | ---------------------------- |
 | AGENTS.md              | `AGENTS.md`                                    | (pseudo-agent ensuring root `AGENTS.md` exists)  | -                         | -                            |
-| GitHub Copilot         | `AGENTS.md`                                    | `.mcp.json`                                      | `.claude/skills/`         | `.github/agents/`            |
+| GitHub Copilot         | `AGENTS.md`                                    | `.mcp.json`                                      | `.github/skills/`         | `.github/agents/`            |
 | Claude Code            | `CLAUDE.md`                                    | `.mcp.json`                                      | `.claude/skills/`         | `.claude/agents/`            |
 | OpenAI Codex CLI       | `AGENTS.md`                                    | `.codex/config.toml`                             | `.agents/skills/`         | `.codex/agents/` (`.toml`)   |
 | Pi Coding Agent        | `AGENTS.md`                                    | -                                                | `.pi/skills/`             | -                            |
@@ -606,7 +606,7 @@ Skills are specialized knowledge packages that extend AI agent capabilities with
 
 - **Agents with native skills support**: Skills are copied directly to each agent's native skills directory:
   - **Claude Code**: `.claude/skills/`
-  - **GitHub Copilot**: `.claude/skills/` (shared with Claude Code)
+  - **GitHub Copilot**: `.github/skills/`
   - **Kilo Code**: `.claude/skills/` (shared with Claude Code)
   - **OpenAI Codex CLI**: `.agents/skills/` (shared with Goose, Amp, and Zed)
   - **OpenCode**: `.opencode/skills/`
@@ -677,7 +677,8 @@ If you run Ruler for agents that do not support native skills, Ruler logs a warn
 
 When skills support is enabled and gitignore integration is active, Ruler automatically adds:
 
-- `.claude/skills/` (for Claude Code, GitHub Copilot, and Kilo Code)
+- `.claude/skills/` (for Claude Code and Kilo Code)
+- `.github/skills/` (for GitHub Copilot)
 - `.agents/skills/` (for OpenAI Codex CLI, Goose, Amp, and Zed)
 - `.opencode/skills/` (for OpenCode)
 - `.pi/skills/` (for Pi Coding Agent)
@@ -748,7 +749,8 @@ EOF
 ruler apply
 
 # 3. Skills are now available to compatible agents:
-#    - Claude Code, GitHub Copilot & Kilo Code: .claude/skills/my-skill/
+#    - Claude Code & Kilo Code: .claude/skills/my-skill/
+#    - GitHub Copilot: .github/skills/my-skill/
 #    - OpenAI Codex CLI, Goose, Amp & Zed: .agents/skills/my-skill/
 #    - OpenCode: .opencode/skills/my-skill/
 #    - Pi Coding Agent: .pi/skills/my-skill/
@@ -1111,11 +1113,11 @@ jobs:
       - name: Verify committed agent files match .ruler/
         run: |
           pnpm dlx @intellectronica/ruler apply --no-gitignore --no-mcp
-          DRIFT="$(git status --porcelain -- AGENTS.md CLAUDE.md .claude/skills .codex/skills)"
+          DRIFT="$(git status --porcelain -- AGENTS.md CLAUDE.md .claude/skills .github/skills .codex/skills)"
           if [ -n "$DRIFT" ]; then
             echo "::error::Committed agent files are out of sync with .ruler/. Run 'pnpm dlx @intellectronica/ruler apply --no-gitignore --no-mcp' and commit the result."
             echo "$DRIFT"
-            git --no-pager diff -- AGENTS.md CLAUDE.md .claude/skills .codex/skills
+            git --no-pager diff -- AGENTS.md CLAUDE.md .claude/skills .github/skills .codex/skills
             exit 1
           fi
           echo "Agent files are in sync with .ruler/."
@@ -1262,7 +1264,7 @@ A: Enable nested mode either by setting `nested = true` in `ruler.toml` or by pa
 A: Set `enabled = false` in `ruler.toml` under `[agents.agentname]`, or use `--agents` flag to specify only the agents you want.
 
 **Q: What happens to my existing agent configuration files?**
-A: Ruler creates backups with `.bak` extension before overwriting any existing files.
+A: When enabled, Ruler creates `.bak` backups of pre-existing, non-Ruler-generated agent configuration files before replacing them.
 
 **Q: Can I run Ruler in CI/CD pipelines?**
 A: Yes! Use `ruler apply --no-gitignore` in CI to avoid modifying `.gitignore`. See the GitHub Actions example above.

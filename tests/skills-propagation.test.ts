@@ -6,6 +6,7 @@ import { discoverSkills } from '../src/core/SkillsProcessor';
 import {
   ANTIGRAVITY_SKILLS_PATH,
   CLAUDE_SKILLS_PATH,
+  GITHUB_SKILLS_PATH,
   JUNIE_SKILLS_PATH,
   KIRO_SKILLS_PATH,
   WINDSURF_SKILLS_PATH,
@@ -157,7 +158,7 @@ describe('Skills Discovery and Validation', () => {
       ]);
     });
 
-    it('returns claude skills path for copilot agent', async () => {
+    it('returns github skills path for copilot agent', async () => {
       const { getSkillsGitignorePaths } = await import(
         '../src/core/SkillsProcessor'
       );
@@ -169,8 +170,8 @@ describe('Skills Discovery and Validation', () => {
       const paths = await getSkillsGitignorePaths(tmpDir, [new CopilotAgent()]);
 
       expect(paths).toEqual([
-        path.join(tmpDir, CLAUDE_SKILLS_PATH, managedManifest),
-        path.join(tmpDir, CLAUDE_SKILLS_PATH, 'skill1'),
+        path.join(tmpDir, GITHUB_SKILLS_PATH, managedManifest),
+        path.join(tmpDir, GITHUB_SKILLS_PATH, 'skill1'),
       ]);
     });
 
@@ -1523,7 +1524,7 @@ describe('Skills Discovery and Validation', () => {
       ).rejects.toThrow();
     });
 
-    it('propagates copilot skills to claude destination only', async () => {
+    it('propagates copilot skills to github destination only', async () => {
       const { propagateSkills } = await import('../src/core/SkillsProcessor');
       const { CopilotAgent } = await import('../src/agents/CopilotAgent');
       const skillsDir = path.join(tmpDir, '.ruler', 'skills', 'skill1');
@@ -1533,14 +1534,14 @@ describe('Skills Discovery and Validation', () => {
 
       await propagateSkills(tmpDir, [new CopilotAgent()], true, false, false);
 
-      const claudeSkill = path.join(
+      const githubSkill = path.join(
         tmpDir,
-        CLAUDE_SKILLS_PATH,
+        GITHUB_SKILLS_PATH,
         'skill1',
         SKILL_MD_FILENAME,
       );
 
-      expect(await fs.readFile(claudeSkill, 'utf8')).toBe('# Skill 1');
+      expect(await fs.readFile(githubSkill, 'utf8')).toBe('# Skill 1');
       await expect(
         fs.access(path.join(tmpDir, ANTIGRAVITY_SKILLS_PATH)),
       ).rejects.toThrow();

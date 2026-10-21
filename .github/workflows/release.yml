@@ -111,6 +111,5 @@ jobs:
       - run: npm test
       - run: npm run build
       - run: npm audit --omit=dev --audit-level=moderate
-      - run: npm audit --audit-level=moderate
       - run: npm pack --dry-run
       - run: npm publish --access public --provenance
