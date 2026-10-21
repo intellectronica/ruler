@@ -1172,7 +1172,7 @@ A: Enable nested mode either by setting `nested = true` in `ruler.toml` or by pa
 A: Set `enabled = false` in `ruler.toml` under `[agents.agentname]`, or use `--agents` flag to specify only the agents you want.
 
 **Q: What happens to my existing agent configuration files?**
-A: Ruler creates backups with `.bak` extension before overwriting any existing files.
+A: When enabled, Ruler creates `.bak` backups of pre-existing, non-Ruler-generated agent configuration files before replacing them.
 
 **Q: Can I run Ruler in CI/CD pipelines?**
 A: Yes! Use `ruler apply --no-gitignore` in CI to avoid modifying `.gitignore`. See the GitHub Actions example above.
