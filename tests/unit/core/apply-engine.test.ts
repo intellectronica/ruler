@@ -988,6 +988,60 @@ command = "sub-cmd"
   });
 
   describe('MCP type transformations', () => {
+    it('should transform remote types for Copilot while preserving stdio servers', async () => {
+      const config: LoadedConfig = {
+        agentConfigs: {
+          copilot: {
+            enabled: true,
+            mcp: { enabled: true },
+          },
+        },
+      };
+      const mcpJson = {
+        mcpServers: {
+          http: {
+            type: 'remote',
+            url: 'https://api.example.com/mcp',
+            headers: { 'X-API-Version': 'v1' },
+          },
+          sse: {
+            type: 'remote',
+            url: 'https://api.example.com/sse/events',
+          },
+          local: {
+            type: 'stdio',
+            command: 'node',
+            args: ['server.js'],
+            env: { LOG_LEVEL: 'info' },
+          },
+        },
+      };
+
+      await applyConfigurationsToAgents(
+        [new CopilotAgent()],
+        '# Test rules',
+        mcpJson,
+        config,
+        tmpDir,
+        false,
+        false,
+        true,
+        undefined,
+        false,
+      );
+
+      const mcpContent = JSON.parse(
+        await fs.readFile(path.join(tmpDir, '.mcp.json'), 'utf8'),
+      );
+      expect(mcpContent.mcpServers).toEqual({
+        http: { ...mcpJson.mcpServers.http, type: 'http' },
+        sse: { ...mcpJson.mcpServers.sse, type: 'sse' },
+        local: mcpJson.mcpServers.local,
+      });
+      expect(mcpJson.mcpServers.http.type).toBe('remote');
+      expect(mcpJson.mcpServers.sse.type).toBe('remote');
+    });
+
     it('should transform remote type to streamable-http for Kilo Code', async () => {
       const kilocodeDir = path.join(tmpDir, '.kilocode');
       await fs.mkdir(kilocodeDir, { recursive: true });

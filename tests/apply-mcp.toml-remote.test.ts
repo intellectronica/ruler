@@ -19,6 +19,9 @@ Authorization = "Bearer TOKEN123"
 
 [mcp_servers.api]
 url = "https://api.example.com/mcp"
+
+[mcp_servers.events]
+url = "https://mcp.example.com/sse"
 `;
 
     testProject = await setupTestProject({
@@ -47,17 +50,22 @@ url = "https://api.example.com/mcp"
         Authorization: 'Bearer TOKEN123',
         'X-API-Version': 'v1',
       },
-      type: 'remote',
+      type: 'http',
     });
 
     expect(config.mcpServers).toHaveProperty('api');
     expect(config.mcpServers.api).toEqual({
       url: 'https://api.example.com/mcp',
-      type: 'remote',
+      type: 'http',
+    });
+
+    expect(config.mcpServers.events).toEqual({
+      url: 'https://mcp.example.com/sse',
+      type: 'sse',
     });
   });
 
-  it('propagates mixed command/url TOML servers as remote', async () => {
+  it('propagates mixed command/url TOML servers as http', async () => {
     const mixedProject = await setupTestProject({
       '.ruler/ruler.toml': `[mcp]
 enabled = true
@@ -83,7 +91,7 @@ TOKEN = "stdio-only"
 
       expect(config.mcpServers.search).toEqual({
         url: 'https://mcp.example.com/search',
-        type: 'remote',
+        type: 'http',
       });
     } finally {
       await teardownTestProject(mixedProject.projectRoot);

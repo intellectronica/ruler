@@ -1152,7 +1152,8 @@ async function applyStandardMcpConfiguration(
     let mcpToMerge = filteredMcpJson;
     if (
       agent.getIdentifier() === 'claude' ||
-      agent.getIdentifier() === 'aider'
+      agent.getIdentifier() === 'aider' ||
+      agent.getIdentifier() === 'copilot'
     ) {
       mcpToMerge = transformMcpForClaude(filteredMcpJson);
     } else if (agent.getIdentifier() === 'kilocode') {

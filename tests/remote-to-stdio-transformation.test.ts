@@ -74,7 +74,7 @@ Authorization = "Bearer TOKEN123"
     expect(servers.remote_with_headers.headers).toBeUndefined();
   });
 
-  it('does not transform remote servers for agents that support both stdio and remote', async () => {
+  it('does not convert remote servers to stdio for Copilot', async () => {
     const { projectRoot } = testProject;
 
     // Run ruler apply for Copilot agent (supports both stdio and remote)
@@ -84,7 +84,7 @@ Authorization = "Bearer TOKEN123"
     const configPath = path.join(projectRoot, '.mcp.json');
     const content = await fs.readFile(configPath, 'utf8');
 
-    // Verify that remote servers are preserved as remote (not transformed to stdio)
+    // Verify that remote servers remain URL-based (not transformed to stdio)
     expect(content).toContain('"filesystem"');
     expect(content).toContain('"command": "npx"');
     expect(content).toContain('"-y",');
@@ -93,7 +93,7 @@ Authorization = "Bearer TOKEN123"
 
     expect(content).toContain('"remote_api"');
     expect(content).toContain('"url": "https://api.example.com/mcp"');
-    expect(content).toContain('"type": "remote"');
+    expect(content).toContain('"type": "http"');
 
     expect(content).toContain('"remote_with_headers"');
     expect(content).toContain('"url": "https://example.com/mcp"');
