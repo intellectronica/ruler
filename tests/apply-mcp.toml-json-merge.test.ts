@@ -61,7 +61,7 @@ url = "https://toml.example.com"
     // TOML-only server should be present
     expect(config.mcpServers.search).toEqual({
       url: 'https://toml.example.com',
-      type: 'remote',
+      type: 'http',
     });
 
     // JSON-only server should be present
