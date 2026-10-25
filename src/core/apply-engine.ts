@@ -393,7 +393,7 @@ export async function processHierarchicalConfigurations(
   dryRun: boolean,
   cliMcpEnabled: boolean,
   cliMcpStrategy?: McpStrategy,
-  backup = true,
+  backup?: boolean,
   selectedAgentsByRulerDir?: Map<string, IAgent[]>,
 ): Promise<string[]> {
   const allGeneratedPaths: string[] = [];
@@ -407,6 +407,7 @@ export async function processHierarchicalConfigurations(
     const rulerRoot = path.dirname(config.rulerDir);
     const selectedAgents =
       selectedAgentsByRulerDir?.get(config.rulerDir) ?? agents;
+    const backupEnabled = backup ?? config.config.backup?.enabled ?? true;
     const paths = await applyConfigurationsToAgents(
       selectedAgents,
       config.concatenatedRules,
@@ -417,7 +418,7 @@ export async function processHierarchicalConfigurations(
       dryRun,
       cliMcpEnabled,
       cliMcpStrategy,
-      backup,
+      backupEnabled,
     );
     const normalizedPaths = paths.map((p) =>
       path.isAbsolute(p) ? p : path.join(rulerRoot, p),

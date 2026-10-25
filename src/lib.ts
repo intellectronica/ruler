@@ -245,10 +245,6 @@ export async function applyAllAgentConfigs(
       );
     }
 
-    const backupEnabledResolved = resolveBackupEnabled(
-      backup,
-      rootConfig.backup?.enabled,
-    );
     {
       const { propagateSubagents } = await import('./core/SubagentsProcessor');
       for (const configEntry of hierarchicalConfigs) {
@@ -284,7 +280,7 @@ export async function applyAllAgentConfigs(
       dryRun,
       cliMcpEnabled,
       cliMcpStrategy,
-      backupEnabledResolved,
+      backup,
       selectedAgentsByRulerDir,
     );
   } else {
