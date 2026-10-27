@@ -429,22 +429,50 @@ function buildCursorFile(sub: SubagentInfo): string {
   return `${buildFrontmatterBlock(meta)}\n${ensureBodyFormatting(sub.body)}`;
 }
 
-function buildCodexFile(sub: SubagentInfo): string {
+/** Claude Code model aliases that Codex does not accept as model ids. */
+const CLAUDE_MODEL_ALIASES = new Set(['sonnet', 'opus', 'haiku', 'inherit']);
+
+function buildCodexFile(
+  sub: SubagentInfo,
+  dryRun: boolean,
+  verbose: boolean,
+): { content: string; warnings: string[] } {
   const fm = sub.frontmatter as SubagentFrontmatter;
   const config: Record<string, unknown> = {
     name: fm.name,
     description: fm.description,
     developer_instructions: ensureBodyFormatting(sub.body),
   };
-  if (fm.model !== undefined && fm.model !== 'inherit') {
-    config.model = fm.model;
+  const warnings: string[] = [];
+  // Mirror Copilot's treatment of non-portable model values: omit inherit, and
+  // also drop Claude aliases that make Codex fail to start (issue #790).
+  if (fm.model !== undefined) {
+    if (CLAUDE_MODEL_ALIASES.has(fm.model)) {
+      if (fm.model !== 'inherit') {
+        warnings.push(
+          `Subagent "${fm.name}": dropping Claude model alias "${fm.model}" for Codex; agent inherits the session model`,
+        );
+      }
+    } else {
+      config.model = fm.model;
+    }
   }
   if (fm.readonly === true) {
     config.sandbox_mode = 'read-only';
   }
+  // Alias drops are informational — surface them when the user asked for
+  // detail (--verbose) or is previewing (--dry-run), matching Copilot tool-drop.
+  if (verbose || dryRun) {
+    for (const warning of warnings) {
+      logWarn(warning, dryRun);
+    }
+  }
   // @iarna/toml requires JsonMap; the cast is safe because every value is a
   // string/boolean/number/object that the library knows how to serialize.
-  return stringifyTOML(config as Parameters<typeof stringifyTOML>[0]);
+  return {
+    content: stringifyTOML(config as Parameters<typeof stringifyTOML>[0]),
+    warnings,
+  };
 }
 
 function buildCopilotFile(
@@ -583,15 +611,23 @@ export async function propagateSubagentsForCodex(
 ): Promise<string[]> {
   if (subagents.length === 0) return [];
   const targetDir = path.join(projectRoot, CODEX_SUBAGENTS_PATH);
+  const verbose = options.verbose ?? false;
   if (options.dryRun) {
-    return subagents.map(
-      (s) =>
+    const planLines: string[] = [];
+    for (const s of subagents) {
+      // Surface Claude-alias drops during dry-run too — buildCodexFile emits
+      // when dryRun is true so users previewing a change can see which models
+      // would be omitted before it actually happens.
+      buildCodexFile(s, true, verbose);
+      planLines.push(
         `Write ${path.join(CODEX_SUBAGENTS_PATH, withExtension(getSourceRelativeMdPath(s), '.toml'))}`,
-    );
+      );
+    }
+    return planLines;
   }
   const files = subagents.map((s) => ({
     name: withExtension(getSourceRelativeMdPath(s), '.toml'),
-    content: buildCodexFile(s),
+    content: buildCodexFile(s, false, verbose).content,
   }));
   await writeManagedAgentsDirectory(targetDir, files, projectRoot);
   return [];

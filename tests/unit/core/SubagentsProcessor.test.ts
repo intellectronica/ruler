@@ -95,6 +95,42 @@ describe('SubagentsProcessor — per-target dry-run', () => {
     warnSpy.mockRestore();
   });
 
+  it.each(['sonnet', 'opus', 'haiku'] as const)(
+    'propagateSubagentsForCodex in dry-run surfaces Claude alias-drop warning for %s and writes nothing',
+    async (alias) => {
+      const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      const subWithAlias: SubagentInfo = {
+        name: 'reviewer',
+        path: '/dev/null/reviewer.md',
+        valid: true,
+        frontmatter: {
+          name: 'reviewer',
+          description: 'Reviews diffs',
+          model: alias,
+          readonly: true,
+        },
+        body: 'Review the diff and report issues.\n',
+      };
+      const result = await propagateSubagentsForCodex(tmpDir, [subWithAlias], {
+        dryRun: true,
+        verbose: false,
+      });
+      expect(result).toEqual([
+        `Write ${path.join(CODEX_SUBAGENTS_PATH, 'reviewer.toml')}`,
+      ]);
+      const warnings = warnSpy.mock.calls.map((args) => String(args[0]));
+      expect(
+        warnings.some((m) =>
+          m.includes(`dropping Claude model alias "${alias}" for Codex`),
+        ),
+      ).toBe(true);
+      await expect(
+        fs.access(path.join(tmpDir, CODEX_SUBAGENTS_PATH)),
+      ).rejects.toThrow();
+      warnSpy.mockRestore();
+    },
+  );
+
   it('returns empty array for all per-target propagators when there are no subagents', async () => {
     expect(
       await propagateSubagentsForCursor(tmpDir, [], { dryRun: true }),
@@ -374,5 +410,84 @@ describe('SubagentsProcessor — Copilot model handling', () => {
 
     expect(inhContent).not.toMatch(/^model:/m);
     expect(explicitContent).toMatch(/^model: opus/m);
+  });
+});
+
+describe('SubagentsProcessor — Codex model handling', () => {
+  let tmpDir: string;
+  beforeEach(async () => {
+    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ruler-sub-codex-model-'));
+  });
+  afterEach(async () => {
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  });
+
+  it('omits Claude model aliases from Codex TOML and keeps non-Claude models', async () => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const sonnetSub: SubagentInfo = {
+      name: 'reviewer',
+      path: '/dev/null/reviewer.md',
+      valid: true,
+      frontmatter: {
+        name: 'reviewer',
+        description: 'Reviews diffs',
+        model: 'sonnet',
+        readonly: true,
+      },
+      body: 'Review the diff and report issues.\n',
+    };
+    const inheritSub: SubagentInfo = {
+      name: 'inh',
+      path: '/dev/null/inh.md',
+      valid: true,
+      frontmatter: {
+        name: 'inh',
+        description: 'x',
+        model: 'inherit',
+      },
+      body: 'body\n',
+    };
+    const nativeSub: SubagentInfo = {
+      name: 'native',
+      path: '/dev/null/native.md',
+      valid: true,
+      frontmatter: {
+        name: 'native',
+        description: 'x',
+        model: 'gpt-4.1',
+      },
+      body: 'body\n',
+    };
+
+    await propagateSubagentsForCodex(
+      tmpDir,
+      [sonnetSub, inheritSub, nativeSub],
+      { dryRun: false, verbose: true },
+    );
+
+    const sonnetToml = await fs.readFile(
+      path.join(tmpDir, CODEX_SUBAGENTS_PATH, 'reviewer.toml'),
+      'utf8',
+    );
+    const inheritToml = await fs.readFile(
+      path.join(tmpDir, CODEX_SUBAGENTS_PATH, 'inh.toml'),
+      'utf8',
+    );
+    const nativeToml = await fs.readFile(
+      path.join(tmpDir, CODEX_SUBAGENTS_PATH, 'native.toml'),
+      'utf8',
+    );
+
+    // Claude aliases must not be copied verbatim (issue #790).
+    expect(sonnetToml).not.toMatch(/^model\s*=\s*"sonnet"/m);
+    expect(sonnetToml).toMatch(/^sandbox_mode\s*=\s*"read-only"/m);
+    expect(inheritToml).not.toMatch(/^model\s*=/m);
+    // Non-Claude model ids still propagate.
+    expect(nativeToml).toMatch(/^model\s*=\s*"gpt-4.1"/m);
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('dropping Claude model alias "sonnet" for Codex'),
+    );
+    warnSpy.mockRestore();
   });
 });
