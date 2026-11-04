@@ -309,13 +309,13 @@ ruler apply --no-mcp --no-gitignore
 
 ## Usage: The `revert` Command
 
-The `revert` command safely undoes all changes made by `ruler apply`, restoring your project to its pre-ruler state. It intelligently restores files from backups (`.bak` files) when available, or removes generated files that didn't exist before.
+The `revert` command restores or removes supported generated agent configuration files made by `ruler apply`, using backups (`.bak` files) when available. It does not currently remove propagated skills or subagents.
 
 ### Why Revert is Needed
 
 When experimenting with different rule configurations or switching between projects, you may want to:
 
-- **Clean slate**: Remove all ruler-generated files to start fresh
+- **Clean slate**: Remove supported Ruler-generated configuration files to start fresh
 - **Restore originals**: Revert modified files back to their original state
 - **Selective cleanup**: Remove configurations for specific agents only
 - **Safe experimentation**: Try ruler without fear of permanent changes
