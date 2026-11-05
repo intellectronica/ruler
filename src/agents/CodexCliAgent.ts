@@ -17,7 +17,8 @@ interface McpServer {
   args?: string[];
   env?: Record<string, string>;
   url?: string;
-  headers?: Record<string, string>; // Support headers from transformed remote servers
+  headers?: Record<string, string>; // Ruler MCP input
+  http_headers?: Record<string, string>; // Codex MCP output
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any; // Allow additional properties from transformation
 }
@@ -138,9 +139,9 @@ export class CodexCliAgent implements IAgent {
         if (serverConfig.env) {
           mcpServer.env = serverConfig.env;
         }
-        // Handle additional properties from remote server transformation
+        // Codex reads remote HTTP headers from http_headers
         if (serverConfig.headers) {
-          mcpServer.headers = serverConfig.headers;
+          mcpServer.http_headers = serverConfig.headers;
         }
 
         if (updatedConfig.mcp_servers) {

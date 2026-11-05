@@ -1,5 +1,6 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import { parse as parseTOML } from '@iarna/toml';
 import { setupTestProject, teardownTestProject, runRuler } from './harness';
 
 describe('apply-mcp.toml-remote', () => {
@@ -62,6 +63,30 @@ url = "https://mcp.example.com/sse"
     expect(config.mcpServers.events).toEqual({
       url: 'https://mcp.example.com/sse',
       type: 'sse',
+    });
+  });
+
+  it('writes Codex remote headers as http_headers', async () => {
+    const { projectRoot } = testProject;
+
+    runRuler('apply --agents codex', projectRoot);
+
+    const configPath = path.join(projectRoot, '.codex', 'config.toml');
+    const content = await fs.readFile(configPath, 'utf8');
+    const config = parseTOML(content) as Record<string, any>;
+
+    expect(config.mcp_servers.search).toEqual({
+      url: 'https://mcp.example.com',
+      http_headers: {
+        Authorization: 'Bearer TOKEN123',
+        'X-API-Version': 'v1',
+      },
+    });
+    expect(config.mcp_servers.api).toEqual({
+      url: 'https://api.example.com/mcp',
+    });
+    expect(config.mcp_servers.events).toEqual({
+      url: 'https://mcp.example.com/sse',
     });
   });
 
