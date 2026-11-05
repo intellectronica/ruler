@@ -1,6 +1,11 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { setupTestProject, teardownTestProject, runRuler } from '../harness';
+import {
+  setupTestProject,
+  teardownTestProject,
+  runRuler,
+  runRulerArgs,
+} from '../harness';
 
 describe('Test Harness', () => {
   describe('setupTestProject', () => {
@@ -141,6 +146,25 @@ describe('Test Harness', () => {
 
       expect(output).toBeDefined();
       expect(typeof output).toBe('string');
+    });
+
+    it('supports shell-sensitive project paths with argv arguments', async () => {
+      const shellSensitiveRoot = path.join(
+        path.dirname(testProject.projectRoot),
+        `ruler argv path with spaces $&;'[]-${Date.now()}`,
+      );
+      await fs.rename(testProject.projectRoot, shellSensitiveRoot);
+      testProject.projectRoot = shellSensitiveRoot;
+
+      const output = runRulerArgs(
+        ['apply', '--agents', 'codex'],
+        shellSensitiveRoot,
+      );
+
+      expect(output).toBeDefined();
+      await expect(
+        fs.readFile(path.join(shellSensitiveRoot, 'AGENTS.md'), 'utf8'),
+      ).resolves.toContain('# Test Rule');
     });
 
     it('throws on invalid commands', () => {

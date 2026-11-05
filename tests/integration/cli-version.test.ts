@@ -3,7 +3,7 @@ import * as fs from 'fs/promises';
 import * as os from 'os';
 import * as path from 'path';
 
-describe('packaged CLI version', () => {
+describe('packaged CLI', () => {
   let tmpDir: string;
   let npmUserConfigPath: string;
   let tarballPath: string | undefined;
@@ -22,7 +22,7 @@ describe('packaged CLI version', () => {
     await fs.rm(tmpDir, { recursive: true, force: true });
   });
 
-  it('reports the package version from a packed install', async () => {
+  it('reports the package version and runs the installed lifecycle commands', async () => {
     const originalAllowScripts = process.env.npm_config_allow_scripts;
 
     try {
@@ -59,13 +59,56 @@ describe('packaged CLI version', () => {
         env: npmEnv,
       });
 
-      const output = execFileSync(
-        path.join(tmpDir, 'node_modules', '.bin', 'ruler'),
-        ['--version'],
-        { encoding: 'utf8' },
-      ).trim();
+      const installedCliPath = path.join(
+        tmpDir,
+        'node_modules',
+        '.bin',
+        'ruler',
+      );
+      const output = execFileSync(installedCliPath, ['--version'], {
+        encoding: 'utf8',
+      }).trim();
 
       expect(output).toBe(packageJson.version);
+
+      const projectRoot = path.join(tmpDir, "project with spaces $&;'[]");
+      await fs.mkdir(projectRoot);
+
+      execFileSync(installedCliPath, ['init', '--project-root', projectRoot], {
+        encoding: 'utf8',
+      });
+
+      await expect(
+        fs.readFile(path.join(projectRoot, '.ruler', 'AGENTS.md'), 'utf8'),
+      ).resolves.toMatch(/^# AGENTS\.md/);
+
+      await fs.writeFile(
+        path.join(projectRoot, '.ruler', 'AGENTS.md'),
+        '# Packaged CLI rule\n',
+      );
+
+      execFileSync(
+        installedCliPath,
+        ['apply', '--agents', 'codex', '--project-root', projectRoot],
+        { encoding: 'utf8' },
+      );
+
+      await expect(
+        fs.readFile(path.join(projectRoot, 'AGENTS.md'), 'utf8'),
+      ).resolves.toContain('Packaged CLI rule');
+
+      execFileSync(
+        installedCliPath,
+        ['revert', '--agents', 'codex', '--project-root', projectRoot],
+        { encoding: 'utf8' },
+      );
+
+      await expect(
+        fs.stat(path.join(projectRoot, 'AGENTS.md')),
+      ).rejects.toThrow();
+      await expect(
+        fs.readFile(path.join(projectRoot, '.ruler', 'AGENTS.md'), 'utf8'),
+      ).resolves.toContain('Packaged CLI rule');
 
       const extractedCliPath = path.join(
         extractedDir,

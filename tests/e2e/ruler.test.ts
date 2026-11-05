@@ -6,6 +6,7 @@ import { execFileSync, execSync } from 'child_process';
 import {
   setupTestProject,
   teardownTestProject,
+  runRulerArgsWithInheritedStdio,
   runRulerWithInheritedStdio,
 } from '../harness';
 
@@ -184,14 +185,14 @@ describe('End-to-End Ruler CLI', () => {
   });
 
   it('uses custom config file via --config', async () => {
-    const alt = path.join(testProject.projectRoot, 'custom.toml');
+    const alt = path.join(testProject.projectRoot, "custom config $&;'[].toml");
     const toml = `default_agents = ["Cursor"]
 [agents.Cursor]
 output_path = "custom_cursor.md"
 `;
     await fs.writeFile(alt, toml);
-    runRulerWithInheritedStdio(
-      `apply --config ${alt}`,
+    runRulerArgsWithInheritedStdio(
+      ['apply', '--config', alt],
       testProject.projectRoot,
     );
     await expect(
