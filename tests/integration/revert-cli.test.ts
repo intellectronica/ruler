@@ -333,17 +333,14 @@ describe('Revert CLI Integration', () => {
           { stdio: 'pipe' },
         );
 
-        const dotGitContent = await fs.readFile(
-          path.join(linkedWorktreeDir, '.git'),
-          'utf8',
-        );
-        const gitDirMatch = dotGitContent.match(/^gitdir:\s*(.+)\s*$/m);
-        expect(gitDirMatch).not.toBeNull();
-        const gitDir = gitDirMatch?.[1] ?? '';
-        const resolvedGitDir = path.isAbsolute(gitDir)
-          ? gitDir
-          : path.resolve(linkedWorktreeDir, gitDir);
-        const excludePath = path.join(resolvedGitDir, 'info', 'exclude');
+        expect(
+          execFileSync(
+            'git',
+            ['-C', linkedWorktreeDir, 'check-ignore', 'CLAUDE.md'],
+            { encoding: 'utf8' },
+          ).trim(),
+        ).toBe('CLAUDE.md');
+        const excludePath = path.join(repoDir, '.git', 'info', 'exclude');
 
         await expect(fs.readFile(excludePath, 'utf8')).resolves.toContain(
           '# START Ruler Generated Files',

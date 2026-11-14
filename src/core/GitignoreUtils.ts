@@ -158,9 +158,13 @@ export async function resolveIgnoreFileTarget(
         ? gitDir
         : path.resolve(projectRoot, gitDir);
       await assertTrustedGitDir(projectRoot, resolvedGitDir);
+      const commonGitDir = await resolveCommonGitDir(
+        projectRoot,
+        resolvedGitDir,
+      );
       return {
-        path: path.join(resolvedGitDir, 'info', 'exclude'),
-        containmentRoot: resolvedGitDir,
+        path: path.join(commonGitDir, 'info', 'exclude'),
+        containmentRoot: commonGitDir,
       };
     }
   } else if (dotGitStat.isDirectory()) {
@@ -174,6 +178,29 @@ export async function resolveIgnoreFileTarget(
     path: path.join(projectRoot, ignoreFile),
     containmentRoot: projectRoot,
   };
+}
+
+async function resolveCommonGitDir(
+  projectRoot: string,
+  gitDir: string,
+): Promise<string> {
+  try {
+    await fs.access(path.join(gitDir, 'commondir'));
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      return gitDir;
+    }
+    throw error;
+  }
+
+  const { stdout } = await execFileAsync('git', [
+    '-C',
+    projectRoot,
+    'rev-parse',
+    '--path-format=absolute',
+    '--git-common-dir',
+  ]);
+  return await fs.realpath(stdout.trim());
 }
 
 async function assertTrustedGitDir(
