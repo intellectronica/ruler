@@ -2,12 +2,14 @@ import * as path from 'path';
 import { promises as fs } from 'fs';
 import { parse as parseTOML, stringify } from '@iarna/toml';
 import { IAgent, IAgentConfig } from './IAgent';
-import { AgentsMdAgent } from './AgentsMdAgent';
+import { AGENTS_MD_HEADER, AgentsMdAgent } from './AgentsMdAgent';
 import {
   assertManagedPathInsideRoot,
   writeGeneratedFile,
 } from '../core/FileSystemUtils';
-import { DEFAULT_RULES_FILENAME } from '../constants';
+import { DEFAULT_RULES_FILENAME, logWarn } from '../constants';
+
+const DEFAULT_CODEX_PROJECT_DOC_MAX_BYTES = 32 * 1024;
 
 /**
  * MCP server definition for Codex CLI (stdio uses command, remote uses url).
@@ -51,20 +53,27 @@ export class CodexCliAgent implements IAgent {
     agentConfig?: IAgentConfig,
     backup = true,
   ): Promise<void> {
+    const outputPath =
+      agentConfig?.outputPath ||
+      agentConfig?.outputPathInstructions ||
+      this.agentsMdAgent.getDefaultOutputPath(projectRoot);
     // First perform idempotent AGENTS.md write via composed AgentsMdAgent
     await this.agentsMdAgent.applyRulerConfig(
       concatenatedRules,
       projectRoot,
       null,
-      {
-        // Preserve explicit outputPath precedence semantics if provided.
-        outputPath:
-          agentConfig?.outputPath ||
-          agentConfig?.outputPathInstructions ||
-          undefined,
-      },
+      { outputPath },
       backup,
     );
+    const instructionBytes =
+      Buffer.byteLength(AGENTS_MD_HEADER) +
+      Buffer.byteLength(concatenatedRules);
+    if (instructionBytes > DEFAULT_CODEX_PROJECT_DOC_MAX_BYTES) {
+      const instructionsPath = path.resolve(projectRoot, outputPath);
+      logWarn(
+        `Generated Codex instructions at ${instructionsPath} use ${instructionBytes} bytes, above Codex's default 32 KiB project instructions budget. Shorten the rules or adjust project_doc_max_bytes in Codex.`,
+      );
+    }
     // Use proper path resolution from getDefaultOutputPath and agentConfig
     const defaults = this.getDefaultOutputPath(projectRoot);
     const mcpEnabled = agentConfig?.mcp?.enabled ?? true;
