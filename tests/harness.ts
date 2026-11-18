@@ -2,7 +2,7 @@ import { existsSync } from 'fs';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import os from 'os';
-import { execSync } from 'child_process';
+import { execFileSync, execSync, spawnSync } from 'child_process';
 
 export interface TestProject {
   projectRoot: string;
@@ -72,6 +72,67 @@ export function runRulerAll(command: string, projectRoot: string): string {
 }
 
 /**
+ * Executes a Ruler CLI command using argv arrays, avoiding shell parsing.
+ * @param args CLI arguments (e.g., ['apply', '--agents', 'copilot'])
+ * @param projectRoot Path to the test project directory
+ * @returns Standard output from the command
+ */
+export function runRulerArgs(args: string[], projectRoot: string): string {
+  return execFileSync(
+    'node',
+    [getBuiltCliFilePath(), ...args, '--project-root', projectRoot],
+    {
+      stdio: 'pipe',
+      encoding: 'utf8',
+    },
+  );
+}
+
+/**
+ * Runs the CLI with argv arrays and returns combined stdout+stderr.
+ */
+export function runRulerArgsAll(args: string[], projectRoot: string): string {
+  const result = spawnSync(
+    'node',
+    [getBuiltCliFilePath(), ...args, '--project-root', projectRoot],
+    {
+      stdio: ['pipe', 'pipe', 'pipe'],
+      encoding: 'utf8',
+    },
+  );
+
+  const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
+
+  if (result.error) {
+    throw result.error;
+  }
+
+  if (result.status !== 0) {
+    throw new Error(output);
+  }
+
+  return output;
+}
+
+/**
+ * Executes a Ruler CLI command using argv arrays with inherited stdio.
+ * @param args CLI arguments (e.g., ['apply', '--agents', 'copilot'])
+ * @param projectRoot Path to the test project directory
+ */
+export function runRulerArgsWithInheritedStdio(
+  args: string[],
+  projectRoot: string,
+): void {
+  execFileSync(
+    'node',
+    [getBuiltCliFilePath(), ...args, '--project-root', projectRoot],
+    {
+      stdio: 'inherit',
+    },
+  );
+}
+
+/**
  * Executes a Ruler CLI command against a test project with inherited stdio
  * @param command Command string (e.g., 'apply --agents copilot')
  * @param projectRoot Path to the test project directory
@@ -85,11 +146,15 @@ export function runRulerWithInheritedStdio(
 }
 
 function getBuiltCliPath(): string {
+  return JSON.stringify(getBuiltCliFilePath());
+}
+
+function getBuiltCliFilePath(): string {
   const cliPath = path.resolve('dist/cli/index.js');
   if (!existsSync(cliPath)) {
     throw new Error(
       `Built Ruler CLI not found at ${cliPath}. Run npm run build, or use Jest's global setup, before running CLI integration helpers.`,
     );
   }
-  return JSON.stringify(cliPath);
+  return cliPath;
 }
