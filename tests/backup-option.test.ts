@@ -182,6 +182,112 @@ describe('backup option', () => {
     expect(gitignoreContent).not.toContain('*.bak');
   });
 
+  describe('nested backup settings', () => {
+    it.each([
+      {
+        name: 'child enables backups when root disables them',
+        rootEnabled: false,
+        childEnabled: true,
+        cliFlag: '',
+        rootBackup: false,
+        childBackup: true,
+      },
+      {
+        name: 'child disables backups when root enables them',
+        rootEnabled: true,
+        childEnabled: false,
+        cliFlag: '',
+        rootBackup: true,
+        childBackup: false,
+      },
+      {
+        name: '--backup overrides both directory settings',
+        rootEnabled: false,
+        childEnabled: false,
+        cliFlag: '--backup',
+        rootBackup: true,
+        childBackup: true,
+      },
+      {
+        name: '--no-backup overrides both directory settings',
+        rootEnabled: true,
+        childEnabled: true,
+        cliFlag: '--no-backup',
+        rootBackup: false,
+        childBackup: false,
+      },
+    ])(
+      '$name',
+      async ({
+        rootEnabled,
+        childEnabled,
+        cliFlag,
+        rootBackup,
+        childBackup,
+      }) => {
+        const customProject = await setupTestProject({
+          '.ruler/AGENTS.md': '# Root rules',
+          '.ruler/ruler.toml':
+            'default_agents = ["claude"]\nnested = true\n\n[backup]\nenabled = ' +
+            rootEnabled +
+            '\n',
+          'CLAUDE.md': '# Original root',
+          'child/.ruler/AGENTS.md': '# Child rules',
+          'child/.ruler/ruler.toml':
+            'default_agents = ["claude"]\n\n[backup]\nenabled = ' +
+            childEnabled +
+            '\n',
+          'child/CLAUDE.md': '# Original child',
+        });
+
+        try {
+          const { projectRoot } = customProject;
+          runRuler('apply --nested --agents claude ' + cliFlag, projectRoot);
+
+          for (const { relativePath, original, rules, enabled } of [
+            {
+              relativePath: 'CLAUDE.md',
+              original: '# Original root',
+              rules: '# Root rules',
+              enabled: rootBackup,
+            },
+            {
+              relativePath: 'child/CLAUDE.md',
+              original: '# Original child',
+              rules: '# Child rules',
+              enabled: childBackup,
+            },
+          ]) {
+            const outputPath = path.join(projectRoot, relativePath);
+            expect(await fs.readFile(outputPath, 'utf8')).toContain(rules);
+
+            const backupPath = outputPath + '.bak';
+            const backupExists = await fs
+              .access(backupPath)
+              .then(() => true)
+              .catch(() => false);
+            expect(backupExists).toBe(enabled);
+            if (enabled) {
+              expect(await fs.readFile(backupPath, 'utf8')).toBe(original);
+            }
+          }
+
+          const gitignoreLines = (
+            await fs.readFile(path.join(projectRoot, '.gitignore'), 'utf8')
+          ).split(/\r?\n/);
+          expect(gitignoreLines).toContain('/CLAUDE.md');
+          expect(gitignoreLines).toContain('/child/CLAUDE.md');
+          expect(gitignoreLines.includes('/CLAUDE.md.bak')).toBe(rootBackup);
+          expect(gitignoreLines.includes('/child/CLAUDE.md.bak')).toBe(
+            childBackup,
+          );
+        } finally {
+          await teardownTestProject(customProject.projectRoot);
+        }
+      },
+    );
+  });
+
   describe('agents with custom applyRulerConfig implementations', () => {
     it('AgentsMdAgent respects --no-backup flag', async () => {
       const testProject = await setupTestProject({
