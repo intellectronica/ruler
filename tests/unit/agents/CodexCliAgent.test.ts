@@ -136,13 +136,19 @@ describe('CodexCliAgent MCP Handling', () => {
     expect(parsed.mcp_servers.ruler_server.env.API_KEY).toBe('test-key');
   });
 
-  it('writes remote MCP server entries', async () => {
+  it('writes remote MCP headers using the Codex http_headers key', async () => {
     const agent = new CodexCliAgent();
     const remoteMcpJson = {
       mcpServers: {
         remote_server: {
           url: 'https://example.com/mcp',
-          headers: { Authorization: 'Bearer token' },
+          headers: {
+            Authorization: 'Bearer token',
+            'X-API-Version': 'v1',
+          },
+        },
+        public_server: {
+          url: 'https://public.example.com/mcp',
         },
       },
     };
@@ -155,12 +161,17 @@ describe('CodexCliAgent MCP Handling', () => {
     const resultStr = await fs.readFile(configPath, 'utf8');
     const result = parseTOML(resultStr) as Record<string, any>;
 
-    expect(result.mcp_servers.remote_server.url).toBe(
-      'https://example.com/mcp',
-    );
-    expect(result.mcp_servers.remote_server.headers.Authorization).toBe(
-      'Bearer token',
-    );
+    expect(result.mcp_servers.remote_server).toEqual({
+      url: 'https://example.com/mcp',
+      http_headers: {
+        Authorization: 'Bearer token',
+        'X-API-Version': 'v1',
+      },
+    });
+    expect(result.mcp_servers.public_server).toEqual({
+      url: 'https://public.example.com/mcp',
+    });
+    expect(resultStr).not.toContain('[mcp_servers.remote_server.headers]');
   });
 
   it('still writes instructions file alongside config', async () => {
