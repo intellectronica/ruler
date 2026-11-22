@@ -5,6 +5,7 @@ import { stringify as stringifyTOML } from '@iarna/toml';
 import {
   RULER_SUBAGENTS_PATH,
   CLAUDE_SUBAGENTS_PATH,
+  CODEBUDDY_SUBAGENTS_PATH,
   CURSOR_SUBAGENTS_PATH,
   CODEX_SUBAGENTS_PATH,
   COPILOT_SUBAGENTS_PATH,
@@ -88,13 +89,20 @@ async function listMarkdownFilesRecursive(dir: string): Promise<string[]> {
   return results.sort();
 }
 
-type SubagentTarget = 'claude' | 'cursor' | 'codex' | 'copilot' | 'opencode';
+type SubagentTarget =
+  | 'claude'
+  | 'codebuddy'
+  | 'cursor'
+  | 'codex'
+  | 'copilot'
+  | 'opencode';
 
 const SUBAGENT_TARGET_TO_IDENTIFIERS = new Map<
   SubagentTarget,
   readonly string[]
 >([
   ['claude', ['claude']],
+  ['codebuddy', ['codebuddy']],
   ['cursor', ['cursor']],
   ['codex', ['codex']],
   ['copilot', ['copilot']],
@@ -103,6 +111,7 @@ const SUBAGENT_TARGET_TO_IDENTIFIERS = new Map<
 
 const SUBAGENT_TARGET_PATHS: Record<SubagentTarget, string> = {
   claude: CLAUDE_SUBAGENTS_PATH,
+  codebuddy: CODEBUDDY_SUBAGENTS_PATH,
   cursor: CURSOR_SUBAGENTS_PATH,
   codex: CODEX_SUBAGENTS_PATH,
   copilot: COPILOT_SUBAGENTS_PATH,
@@ -417,6 +426,18 @@ function buildClaudeFile(sub: SubagentInfo): string {
   return `${buildFrontmatterBlock(meta)}\n${ensureBodyFormatting(sub.body)}`;
 }
 
+function buildCodeBuddyFile(sub: SubagentInfo): string {
+  const fm = sub.frontmatter as SubagentFrontmatter;
+  const meta: Record<string, unknown> = {
+    name: fm.name,
+    description: fm.description,
+  };
+  if (fm.tools !== undefined) meta.tools = fm.tools;
+  if (fm.model !== undefined) meta.model = fm.model;
+  if (fm.is_background !== undefined) meta.background = fm.is_background;
+  return `${buildFrontmatterBlock(meta)}\n${ensureBodyFormatting(sub.body)}`;
+}
+
 function buildCursorFile(sub: SubagentInfo): string {
   const fm = sub.frontmatter as SubagentFrontmatter;
   const meta: Record<string, unknown> = {
@@ -583,6 +604,27 @@ export async function propagateSubagentsForClaude(
   return [];
 }
 
+export async function propagateSubagentsForCodeBuddy(
+  projectRoot: string,
+  subagents: SubagentInfo[],
+  options: PropagateOptions,
+): Promise<string[]> {
+  if (subagents.length === 0) return [];
+  const targetDir = path.join(projectRoot, CODEBUDDY_SUBAGENTS_PATH);
+  if (options.dryRun) {
+    return subagents.map(
+      (s) =>
+        `Write ${path.join(CODEBUDDY_SUBAGENTS_PATH, getSourceRelativeMdPath(s))}`,
+    );
+  }
+  const files = subagents.map((s) => ({
+    name: getSourceRelativeMdPath(s),
+    content: buildCodeBuddyFile(s),
+  }));
+  await writeManagedAgentsDirectory(targetDir, files, projectRoot);
+  return [];
+}
+
 export async function propagateSubagentsForCursor(
   projectRoot: string,
   subagents: SubagentInfo[],
@@ -719,6 +761,12 @@ async function cleanupAllSubagentsDirectories(
   await cleanupSubagentsDir(
     projectRoot,
     CLAUDE_SUBAGENTS_PATH,
+    dryRun,
+    verbose,
+  );
+  await cleanupSubagentsDir(
+    projectRoot,
+    CODEBUDDY_SUBAGENTS_PATH,
     dryRun,
     verbose,
   );
@@ -871,6 +919,17 @@ export async function propagateSubagents(
       dryRun,
     );
     await propagateSubagentsForClaude(projectRoot, subagents, {
+      dryRun,
+      verbose,
+    });
+  }
+  if (targets.has('codebuddy')) {
+    logVerboseInfo(
+      `Writing subagents to ${CODEBUDDY_SUBAGENTS_PATH} for CodeBuddy`,
+      verbose,
+      dryRun,
+    );
+    await propagateSubagentsForCodeBuddy(projectRoot, subagents, {
       dryRun,
       verbose,
     });

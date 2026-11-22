@@ -56,6 +56,7 @@ export function logVerboseInfo(
 export const SKILLS_DIR = 'skills';
 export const RULER_SKILLS_PATH = '.ruler/skills';
 export const CLAUDE_SKILLS_PATH = '.claude/skills';
+export const CODEBUDDY_SKILLS_PATH = '.codebuddy/skills';
 export const CODEX_SKILLS_PATH = '.agents/skills';
 export const OPENCODE_SKILLS_PATH = '.opencode/skills';
 export const PI_SKILLS_PATH = '.pi/skills';
@@ -75,6 +76,7 @@ export const SKILL_MD_FILENAME = 'SKILL.md';
 // Subagents-related constants
 export const RULER_SUBAGENTS_PATH = '.ruler/agents';
 export const CLAUDE_SUBAGENTS_PATH = '.claude/agents';
+export const CODEBUDDY_SUBAGENTS_PATH = '.codebuddy/agents';
 export const CURSOR_SUBAGENTS_PATH = '.cursor/agents';
 export const CODEX_SUBAGENTS_PATH = '.codex/agents';
 export const COPILOT_SUBAGENTS_PATH = '.github/agents';

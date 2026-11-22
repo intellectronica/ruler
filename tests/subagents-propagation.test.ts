@@ -5,12 +5,14 @@ import * as yaml from 'js-yaml';
 import { parse as parseTOML } from '@iarna/toml';
 import {
   propagateSubagentsForClaude,
+  propagateSubagentsForCodeBuddy,
   propagateSubagentsForCursor,
   propagateSubagentsForCodex,
   propagateSubagentsForCopilot,
 } from '../src/core/SubagentsProcessor';
 import {
   CLAUDE_SUBAGENTS_PATH,
+  CODEBUDDY_SUBAGENTS_PATH,
   CURSOR_SUBAGENTS_PATH,
   CODEX_SUBAGENTS_PATH,
   COPILOT_SUBAGENTS_PATH,
@@ -68,6 +70,12 @@ describe('Subagents per-agent propagators', () => {
       'Claude',
       propagateSubagentsForClaude,
       CLAUDE_SUBAGENTS_PATH,
+      'reviewer.md',
+    ],
+    [
+      'CodeBuddy',
+      propagateSubagentsForCodeBuddy,
+      CODEBUDDY_SUBAGENTS_PATH,
       'reviewer.md',
     ],
     [
@@ -446,6 +454,60 @@ describe('Subagents per-agent propagators', () => {
           warnSpy.mockRestore();
         }
       });
+    });
+  });
+
+  describe('CodeBuddy propagator', () => {
+    it('writes markdown file to .codebuddy/agents with tools, model, and background mapped from is_background', async () => {
+      const sub = makeSubagent({
+        frontmatter: {
+          name: 'reviewer',
+          description: 'Reviews code',
+          tools: ['Read', 'Grep'],
+          model: 'inherit',
+          readonly: true,
+          is_background: true,
+        },
+      });
+
+      await propagateSubagentsForCodeBuddy(tmpDir, [sub], { dryRun: false });
+
+      const target = path.join(tmpDir, CODEBUDDY_SUBAGENTS_PATH, 'reviewer.md');
+      const content = await fs.readFile(target, 'utf8');
+      const { meta, body } = readFrontmatter(content);
+
+      expect(meta.name).toBe('reviewer');
+      expect(meta.description).toBe('Reviews code');
+      expect(meta.tools).toEqual(['Read', 'Grep']);
+      expect(meta.model).toBe('inherit');
+      expect(meta.background).toBe(true);
+      expect(meta.is_background).toBeUndefined();
+      expect(meta.readonly).toBeUndefined();
+      expect(body.trim()).toBe('You review code.');
+    });
+
+    it('omits optional fields when absent in source', async () => {
+      const sub = makeSubagent();
+      await propagateSubagentsForCodeBuddy(tmpDir, [sub], { dryRun: false });
+      const target = path.join(tmpDir, CODEBUDDY_SUBAGENTS_PATH, 'reviewer.md');
+      const content = await fs.readFile(target, 'utf8');
+      const { meta } = readFrontmatter(content);
+      expect(meta.tools).toBeUndefined();
+      expect(meta.model).toBeUndefined();
+      expect(meta.background).toBeUndefined();
+    });
+
+    it('does not write files in dry-run mode', async () => {
+      const sub = makeSubagent();
+      const steps = await propagateSubagentsForCodeBuddy(tmpDir, [sub], {
+        dryRun: true,
+      });
+      expect(steps).toEqual([
+        `Write ${path.join(CODEBUDDY_SUBAGENTS_PATH, 'reviewer.md')}`,
+      ]);
+      await expect(
+        fs.access(path.join(tmpDir, CODEBUDDY_SUBAGENTS_PATH)),
+      ).rejects.toThrow();
     });
   });
 });
