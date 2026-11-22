@@ -32,12 +32,14 @@ import { AntigravityAgent } from './AntigravityAgent';
 import { MistralVibeAgent } from './MistralVibeAgent';
 import { PiAgent } from './PiAgent';
 import { JetBrainsAiAssistantAgent } from './JetBrainsAiAssistantAgent';
+import { CodeBuddyAgent } from './CodeBuddyAgent';
 
 export { AbstractAgent };
 
 export const allAgents: IAgent[] = [
   new CopilotAgent(),
   new ClaudeAgent(),
+  new CodeBuddyAgent(),
   new CodexCliAgent(),
   new CursorAgent(),
   new WindsurfAgent(),

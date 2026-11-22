@@ -4,6 +4,7 @@ import { SkillInfo } from '../types';
 import {
   RULER_SKILLS_PATH,
   CLAUDE_SKILLS_PATH,
+  CODEBUDDY_SKILLS_PATH,
   CODEX_SKILLS_PATH,
   OPENCODE_SKILLS_PATH,
   PI_SKILLS_PATH,
@@ -74,6 +75,7 @@ export async function getSkillsGitignorePaths(
   // Import here to avoid circular dependency
   const {
     CLAUDE_SKILLS_PATH,
+    CODEBUDDY_SKILLS_PATH,
     CODEX_SKILLS_PATH,
     OPENCODE_SKILLS_PATH,
     PI_SKILLS_PATH,
@@ -92,6 +94,7 @@ export async function getSkillsGitignorePaths(
   const selectedTargets = getSelectedSkillTargets(agents);
   const targetPaths: Record<SkillTarget, string> = {
     claude: CLAUDE_SKILLS_PATH,
+    codebuddy: CODEBUDDY_SKILLS_PATH,
     codex: CODEX_SKILLS_PATH,
     opencode: OPENCODE_SKILLS_PATH,
     pi: PI_SKILLS_PATH,
@@ -149,6 +152,7 @@ function warnOnceExperimental(verbose: boolean, dryRun: boolean): void {
 
 type SkillTarget =
   | 'claude'
+  | 'codebuddy'
   | 'codex'
   | 'opencode'
   | 'pi'
@@ -166,6 +170,7 @@ type SkillTarget =
 
 const SKILL_TARGET_TO_IDENTIFIERS = new Map<SkillTarget, readonly string[]>([
   ['claude', ['claude', 'kilocode']],
+  ['codebuddy', ['codebuddy']],
   ['codex', ['codex']],
   ['opencode', ['opencode']],
   ['pi', ['pi']],
@@ -185,6 +190,7 @@ const SKILL_TARGET_TO_IDENTIFIERS = new Map<SkillTarget, readonly string[]>([
 const SKILL_TARGET_PATHS: readonly string[] = Array.from(
   new Set([
     CLAUDE_SKILLS_PATH,
+    CODEBUDDY_SKILLS_PATH,
     CODEX_SKILLS_PATH,
     OPENCODE_SKILLS_PATH,
     PI_SKILLS_PATH,
@@ -593,6 +599,15 @@ export async function propagateSkills(
       dryRun,
     );
     await propagateSkillsForClaude(projectRoot, { dryRun });
+  }
+
+  if (selectedTargets.has('codebuddy')) {
+    logVerboseInfo(
+      `Copying skills to ${CODEBUDDY_SKILLS_PATH} for CodeBuddy`,
+      verbose,
+      dryRun,
+    );
+    await propagateSkillsForCodeBuddy(projectRoot, { dryRun });
   }
 
   if (selectedTargets.has('codex')) {
@@ -1160,6 +1175,37 @@ export async function propagateSkillsForGithub(
   }
 
   await syncSkillsDirectory(skillsDir, githubSkillsPath, projectRoot);
+
+  return [];
+}
+
+/**
+ * Propagates skills for CodeBuddy by copying .ruler/skills to .codebuddy/skills.
+ * Updates only Ruler-managed entries so existing native skills are preserved.
+ * Returns dry-run steps if dryRun is true, otherwise returns empty array.
+ */
+export async function propagateSkillsForCodeBuddy(
+  projectRoot: string,
+  options: { dryRun: boolean },
+): Promise<string[]> {
+  const skillsDir = path.join(projectRoot, RULER_SKILLS_PATH);
+  const codebuddySkillsPath = path.join(projectRoot, CODEBUDDY_SKILLS_PATH);
+
+  // Check if source skills directory exists
+  try {
+    await fs.access(skillsDir);
+  } catch {
+    // No skills directory - return empty
+    return [];
+  }
+
+  if (options.dryRun) {
+    return [
+      `Copy skills from ${RULER_SKILLS_PATH} to ${CODEBUDDY_SKILLS_PATH}`,
+    ];
+  }
+
+  await syncSkillsDirectory(skillsDir, codebuddySkillsPath, projectRoot);
 
   return [];
 }

@@ -7,6 +7,7 @@ import { WindsurfAgent } from '../src/agents/WindsurfAgent';
 import { AiderAgent } from '../src/agents/AiderAgent';
 import { GeminiCliAgent } from '../src/agents/GeminiCliAgent';
 import { OpenCodeAgent } from '../src/agents/OpenCodeAgent';
+import { CodeBuddyAgent } from '../src/agents/CodeBuddyAgent';
 
 describe('supportsNativeSubagents capability flag', () => {
   describe('agents with a native subagent primitive', () => {
@@ -17,6 +18,11 @@ describe('supportsNativeSubagents capability flag', () => {
 
     it('Claude Code reports true', () => {
       const agent: IAgent = new ClaudeAgent();
+      expect(agent.supportsNativeSubagents?.()).toBe(true);
+    });
+
+    it('CodeBuddy reports true', () => {
+      const agent: IAgent = new CodeBuddyAgent();
       expect(agent.supportsNativeSubagents?.()).toBe(true);
     });
 

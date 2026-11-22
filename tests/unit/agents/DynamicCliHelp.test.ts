@@ -57,6 +57,7 @@ describe('Dynamic CLI Help Agent List', () => {
       'goose',
       'openhands',
       'factory',
+      'codebuddy',
     ];
 
     for (const agent of newAgents) {

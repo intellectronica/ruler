@@ -11,12 +11,14 @@ import {
 } from '../../../src/core/SubagentsProcessor';
 import {
   CLAUDE_SUBAGENTS_PATH,
+  CODEBUDDY_SUBAGENTS_PATH,
   CURSOR_SUBAGENTS_PATH,
   CODEX_SUBAGENTS_PATH,
   COPILOT_SUBAGENTS_PATH,
   RULER_SUBAGENTS_PATH,
 } from '../../../src/constants';
 import { ClaudeAgent } from '../../../src/agents/ClaudeAgent';
+import { CodeBuddyAgent } from '../../../src/agents/CodeBuddyAgent';
 import { CursorAgent } from '../../../src/agents/CursorAgent';
 import { CodexCliAgent } from '../../../src/agents/CodexCliAgent';
 import { CopilotAgent } from '../../../src/agents/CopilotAgent';
@@ -358,6 +360,52 @@ describe('SubagentsProcessor — propagateSubagents orchestrator', () => {
       fs.access(path.join(tmpDir, CLAUDE_SUBAGENTS_PATH, 'reviewer.md')),
     ).resolves.toBeUndefined();
     await expect(fs.access(cursorDir)).rejects.toThrow();
+  });
+
+  it('propagates, returns gitignore paths, and cleans up subagents for CodeBuddy', async () => {
+    const sourceDir = path.join(tmpDir, RULER_SUBAGENTS_PATH, 'nested');
+    await fs.mkdir(sourceDir, { recursive: true });
+    await fs.writeFile(
+      path.join(sourceDir, 'reviewer.md'),
+      '---\nname: reviewer\ndescription: Reviews code\ntools: [Read]\nis_background: true\n---\nbody\n',
+    );
+
+    await expect(
+      getSubagentsGitignorePaths(tmpDir, [new CodeBuddyAgent()]),
+    ).resolves.toEqual([
+      path.join(tmpDir, CODEBUDDY_SUBAGENTS_PATH, '.ruler-managed.json'),
+      path.join(tmpDir, CODEBUDDY_SUBAGENTS_PATH, 'nested', 'reviewer.md'),
+    ]);
+
+    await propagateSubagents(
+      tmpDir,
+      [new CodeBuddyAgent()],
+      true,
+      true,
+      false,
+      false,
+    );
+
+    const codebuddyTarget = path.join(
+      tmpDir,
+      CODEBUDDY_SUBAGENTS_PATH,
+      'nested',
+      'reviewer.md',
+    );
+    await expect(fs.access(codebuddyTarget)).resolves.toBeUndefined();
+
+    // Disable with cleanup_orphaned enabled removes managed CodeBuddy subagents
+    await propagateSubagents(
+      tmpDir,
+      [new CodeBuddyAgent()],
+      false,
+      true,
+      false,
+      false,
+    );
+    await expect(
+      fs.access(path.join(tmpDir, CODEBUDDY_SUBAGENTS_PATH)),
+    ).rejects.toThrow();
   });
 });
 

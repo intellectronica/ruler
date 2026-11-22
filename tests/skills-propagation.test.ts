@@ -6,6 +6,7 @@ import { discoverSkills } from '../src/core/SkillsProcessor';
 import {
   ANTIGRAVITY_SKILLS_PATH,
   CLAUDE_SKILLS_PATH,
+  CODEBUDDY_SKILLS_PATH,
   GITHUB_SKILLS_PATH,
   JUNIE_SKILLS_PATH,
   KIRO_SKILLS_PATH,
@@ -1597,6 +1598,51 @@ describe('Skills Discovery and Validation', () => {
       await expect(
         fs.access(path.join(tmpDir, ANTIGRAVITY_SKILLS_PATH)),
       ).rejects.toThrow();
+    });
+
+    it('propagates CodeBuddy skills to .codebuddy/skills only and supports dry-run', async () => {
+      const { propagateSkills, propagateSkillsForCodeBuddy } = await import(
+        '../src/core/SkillsProcessor'
+      );
+      const { CodeBuddyAgent } = await import('../src/agents/CodeBuddyAgent');
+      const skillsDir = path.join(tmpDir, '.ruler', 'skills', 'skill1');
+
+      await fs.mkdir(skillsDir, { recursive: true });
+      await fs.writeFile(path.join(skillsDir, SKILL_MD_FILENAME), '# Skill 1');
+
+      const dryRunSteps = await propagateSkillsForCodeBuddy(tmpDir, {
+        dryRun: true,
+      });
+      expect(
+        dryRunSteps.some((step) => step.includes(CODEBUDDY_SKILLS_PATH)),
+      ).toBe(true);
+      await expect(
+        fs.access(path.join(tmpDir, CODEBUDDY_SKILLS_PATH)),
+      ).rejects.toThrow();
+
+      await propagateSkills(tmpDir, [new CodeBuddyAgent()], true, false, false);
+
+      const codebuddySkill = path.join(
+        tmpDir,
+        CODEBUDDY_SKILLS_PATH,
+        'skill1',
+        SKILL_MD_FILENAME,
+      );
+
+      expect(await fs.readFile(codebuddySkill, 'utf8')).toBe('# Skill 1');
+      await expect(
+        fs.access(path.join(tmpDir, CLAUDE_SKILLS_PATH)),
+      ).rejects.toThrow();
+
+      // Cleanup when disabled removes Ruler-managed CodeBuddy skills
+      await propagateSkills(
+        tmpDir,
+        [new CodeBuddyAgent()],
+        false,
+        false,
+        false,
+      );
+      await expect(fs.access(codebuddySkill)).rejects.toThrow();
     });
   });
 

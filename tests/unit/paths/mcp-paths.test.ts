@@ -35,6 +35,7 @@ describe('MCP Path Resolution', () => {
         'Cursor',
         'Windsurf',
         'Claude Code',
+        'CodeBuddy',
         'OpenAI Codex CLI',
         'Aider',
         'Open Hands',
@@ -114,6 +115,11 @@ describe('MCP Path Resolution', () => {
         expect(mcpPath).toBe(
           path.join(projectRoot, '.kiro', 'settings', 'mcp.json'),
         );
+      });
+
+      it('CodeBuddy should use project-local .mcp.json path', async () => {
+        const mcpPath = await getNativeMcpPath('CodeBuddy', projectRoot);
+        expect(mcpPath).toBe(path.join(projectRoot, '.mcp.json'));
       });
     });
   });
