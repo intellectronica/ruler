@@ -32,6 +32,8 @@ export interface BackupConfig {
 export interface SkillsConfig {
   /** Enable or disable skills support. */
   enabled?: boolean;
+  /** Restrict distribution to these agent identifiers. */
+  allowed_agents?: readonly string[];
 }
 
 /** Information about a discovered skill. */

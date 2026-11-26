@@ -72,45 +72,7 @@ export async function getSkillsGitignorePaths(
     return [];
   }
 
-  // Import here to avoid circular dependency
-  const {
-    CLAUDE_SKILLS_PATH,
-    CODEBUDDY_SKILLS_PATH,
-    CODEX_SKILLS_PATH,
-    OPENCODE_SKILLS_PATH,
-    PI_SKILLS_PATH,
-    GOOSE_SKILLS_PATH,
-    VIBE_SKILLS_PATH,
-    ROO_SKILLS_PATH,
-    GEMINI_SKILLS_PATH,
-    JUNIE_SKILLS_PATH,
-    CURSOR_SKILLS_PATH,
-    WINDSURF_SKILLS_PATH,
-    FACTORY_SKILLS_PATH,
-    ANTIGRAVITY_SKILLS_PATH,
-    GITHUB_SKILLS_PATH,
-  } = await import('../constants');
-
   const selectedTargets = getSelectedSkillTargets(agents);
-  const targetPaths: Record<SkillTarget, string> = {
-    claude: CLAUDE_SKILLS_PATH,
-    codebuddy: CODEBUDDY_SKILLS_PATH,
-    codex: CODEX_SKILLS_PATH,
-    opencode: OPENCODE_SKILLS_PATH,
-    pi: PI_SKILLS_PATH,
-    goose: GOOSE_SKILLS_PATH,
-    vibe: VIBE_SKILLS_PATH,
-    roo: ROO_SKILLS_PATH,
-    gemini: GEMINI_SKILLS_PATH,
-    junie: JUNIE_SKILLS_PATH,
-    cursor: CURSOR_SKILLS_PATH,
-    windsurf: WINDSURF_SKILLS_PATH,
-    factory: FACTORY_SKILLS_PATH,
-    antigravity: ANTIGRAVITY_SKILLS_PATH,
-    kiro: KIRO_SKILLS_PATH,
-    github: GITHUB_SKILLS_PATH,
-  };
-
   const managedEntries = await getSourceTopLevelEntries(skillsDir);
   if (managedEntries.length === 0) {
     return [];
@@ -118,7 +80,10 @@ export async function getSkillsGitignorePaths(
 
   const pathSet = new Set<string>();
   for (const target of selectedTargets) {
-    const targetPath = path.join(projectRoot, targetPaths[target]);
+    const targetPath = path.join(
+      projectRoot,
+      SKILL_TARGET_PATH_BY_TARGET[target],
+    );
     pathSet.add(path.join(targetPath, RULER_MANAGED_MANIFEST));
     for (const managedEntry of managedEntries) {
       pathSet.add(path.join(targetPath, managedEntry));
@@ -187,26 +152,24 @@ const SKILL_TARGET_TO_IDENTIFIERS = new Map<SkillTarget, readonly string[]>([
   ['github', ['copilot']],
 ]);
 
-const SKILL_TARGET_PATHS: readonly string[] = Array.from(
-  new Set([
-    CLAUDE_SKILLS_PATH,
-    CODEBUDDY_SKILLS_PATH,
-    CODEX_SKILLS_PATH,
-    OPENCODE_SKILLS_PATH,
-    PI_SKILLS_PATH,
-    GOOSE_SKILLS_PATH,
-    VIBE_SKILLS_PATH,
-    ROO_SKILLS_PATH,
-    GEMINI_SKILLS_PATH,
-    JUNIE_SKILLS_PATH,
-    CURSOR_SKILLS_PATH,
-    WINDSURF_SKILLS_PATH,
-    FACTORY_SKILLS_PATH,
-    ANTIGRAVITY_SKILLS_PATH,
-    KIRO_SKILLS_PATH,
-    GITHUB_SKILLS_PATH,
-  ]),
-);
+const SKILL_TARGET_PATH_BY_TARGET: Record<SkillTarget, string> = {
+  claude: CLAUDE_SKILLS_PATH,
+  codebuddy: CODEBUDDY_SKILLS_PATH,
+  codex: CODEX_SKILLS_PATH,
+  opencode: OPENCODE_SKILLS_PATH,
+  pi: PI_SKILLS_PATH,
+  goose: GOOSE_SKILLS_PATH,
+  vibe: VIBE_SKILLS_PATH,
+  roo: ROO_SKILLS_PATH,
+  gemini: GEMINI_SKILLS_PATH,
+  junie: JUNIE_SKILLS_PATH,
+  cursor: CURSOR_SKILLS_PATH,
+  windsurf: WINDSURF_SKILLS_PATH,
+  factory: FACTORY_SKILLS_PATH,
+  antigravity: ANTIGRAVITY_SKILLS_PATH,
+  kiro: KIRO_SKILLS_PATH,
+  github: GITHUB_SKILLS_PATH,
+};
 
 function getSelectedSkillTargets(agents: IAgent[]): Set<SkillTarget> {
   const selectedIdentifiers = new Set(
@@ -278,7 +241,7 @@ async function cleanupSkillsDirectory(
   await removeManagedManifest(targetPath, projectRoot);
   await removeDirectoryIfEmpty(targetPath);
   logVerboseInfo(
-    `Removed Ruler-managed entries from ${relativePath} (skills disabled)`,
+    `Removed Ruler-managed entries from ${relativePath}`,
     verbose,
     dryRun,
   );
@@ -498,9 +461,15 @@ async function cleanupSkillsDirectories(
   projectRoot: string,
   dryRun: boolean,
   verbose: boolean,
+  retainedTargets: ReadonlySet<SkillTarget>,
 ): Promise<void> {
-  for (const skillPath of SKILL_TARGET_PATHS) {
-    await cleanupSkillsDirectory(projectRoot, skillPath, dryRun, verbose);
+  const retainedPaths = new Set(
+    [...retainedTargets].map((target) => SKILL_TARGET_PATH_BY_TARGET[target]),
+  );
+  for (const skillPath of new Set(Object.values(SKILL_TARGET_PATH_BY_TARGET))) {
+    if (!retainedPaths.has(skillPath)) {
+      await cleanupSkillsDirectory(projectRoot, skillPath, dryRun, verbose);
+    }
   }
 }
 
@@ -513,6 +482,7 @@ export async function propagateSkills(
   skillsEnabled: boolean,
   verbose: boolean,
   dryRun: boolean,
+  allowedAgents?: IAgent[],
 ): Promise<void> {
   if (!skillsEnabled) {
     logVerboseInfo(
@@ -521,8 +491,18 @@ export async function propagateSkills(
       dryRun,
     );
     // Clean up skills directories when skills are disabled
-    await cleanupSkillsDirectories(projectRoot, dryRun, verbose);
+    await cleanupSkillsDirectories(projectRoot, dryRun, verbose, new Set());
     return;
+  }
+
+  const selectedTargets = getSelectedSkillTargets(agents);
+  if (allowedAgents !== undefined) {
+    await cleanupSkillsDirectories(
+      projectRoot,
+      dryRun,
+      verbose,
+      getSelectedSkillTargets(allowedAgents),
+    );
   }
 
   const skillsDir = path.join(projectRoot, RULER_SKILLS_PATH);
@@ -581,7 +561,6 @@ export async function propagateSkills(
   // Warn about experimental features
   warnOnceExperimental(verbose, dryRun);
 
-  const selectedTargets = getSelectedSkillTargets(agents);
   if (selectedTargets.size === 0) {
     logVerboseInfo(
       'No selected agents require skills propagation, skipping skills propagation',

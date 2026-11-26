@@ -2,6 +2,7 @@ import { promises as fs } from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { parse as parseTOML } from '@iarna/toml';
+import { skillsConfigSchema } from './ConfigLoader';
 import { sha256, stableJson } from './hash';
 import { concatenateRules } from './RuleProcessor';
 import * as FileSystemUtils from './FileSystemUtils';
@@ -198,17 +199,9 @@ export async function loadUnifiedConfig(
     nested = (tomlRaw as Record<string, unknown>).nested as boolean;
   }
 
-  // Parse skills configuration
-  let skillsConfig;
-  if (tomlRaw && typeof tomlRaw === 'object') {
-    const skillsSection = (tomlRaw as Record<string, unknown>).skills;
-    if (skillsSection && typeof skillsSection === 'object') {
-      const skillsObj = skillsSection as Record<string, unknown>;
-      if (typeof skillsObj.enabled === 'boolean') {
-        skillsConfig = { enabled: skillsObj.enabled };
-      }
-    }
-  }
+  const skillsConfig = skillsConfigSchema.safeParse(
+    (tomlRaw as Record<string, unknown> | undefined)?.skills,
+  );
 
   const toml: TomlConfig = {
     raw: tomlRaw,
@@ -216,7 +209,7 @@ export async function loadUnifiedConfig(
     agents: {},
     defaultAgents,
     nested,
-    skills: skillsConfig,
+    skills: skillsConfig.data,
   };
 
   const includeAgentsInRules = (() => {

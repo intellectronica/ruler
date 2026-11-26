@@ -103,3 +103,39 @@ export function resolveSelectedAgents(
 
   return selected;
 }
+
+/** Resolves the allowlist against the agents selected for this apply. */
+export function resolveSkillsAgentSelection(
+  selectedAgents: IAgent[],
+  allAgents: IAgent[],
+  allowedAgents: readonly string[] | undefined,
+): { selected: IAgent[]; allowed?: IAgent[] } {
+  if (allowedAgents === undefined) {
+    return { selected: selectedAgents };
+  }
+
+  const knownIdentifiers = new Set(
+    allAgents.map((agent) => agent.getIdentifier()),
+  );
+  const allowedIdentifiers = new Set(
+    allowedAgents.map((agent) => agent.toLowerCase()),
+  );
+  const unknownIdentifiers = [...allowedIdentifiers].filter(
+    (identifier) => !knownIdentifiers.has(identifier),
+  );
+  if (unknownIdentifiers.length > 0) {
+    throw createRulerError(
+      `Invalid agent specified in skills.allowed_agents: ${unknownIdentifiers.join(', ')}`,
+      `Valid agents are: ${[...knownIdentifiers].join(', ')}`,
+    );
+  }
+
+  return {
+    selected: selectedAgents.filter((agent) =>
+      allowedIdentifiers.has(agent.getIdentifier()),
+    ),
+    allowed: allAgents.filter((agent) =>
+      allowedIdentifiers.has(agent.getIdentifier()),
+    ),
+  };
+}

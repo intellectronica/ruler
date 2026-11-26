@@ -203,6 +203,68 @@ enabled = false
     await expect(fs.access(copiedSkill)).rejects.toThrow();
   });
 
+  it('uses each nested allowlist for skills and ignore entries', async () => {
+    const childRoot = path.join(tmpDir, 'packages', 'core');
+    for (const [root, agent] of [
+      [tmpDir, 'claude'],
+      [childRoot, 'codex'],
+    ]) {
+      const rulerDir = path.join(root, '.ruler');
+      const skillDir = path.join(rulerDir, 'skills', 'example');
+      await fs.mkdir(skillDir, { recursive: true });
+      await fs.writeFile(path.join(skillDir, SKILL_MD_FILENAME), agent);
+      await fs.writeFile(path.join(rulerDir, 'AGENTS.md'), '# Rules');
+      await fs.writeFile(
+        path.join(rulerDir, 'ruler.toml'),
+        `[skills]\nallowed_agents = ["${agent}"]\n`,
+      );
+    }
+
+    await applyAllAgentConfigs(
+      tmpDir,
+      ['claude', 'codex'],
+      undefined,
+      true,
+      undefined,
+      undefined,
+      false,
+      false,
+      false,
+      true,
+      true,
+    );
+
+    const claudeSkill = path.join(
+      '.claude',
+      'skills',
+      'example',
+      SKILL_MD_FILENAME,
+    );
+    const codexSkill = path.join(
+      '.agents',
+      'skills',
+      'example',
+      SKILL_MD_FILENAME,
+    );
+    await expect(
+      fs.readFile(path.join(tmpDir, claudeSkill), 'utf8'),
+    ).resolves.toBe('claude');
+    await expect(
+      fs.readFile(path.join(childRoot, codexSkill), 'utf8'),
+    ).resolves.toBe('codex');
+    await expect(
+      fs.access(path.join(tmpDir, codexSkill)),
+    ).rejects.toMatchObject({ code: 'ENOENT' });
+    await expect(
+      fs.access(path.join(childRoot, claudeSkill)),
+    ).rejects.toMatchObject({ code: 'ENOENT' });
+
+    const ignore = await fs.readFile(path.join(tmpDir, '.gitignore'), 'utf8');
+    expect(ignore).toContain('/.claude/skills/example');
+    expect(ignore).toContain('/packages/core/.agents/skills/example');
+    expect(ignore).not.toContain('/packages/core/.claude/skills/example');
+  });
+
   it('honors skills.enabled = true in ruler.toml', async () => {
     // Setup .ruler directory with skills
     const rulerDir = path.join(tmpDir, '.ruler');
