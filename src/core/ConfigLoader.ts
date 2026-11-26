@@ -39,6 +39,13 @@ interface ErrnoException extends Error {
   code?: string;
 }
 
+export const skillsConfigSchema = z
+  .object({
+    enabled: z.boolean().optional(),
+    allowed_agents: z.array(z.string().trim().min(1)).optional(),
+  })
+  .strict();
+
 const mcpConfigSchema = z
   .object({
     enabled: z.boolean().optional(),
@@ -106,12 +113,7 @@ const rulerConfigSchema = z
       })
       .strict()
       .optional(),
-    skills: z
-      .object({
-        enabled: z.boolean().optional(),
-      })
-      .strict()
-      .optional(),
+    skills: skillsConfigSchema.optional(),
     // Deprecated: kept in the schema only so that legacy `[subagents]` blocks
     // are preserved through validation. The parser reads from here as a
     // fallback when the new `[agents]` keys are absent and emits a one-time
@@ -460,14 +462,7 @@ export async function loadConfig(
     backupConfig.enabled = rawBackupSection.enabled;
   }
 
-  const rawSkillsSection =
-    raw.skills && typeof raw.skills === 'object' && !Array.isArray(raw.skills)
-      ? (raw.skills as Record<string, unknown>)
-      : {};
-  const skillsConfig: SkillsConfig = {};
-  if (typeof rawSkillsSection.enabled === 'boolean') {
-    skillsConfig.enabled = rawSkillsSection.enabled;
-  }
+  const skillsConfig = skillsConfigSchema.parse(raw.skills ?? {});
 
   // Subagent control lives under `[agents]` (alongside per-agent records).
   // The reserved keys `enabled` and `include_in_rules` are pulled out here

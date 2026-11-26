@@ -673,7 +673,18 @@ ruler apply --no-skills
 ```toml
 [skills]
 enabled = true  # or false to disable
+allowed_agents = ["claude", "codex"]  # optional
 ```
+
+When set, `allowed_agents` limits skills to the listed agent identifiers that
+are selected for the current apply. Rules and other configuration still apply
+to all selected agents. An empty list disables distribution to every agent.
+`--skills` and `--no-skills` override `enabled`. The allowlist still applies
+when skills are enabled.
+
+Ruler removes previously managed skills from destinations excluded by the allowlist and
+preserves personal skills. If an allowed agent shares a skills directory with
+another agent, that directory still receives skills.
 
 ### Non-native Agents
 

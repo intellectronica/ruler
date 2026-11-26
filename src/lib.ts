@@ -15,7 +15,10 @@ import {
 import { type LoadedConfig } from './core/ConfigLoader';
 import type { ConfigDiagnostic } from './core/UnifiedConfigTypes';
 import { mapRawAgentConfigs } from './core/config-utils';
-import { resolveSelectedAgents } from './core/agent-selection';
+import {
+  resolveSelectedAgents,
+  resolveSkillsAgentSelection,
+} from './core/agent-selection';
 
 const agents: IAgent[] = allAgents;
 
@@ -160,7 +163,8 @@ export async function applyAllAgentConfigs(
   const gitignoreConfigurations: Array<{
     projectRoot: string;
     config: LoadedConfig;
-    selectedAgents?: IAgent[];
+    selectedAgents: IAgent[];
+    skillsAgents: IAgent[];
   }> = [];
 
   if (nested) {
@@ -198,20 +202,28 @@ export async function applyAllAgentConfigs(
       verbose,
     );
 
-    const selectedAgentsByRulerDir = new Map<string, IAgent[]>();
-    for (const configEntry of hierarchicalConfigs) {
+    const scopedConfigurations = hierarchicalConfigs.map((configEntry) => {
       configEntry.config.cliAgents = includedAgents;
       normalizeAgentConfigs(configEntry.config, agents);
       const configSelectedAgents = resolveSelectedAgents(
         configEntry.config,
         agents,
       );
-      selectedAgentsByRulerDir.set(configEntry.rulerDir, configSelectedAgents);
-    }
+      return {
+        ...configEntry,
+        selectedAgents: configSelectedAgents,
+        skillsSelection: resolveSkillsAgentSelection(
+          configSelectedAgents,
+          agents,
+          configEntry.config.skills?.allowed_agents,
+        ),
+      };
+    });
 
     selectedAgents =
-      selectedAgentsByRulerDir.get(rootConfigEntry.rulerDir) ??
-      resolveSelectedAgents(rootConfig, agents);
+      scopedConfigurations.find(
+        (entry) => entry.rulerDir === rootConfigEntry.rulerDir,
+      )?.selectedAgents ?? resolveSelectedAgents(rootConfig, agents);
     logVerbose(
       `Selected ${selectedAgents.length} agents for root configuration: ${selectedAgents.map((a) => a.getName()).join(', ')}`,
       verbose,
@@ -219,14 +231,13 @@ export async function applyAllAgentConfigs(
 
     const { propagateSkills } = await import('./core/SkillsProcessor');
     // Propagate or clean up skills for each nested .ruler directory.
-    for (const configEntry of hierarchicalConfigs) {
+    for (const configEntry of scopedConfigurations) {
       const nestedRoot = path.dirname(configEntry.rulerDir);
-      const configSelectedAgents =
-        selectedAgentsByRulerDir.get(configEntry.rulerDir) ?? selectedAgents;
       gitignoreConfigurations.push({
         projectRoot: nestedRoot,
         config: configEntry.config,
-        selectedAgents: configSelectedAgents,
+        selectedAgents: configEntry.selectedAgents,
+        skillsAgents: configEntry.skillsSelection.selected,
       });
       const skillsEnabledResolved = resolveSkillsEnabled(
         skillsEnabled,
@@ -238,10 +249,11 @@ export async function applyAllAgentConfigs(
       );
       await propagateSkills(
         nestedRoot,
-        configSelectedAgents,
+        configEntry.skillsSelection.selected,
         skillsEnabledResolved,
         verbose,
         dryRun,
+        configEntry.skillsSelection.allowed,
       );
     }
 
@@ -251,10 +263,8 @@ export async function applyAllAgentConfigs(
     );
     {
       const { propagateSubagents } = await import('./core/SubagentsProcessor');
-      for (const configEntry of hierarchicalConfigs) {
+      for (const configEntry of scopedConfigurations) {
         const nestedRoot = path.dirname(configEntry.rulerDir);
-        const configSelectedAgents =
-          selectedAgentsByRulerDir.get(configEntry.rulerDir) ?? selectedAgents;
         const subagentsEnabledResolved = resolveSubagentsEnabled(
           subagentsEnabled,
           configEntry.config.subagents?.enabled,
@@ -268,7 +278,7 @@ export async function applyAllAgentConfigs(
         );
         await propagateSubagents(
           nestedRoot,
-          configSelectedAgents,
+          configEntry.selectedAgents,
           subagentsEnabledResolved,
           subagentsCleanupOrphaned,
           verbose,
@@ -285,7 +295,12 @@ export async function applyAllAgentConfigs(
       cliMcpEnabled,
       cliMcpStrategy,
       backupEnabledResolved,
-      selectedAgentsByRulerDir,
+      new Map(
+        scopedConfigurations.map((entry) => [
+          entry.rulerDir,
+          entry.selectedAgents,
+        ]),
+      ),
     );
   } else {
     const singleConfig = await loadSingleConfiguration(
@@ -299,10 +314,6 @@ export async function applyAllAgentConfigs(
     emitConfigDiagnostics([singleConfig], dryRun);
 
     loadedConfig = singleConfig.config;
-    gitignoreConfigurations.push({
-      projectRoot: singleProjectRoot,
-      config: singleConfig.config,
-    });
     singleConfig.config.cliAgents = includedAgents;
 
     logVerbose(
@@ -322,6 +333,18 @@ export async function applyAllAgentConfigs(
       verbose,
     );
 
+    const skillsSelection = resolveSkillsAgentSelection(
+      selectedAgents,
+      agents,
+      singleConfig.config.skills?.allowed_agents,
+    );
+    gitignoreConfigurations.push({
+      projectRoot: singleProjectRoot,
+      config: singleConfig.config,
+      selectedAgents,
+      skillsAgents: skillsSelection.selected,
+    });
+
     // Propagate skills if enabled
     const skillsEnabledResolved = resolveSkillsEnabled(
       skillsEnabled,
@@ -330,10 +353,11 @@ export async function applyAllAgentConfigs(
     const { propagateSkills } = await import('./core/SkillsProcessor');
     await propagateSkills(
       singleProjectRoot,
-      selectedAgents,
+      skillsSelection.selected,
       skillsEnabledResolved,
       verbose,
       dryRun,
+      skillsSelection.allowed,
     );
 
     // Propagate subagents (mirrors skills handling).
@@ -383,7 +407,7 @@ export async function applyAllAgentConfigs(
     for (const entry of skillsEnabledGitignoreConfigurations) {
       const skillsPaths = await getSkillsGitignorePaths(
         entry.projectRoot,
-        entry.selectedAgents ?? selectedAgents,
+        entry.skillsAgents,
       );
       allGeneratedPaths = [...allGeneratedPaths, ...skillsPaths];
     }
@@ -404,7 +428,7 @@ export async function applyAllAgentConfigs(
     for (const entry of subagentsEnabledGitignoreConfigurations) {
       const subagentPaths = await getSubagentsGitignorePaths(
         entry.projectRoot,
-        entry.selectedAgents ?? selectedAgents,
+        entry.selectedAgents,
       );
       allGeneratedPaths = [...allGeneratedPaths, ...subagentPaths];
     }

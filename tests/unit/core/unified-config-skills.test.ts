@@ -44,6 +44,12 @@ enabled = false
     expect(unified.toml.skills).toBeUndefined();
   });
 
+  test('parses an allowlist without requiring the global switch', async () => {
+    await fs.writeFile(tomlPath, '[skills]\nallowed_agents = ["codex"]\n');
+    const unified = await loadUnifiedConfig({ projectRoot: tmpRoot });
+    expect(unified.toml.skills).toEqual({ allowed_agents: ['codex'] });
+  });
+
   test('respects skills.enabled = true', async () => {
     await fs.writeFile(
       tomlPath,
